@@ -27,7 +27,9 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^4.3.0",
+    "nuxt-auth-utils": "0.5.28",
     "pg": "^8.18.0",
+    "pinia": "^3.0.4",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
