@@ -8,6 +8,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    public: {
+      appName: process.env.APP_NAME || 'Fitness Tracker'
+    }
+  },
+
   routeRules: {
     '/': { prerender: true }
   },
@@ -22,4 +28,4 @@ export default defineNuxtConfig({
       }
     }
   }
-});
+})
