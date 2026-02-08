@@ -11,7 +11,8 @@ export const users = pgTable(
     age: integer().notNull(),
     sex: varchar({ enum: ['m', 'f'] }).default(sql`null`),
     avatarUrl: varchar({ length: 255 }).default(sql`null`),
-    isActive: boolean().default(true)
+    isActive: boolean().default(true),
+    password: varchar({ length: 255 })
   },
   (table) => [unique('users_email_unique').on(table.email)]
 )

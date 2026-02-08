@@ -24,17 +24,20 @@
     "@nuxt/image": "2.0.0",
     "@nuxt/test-utils": "3.23.0",
     "@nuxt/ui": "^4.4.0",
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^4.3.0",
     "nuxt-auth-utils": "0.5.28",
     "pg": "^8.18.0",
     "pinia": "^3.0.4",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.13.0",
     "@playwright/test": "^1.58.1",
+    "@types/bcrypt": "^6.0.0",
     "@types/pg": "^8.16.0",
     "@vitest/coverage-v8": "^4.0.18",
     "@vue/test-utils": "^2.4.6",
