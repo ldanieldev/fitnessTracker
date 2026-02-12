@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-const open = ref(false)
+const { loggedIn } = useUserSession()
 
+watch(loggedIn, () => {
+  if (!loggedIn.value) {
+    navigateTo('/auth/login')
+  }
+})
+
+const open = ref(false)
 const { appName } = useRuntimeConfig().public
 
 const close = () => {
@@ -25,17 +32,17 @@ const links = [
       children: [
         {
           label: 'Log Workout',
-          to: '/workouts/log',
+          // to: '/workouts/log',
           onSelect: close
         },
         {
           label: 'Workout History',
-          to: '/workouts/history',
+          // to: '/workouts/history',
           onSelect: close
         },
         {
           label: 'Exercises',
-          to: '/exercises',
+          // to: '/exercises',
           onSelect: close
         }
       ]
@@ -48,17 +55,17 @@ const links = [
       children: [
         {
           label: 'Progress',
-          to: '/progress',
+          // to: '/progress',
           onSelect: close
         },
         {
           label: 'Body Metrics',
-          to: '/body-metrics',
+          // to: '/body-metrics',
           onSelect: close
         },
         {
           label: 'Goals',
-          to: '/goals',
+          // to: '/goals',
           onSelect: close
         }
       ]
@@ -71,17 +78,17 @@ const links = [
       children: [
         {
           label: 'Programs',
-          to: '/programs',
+          // to: '/programs',
           onSelect: close
         },
         {
           label: 'Calendar',
-          to: '/calendar',
+          // to: '/calendar',
           onSelect: close
         },
         {
           label: 'Timer',
-          to: '/timer',
+          // to: '/timer',
           onSelect: close
         }
       ]
@@ -130,9 +137,6 @@ const links = [
         <UserMenu :collapsed="collapsed" />
       </template>
     </UDashboardSidebar>
-
-    <!-- <UDashboardSearch :groups="groups" />/ -->
-
     <slot />
   </UDashboardGroup>
 </template>

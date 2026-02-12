@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt'
 import { getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
@@ -24,7 +23,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const passwordHash = await bcrypt.hash(body.password, 12)
+  const hashedPassword = await hashPassword(body.password)
 
   try {
     const { password, ...userColumns } = getTableColumns(users)
@@ -34,7 +33,7 @@ export default defineEventHandler(async (event) => {
         name: body.name,
         email: body.email,
         sex: body.sex,
-        password: passwordHash,
+        password: hashedPassword,
         isActive: true,
         age: body.age
       })

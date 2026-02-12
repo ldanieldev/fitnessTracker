@@ -9,14 +9,22 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
+    oauth: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET
+      },
+      github: {
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET
+      }
+    },
     public: {
       appName: process.env.APP_NAME || 'Fitness Tracker'
     }
   },
 
-  routeRules: {
-    '/': { prerender: true }
-  },
+  routeRules: {},
 
   compatibilityDate: '2025-01-15',
 

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 
+const { clear, user } = useUserSession()
+
 defineProps<{
   collapsed?: boolean
 }>()
@@ -28,20 +30,15 @@ const colors = [
   'rose'
 ]
 
-const user = ref({
-  name: 'Le-Andris Daniel',
-  avatar: {
-    src: 'https://github.com/ldanieldev.png',
-    alt: 'Le-Andris Daniel'
-  }
-})
-
 const items = computed<DropdownMenuItem[][]>(() => [
   [
     {
       type: 'label',
-      label: user.value.name,
-      avatar: user.value.avatar
+      label: user.value?.name ?? '',
+      avatar: {
+        src: user.value?.avatar_url ?? undefined,
+        alt: user.value?.name ?? ''
+      }
     }
   ],
   [
@@ -107,7 +104,8 @@ const items = computed<DropdownMenuItem[][]>(() => [
   [
     {
       label: 'Log out',
-      icon: 'i-lucide-log-out'
+      icon: 'i-lucide-log-out',
+      onSelect: clear
     }
   ]
 ])
@@ -121,7 +119,10 @@ const items = computed<DropdownMenuItem[][]>(() => [
   >
     <UButton
       v-bind="{
-        ...user,
+        avatar: {
+          src: user?.avatar_url ?? undefined,
+          alt: user?.name
+        },
         label: collapsed ? undefined : user?.name,
         trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
       }"
