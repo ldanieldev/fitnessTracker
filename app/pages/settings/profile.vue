@@ -82,7 +82,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       </UFormField>
 
       <UFormField label="Age" name="age" required>
-        <UInput v-model="state.age" type="number" placeholder="Enter your age" class="w-full" />
+        <UInput v-model="(state.age as string | number)" type="number" placeholder="Enter your age" class="w-full" />
       </UFormField>
 
       <UFormField label="Sex" name="sex" required>
