@@ -16,6 +16,7 @@ export default withNuxt({
     '@stylistic/space-in-parens': 'off',
     '@stylistic/func-call-spacing': 'off',
     '@stylistic/operator-linebreak': 'off',
-    '@stylistic/arrow-parens': 'off'
+    '@stylistic/arrow-parens': 'off',
+    '@stylistic/member-delimiter-style': 'off'
   }
 })
