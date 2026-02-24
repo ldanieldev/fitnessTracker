@@ -1,0 +1,282 @@
+table auth_providers {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  provider varchar(50) [not null]
+  provider_account_id varchar(255) [not null]
+
+  indexes {
+    (provider, provider_account_id) [name: 'auth_providers_provider_account_unique', unique]
+  }
+}
+
+table body_parts {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  name varchar(255) [not null]
+  image_url varchar(255) [default: `null`]
+
+  indexes {
+    name [name: 'body_part_name', unique]
+  }
+}
+
+table equipment {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  name varchar(255) [not null]
+
+  indexes {
+    name [name: 'equipment_name', unique]
+  }
+}
+
+table exercise_equipment {
+  exercise_id integer [not null]
+  equipment_id integer [not null]
+
+  indexes {
+    (exercise_id, equipment_id) [pk]
+  }
+}
+
+table exercise_muscles {
+  exercise_id integer [not null]
+  muscle_id integer [not null]
+  is_primary boolean [not null, default: true]
+
+  indexes {
+    (exercise_id, muscle_id) [pk]
+  }
+}
+
+table exercise_types {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  name varchar(255) [not null]
+
+  indexes {
+    name [name: 'exercise_type_name', unique]
+  }
+}
+
+table exercises {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  name varchar(255) [not null]
+  exercise_type_id integer [default: `null`]
+  difficulty varchar [default: `null`]
+  image_url varchar(255) [default: `null`]
+  video_url varchar(255) [default: `null`]
+  instructions jsonb [default: `null`]
+  created_by_user_id integer [default: `null`]
+
+  indexes {
+    (name, created_by_user_id) [name: 'exercise_name_user', unique]
+  }
+}
+
+table muscles {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  name varchar(255) [not null]
+  body_part_id integer [not null]
+
+  indexes {
+    name [name: 'muscle_name', unique]
+  }
+}
+
+table program_phases {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  program_id integer [not null]
+  name varchar(255) [not null]
+  sort_order integer [not null]
+  week_start integer [not null]
+  week_end integer [not null]
+}
+
+table program_workouts {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  phase_id integer [not null]
+  template_id integer [default: `null`]
+  name varchar(255) [not null]
+  day_of_week integer [default: `null`]
+  week_number integer [not null]
+  sort_order integer [not null]
+}
+
+table programs {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  name varchar(255) [not null]
+  description text [default: `null`]
+  image_url varchar(255) [default: `null`]
+  total_weeks integer [not null]
+  created_by_user_id integer [default: `null`]
+}
+
+table user_program_enrollments {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  program_id integer [not null]
+  start_date date [not null]
+  status varchar [not null]
+}
+
+table user_program_workout_completions {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  enrollment_id integer [not null]
+  program_workout_id integer [not null]
+  session_id integer [default: `null`]
+  completion_percent integer [not null, default: 100]
+  completed_at timestamp [not null]
+
+  indexes {
+    (enrollment_id, program_workout_id) [name: 'enrollment_workout_unique', unique]
+  }
+}
+
+table users {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  email varchar(255) [not null]
+  name varchar(255) [not null]
+  age integer [not null]
+  sex varchar [default: `null`]
+  avatar_url varchar(255) [default: `null`]
+  is_active boolean [default: true]
+  password varchar(255)
+
+  indexes {
+    email [name: 'users_email_unique', unique]
+  }
+}
+
+table workout_entries {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  session_id integer [not null]
+  exercise_id integer [not null]
+  sort_order integer [not null]
+  entry_type varchar [not null]
+  duration_seconds integer [default: `null`]
+  distance_meters numeric [default: `null`]
+  calories integer [default: `null`]
+  avg_pace numeric [default: `null`]
+  notes text [default: `null`]
+}
+
+table workout_sessions {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  template_id integer [default: `null`]
+  name varchar(255) [default: `null`]
+  started_at timestamp [not null]
+  completed_at timestamp [default: `null`]
+  notes text [default: `null`]
+}
+
+table workout_sets {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  entry_id integer [not null]
+  set_number integer [not null]
+  weight numeric [not null]
+  reps integer [not null]
+  rpe integer [default: `null`]
+}
+
+table workout_template_entries {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  template_id integer [not null]
+  exercise_id integer [not null]
+  sort_order integer [not null]
+  entry_type varchar [not null]
+  target_sets integer [default: `null`]
+  target_reps integer [default: `null`]
+  target_weight numeric [default: `null`]
+  target_duration_seconds integer [default: `null`]
+  target_distance_meters numeric [default: `null`]
+}
+
+table workout_templates {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  name varchar(255) [not null]
+  description text [default: `null`]
+}
+
+ref auth_providers_user_id_users_id_fk: auth_providers.user_id > users.id [delete: cascade, update: no action]
+
+ref exercise_equipment_exercise_id_exercises_id_fk: exercise_equipment.exercise_id > exercises.id [delete: cascade, update: no action]
+
+ref exercise_equipment_equipment_id_equipment_id_fk: exercise_equipment.equipment_id > equipment.id [delete: cascade, update: no action]
+
+ref exercise_muscles_exercise_id_exercises_id_fk: exercise_muscles.exercise_id > exercises.id [delete: cascade, update: no action]
+
+ref exercise_muscles_muscle_id_muscles_id_fk: exercise_muscles.muscle_id > muscles.id [delete: cascade, update: no action]
+
+ref exercises_exercise_type_id_exercise_types_id_fk: exercises.exercise_type_id > exercise_types.id [delete: cascade, update: no action]
+
+ref exercises_created_by_user_id_users_id_fk: exercises.created_by_user_id > users.id [delete: cascade, update: no action]
+
+ref muscles_body_part_id_body_parts_id_fk: muscles.body_part_id > body_parts.id [delete: cascade, update: no action]
+
+ref program_phases_program_id_programs_id_fk: program_phases.program_id > programs.id [delete: cascade, update: no action]
+
+ref program_workouts_phase_id_program_phases_id_fk: program_workouts.phase_id > program_phases.id [delete: cascade, update: no action]
+
+ref program_workouts_template_id_workout_templates_id_fk: program_workouts.template_id > workout_templates.id [delete: set null, update: no action]
+
+ref programs_created_by_user_id_users_id_fk: programs.created_by_user_id > users.id [delete: cascade, update: no action]
+
+ref user_program_enrollments_user_id_users_id_fk: user_program_enrollments.user_id > users.id [delete: cascade, update: no action]
+
+ref user_program_enrollments_program_id_programs_id_fk: user_program_enrollments.program_id > programs.id [delete: cascade, update: no action]
+
+ref user_program_workout_completions_enrollment_id_user_program_enrollments_id_fk: user_program_workout_completions.enrollment_id > user_program_enrollments.id [delete: cascade, update: no action]
+
+ref user_program_workout_completions_program_workout_id_program_workouts_id_fk: user_program_workout_completions.program_workout_id > program_workouts.id [delete: cascade, update: no action]
+
+ref user_program_workout_completions_session_id_workout_sessions_id_fk: user_program_workout_completions.session_id > workout_sessions.id [delete: set null, update: no action]
+
+ref workout_entries_session_id_workout_sessions_id_fk: workout_entries.session_id > workout_sessions.id [delete: cascade, update: no action]
+
+ref workout_entries_exercise_id_exercises_id_fk: workout_entries.exercise_id > exercises.id [delete: cascade, update: no action]
+
+ref workout_sessions_user_id_users_id_fk: workout_sessions.user_id > users.id [delete: cascade, update: no action]
+
+ref workout_sessions_template_id_workout_templates_id_fk: workout_sessions.template_id > workout_templates.id [delete: set null, update: no action]
+
+ref workout_sets_entry_id_workout_entries_id_fk: workout_sets.entry_id > workout_entries.id [delete: cascade, update: no action]
+
+ref workout_template_entries_template_id_workout_templates_id_fk: workout_template_entries.template_id > workout_templates.id [delete: cascade, update: no action]
+
+ref workout_template_entries_exercise_id_exercises_id_fk: workout_template_entries.exercise_id > exercises.id [delete: cascade, update: no action]
+
+ref workout_templates_user_id_users_id_fk: workout_templates.user_id > users.id [delete: cascade, update: no action]
