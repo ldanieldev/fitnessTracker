@@ -32,7 +32,7 @@ const links = [
       children: [
         {
           label: 'Log Workout',
-          // to: '/workouts/log',
+          to: '/workouts/log',
           onSelect: close
         },
         {
