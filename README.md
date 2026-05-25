@@ -1,60 +1,91 @@
-# Nuxt Starter Template
+# Fitness Tracker
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+A full-stack Nuxt 4 app for logging workouts, tracking programs, and managing exercise history.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+## Stack
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
+- **Runtime / package manager**: Bun
+- **Framework**: Nuxt 4 + Nuxt UI (Tailwind)
+- **Database**: PostgreSQL via Drizzle ORM
+- **Auth**: `nuxt-auth-utils` (credentials + GitHub OAuth)
+- **Background jobs**: Inngest
+- **Mail (dev)**: Mailpit
+- **Tests**: Vitest (unit + Nuxt) and Playwright (E2E)
 
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-  </picture>
-</a>
+## Prerequisites
 
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t github:nuxt-ui-templates/starter
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
+- [Bun](https://bun.sh) 1.3+ — `curl -fsSL https://bun.sh/install | bash`
+- [Podman](https://podman.io) with the `compose` plugin (or `podman-compose`)
 
 ## Setup
 
-Make sure to install the dependencies:
-
 ```bash
-pnpm install
+cp .env.example .env                          # set NUXT_SESSION_PASSWORD to a 32+ char string
+systemctl --user enable --now podman.socket   # see "Other container runtimes" below
+bun install
+podman compose up -d                          # postgres, redis, mailpit, inngest
+bunx drizzle-kit migrate                      # apply pending migrations
 ```
 
-## Development Server
+### Other container runtimes
 
-Start the development server on `http://localhost:3000`:
+The commands in this README assume **rootless Podman on Linux**. If you're using something else:
 
-```bash
-pnpm dev
-```
+- **Docker Desktop (Mac / Windows / Linux)** or **Docker Engine on Linux**: substitute `docker compose` for every `podman compose` command and **skip** the `systemctl --user enable --now podman.socket` line — Docker manages its own socket.
+- **Podman Desktop / `podman machine` on Mac / Windows**: substitute is identical to the Linux Podman commands, but skip the `systemctl` line — `podman machine init` already sets up the equivalent socket inside its Linux VM.
+- **Rootless Podman on Linux** (the default path): keep everything as-is. The `systemctl --user enable --now podman.socket` line is a one-time setup that enables the user-scoped API socket `compose` needs to manage service dependencies.
 
-## Production
-
-Build the application for production:
+## Development
 
 ```bash
-pnpm build
+bun dev                    # http://localhost:3000
+bun lint
+bun typecheck
+bun build                  # production build
+bun preview                # serve the production build locally
 ```
 
-Locally preview production build:
+### Database
 
 ```bash
-pnpm preview
+bunx drizzle-kit generate  # create migration from schema changes
+bunx drizzle-kit migrate   # apply pending migrations
+bun dbml                   # regenerate ERD (DBML) from schema
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Testing
+
+### Unit and Nuxt component tests
+
+Run on the host with Vitest:
+
+```bash
+bun test                   # all projects
+bun test:unit              # unit tests only (test/unit/)
+bun test:nuxt              # Nuxt component tests (test/nuxt/)
+bun test:watch
+bun test:coverage
+```
+
+### End-to-end tests (Playwright)
+
+Two ways to run them, depending on whether you want browsers installed on your host.
+
+**Option A — Headless run in a container** (no host install of Chromium or its system deps):
+
+```bash
+podman compose --profile test run --rm playwright                              # full suite
+podman compose --profile test run --rm playwright test:e2e tests/example.spec.ts   # one file
+```
+
+The `playwright` service in `compose.yml` uses Microsoft's official Playwright image, installs Bun on first run (cached in a named volume for subsequent runs), and runs the suite against the rest of the compose stack. Args after the service name are forwarded to `bun`. The HTML report lands in `playwright-report/` on the host — open `playwright-report/index.html` in your browser to view it.
+
+This option is headless only. For interactive modes (`--ui`, `--debug`, `--headed`), use Option B.
+
+**Option B — On the host** (required for the Playwright UI and inspector):
+
+```bash
+bunx playwright install --with-deps   # one-time: browsers + OS libs
+bun test:e2e
+bun test:e2e:ui                       # interactive UI mode
+```
