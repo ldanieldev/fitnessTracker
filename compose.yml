@@ -48,7 +48,39 @@ services:
       - postgres
       - redis
 
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.58.1-jammy
+    profiles: ["test"]
+    working_dir: /work
+    env_file:
+      - .env
+    environment:
+      BUN_INSTALL: /root/.bun
+      PATH: /root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      CI: "true"
+    volumes:
+      - .:/work:Z
+      - playwright_bun:/root/.bun
+    depends_on:
+      - postgres
+      - redis
+      - inngest
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        if ! command -v bun >/dev/null 2>&1; then
+          apt-get update -qq && apt-get install -y -qq unzip
+          curl -fsSL https://bun.sh/install | bash
+        fi
+        bun install --frozen-lockfile
+        exec bun "$@"
+      - bash
+    command: ["test:e2e"]
+
 volumes:
   postgres_data:
   redis_data:
   redis_insight_data:
+  playwright_bun:
