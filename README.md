@@ -60,7 +60,7 @@ bun dbml                   # regenerate ERD (DBML) from schema
 Run on the host with Vitest:
 
 ```bash
-bun test                   # all projects
+bun run test               # all projects
 bun test:unit              # unit tests only (test/unit/)
 bun test:nuxt              # Nuxt component tests (test/nuxt/)
 bun test:watch
@@ -75,7 +75,7 @@ Two ways to run them, depending on whether you want browsers installed on your h
 
 ```bash
 podman compose --profile test run --rm playwright                              # full suite
-podman compose --profile test run --rm playwright test:e2e tests/example.spec.ts   # one file
+podman compose --profile test run --rm playwright test:e2e test/e2e/example.spec.ts   # one file
 ```
 
 The `playwright` service in `compose.yml` uses Microsoft's official Playwright image, installs Bun on first run (cached in a named volume for subsequent runs), and runs the suite against the rest of the compose stack. Args after the service name are forwarded to `bun`. The HTML report lands in `playwright-report/` on the host — open `playwright-report/index.html` in your browser to view it.
