@@ -48,7 +48,26 @@ export default defineNuxtConfig({
       }
     }
   },
-
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@internationalized/date',
+        '@opentelemetry/context-zone',
+        '@opentelemetry/exporter-trace-otlp-http',
+        '@opentelemetry/instrumentation',
+        '@opentelemetry/instrumentation-document-load',
+        '@opentelemetry/instrumentation-fetch',
+        '@opentelemetry/resources',
+        '@opentelemetry/sdk-trace-base',
+        '@opentelemetry/sdk-trace-web',
+        '@opentelemetry/semantic-conventions',
+        'date-fns',
+        'zod',
+        '@vue/devtools-core',
+        '@vue/devtools-kit'
+      ]
+    }
+  },
   eslint: {
     config: {
       stylistic: {
