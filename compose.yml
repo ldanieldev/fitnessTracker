@@ -48,6 +48,22 @@ services:
       - postgres
       - redis
 
+  alloy:
+    image: docker.io/grafana/alloy:v1.16.1
+    environment:
+      TEMPO_OTLP_ENDPOINT: ${TEMPO_OTLP_ENDPOINT}
+      LOKI_PUSH_URL: ${LOKI_PUSH_URL}
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
+    ports:
+      - "4318:4318"   # OTLP HTTP (app + browser)
+      - "12345:12345" # Alloy UI / health
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:Z,ro
+      - ./logs:/logs:Z,ro
+
   playwright:
     image: mcr.microsoft.com/playwright:v1.58.1-jammy
     profiles: ["test"]

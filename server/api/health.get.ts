@@ -1,11 +1,12 @@
 import { sql } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineTracedEventHandler(async (event) => {
   let db_ok = false
 
   try {
-    await db.execute(sql`SELECT 1`)
+    await withQuerySpan('health-db-ping', () => db.execute(sql`SELECT 1`))
     db_ok = true
+    logger.debug({ route: '/api/health' }, 'health check ok')
   } catch (error) {
     console.error('Database connection failed:', error)
   }

@@ -1,6 +1,14 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@nuxt/ui', '@nuxt/hints', '@nuxt/image', '@nuxt/test-utils', 'nuxt-auth-utils'],
+  modules: [
+    '@nuxt/eslint',
+    '@nuxt/ui',
+    '@nuxt/hints',
+    '@nuxt/image',
+    '@nuxt/test-utils',
+    'nuxt-auth-utils',
+    'nitro-opentelemetry'
+  ],
 
   devtools: {
     enabled: true
@@ -20,13 +28,26 @@ export default defineNuxtConfig({
       }
     },
     public: {
-      appName: process.env.APP_NAME || 'Fitness Tracker'
+      appName: process.env.APP_NAME || 'Fitness Tracker',
+      enableOtel: process.env.ENABLE_OPENTELEMETRY === 'true'
     }
   },
 
   routeRules: {},
 
   compatibilityDate: '2025-01-15',
+
+  nitro: {
+    otel: {
+      // name MUST be the literal 'custom' — nitro-opentelemetry only honors
+      // preset.filePath when name === 'custom'.
+      // filePath is resolved relative to project root;
+      preset: {
+        name: 'custom',
+        filePath: './otel/instrumentation'
+      }
+    }
+  },
 
   eslint: {
     config: {

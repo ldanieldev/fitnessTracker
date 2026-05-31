@@ -1,0 +1,55 @@
+// ---- Receive OTLP from the app + browser, forward traces to remote Tempo ----
+otelcol.receiver.otlp "default" {
+  http {
+    endpoint = "0.0.0.0:4318"
+    // Browser sends OTLP from the dev origin; allow it through CORS.
+    cors {
+      allowed_origins = ["http://localhost:3000"]
+    }
+  }
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = sys.env("TEMPO_OTLP_ENDPOINT") // Tempo OTLP gRPC, e.g. host:44317
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// ---- Tail pino's JSON log file, ship to remote Loki ----
+local.file_match "applogs" {
+  path_targets = [{ __path__ = "/logs/*.log" }]
+}
+
+loki.source.file "app" {
+  targets    = local.file_match.applogs.targets
+  forward_to = [loki.process.parse.receiver]
+}
+
+loki.process "parse" {
+  forward_to = [loki.write.loki.receiver]
+
+  // pino lines are JSON; lift `level` into a label (bounded cardinality).
+  stage.json {
+    expressions = { level = "level" }
+  }
+  stage.labels {
+    values = { level = "" }
+  }
+  // tracesToLogsV2 in grafana-datasources maps service.name -> service_name,
+  // so stamp it as a static label for the trace->logs jump to resolve.
+  stage.static_labels {
+    values = { service_name = "fitness-tracker-server" }
+  }
+}
+
+loki.write "loki" {
+  endpoint {
+    url = sys.env("LOKI_PUSH_URL") // full Loki push URL, e.g. http://host:43100/loki/api/v1/push
+  }
+}

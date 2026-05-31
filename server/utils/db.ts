@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
+import { trace, SpanStatusCode } from '@opentelemetry/api'
 import * as schema from '../db/schema'
 
 const pool = new Pool({
@@ -13,3 +14,25 @@ const pool = new Pool({
  * Drizzle ORM database instance with schema bindings and connection pooling.
  */
 export const db = drizzle({ client: pool, schema })
+
+/**
+ * Wraps a DB operation in a span. Fallback for runtimes (Bun) where
+ * @opentelemetry/instrumentation-pg auto-patching does not fire — verified
+ * empirically: pg produced no spans under Bun, so queries are wrapped manually.
+ */
+export async function withQuerySpan<T>(opName: string, fn: () => Promise<T>): Promise<T> {
+  const tracer = trace.getTracer('fitness-tracker-db')
+  return tracer.startActiveSpan('pg.query', async (span) => {
+    span.setAttribute('db.system', 'postgresql')
+    span.setAttribute('db.operation', opName)
+    try {
+      return await fn()
+    } catch (err) {
+      span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) })
+      span.recordException(err as Error)
+      throw err
+    } finally {
+      span.end()
+    }
+  })
+}
