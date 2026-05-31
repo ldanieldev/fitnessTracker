@@ -1,0 +1,5 @@
+[install]
+# Supply-chain cooldown: refuse versions published less than 3 days ago,
+# so malicious releases have time to be reported/unpublished before installing.
+minimumReleaseAge = 259200 # seconds (3 days)
+minimumReleaseAgeExcludes = ["@types/node", "typescript"]
