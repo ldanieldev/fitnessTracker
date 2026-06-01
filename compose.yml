@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:18-alpine
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -13,7 +13,7 @@ services:
   redis:
     image: redis:8-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -21,7 +21,7 @@ services:
   redis-insight:
     image: redis/redisinsight:latest
     ports:
-      - "5540:5540"
+      - '5540:5540'
     volumes:
       - redis_insight_data:/data
     depends_on:
@@ -30,15 +30,15 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # Web UI
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
 
   inngest:
     image: inngest/inngest
-    command: "inngest start"
+    command: 'inngest start'
     ports:
-      - "8288:8288"
-      - "8289:8289"
+      - '8288:8288'
+      - '8289:8289'
     environment:
       INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:-deadbeefdeadbeef}
       INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:-cafebabecafebabe}
@@ -50,6 +50,8 @@ services:
 
   alloy:
     image: docker.io/grafana/alloy:v1.16.1
+    security_opt:
+      - label=disable
     environment:
       TEMPO_OTLP_ENDPOINT: ${TEMPO_OTLP_ENDPOINT}
       LOKI_PUSH_URL: ${LOKI_PUSH_URL}
@@ -58,22 +60,22 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
       - /etc/alloy/config.alloy
     ports:
-      - "4318:4318"   # OTLP HTTP (app + browser)
-      - "12345:12345" # Alloy UI / health
+      - '4318:4318' # OTLP HTTP (app + browser)
+      - '12345:12345' # Alloy UI / health
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:Z,ro
-      - ./logs:/logs:Z,ro
+      - ./logs:/logs:ro
 
   playwright:
     image: mcr.microsoft.com/playwright:v1.60.0-jammy
-    profiles: ["test"]
+    profiles: ['test']
     working_dir: /work
     env_file:
       - .env
     environment:
       BUN_INSTALL: /root/.bun
       PATH: /root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-      CI: "true"
+      CI: 'true'
     volumes:
       - .:/work:Z
       - playwright_bun:/root/.bun
@@ -93,7 +95,7 @@ services:
         bun install --frozen-lockfile
         exec bun "$@"
       - bash
-    command: ["test:e2e"]
+    command: ['test:e2e']
 
 volumes:
   postgres_data:
