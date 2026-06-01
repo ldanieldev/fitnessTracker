@@ -1,12 +1,12 @@
-const githubHandler = defineOAuthGitHubEventHandler({
-  config: {
-    scope: ['user:email'],
-    emailRequired: true
-  },
-  async onSuccess(event, { user: ghUser }) {
-    const email: string = ghUser.email || ''
+const googleHandler = defineOAuthGoogleEventHandler({
+  async onSuccess(event, { user: googleUser }) {
+    const email: string = googleUser.email || ''
     if (!email) {
       return loginError(event, 'no_email')
+    }
+
+    if (!googleUser.email_verified) {
+      return loginError(event, 'email_unverified')
     }
 
     try {
@@ -16,12 +16,12 @@ const githubHandler = defineOAuthGitHubEventHandler({
       const user = await findOrCreateUserAndLinkProvider(
         {
           email,
-          name: ghUser.name || ghUser.login || email,
-          avatarUrl: ghUser.avatar_url ?? undefined
+          name: googleUser.name || email,
+          avatarUrl: googleUser.picture ?? undefined
         },
         {
-          provider: 'github',
-          providerAccountId: String(ghUser.id)
+          provider: 'google',
+          providerAccountId: String(googleUser.sub)
         },
         session.user?.id
       )
@@ -43,10 +43,10 @@ const githubHandler = defineOAuthGitHubEventHandler({
         return loginError(event, 'already_linked')
       }
       // DB write (account link) or session persistence failed — the
-      // user passed GitHub auth but we couldn't complete login.
+      // user passed Google auth but we couldn't complete login.
       logger.error(
-        { err: error, route: '/api/auth/github', provider: 'github', providerAccountId: String(ghUser.id) },
-        'failed to provision user or set session after GitHub sign-in'
+        { err: error, route: '/api/auth/google', provider: 'google', providerAccountId: String(googleUser.sub) },
+        'failed to provision user or set session after Google sign-in'
       )
       return loginError(event, 'provider_error')
     }
@@ -54,9 +54,9 @@ const githubHandler = defineOAuthGitHubEventHandler({
   // Fires when the OAuth flow itself fails (token exchange, provider-returned
   // error, denied consent) before onSuccess runs.
   onError(event, error) {
-    logger.error({ err: error, route: '/api/auth/github', provider: 'github' }, 'GitHub OAuth flow failed')
+    logger.error({ err: error, route: '/api/auth/google', provider: 'google' }, 'Google OAuth flow failed')
     return loginError(event, 'provider_error')
   }
 })
 
-export default defineTracedEventHandler(githubHandler)
+export default defineTracedEventHandler(googleHandler)

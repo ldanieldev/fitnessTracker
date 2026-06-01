@@ -1,9 +1,32 @@
 <script setup lang="ts">
 import type { FormSubmitEvent, AuthFormField } from '@nuxt/ui'
+import type { OAuthErrorCode } from '#shared/utils/oauthErrors'
 import * as z from 'zod'
 
 const { fetch: fetchSession } = useUserSession()
 const toast = useToast()
+const route = useRoute()
+const router = useRouter()
+
+const OAUTH_ERRORS: Record<OAuthErrorCode, string> = {
+  no_email: 'Your account has no public email. Make it public or use another login method.',
+  email_unverified: 'Your Google email is not verified. Verify it or use another login method.',
+  provider_error: 'Sign-in failed. Please try again.',
+  already_linked: 'That account is already linked to a different user.'
+}
+
+onMounted(() => {
+  const code = route.query.error
+  if (typeof code === 'string' && code in OAUTH_ERRORS) {
+    toast.add({
+      title: 'Login failed',
+      description: OAUTH_ERRORS[code as OAuthErrorCode],
+      color: 'error'
+    })
+    // Remove the query param so a refresh doesn't re-trigger the toast.
+    router.replace({ query: {} })
+  }
+})
 
 const fields: AuthFormField[] = [
   {
@@ -56,9 +79,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     await fetchSession()
     await navigateTo('/')
   } catch (error: unknown) {
-    const message = error instanceof Error && 'data' in error
-      ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-      : undefined
+    const message =
+      error instanceof Error && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : undefined
     toast.add({
       title: 'Login failed',
       description: message || 'Invalid email or password',
