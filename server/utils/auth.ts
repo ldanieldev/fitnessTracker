@@ -14,7 +14,8 @@ interface ProviderInfo {
 
 export async function findOrCreateUserAndLinkProvider(
   profile: OAuthProfile,
-  providerInfo: ProviderInfo
+  providerInfo: ProviderInfo,
+  currentUserId?: number
 ) {
   const { password, ...userColumns } = getTableColumns(users)
 
@@ -22,20 +23,44 @@ export async function findOrCreateUserAndLinkProvider(
   const existingLink = await db
     .select({ userId: authProviders.userId })
     .from(authProviders)
-    .where(and(
-      eq(authProviders.provider, providerInfo.provider),
-      eq(authProviders.providerAccountId, providerInfo.providerAccountId)
-    ))
+    .where(
+      and(
+        eq(authProviders.provider, providerInfo.provider),
+        eq(authProviders.providerAccountId, providerInfo.providerAccountId)
+      )
+    )
     .limit(1)
 
   if (existingLink.length) {
+    const linkedUserId = existingLink[0]!.userId
+    // provider account must not already belong to
+    // someone else — refuse rather than hand back a different account.
+    if (currentUserId && linkedUserId !== currentUserId) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'This account is already linked to a different user.'
+      })
+    }
     // Provider already linked — return the user
-    const result = await db
+    const result = await db.select(userColumns).from(users).where(eq(users.id, linkedUserId)).limit(1)
+    return result[0]!
+  }
+
+  // Linking while signed in: attach the provider to the CURRENT user and never
+  // resolve by email — doing so would switch the session to whoever owns that
+  // email (or create a new user) if it differs from the signed-in account.
+  if (currentUserId) {
+    await db.insert(authProviders).values({
+      userId: currentUserId,
+      provider: providerInfo.provider,
+      providerAccountId: providerInfo.providerAccountId
+    })
+    return db
       .select(userColumns)
       .from(users)
-      .where(eq(users.id, existingLink[0]!.userId))
+      .where(eq(users.id, currentUserId))
       .limit(1)
-    return result[0]!
+      .then((r) => r[0]!)
   }
 
   // Auto-link by email: find existing user
@@ -61,10 +86,7 @@ export async function findOrCreateUserAndLinkProvider(
     user = result[0]!
   } else if (profile.avatarUrl && !user.avatarUrl) {
     // Backfill avatar if missing
-    await db
-      .update(users)
-      .set({ avatarUrl: profile.avatarUrl })
-      .where(eq(users.id, user.id))
+    await db.update(users).set({ avatarUrl: profile.avatarUrl }).where(eq(users.id, user.id))
     user.avatarUrl = profile.avatarUrl
   }
 
