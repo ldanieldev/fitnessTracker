@@ -37,7 +37,7 @@ const googleHandler = defineOAuthGoogleEventHandler({
         }
       })
 
-      return sendRedirect(event, '/')
+      return oauthSuccessRedirect(event, 'google')
     } catch (error) {
       if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 409) {
         return loginError(event, 'already_linked')

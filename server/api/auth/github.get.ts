@@ -37,7 +37,7 @@ const githubHandler = defineOAuthGitHubEventHandler({
         }
       })
 
-      return sendRedirect(event, '/')
+      return oauthSuccessRedirect(event, 'github')
     } catch (error) {
       if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 409) {
         return loginError(event, 'already_linked')
