@@ -36,10 +36,13 @@ test.describe('unlink guard', () => {
     await goto('/auth/login', { waitUntil: 'hydration' })
     await registerViaApi(page, user)
 
-    const base = new URL(page.url()).origin
-    const res = await page.request.delete(`${base}/api/auth/providers/credentials`)
+    // page.request drops the SameSite=Lax cookie on test-utils' 127.0.0.1 host, so issue the call from the page.
+    const res = await page.evaluate(async () => {
+      const r = await fetch('/api/auth/providers/credentials', { method: 'DELETE' })
+      return { status: r.status, body: await r.text() }
+    })
 
-    expect(res.status()).toBe(400)
-    expect(await res.text()).toContain('Cannot unlink your only authentication method')
+    expect(res.status).toBe(400)
+    expect(res.body).toContain('Cannot unlink your only authentication method')
   })
 })
