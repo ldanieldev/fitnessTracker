@@ -15,7 +15,7 @@ export default defineNuxtPlugin(() => {
   if (!useRuntimeConfig().public.enableOtel) return
 
   const provider = new WebTracerProvider({
-    resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: 'fitness-tracker-client' }),
+    resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: 'my-fitness-journal-client' }),
     spanProcessors: [new BatchSpanProcessor(new OTLPTraceExporter({ url: 'http://localhost:4318/v1/traces' }))]
   })
 

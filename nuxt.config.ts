@@ -28,7 +28,7 @@ export default defineNuxtConfig({
       }
     },
     public: {
-      appName: process.env.APP_NAME || 'Fitness Tracker',
+      appName: process.env.APP_NAME || 'My Fitness Journal',
       enableOtel: process.env.ENABLE_OPENTELEMETRY === 'true'
     }
   },

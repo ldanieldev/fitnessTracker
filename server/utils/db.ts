@@ -21,7 +21,7 @@ export const db = drizzle({ client: pool, schema })
  * empirically: pg produced no spans under Bun, so queries are wrapped manually.
  */
 export async function withQuerySpan<T>(opName: string, fn: () => Promise<T>): Promise<T> {
-  const tracer = trace.getTracer('fitness-tracker-db')
+  const tracer = trace.getTracer('my-fitness-journal-db')
   return tracer.startActiveSpan('pg.query', async (span) => {
     span.setAttribute('db.system', 'postgresql')
     span.setAttribute('db.operation', opName)

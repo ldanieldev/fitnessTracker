@@ -44,7 +44,7 @@ loki.process "parse" {
   // tracesToLogsV2 in grafana-datasources maps service.name -> service_name,
   // so stamp it as a static label for the trace->logs jump to resolve.
   stage.static_labels {
-    values = { service_name = "fitness-tracker-server" }
+    values = { service_name = "my-fitness-journal-server" }
   }
 }
 

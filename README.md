@@ -1,4 +1,4 @@
-# Fitness Tracker
+# My Fitness Journal
 
 A full-stack Nuxt 4 app for logging workouts, tracking programs, and managing exercise history.
 
