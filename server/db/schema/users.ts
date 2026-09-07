@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm'
-import { boolean, integer, pgTable, unique, varchar } from 'drizzle-orm/pg-core'
-import { commonColumns } from '../shared'
+import { boolean, integer, unique, varchar } from 'drizzle-orm/pg-core'
+import { appSchema, commonColumns } from '../shared'
 
-export const users = pgTable(
+export const users = appSchema.table(
   'users',
   {
     ...commonColumns,
@@ -17,7 +17,7 @@ export const users = pgTable(
   (table) => [unique('users_email_unique').on(table.email)]
 )
 
-export const authProviders = pgTable(
+export const authProviders = appSchema.table(
   'auth_providers',
   {
     ...commonColumns,

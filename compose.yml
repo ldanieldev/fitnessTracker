@@ -7,8 +7,17 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-app}
+      INNGEST_SCHEMA: ${INNGEST_SCHEMA:-inngest}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # initdb.d runs only on an empty volume, so a populated one needs a teardown to pick this up
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro,Z
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-app}']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   redis:
     image: redis:8-alpine
@@ -42,11 +51,14 @@ services:
     environment:
       INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:-deadbeefdeadbeef}
       INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:-cafebabecafebabe}
-      INNGEST_POSTGRES_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-app}
+      INNGEST_POSTGRES_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-app}?search_path=${INNGEST_SCHEMA:-inngest}
       INNGEST_REDIS_URI: ${REDIS_URL:-redis://redis:6379}
+    # initdb makes the first boot slow enough that plain start-ordering loses the race
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   alloy:
     image: docker.io/grafana/alloy:v1.16.1
@@ -80,9 +92,12 @@ services:
       - .:/work:Z
       - playwright_bun:/root/.bun
     depends_on:
-      - postgres
-      - redis
-      - inngest
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      inngest:
+        condition: service_started
     entrypoint:
       - /bin/bash
       - -c

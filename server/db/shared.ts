@@ -1,4 +1,8 @@
-import { integer, timestamp } from 'drizzle-orm/pg-core'
+import { integer, pgSchema, timestamp } from 'drizzle-orm/pg-core'
+
+export const APP_SCHEMA_NAME = 'app'
+
+export const appSchema = pgSchema(APP_SCHEMA_NAME)
 
 export const commonColumns = {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),

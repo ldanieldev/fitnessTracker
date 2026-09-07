@@ -1,9 +1,9 @@
 import { sql } from 'drizzle-orm'
-import { boolean, integer, jsonb, pgTable, primaryKey, unique, varchar } from 'drizzle-orm/pg-core'
-import { commonColumns } from '../../shared'
+import { boolean, integer, jsonb, primaryKey, unique, varchar } from 'drizzle-orm/pg-core'
+import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 
-export const bodyParts = pgTable(
+export const bodyParts = appSchema.table(
   'body_parts',
   {
     ...commonColumns,
@@ -13,7 +13,7 @@ export const bodyParts = pgTable(
   (table) => [unique('body_part_name').on(table.name)]
 )
 
-export const muscles = pgTable(
+export const muscles = appSchema.table(
   'muscles',
   {
     ...commonColumns,
@@ -25,7 +25,7 @@ export const muscles = pgTable(
   (table) => [unique('muscle_name').on(table.name)]
 )
 
-export const equipment = pgTable(
+export const equipment = appSchema.table(
   'equipment',
   {
     ...commonColumns,
@@ -34,7 +34,7 @@ export const equipment = pgTable(
   (table) => [unique('equipment_name').on(table.name)]
 )
 
-export const exerciseTypes = pgTable(
+export const exerciseTypes = appSchema.table(
   'exercise_types',
   {
     ...commonColumns,
@@ -43,7 +43,7 @@ export const exerciseTypes = pgTable(
   (table) => [unique('exercise_type_name').on(table.name)]
 )
 
-export const exercises = pgTable(
+export const exercises = appSchema.table(
   'exercises',
   {
     ...commonColumns,
@@ -62,7 +62,7 @@ export const exercises = pgTable(
   (table) => [unique('exercise_name_user').on(table.name, table.createdByUserId)]
 )
 
-export const exerciseMuscles = pgTable(
+export const exerciseMuscles = appSchema.table(
   'exercise_muscles',
   {
     exerciseId: integer('exercise_id')
@@ -76,7 +76,7 @@ export const exerciseMuscles = pgTable(
   (table) => [primaryKey({ columns: [table.exerciseId, table.muscleId] })]
 )
 
-export const exerciseEquipment = pgTable(
+export const exerciseEquipment = appSchema.table(
   'exercise_equipment',
   {
     exerciseId: integer('exercise_id')

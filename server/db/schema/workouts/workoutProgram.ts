@@ -1,10 +1,10 @@
 import { sql } from 'drizzle-orm'
-import { date, integer, pgTable, text, timestamp, unique, varchar } from 'drizzle-orm/pg-core'
-import { commonColumns } from '../../shared'
+import { date, integer, text, timestamp, unique, varchar } from 'drizzle-orm/pg-core'
+import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 import { workoutTemplates, workoutSessions } from './workout'
 
-export const programs = pgTable(
+export const programs = appSchema.table(
   'programs',
   {
     ...commonColumns,
@@ -18,7 +18,7 @@ export const programs = pgTable(
   }
 )
 
-export const programPhases = pgTable(
+export const programPhases = appSchema.table(
   'program_phases',
   {
     ...commonColumns,
@@ -32,7 +32,7 @@ export const programPhases = pgTable(
   }
 )
 
-export const programWorkouts = pgTable(
+export const programWorkouts = appSchema.table(
   'program_workouts',
   {
     ...commonColumns,
@@ -49,7 +49,7 @@ export const programWorkouts = pgTable(
   }
 )
 
-export const userProgramEnrollments = pgTable(
+export const userProgramEnrollments = appSchema.table(
   'user_program_enrollments',
   {
     ...commonColumns,
@@ -64,7 +64,7 @@ export const userProgramEnrollments = pgTable(
   }
 )
 
-export const userProgramWorkoutCompletions = pgTable(
+export const userProgramWorkoutCompletions = appSchema.table(
   'user_program_workout_completions',
   {
     ...commonColumns,
