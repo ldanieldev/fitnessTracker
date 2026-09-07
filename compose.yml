@@ -67,7 +67,7 @@ services:
       - ./logs:/logs:ro
 
   playwright:
-    image: mcr.microsoft.com/playwright:v1.60.0-jammy
+    image: mcr.microsoft.com/playwright:v1.62.1-jammy
     profiles: ['test']
     working_dir: /work
     env_file:

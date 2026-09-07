@@ -14,7 +14,7 @@ A full-stack Nuxt 4 app for logging workouts, tracking programs, and managing ex
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) 1.3+ — `curl -fsSL https://bun.sh/install | bash`
+- [Bun](https://bun.sh) 1.4+ — `curl -fsSL https://bun.sh/install | bash`
 - [Podman](https://podman.io) with the `compose` plugin (or `podman-compose`)
 
 ## Setup
