@@ -12,7 +12,9 @@ export default defineConfig<ConfigOptions>({
   use: {
     trace: 'on-first-retry',
     nuxt: {
-      rootDir: fileURLToPath(new URL('.', import.meta.url))
+      rootDir: fileURLToPath(new URL('.', import.meta.url)),
+      // Point at an already-running server (`bun dev`); a per-run build exceeds test-utils' 60s setup-fixture timeout.
+      host: process.env.NUXT_TEST_HOST
     }
   },
   projects: [
