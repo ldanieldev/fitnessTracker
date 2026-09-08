@@ -59,4 +59,4 @@ const googleHandler = defineOAuthGoogleEventHandler({
   }
 })
 
-export default defineTracedEventHandler(googleHandler)
+export default defineEventHandler(googleHandler)

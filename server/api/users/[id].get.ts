@@ -1,7 +1,7 @@
 import { eq, getTableColumns } from 'drizzle-orm'
 import { users } from '~~/server/db/schema'
 
-export default defineTracedEventHandler(async (event) => {
+export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
 
   const { password, ...userColumns } = getTableColumns(users)

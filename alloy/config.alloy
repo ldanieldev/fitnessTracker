@@ -1,23 +1,21 @@
-// ---- Receive OTLP from the app + browser, forward traces to remote Tempo ----
+// ---- Receive OTLP metrics from the app, forward to remote Mimir ----
+// Traces go to Sentry directly from the SDK and no longer pass through here.
 otelcol.receiver.otlp "default" {
   http {
     endpoint = "0.0.0.0:4318"
-    // Browser sends OTLP from the dev origin; allow it through CORS.
-    cors {
-      allowed_origins = ["http://localhost:3000"]
-    }
   }
   output {
-    traces = [otelcol.exporter.otlp.tempo.input]
+    metrics = [otelcol.exporter.prometheus.mimir.input]
   }
 }
 
-otelcol.exporter.otlp "tempo" {
-  client {
-    endpoint = sys.env("TEMPO_OTLP_ENDPOINT") // Tempo OTLP gRPC, e.g. host:44317
-    tls {
-      insecure = true
-    }
+otelcol.exporter.prometheus "mimir" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = sys.env("MIMIR_PUSH_URL") // full push URL, e.g. http://host:49009/api/v1/push
   }
 }
 
@@ -34,17 +32,17 @@ loki.source.file "app" {
 loki.process "parse" {
   forward_to = [loki.write.loki.receiver]
 
-  // pino lines are JSON; lift `level` into a label (bounded cardinality).
-  stage.json {
-    expressions = { level = "level" }
-  }
-  stage.labels {
-    values = { level = "" }
-  }
-  // tracesToLogsV2 in grafana-datasources maps service.name -> service_name,
-  // so stamp it as a static label for the trace->logs jump to resolve.
+  // Fallback first: a non-JSON line (crash dump) still gets an identity, and stage.labels below
+  // overrides it whenever the line carries its own `service`.
   stage.static_labels {
     values = { service_name = "my-fitness-journal-server" }
+  }
+  // pino lines are JSON; lift `level` and `service` into labels (both bounded cardinality).
+  stage.json {
+    expressions = { level = "level", service = "service" }
+  }
+  stage.labels {
+    values = { level = "", service_name = "service" }
   }
 }
 

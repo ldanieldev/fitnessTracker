@@ -65,14 +65,14 @@ services:
     security_opt:
       - label=disable
     environment:
-      TEMPO_OTLP_ENDPOINT: ${TEMPO_OTLP_ENDPOINT}
+      MIMIR_PUSH_URL: ${MIMIR_PUSH_URL}
       LOKI_PUSH_URL: ${LOKI_PUSH_URL}
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
       - /etc/alloy/config.alloy
     ports:
-      - '4318:4318' # OTLP HTTP (app + browser)
+      - '4318:4318' # OTLP HTTP (app metrics)
       - '12345:12345' # Alloy UI / health
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:Z,ro

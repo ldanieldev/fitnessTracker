@@ -59,4 +59,4 @@ const githubHandler = defineOAuthGitHubEventHandler({
   }
 })
 
-export default defineTracedEventHandler(githubHandler)
+export default defineEventHandler(githubHandler)

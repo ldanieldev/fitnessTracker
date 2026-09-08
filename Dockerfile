@@ -1,12 +1,12 @@
 # Base
-FROM oven/bun:1 AS base
+FROM docker.io/oven/bun:1 AS base
 WORKDIR /usr/src/app
 
 # Install dependencies (cached layer)
 FROM base AS install
 
 RUN mkdir -p /temp/dev
-COPY package.json bun.lockb /temp/dev/
+COPY package.json bun.lock bunfig.toml /temp/dev/
 RUN cd /temp/dev && bun install --frozen-lockfile
 
 # Build

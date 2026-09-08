@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 
-export default defineTracedEventHandler(async (event) => {
+export default defineEventHandler(async (event) => {
   let db_ok = false
 
   try {
