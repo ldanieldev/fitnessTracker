@@ -25,30 +25,7 @@ const links = [
       onSelect: close
     },
     {
-      label: 'Tracking',
-      icon: 'i-lucide-dumbbell',
-      defaultOpen: true,
-      type: 'trigger' as const,
-      children: [
-        {
-          label: 'Log Workout',
-          to: '/workouts/log',
-          onSelect: close
-        },
-        {
-          label: 'Workout History',
-          // to: '/workouts/history',
-          onSelect: close
-        },
-        {
-          label: 'Exercises',
-          // to: '/exercises',
-          onSelect: close
-        }
-      ]
-    },
-    {
-      label: 'Progress & Goals',
+      label: 'Metrics',
       icon: 'i-lucide-trending-up',
       defaultOpen: true,
       type: 'trigger' as const,
@@ -67,28 +44,55 @@ const links = [
           label: 'Goals',
           // to: '/goals',
           onSelect: close
+        },
+        {
+          label: 'Calendar',
+          // to: '/calendar',
+          onSelect: close
         }
       ]
     },
     {
-      label: 'Planning',
-      icon: 'i-lucide-clipboard-list',
+      label: 'Workouts',
+      icon: 'i-lucide-dumbbell',
       defaultOpen: true,
       type: 'trigger' as const,
       children: [
+        {
+          label: 'Log Workout',
+          to: '/workouts/log',
+          onSelect: close
+        },
+        {
+          label: 'Workout History',
+          // to: '/workouts/history',
+          onSelect: close
+        },
+        {
+          label: 'Exercises',
+          // to: '/exercises',
+          onSelect: close
+        },
         {
           label: 'Programs',
           // to: '/programs',
           onSelect: close
         },
         {
-          label: 'Calendar',
-          // to: '/calendar',
-          onSelect: close
-        },
-        {
           label: 'Timer',
           // to: '/timer',
+          onSelect: close
+        }
+      ]
+    },
+    {
+      label: 'Meals',
+      icon: 'i-lucide-utensils',
+      defaultOpen: true,
+      type: 'trigger' as const,
+      children: [
+        {
+          label: 'Menu Item',
           onSelect: close
         }
       ]
