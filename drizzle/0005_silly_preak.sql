@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "goal_profile_one_default" ON "app"."goal_profiles" USING btree ("user_id") WHERE is_default and deleted_at is null;

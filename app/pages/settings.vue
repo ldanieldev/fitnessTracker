@@ -11,6 +11,11 @@ const links = [[
     label: 'Security',
     icon: 'i-lucide-lock',
     to: '/settings/security'
+  },
+  {
+    label: 'Nutrition',
+    icon: 'i-lucide-utensils',
+    to: '/settings/nutrition'
   }
 ]] satisfies NavigationMenuItem[][]
 </script>

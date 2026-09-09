@@ -16,7 +16,8 @@
     "test:nuxt": "vitest --project nuxt",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "dbml": "tsx ./server/db/dbml.ts"
+    "dbml": "tsx ./server/db/dbml.ts",
+    "db:seed": "tsx ./server/db/seed/run.ts"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.129",

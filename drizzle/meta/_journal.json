@@ -8,6 +8,55 @@
       "when": 1788820304708,
       "tag": "0000_initial",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788924296904,
+      "tag": "0001_lively_oracle",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788924640369,
+      "tag": "0002_ambitious_lady_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788925163266,
+      "tag": "0003_acoustic_loners",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788926488363,
+      "tag": "0004_slippery_polaris",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788931731226,
+      "tag": "0005_silly_preak",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788949903760,
+      "tag": "0006_oval_jack_murdock",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788949909568,
+      "tag": "0007_seed_nutrients",
+      "breakpoints": true
     }
   ]
 }

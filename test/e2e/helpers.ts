@@ -29,3 +29,31 @@ export async function registerViaApi(page: Page, user: TestUser) {
   if (!res.ok()) throw new Error(`register failed: ${res.status()} ${await res.text()}`)
   return user
 }
+
+export interface ApiResult<T = unknown> {
+  status: number
+  ok: boolean
+  json: T
+}
+
+/** Authenticated calls must run inside the page: page.request drops the SameSite=Lax cookie on test-utils' 127.0.0.1 host. */
+export async function apiFetch<T = unknown>(page: Page, method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
+  return page.evaluate(
+    async ({ method, path, body }) => {
+      const res = await fetch(path, {
+        method,
+        headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body)
+      })
+      const text = await res.text()
+      let json: unknown
+      try {
+        json = text ? JSON.parse(text) : null
+      } catch {
+        json = text
+      }
+      return { status: res.status, ok: res.ok, json }
+    },
+    { method, path, body }
+  ) as Promise<ApiResult<T>>
+}

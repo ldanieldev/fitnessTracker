@@ -86,7 +86,7 @@ const links = [
       ]
     },
     {
-      label: 'Meals',
+      label: 'Nutrition',
       icon: 'i-lucide-utensils',
       defaultOpen: true,
       type: 'trigger' as const,
