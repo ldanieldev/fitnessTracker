@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 
 // srvx reaches us transitively (@nuxt/image -> ipx), so resolve defensively rather than assume it.
 function resolveSrvxBunAdapter() {
@@ -6,6 +7,16 @@ function resolveSrvxBunAdapter() {
     return [createRequire(import.meta.url).resolve('srvx/bun')]
   } catch {
     return []
+  }
+}
+
+// @opentelemetry/resources ships no `exports` map, so Nitro's resolver loops on the bare specifier (ENOTDIR on a self-repeating build/src path) and the dev server dies before serving; alias to the ESM entry.
+function resolveOtelResources() {
+  try {
+    const pkg = createRequire(import.meta.url).resolve('@opentelemetry/resources/package.json')
+    return { '@opentelemetry/resources': join(dirname(pkg), 'build/esm/index.js') }
+  } catch {
+    return {}
   }
 }
 
@@ -52,6 +63,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-15',
 
   nitro: {
+    alias: resolveOtelResources(),
     externals: {
       // Nitro traces srvx (pulled in by @nuxt/image's ipx) under the `node` export condition and
       // copies only its node adapter, but the Dockerfile runs `bun --bun`, which resolves srvx's
