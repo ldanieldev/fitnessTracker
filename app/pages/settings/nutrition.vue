@@ -34,5 +34,13 @@ async function onTrackedChanged() {
     >
       <SettingsNutritionTracked :catalog="catalog ?? []" :tracked="tracked ?? []" @changed="onTrackedChanged" />
     </UPageCard>
+
+    <UPageCard
+      title="Import from My Macros+"
+      description="Upload daily export .txt files to bring your logged meals into the diary."
+      variant="subtle"
+    >
+      <SettingsNutritionImport @imported="refreshContainers" />
+    </UPageCard>
   </div>
 </template>

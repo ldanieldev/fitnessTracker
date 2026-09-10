@@ -11,6 +11,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   varchar
 } from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../../shared'
@@ -93,11 +94,13 @@ export const diaryEntries = appSchema.table(
     description: varchar('description', { length: 255 }).default(sql`null`),
     brandSnapshot: varchar('brand_snapshot', { length: 255 }).default(sql`null`),
     ingredientSnapshot: jsonb('ingredient_snapshot').default(sql`null`),
-    notes: text('notes').default(sql`null`)
+    notes: text('notes').default(sql`null`),
+    importKey: varchar('import_key', { length: 64 }).default(sql`null`)
   },
   (table) => [
     check('entry_quantity_positive', sql`quantity > 0`),
-    index('diary_entry_day_container_order').on(table.dayId, table.containerId, table.sortOrder)
+    index('diary_entry_day_container_order').on(table.dayId, table.containerId, table.sortOrder),
+    uniqueIndex('diary_entry_import_key_unique').on(table.importKey).where(sql`import_key is not null`)
   ]
 )
 

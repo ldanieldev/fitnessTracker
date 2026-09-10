@@ -45,3 +45,22 @@ export interface ResolveResult {
   nutrients: Record<number, number>
   gramsResolved: number | null
 }
+
+export type MacroSet = { kcal: number, protein: number, carbs: number, fat: number }
+
+export interface ImportWarning {
+  date: string
+  code: 'checksum' | 'inconsistent_group' | 'oz_as_fluid' | 'duplicate_date' | 'unsupported_unit'
+  message: string
+}
+
+export interface ImportResult {
+  days: number
+  entries: number
+  entriesSkipped: number
+  foodsCreated: number
+  foodsReused: number
+  containersCreated: number
+  warnings: ImportWarning[]
+  failedFiles: Array<{ fileName: string, error: string }>
+}

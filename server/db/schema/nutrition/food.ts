@@ -20,7 +20,7 @@ export const foodSources = appSchema.table(
   'food_sources',
   {
     ...commonColumns,
-    key: varchar('key', { enum: ['off', 'usda', 'fatsecret', 'user'] }).notNull(),
+    key: varchar('key', { enum: ['off', 'usda', 'fatsecret', 'user', 'mymacros'] }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     licenseNotice: text('license_notice').default(sql`null`),
     attributionRequired: boolean('attribution_required').notNull().default(false),

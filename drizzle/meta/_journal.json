@@ -71,6 +71,27 @@
       "when": 1788976320902,
       "tag": "0009_gorgeous_power_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789003951547,
+      "tag": "0010_acoustic_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789003958235,
+      "tag": "0011_seed_food_source_mymacros",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789009780397,
+      "tag": "0012_backfill_import_descriptions",
+      "breakpoints": true
     }
   ]
 }

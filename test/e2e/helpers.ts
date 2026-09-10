@@ -67,6 +67,30 @@ export async function seedCatalogFood(
   return (await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/_test/catalog-food', body)).json
 }
 
+/** Multipart upload, run inside the page for the same cookie-jar reason as apiFetch. */
+export async function uploadFiles(
+  page: Page,
+  path: string,
+  files: Array<{ name: string, text: string, type?: string }>
+): Promise<ApiResult> {
+  return page.evaluate(
+    async ({ path, files }) => {
+      const form = new FormData()
+      for (const file of files) form.append('files', new File([file.text], file.name, { type: file.type ?? 'text/plain' }))
+      const res = await fetch(path, { method: 'POST', body: form })
+      const text = await res.text()
+      let json: unknown
+      try {
+        json = text ? JSON.parse(text) : null
+      } catch {
+        json = text
+      }
+      return { status: res.status, ok: res.ok, json }
+    },
+    { path, files }
+  )
+}
+
 /** Authenticated calls must run inside the page: page.request drops the SameSite=Lax cookie on test-utils' 127.0.0.1 host. */
 export async function apiFetch<T = unknown>(page: Page, method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
   return page.evaluate(

@@ -43,6 +43,7 @@ export interface WriteEntryArgs {
   ingredientSnapshot?: unknown
   notes?: string | null
   loggedAt?: Date
+  importKey?: string | null
   nutrients: Record<number, number>
 }
 
@@ -64,7 +65,8 @@ export async function writeEntry(tx: DbClient, args: WriteEntryArgs) {
       description: args.description ?? null,
       brandSnapshot: args.brandSnapshot ?? null,
       ingredientSnapshot: args.ingredientSnapshot ?? null,
-      notes: args.notes ?? null
+      notes: args.notes ?? null,
+      importKey: args.importKey ?? null
     })
     .returning({ id: diaryEntries.id })
     .then((r) => r[0]!)

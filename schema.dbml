@@ -67,10 +67,12 @@ table app.diary_entries {
   brand_snapshot varchar(255) [default: `null`]
   ingredient_snapshot jsonb [default: `null`]
   notes text [default: `null`]
+  import_key varchar(64) [default: `null`]
 
   indexes {
     
     (day_id, container_id, sort_order) [name: 'diary_entry_day_container_order']
+    import_key [name: 'diary_entry_import_key_unique', unique]
   }
 }
 
@@ -259,6 +261,19 @@ table app.goal_profiles {
   indexes {
     user_id [name: 'goal_profile_one_default', unique]
   }
+}
+
+table app.import_jobs {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  source varchar [not null]
+  status varchar [not null, default: 'queued']
+  file_count integer [not null]
+  payload jsonb [not null]
+  result jsonb [default: `null`]
+  error text [default: `null`]
 }
 
 table app.meal_containers {
@@ -574,6 +589,8 @@ ref goal_profile_targets_profile_id_goal_profiles_id_fk: app.goal_profile_target
 ref goal_profile_targets_nutrient_id_nutrients_id_fk: app.goal_profile_targets.nutrient_id > app.nutrients.id [delete: no action, update: no action]
 
 ref goal_profiles_user_id_users_id_fk: app.goal_profiles.user_id > app.users.id [delete: cascade, update: no action]
+
+ref import_jobs_user_id_users_id_fk: app.import_jobs.user_id > app.users.id [delete: cascade, update: no action]
 
 ref meal_containers_user_id_users_id_fk: app.meal_containers.user_id > app.users.id [delete: cascade, update: no action]
 

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const MIGRATION = new URL('../../drizzle/0008_seed_food_sources.sql', import.meta.url)
+const MYMACROS_MIGRATION = new URL('../../drizzle/0011_seed_food_source_mymacros.sql', import.meta.url)
 
 interface FoodSourceSeedRow {
   key: string
@@ -13,8 +14,8 @@ interface FoodSourceSeedRow {
 
 const ROW_RE = /\('([^']*)','([^']*)',(NULL|'[^']*'),(true|false),(true|false)\)/g
 
-function migrationRows(): FoodSourceSeedRow[] {
-  const sql = readFileSync(MIGRATION, 'utf8')
+function rowsFrom(migration: URL): FoodSourceSeedRow[] {
+  const sql = readFileSync(migration, 'utf8')
   const values = sql.slice(sql.indexOf('VALUES') + 'VALUES'.length, sql.indexOf('ON CONFLICT'))
   return [...values.matchAll(ROW_RE)].map((m) => ({
     key: m[1]!,
@@ -23,6 +24,10 @@ function migrationRows(): FoodSourceSeedRow[] {
     attributionRequired: m[4] === 'true',
     persistable: m[5] === 'true'
   }))
+}
+
+function migrationRows(): FoodSourceSeedRow[] {
+  return rowsFrom(MIGRATION)
 }
 
 describe('seed_food_sources migration', () => {
@@ -53,6 +58,21 @@ describe('seed_food_sources migration', () => {
 
   it('upserts on the key so re-running it is a no-op', () => {
     const sql = readFileSync(MIGRATION, 'utf8')
+    expect(sql).toContain('ON CONFLICT (key) DO UPDATE SET')
+  })
+})
+
+describe('seed_food_source_mymacros migration', () => {
+  it('seeds the mymacros source as persistable with no attribution required', () => {
+    const rows = rowsFrom(MYMACROS_MIGRATION)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.key).toBe('mymacros')
+    expect(rows[0]!.persistable).toBe(true)
+    expect(rows[0]!.attributionRequired).toBe(false)
+  })
+
+  it('upserts on the key so re-running it is a no-op', () => {
+    const sql = readFileSync(MYMACROS_MIGRATION, 'utf8')
     expect(sql).toContain('ON CONFLICT (key) DO UPDATE SET')
   })
 })
