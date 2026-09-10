@@ -4,7 +4,13 @@ import { foodFavorites, foodNutrients, foods, foodServings, foodUsageStats } fro
 import { db } from '~~/server/utils/db'
 import { getNutrientId } from '~~/server/utils/nutrition/nutrientIds'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
-import { getSearchProvider, isDegradedProvider } from '~~/server/utils/nutrition/searchProvider'
+import {
+  getFallbackProvider,
+  getSearchProvider,
+  isDegradedProvider,
+  markSearchUnhealthy,
+  type SearchCandidateRef
+} from '~~/server/utils/nutrition/searchProvider'
 import { rerank, type SearchCandidate } from '~~/server/utils/nutrition/searchRank'
 import { requireUserId } from '~~/server/utils/nutrition/session'
 import { energyDensity } from '~~/shared/utils/nutritionDerive'
@@ -20,13 +26,20 @@ export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const query = parseQuery(event, searchQuerySchema)
 
-  const provider = getSearchProvider()
-  const degraded = isDegradedProvider(provider)
+  let provider = await getSearchProvider()
   const q = query.q.trim()
 
-  if (!q) return { hits: [], degraded }
+  if (!q) return { hits: [], degraded: isDegradedProvider(provider) }
 
-  const refs = await provider.query(userId, q, CANDIDATE_POOL_LIMIT)
+  let refs: SearchCandidateRef[]
+  try {
+    refs = await provider.query(userId, q, CANDIDATE_POOL_LIMIT)
+  } catch {
+    markSearchUnhealthy()
+    provider = getFallbackProvider()
+    refs = await provider.query(userId, q, CANDIDATE_POOL_LIMIT)
+  }
+  const degraded = isDegradedProvider(provider)
   if (refs.length === 0) return { hits: [], degraded }
 
   const ids = refs.map((ref) => ref.id)

@@ -1,6 +1,10 @@
+import 'dotenv/config'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 import type { ConfigOptions } from '@nuxt/test-utils/playwright'
+
+// test-only fixture routes are gated on this; the Nitro server test-utils boots inherits it
+process.env.NUXT_TEST_FIXTURES ??= '1'
 
 export default defineConfig<ConfigOptions>({
   testDir: './test/e2e',

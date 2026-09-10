@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "food_catalog_external_unique" ON "app"."foods" USING btree ("source_id","external_id") WHERE created_by_user_id is null and deleted_at is null and external_id is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "food_owned_external_unique" ON "app"."foods" USING btree ("created_by_user_id","source_id","external_id") WHERE created_by_user_id is not null and deleted_at is null and external_id is not null;

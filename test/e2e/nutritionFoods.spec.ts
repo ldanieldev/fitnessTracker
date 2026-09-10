@@ -1,5 +1,5 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
-import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { apiFetch, makeUser, registerViaApi, seedCatalogFood } from './helpers'
 
 test('creates a unit-first food and resolves both bases independently', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -262,4 +262,22 @@ test('refuses to add a deriving serving to a food with no gram basis', async ({ 
   })
   expect(res.status).toBe(400)
   expect(JSON.stringify(res.json)).toContain('gram basis')
+})
+
+test('catalogue foods are read-only until forked', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const { id } = await seedCatalogFood(page, {
+    name: 'Catalogue oats', servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 13 } }]
+  })
+  expect((await apiFetch(page, 'PUT', `/api/nutrition/foods/${id}`, { name: 'x' })).status).toBe(403)
+  expect((await apiFetch(page, 'DELETE', `/api/nutrition/foods/${id}`)).status).toBe(403)
+  const food = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${id}`)
+  const sid = food.json.servings[0]!.id
+  expect((await apiFetch(page, 'POST', `/api/nutrition/foods/${id}/servings`, { kind: 'named', label: 'cup', quantity: 1, basisGrams: 80 })).status).toBe(403)
+  expect((await apiFetch(page, 'PUT', `/api/nutrition/foods/${id}/servings/${sid}`, { kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 1 } })).status).toBe(403)
+  expect((await apiFetch(page, 'DELETE', `/api/nutrition/foods/${id}/servings/${sid}`)).status).toBe(403)
+  const forked = await apiFetch<{ id: number }>(page, 'POST', `/api/nutrition/foods/${id}/fork`)
+  expect(forked.ok).toBe(true)
+  expect((await apiFetch(page, 'PUT', `/api/nutrition/foods/${forked.json.id}`, { name: 'Mine' })).ok).toBe(true)
 })

@@ -1,5 +1,12 @@
 <script setup lang="ts">
+import type { NutrientKey } from '~~/shared/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
+
+interface ParsedLabel {
+  servingGrams: number | null
+  nutrients: Partial<Record<NutrientKey, number>>
+  confidence: number
+}
 
 interface ServingRow {
   kind: 'weight' | 'named'
@@ -12,22 +19,61 @@ interface ServingRow {
   basisGrams: string
 }
 
+const props = defineProps<{
+  prefill?: {
+    name?: string
+    brand?: string
+    barcode?: string
+    servings?: Array<Partial<ServingRow>>
+  }
+}>()
+
 const emit = defineEmits<{
   created: [id: number]
 }>()
 
 const toast = useToast()
 
-const name = ref('')
-const brand = ref('')
-const barcode = ref('')
+const name = ref(props.prefill?.name ?? '')
+const brand = ref(props.prefill?.brand ?? '')
+const barcode = ref(props.prefill?.barcode ?? '')
 const loading = ref(false)
+const showOcr = ref(false)
 
 function newRow(): ServingRow {
   return { kind: 'named', label: '', quantity: 1, energy: '', protein: '', carbohydrate: '', fat: '', basisGrams: '' }
 }
 
-const servings = reactive<ServingRow[]>([newRow()])
+const servings = reactive<ServingRow[]>(
+  props.prefill?.servings?.length ? props.prefill.servings.map((row) => ({ ...newRow(), ...row })) : [newRow()]
+)
+
+function isEmptyRow(row: ServingRow): boolean {
+  return JSON.stringify(row) === JSON.stringify(newRow())
+}
+
+function applyServing(row: Partial<ServingRow>) {
+  const full: ServingRow = { ...newRow(), ...row }
+  if (servings.length === 1 && isEmptyRow(servings[0]!)) {
+    servings.splice(0, 1, full)
+  } else {
+    servings.push(full)
+  }
+}
+
+function applyParsedLabel(result: ParsedLabel) {
+  applyServing({
+    kind: 'named',
+    label: 'serving',
+    quantity: 1,
+    energy: result.nutrients.energy !== undefined ? String(result.nutrients.energy) : '',
+    protein: result.nutrients.protein !== undefined ? String(result.nutrients.protein) : '',
+    carbohydrate: result.nutrients.carbohydrate !== undefined ? String(result.nutrients.carbohydrate) : '',
+    fat: result.nutrients.fat !== undefined ? String(result.nutrients.fat) : '',
+    basisGrams: result.servingGrams != null ? String(result.servingGrams) : ''
+  })
+  showOcr.value = false
+}
 
 const weightLabelItems = [
   { label: 'g', value: 'g' },
@@ -139,8 +185,18 @@ async function submit() {
         <UInput v-model="brand" class="w-full" />
       </UFormField>
       <UFormField label="Barcode">
-        <UInput v-model="barcode" class="w-full" />
+        <UInput v-model="barcode" class="w-full" data-test="food-barcode" />
       </UFormField>
+
+      <UButton
+        :label="showOcr ? 'Hide label scanner' : 'Scan label'"
+        variant="soft"
+        color="neutral"
+        class="w-fit"
+        data-test="ocr-open"
+        @click="showOcr = !showOcr"
+      />
+      <NutritionLabelOcr v-if="showOcr" @parsed="applyParsedLabel" />
 
       <div class="flex flex-col gap-3">
         <div

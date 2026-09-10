@@ -36,6 +36,37 @@ export interface ApiResult<T = unknown> {
   json: T
 }
 
+export async function pollUntil<T>(
+  fn: () => Promise<T>,
+  predicate: (value: T) => boolean,
+  { intervalMs = 500, timeoutMs = 15000 } = {}
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs
+  let last: T
+  do {
+    last = await fn()
+    if (predicate(last)) return last
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  } while (Date.now() < deadline)
+  return last
+}
+
+export interface SeedServingInput {
+  kind: 'weight' | 'named'
+  label: string
+  quantity: number
+  basisGrams?: number | null
+  nutrients?: Record<string, number>
+}
+
+/** Seeds a catalogue food (createdByUserId null) via the test-only fixture route. */
+export async function seedCatalogFood(
+  page: Page,
+  body: { name: string, brand?: string | null, barcode?: string | null, servings: SeedServingInput[] }
+): Promise<{ id: number }> {
+  return (await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/_test/catalog-food', body)).json
+}
+
 /** Authenticated calls must run inside the page: page.request drops the SameSite=Lax cookie on test-utils' 127.0.0.1 host. */
 export async function apiFetch<T = unknown>(page: Page, method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
   return page.evaluate(

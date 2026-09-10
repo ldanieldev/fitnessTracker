@@ -53,6 +53,12 @@ export const foods = appSchema.table(
     uniqueIndex('food_catalog_barcode_unique')
       .on(table.barcode)
       .where(sql`created_by_user_id is null and deleted_at is null`),
+    uniqueIndex('food_catalog_external_unique')
+      .on(table.sourceId, table.externalId)
+      .where(sql`created_by_user_id is null and deleted_at is null and external_id is not null`),
+    uniqueIndex('food_owned_external_unique')
+      .on(table.createdByUserId, table.sourceId, table.externalId)
+      .where(sql`created_by_user_id is not null and deleted_at is null and external_id is not null`),
     index('food_owner_live').on(table.createdByUserId, table.deletedAt)
   ]
 )

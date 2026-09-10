@@ -1,4 +1,5 @@
 import { db } from '../db'
+import { MeiliSearchProvider } from './meiliSearch'
 import { queryFoodCandidates } from './postgresSearch'
 
 export interface SearchCandidateRef {
@@ -27,10 +28,32 @@ class PostgresSearchProvider implements SearchProvider {
 
 const postgresSearchProvider = new PostgresSearchProvider()
 
-export function getSearchProvider(): SearchProvider {
+let meili: MeiliSearchProvider | null = null
+let meiliHealthyUntil = 0
+
+export async function getSearchProvider(): Promise<SearchProvider> {
+  const { host, apiKey } = useRuntimeConfig().meili
+  if (!host) return postgresSearchProvider
+  meili ??= new MeiliSearchProvider(host, apiKey)
+  const now = Date.now()
+  if (now < meiliHealthyUntil) return meili
+  if (await meili.healthy()) {
+    // Re-probe every 30 s so a Meilisearch outage degrades within half a minute, not per request.
+    meiliHealthyUntil = now + 30_000
+    return meili
+  }
+  meiliHealthyUntil = 0
   return postgresSearchProvider
 }
 
 export function isDegradedProvider(provider: SearchProvider): boolean {
   return provider instanceof PostgresSearchProvider
+}
+
+export function getFallbackProvider(): SearchProvider {
+  return postgresSearchProvider
+}
+
+export function markSearchUnhealthy(): void {
+  meiliHealthyUntil = 0
 }

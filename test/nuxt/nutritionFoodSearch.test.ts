@@ -78,4 +78,87 @@ describe('NutritionFoodSearch', () => {
     })
     expect(wrapper.text()).toContain('Search is running in basic mode')
   })
+
+  it('imports an online result with a single detail fetch and shows it checked locally', async () => {
+    registerEndpoint('/api/nutrition/foods/recent', () => recentHits)
+    registerFoodDetailEndpoints()
+    registerEndpoint('/api/nutrition/foods/search/external', () => ({
+      results: [
+        { source: 'off', externalId: 'abc', name: 'Imported Food', brand: null, barcode: null, hasNutrition: true, attribution: null }
+      ],
+      errors: []
+    }))
+    registerEndpoint('/api/nutrition/foods/import', {
+      method: 'POST',
+      handler: async () => ({ id: 99, needsNutrition: false, owned: false })
+    })
+
+    let detailCalls = 0
+    registerEndpoint('/api/nutrition/foods/99', () => {
+      detailCalls++
+      return {
+        id: 99,
+        name: 'Imported Food',
+        brand: null,
+        servings: [{ id: 990, kind: 'named', label: 'serving', quantity: 1, basisGrams: null, hasOwnNutrition: true, nutrients: {} }]
+      }
+    })
+
+    const wrapper = await mountSuspended(NutritionFoodSearch, {
+      props: { date: '2026-07-03', containers: [{ id: 7, name: 'Breakfast' }] }
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-test="online-tab"]').trigger('click')
+    await wrapper.find('[data-test="online-query"]').setValue('imported')
+    await wrapper.find('[data-test="online-search"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-test="online-import"]').trigger('click')
+
+    await vi.waitFor(() => {
+      const hitRow = wrapper.findAll('[data-test="food-hit"]').find((row) => row.text().includes('Imported Food'))
+      expect(hitRow?.findComponent(NutritionAmountInput).exists()).toBe(true)
+    })
+
+    expect(detailCalls).toBe(1)
+  })
+
+  it('shows the needs-nutrition alert after an import that needs nutrition, and hides it when unchecked (P2-R29)', async () => {
+    registerEndpoint('/api/nutrition/foods/recent', () => recentHits)
+    registerFoodDetailEndpoints()
+    registerEndpoint('/api/nutrition/foods/search/external', () => ({
+      results: [
+        { source: 'off', externalId: 'xyz', name: 'Needs Nutrition Food', brand: null, barcode: null, hasNutrition: false, attribution: null }
+      ],
+      errors: []
+    }))
+    registerEndpoint('/api/nutrition/foods/import', {
+      method: 'POST',
+      handler: async () => ({ id: 100, needsNutrition: true, owned: false })
+    })
+    registerEndpoint('/api/nutrition/foods/100', () => ({ id: 100, name: 'Needs Nutrition Food', brand: null, servings: [] }))
+
+    const wrapper = await mountSuspended(NutritionFoodSearch, {
+      props: { date: '2026-07-03', containers: [{ id: 7, name: 'Breakfast' }] }
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-test="online-tab"]').trigger('click')
+    await wrapper.find('[data-test="online-query"]').setValue('needs nutrition')
+    await wrapper.find('[data-test="online-search"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-test="online-import"]').trigger('click')
+
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-test="needs-nutrition-alert"]').exists()).toBe(true)
+    })
+    expect(wrapper.text()).toContain('Imported without nutrition — add servings in the food form')
+
+    const checkboxes = wrapper.findAllComponents(CheckboxCtor)
+    await checkboxes[0]!.vm.$emit('update:modelValue', false)
+
+    expect(wrapper.find('[data-test="needs-nutrition-alert"]').exists()).toBe(false)
+  })
 })

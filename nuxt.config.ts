@@ -39,6 +39,21 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
+    meili: {
+      host: process.env.NUXT_MEILI_HOST ?? '',
+      apiKey: process.env.NUXT_MEILI_API_KEY ?? ''
+    },
+    off: {
+      userAgent: process.env.NUXT_OFF_USER_AGENT ?? ''
+    },
+    usda: {
+      apiKey: process.env.NUXT_USDA_API_KEY ?? ''
+    },
+    fatsecret: {
+      clientId: process.env.NUXT_FATSECRET_CLIENT_ID ?? '',
+      clientSecret: process.env.NUXT_FATSECRET_CLIENT_SECRET ?? '',
+      scope: process.env.NUXT_FATSECRET_SCOPE ?? 'basic'
+    },
     oauth: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID,

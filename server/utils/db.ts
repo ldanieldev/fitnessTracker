@@ -18,6 +18,9 @@ export const db = drizzle({ client: pool, schema })
 
 export type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0]
 
+/** The root client — the one type in the DbClient union that actually has `.transaction()`. */
+export type RootDbClient = typeof db
+
 /**
  * Wraps a DB operation in a span and records its duration. Fallback for runtimes (Bun) where
  * @opentelemetry/instrumentation-pg auto-patching does not fire — verified

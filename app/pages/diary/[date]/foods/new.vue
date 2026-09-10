@@ -22,7 +22,7 @@ async function onCreated() {
 
     <template #body>
       <div class="max-w-2xl mx-auto w-full">
-        <NutritionFoodForm @created="onCreated" />
+        <NutritionFoodForm :prefill="{ barcode: String(route.query.barcode ?? '') || undefined }" @created="onCreated" />
       </div>
     </template>
   </UDashboardPanel>

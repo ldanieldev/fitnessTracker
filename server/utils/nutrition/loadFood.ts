@@ -19,6 +19,7 @@ export interface LoadedFood extends FoodForResolve {
   brand: string | null
   barcode: string | null
   createdByUserId: number | null
+  sourceId: number | null
   deletedAt: Date | null
 }
 
@@ -83,6 +84,7 @@ export async function loadFood(client: DbClient, userId: number, foodId: number)
     brand: head.brand,
     barcode: head.barcode,
     createdByUserId: head.createdByUserId,
+    sourceId: head.sourceId,
     deletedAt: head.deletedAt
   }
 }

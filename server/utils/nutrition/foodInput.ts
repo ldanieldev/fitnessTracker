@@ -26,7 +26,7 @@ export interface PreparedServing {
   quantity: number
   basisGrams: number | null
   hasOwnNutrition: boolean
-  origin: 'user'
+  origin: 'user' | 'import'
   sortOrder: number
   nutrients: Array<{ nutrientId: number, amount: number }>
 }

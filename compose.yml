@@ -27,6 +27,16 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
 
+  meilisearch:
+    image: docker.io/getmeili/meilisearch:v1.37
+    ports:
+      - '7700:7700'
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: 'true'
+    volumes:
+      - meili_data:/meili_data
+
   redis-insight:
     image: redis/redisinsight:latest
     ports:
@@ -116,4 +126,5 @@ volumes:
   postgres_data:
   redis_data:
   redis_insight_data:
+  meili_data:
   playwright_bun:
