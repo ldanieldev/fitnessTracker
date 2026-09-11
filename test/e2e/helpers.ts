@@ -5,6 +5,11 @@ export function uniqueEmail(prefix = 'e2e') {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
 }
 
+/** Mandatory for any spec that seeds foods and then searches the picker for them — the e2e DB is never reset, so an unprefixed name can collide with a prior run's rows. */
+export function uniquePrefix(base = 'T') {
+  return `${base}${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`
+}
+
 export interface TestUser {
   name: string
   email: string
@@ -111,4 +116,11 @@ export async function apiFetch<T = unknown>(page: Page, method: string, path: st
     },
     { method, path, body }
   ) as Promise<ApiResult<T>>
+}
+
+// Meilisearch's addDocuments only enqueues the task; force a synchronous rebuild so a search right after seeding sees it.
+export async function rebuildSearchIndex(page: Page) {
+  if (!process.env.NUXT_MEILI_HOST) return
+  const res = await apiFetch(page, 'POST', '/api/nutrition/_test/search-rebuild')
+  if (!res.ok) throw new Error(`test-only rebuild route failed: ${res.status}`)
 }

@@ -216,11 +216,18 @@ test('starred foods rank above unstarred ones in recents', async ({ page, goto }
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
+  const containers = await apiFetch<{ id: number }[]>(page, 'GET', '/api/nutrition/meal-containers')
+  const containerId = containers.json[0]!.id
+
   const mk = async (name: string) => {
     const res = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
       name,
       servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 1 } }]
     })
+    // Recents ties null-logCount rows alphabetically; logging once gives a non-null logCount that outranks the dev DB's thousands of unlogged catalogue foods
+    await apiFetch(page, 'POST', '/api/nutrition/diary/2026-08-01/entries', [
+      { entryType: 'food', containerId, foodId: res.json.id, quantity: 100, unitLabel: 'g' }
+    ])
     return res.json.id
   }
 

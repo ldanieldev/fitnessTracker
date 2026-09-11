@@ -91,10 +91,11 @@ const links = [
       defaultOpen: true,
       type: 'trigger' as const,
       children: [
-        {
-          label: 'Menu Item',
-          onSelect: close
-        }
+        { label: 'Diary', to: '/diary/today', onSelect: close },
+        { label: 'Summary', to: '/diary/summary', onSelect: close },
+        { label: 'Recipes', to: '/nutrition/recipes', onSelect: close },
+        { label: 'Saved meals', to: '/nutrition/saved-meals', onSelect: close },
+        { label: 'Foods', to: '/nutrition/foods', onSelect: close }
       ]
     }
   ]

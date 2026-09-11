@@ -88,7 +88,8 @@ test('summary page renders unlogged days as an em dash and exports csv', async (
       return null
     }
   })
-  await page.locator('[data-test="export-csv"]').click()
+  await page.locator('[data-test="summary-menu"]').click()
+  await page.getByRole('menuitem', { name: 'Export CSV' }).click()
   const openedUrl = await page.evaluate(() => (window as unknown as { __openedUrl: string | null }).__openedUrl)
   expect(openedUrl).toContain('/api/nutrition/diary/export')
   expect(openedUrl).toContain('format=csv')

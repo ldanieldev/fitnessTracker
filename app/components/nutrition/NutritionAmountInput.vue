@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { FoodForResolve, UnitSelection } from '~~/shared/types/nutrition'
-import { NoWeightBasisError, resolveNutrition } from '~~/shared/utils/nutritionResolve'
+import type { FoodForResolve } from '~~/shared/types/nutrition'
+import { resolveByLabel } from '~~/app/utils/nutrition/resolveByLabel'
 
 const props = defineProps<{
   food: FoodForResolve
   modelValue: { quantity: number, unitLabel: string }
   nutrientKeys?: Record<number, string>
   disabled?: boolean
+  quantityTest?: string
+  unitTest?: string
 }>()
 
 const emit = defineEmits<{
@@ -40,34 +42,23 @@ type PreviewKey = (typeof PREVIEW_KEYS)[number]
 
 const preview = computed<Partial<Record<PreviewKey, number>> | null>(() => {
   if (!props.nutrientKeys || !(quantity.value > 0)) return null
-  const unit = units.value.find((u) => u.value === unitLabel.value)
-  if (!unit) return null
+  const resolved = resolveByLabel(props.food, unitLabel.value, quantity.value)
+  if (!resolved) return null
 
-  const selection: UnitSelection =
-    unit.kind === 'mass'
-      ? { type: 'mass', unit: unit.value as 'g' | 'oz' | 'lb' }
-      : { type: 'serving', servingId: unit.servingId! }
-
-  try {
-    const resolved = resolveNutrition(props.food, selection, quantity.value)
-    const byKey: Partial<Record<PreviewKey, number>> = {}
-    for (const [id, amount] of Object.entries(resolved.nutrients)) {
-      const key = props.nutrientKeys[Number(id)]
-      if (key && (PREVIEW_KEYS as readonly string[]).includes(key)) byKey[key as PreviewKey] = amount
-    }
-    return byKey
-  } catch (err) {
-    if (err instanceof NoWeightBasisError) return null
-    throw err
+  const byKey: Partial<Record<PreviewKey, number>> = {}
+  for (const [id, amount] of Object.entries(resolved)) {
+    const key = props.nutrientKeys[Number(id)]
+    if (key && (PREVIEW_KEYS as readonly string[]).includes(key)) byKey[key as PreviewKey] = amount
   }
+  return byKey
 })
 </script>
 
 <template>
   <div class="flex flex-col gap-2">
-    <div class="flex items-center gap-2">
-      <UInputNumber v-model="quantity" :min="0" :disabled="disabled" class="w-28" />
-      <USelect v-model="unitLabel" :items="units" :disabled="disabled" class="w-32" />
+    <div class="grid grid-cols-2 gap-2 w-full">
+      <UInputNumber v-model="quantity" :min="0" :disabled="disabled" class="w-full" :data-test="quantityTest" />
+      <USelect v-model="unitLabel" :items="units" :disabled="disabled" class="w-full" :data-test="unitTest" />
     </div>
     <p v-if="preview" class="text-xs text-dimmed">
       <span v-if="preview.energy !== undefined">{{ preview.energy.toFixed(0) }} kcal</span>

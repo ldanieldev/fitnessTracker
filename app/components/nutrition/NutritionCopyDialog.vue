@@ -89,7 +89,7 @@ function confirm() {
 </script>
 
 <template>
-  <UModal :open="open" title="Copy entries" @update:open="emit('update:open', $event)">
+  <NutritionSheet :open="open" title="Copy entries" @update:open="emit('update:open', $event)">
     <template #body>
       <div class="flex flex-col gap-4">
         <UFormField label="Target date">
@@ -103,7 +103,7 @@ function confirm() {
           <div
             v-for="entry in sourceEntries"
             :key="entry.id"
-            class="flex items-center gap-2"
+            class="flex flex-wrap items-center gap-2"
             data-test="copy-source-row"
           >
             <UCheckbox
@@ -115,7 +115,7 @@ function confirm() {
             <UInputNumber
               :model-value="quantities.get(entry.id) ?? entry.quantity"
               :min="0"
-              class="w-24"
+              class="w-20"
               data-test="copy-source-quantity"
               @update:model-value="(value) => quantities.set(entry.id, value)"
             />
@@ -133,5 +133,5 @@ function confirm() {
       <UButton label="Cancel" variant="ghost" color="neutral" @click="emit('update:open', false)" />
       <UButton label="Copy" :disabled="!canConfirm" data-test="copy-confirm" @click="confirm" />
     </template>
-  </UModal>
+  </NutritionSheet>
 </template>

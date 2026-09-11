@@ -330,3 +330,44 @@ test('a gram-unit ingredient against an ounce weight serving resolves by weight'
   // 400 g / 28.349523125 g per oz x 7 g protein; treating 400 as a serving count would give 2800
   expect(Number(recipe.json.perServing.protein)).toBeCloseTo(98.77, 2)
 })
+
+test('recipe reads carry ingredient names, per-line nutrients, and a broken flag', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+
+  const oats = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+    name: 'Enriched Oats',
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380, protein: 13 } }]
+  })
+  const milk = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+    name: 'Enriched Milk',
+    servings: [{ kind: 'named', label: 'cup', quantity: 1, nutrients: { energy: 120 } }]
+  })
+  const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/recipes', {
+    name: 'Enriched Porridge',
+    servings: 2,
+    servingName: 'bowl',
+    ingredients: [
+      { foodId: oats.json.id, quantity: 100, unitLabel: 'g' },
+      { foodId: milk.json.id, quantity: 1, unitLabel: 'cup' }
+    ]
+  })
+
+  const detail = await apiFetch<{ ingredients: Array<{ name: string, nutrients: Record<string, number>, broken: boolean }> }>(
+    page, 'GET', `/api/nutrition/recipes/${created.json.id}`
+  )
+  expect(detail.json.ingredients.map((i) => i.name)).toEqual(['Enriched Oats', 'Enriched Milk'])
+  expect(detail.json.ingredients[0]!.nutrients.energy).toBeCloseTo(380, 6)
+  expect(detail.json.ingredients.every((i) => !i.broken)).toBe(true)
+
+  const list = await apiFetch<Array<{ id: number, perServing: Record<string, number>, broken: boolean }>>(page, 'GET', '/api/nutrition/recipes')
+  const row = list.json.find((r) => r.id === created.json.id)!
+  expect(row.perServing.energy).toBeCloseTo(250, 6)
+  expect(row.broken).toBe(false)
+
+  await apiFetch(page, 'DELETE', `/api/nutrition/foods/${milk.json.id}`)
+  const after = await apiFetch<{ ingredients: Array<{ name: string, broken: boolean }> }>(page, 'GET', `/api/nutrition/recipes/${created.json.id}`)
+  expect(after.json.ingredients[1]).toMatchObject({ name: 'Enriched Milk', broken: true })
+  const listAfter = await apiFetch<Array<{ id: number, broken: boolean }>>(page, 'GET', '/api/nutrition/recipes')
+  expect(listAfter.json.find((r) => r.id === created.json.id)!.broken).toBe(true)
+})

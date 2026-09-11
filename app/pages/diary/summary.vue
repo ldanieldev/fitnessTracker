@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Range } from '~/types'
 import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 
@@ -78,6 +79,20 @@ function exportUrl(exportFormat: 'csv' | 'json') {
 function openExport(exportFormat: 'csv' | 'json') {
   window.open(exportUrl(exportFormat), '_blank')
 }
+
+const narrow = useIsNarrow()
+
+const menu = computed<DropdownMenuItem[][]>(() => [
+  windowItems.map((w) => ({
+    label: `${w.label} average`,
+    icon: windowSize.value === w.value ? 'i-lucide-check' : undefined,
+    onSelect: () => { windowSize.value = w.value }
+  })),
+  [
+    { label: 'Export CSV', icon: 'i-lucide-download', onSelect: () => openExport('csv') },
+    { label: 'Export JSON', icon: 'i-lucide-download', onSelect: () => openExport('json') }
+  ]
+])
 </script>
 
 <template>
@@ -89,32 +104,34 @@ function openExport(exportFormat: 'csv' | 'json') {
         </template>
 
         <template #right>
-          <DashboardDateRangePicker v-model="range" />
-          <USelect v-model="windowSize" :items="windowItems" data-test="summary-window" class="w-32" />
-          <UButton
-            label="Export CSV"
-            icon="i-lucide-download"
-            variant="soft"
-            color="neutral"
-            size="sm"
-            data-test="export-csv"
-            @click="openExport('csv')"
-          />
-          <UButton
-            label="JSON"
-            icon="i-lucide-download"
-            variant="soft"
-            color="neutral"
-            size="sm"
-            data-test="export-json"
-            @click="openExport('json')"
-          />
+          <DashboardDateRangePicker v-model="range" :months="narrow ? 1 : 2" />
+          <UDropdownMenu :items="menu">
+            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" aria-label="Summary actions" data-test="summary-menu" />
+          </UDropdownMenu>
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
-      <div class="overflow-x-auto">
+      <div v-if="narrow" class="flex flex-col gap-2">
+        <div v-for="day in summary?.days ?? []" :key="day.date" :data-test="`summary-row-${day.date}`">
+          <UCard data-test="summary-card">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="font-medium">{{ day.date }}</span>
+              <UIcon v-if="day.logged" name="i-lucide-check" class="text-success size-4" />
+              <span v-else class="text-dimmed">—</span>
+            </div>
+            <div class="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 text-sm">
+              <template v-for="nutrient in trackedNutrients" :key="nutrient.key">
+                <span class="text-dimmed">{{ nutrient.name }}</span>
+                <span :data-test="`summary-${nutrient.key}-total-${day.date}`">{{ totalCell(day, nutrient.key) }}</span>
+                <span :data-test="`summary-${nutrient.key}-avg-${day.date}`">{{ rollingCell(day, nutrient.key) }}</span>
+              </template>
+            </div>
+          </UCard>
+        </div>
+      </div>
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
             <tr class="border-b border-default text-left text-dimmed">

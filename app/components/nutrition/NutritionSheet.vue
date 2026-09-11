@@ -1,0 +1,31 @@
+<script setup lang="ts">
+import { useIsNarrow } from '../../composables/useIsNarrow'
+
+defineProps<{
+  title: string
+  description?: string
+  fullscreen?: boolean
+}>()
+
+const open = defineModel<boolean>('open', { default: false })
+const narrow = useIsNarrow()
+</script>
+
+<template>
+  <UDrawer v-if="narrow && !fullscreen" v-model:open="open" :title="title" :description="description">
+    <template #body>
+      <slot name="body" />
+    </template>
+    <template v-if="$slots.footer" #footer>
+      <slot name="footer" />
+    </template>
+  </UDrawer>
+  <UModal v-else v-model:open="open" :title="title" :description="description" :fullscreen="Boolean(fullscreen) && narrow">
+    <template #body>
+      <slot name="body" />
+    </template>
+    <template v-if="$slots.footer" #footer>
+      <slot name="footer" />
+    </template>
+  </UModal>
+</template>

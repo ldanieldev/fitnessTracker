@@ -149,3 +149,33 @@ test('logging a saved meal with a deleted item food fails atomically', async ({ 
   const day = await apiFetch<{ entries: unknown[] }>(page, 'GET', '/api/nutrition/diary/2026-06-04')
   expect(day.json.entries).toHaveLength(0)
 })
+
+test('saved-meal reads carry item names, nutrients, item count, and total', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+
+  const egg = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+    name: 'Meal Egg',
+    servings: [{ kind: 'named', label: 'egg', quantity: 1, nutrients: { energy: 69 } }]
+  })
+  const toast = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+    name: 'Meal Toast',
+    servings: [{ kind: 'named', label: 'slice', quantity: 1, nutrients: { energy: 80 } }]
+  })
+  const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/saved-meals', {
+    name: 'Egg breakfast',
+    items: [
+      { foodId: egg.json.id, quantity: 3, unitLabel: 'egg' },
+      { foodId: toast.json.id, quantity: 2, unitLabel: 'slice' }
+    ]
+  })
+
+  const detail = await apiFetch<{ items: Array<{ name: string, nutrients: Record<string, number> }>, total: Record<string, number> }>(
+    page, 'GET', `/api/nutrition/saved-meals/${created.json.id}`
+  )
+  expect(detail.json.items.map((i) => i.name)).toEqual(['Meal Egg', 'Meal Toast'])
+  expect(detail.json.total.energy).toBeCloseTo(367, 6)
+
+  const list = await apiFetch<Array<{ id: number, itemCount: number, total: Record<string, number> }>>(page, 'GET', '/api/nutrition/saved-meals')
+  expect(list.json.find((m) => m.id === created.json.id)).toMatchObject({ itemCount: 2 })
+})

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { NutrientKey } from '~~/shared/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
+import type { ServingDraft } from '~/utils/nutrition/servingDraft'
+import { emptyDraft, nutrientFields, draftToInput, applyParsedNutrients, draftError } from '~/utils/nutrition/servingDraft'
+import { useTrackedNutrients } from '~/composables/useTrackedNutrients'
 
 interface ParsedLabel {
   servingGrams: number | null
@@ -8,23 +11,12 @@ interface ParsedLabel {
   confidence: number
 }
 
-interface ServingRow {
-  kind: 'weight' | 'named'
-  label: string
-  quantity: number
-  energy: string
-  protein: string
-  carbohydrate: string
-  fat: string
-  basisGrams: string
-}
-
 const props = defineProps<{
   prefill?: {
     name?: string
     brand?: string
     barcode?: string
-    servings?: Array<Partial<ServingRow>>
+    servings?: Array<Partial<ServingDraft>>
   }
 }>()
 
@@ -33,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const { tracked } = useTrackedNutrients()
 
 const name = ref(props.prefill?.name ?? '')
 const brand = ref(props.prefill?.brand ?? '')
@@ -40,102 +33,40 @@ const barcode = ref(props.prefill?.barcode ?? '')
 const loading = ref(false)
 const showOcr = ref(false)
 
-function newRow(): ServingRow {
-  return { kind: 'named', label: '', quantity: 1, energy: '', protein: '', carbohydrate: '', fat: '', basisGrams: '' }
-}
-
-const servings = reactive<ServingRow[]>(
-  props.prefill?.servings?.length ? props.prefill.servings.map((row) => ({ ...newRow(), ...row })) : [newRow()]
+const servings = ref<ServingDraft[]>(
+  props.prefill?.servings?.length ? props.prefill.servings.map((draft) => ({ ...emptyDraft(), ...draft })) : [emptyDraft()]
 )
 
-function isEmptyRow(row: ServingRow): boolean {
-  return JSON.stringify(row) === JSON.stringify(newRow())
-}
-
-function applyServing(row: Partial<ServingRow>) {
-  const full: ServingRow = { ...newRow(), ...row }
-  if (servings.length === 1 && isEmptyRow(servings[0]!)) {
-    servings.splice(0, 1, full)
-  } else {
-    servings.push(full)
-  }
-}
+const fields = computed(() => nutrientFields(tracked.value ?? []))
 
 function applyParsedLabel(result: ParsedLabel) {
-  applyServing({
-    kind: 'named',
-    label: 'serving',
-    quantity: 1,
-    energy: result.nutrients.energy !== undefined ? String(result.nutrients.energy) : '',
-    protein: result.nutrients.protein !== undefined ? String(result.nutrients.protein) : '',
-    carbohydrate: result.nutrients.carbohydrate !== undefined ? String(result.nutrients.carbohydrate) : '',
-    fat: result.nutrients.fat !== undefined ? String(result.nutrients.fat) : '',
-    basisGrams: result.servingGrams != null ? String(result.servingGrams) : ''
-  })
+  const draft = applyParsedNutrients(
+    { ...emptyDraft(), label: 'serving', basisGrams: result.servingGrams != null ? String(result.servingGrams) : '' },
+    result.nutrients,
+    fields.value
+  )
+  if (servings.value.length === 1 && JSON.stringify(servings.value[0]) === JSON.stringify(emptyDraft())) {
+    servings.value.splice(0, 1, draft)
+  } else {
+    servings.value.push(draft)
+  }
   showOcr.value = false
 }
 
-const weightLabelItems = [
-  { label: 'g', value: 'g' },
-  { label: 'oz', value: 'oz' },
-  { label: 'lb', value: 'lb' }
-]
-
-function kindItems(index: number) {
-  const weightUsedElsewhere = servings.some((row, i) => i !== index && row.kind === 'weight')
-  return [
-    { label: 'Weight', value: 'weight', disabled: weightUsedElsewhere },
-    { label: 'Named', value: 'named' }
-  ]
+function addServing() {
+  servings.value.push(emptyDraft())
 }
 
-watch(
-  () => servings.map((row) => row.kind),
-  () => {
-    for (const row of servings) {
-      if (row.kind === 'weight' && !weightLabelItems.some((item) => item.value === row.label)) row.label = 'g'
-    }
-  }
-)
-
-function addRow() {
-  servings.push(newRow())
+function removeServing(index: number) {
+  if (servings.value.length > 1) servings.value.splice(index, 1)
 }
 
-function removeRow(index: number) {
-  if (servings.length > 1) servings.splice(index, 1)
-}
-
-function rowNutrients(row: ServingRow): Record<string, number> {
-  const nutrients: Record<string, number> = {}
-  const energy = numOrUndefined(row.energy)
-  const protein = numOrUndefined(row.protein)
-  const carbohydrate = numOrUndefined(row.carbohydrate)
-  const fat = numOrUndefined(row.fat)
-  if (energy !== undefined) nutrients.energy = energy
-  if (protein !== undefined) nutrients.protein = protein
-  if (carbohydrate !== undefined) nutrients.carbohydrate = carbohydrate
-  if (fat !== undefined) nutrients.fat = fat
-  return nutrients
-}
-
-const rowErrors = computed(() =>
-  servings.map((row) => {
-    const hasNutrients = Object.keys(rowNutrients(row)).length > 0
-    if (row.kind === 'weight' && !hasNutrients) {
-      return 'A weight serving must carry its own nutrition'
-    }
-    if (!hasNutrients && numOrUndefined(row.basisGrams) === undefined) {
-      return 'A serving without its own nutrition needs a gram weight'
-    }
-    return null
-  })
-)
+const weightTaken = computed(() => servings.value.some((d) => d.kind === 'weight'))
 
 const canSubmit = computed(() =>
   name.value.trim().length > 0 &&
-  servings.every((row) => row.label.trim().length > 0 && row.quantity > 0) &&
-  rowErrors.value.every((error) => error === null)
+  servings.value.filter((s) => s.kind === 'weight').length <= 1 &&
+  servings.value.every((d) => !draftError(d))
 )
 
 async function submit() {
@@ -148,18 +79,7 @@ async function submit() {
         name: name.value.trim(),
         brand: brand.value.trim() || undefined,
         barcode: barcode.value.trim() || undefined,
-        servings: servings.map((row) => {
-          const nutrients = rowNutrients(row)
-          const hasNutrients = Object.keys(nutrients).length > 0
-          const basisGrams = numOrUndefined(row.basisGrams)
-          return {
-            kind: row.kind,
-            label: row.label.trim(),
-            quantity: row.quantity,
-            ...(hasNutrients ? { nutrients } : {}),
-            ...(basisGrams !== undefined ? { basisGrams } : {})
-          }
-        })
+        servings: servings.value.map(draftToInput)
       }
     })
     emit('created', result.id)
@@ -199,17 +119,11 @@ async function submit() {
       <NutritionLabelOcr v-if="showOcr" @parsed="applyParsedLabel" />
 
       <div class="flex flex-col gap-3">
-        <div
-          v-for="(row, index) in servings"
-          :key="index"
-          class="flex flex-col gap-2 p-3 rounded-lg bg-elevated/50"
-          data-test="serving-row"
-        >
-          <div class="flex gap-2 items-center">
-            <USelect v-model="row.kind" :items="kindItems(index)" class="w-32" data-test="serving-kind" />
-            <UInput v-if="row.kind === 'named'" v-model="row.label" placeholder="e.g. slice" class="flex-1" data-test="serving-label" />
-            <USelect v-else v-model="row.label" :items="weightLabelItems" class="w-24" data-test="serving-label" />
-            <UInputNumber v-model="row.quantity" :min="0" class="w-28" data-test="serving-quantity" />
+        <div v-for="(draft, index) in servings" :key="index" class="flex flex-col gap-2 p-3 rounded-lg bg-elevated/50">
+          <div class="flex gap-2 items-center justify-between">
+            <div class="flex-1">
+              <NutritionServingFields v-model="servings[index]!" :fields="fields" :weight-taken="weightTaken && draft.kind !== 'weight'" />
+            </div>
             <UButton
               icon="i-lucide-trash-2"
               variant="ghost"
@@ -217,29 +131,14 @@ async function submit() {
               size="xs"
               aria-label="Remove serving"
               :disabled="servings.length === 1"
-              @click="removeRow(index)"
+              @click="removeServing(index)"
             />
           </div>
-          <div class="grid grid-cols-4 gap-2">
-            <UInput v-model="row.energy" type="number" placeholder="kcal" data-test="serving-energy" />
-            <UInput v-model="row.protein" type="number" placeholder="protein g" data-test="serving-protein" />
-            <UInput v-model="row.carbohydrate" type="number" placeholder="carb g" data-test="serving-carbohydrate" />
-            <UInput v-model="row.fat" type="number" placeholder="fat g" data-test="serving-fat" />
-          </div>
-          <UInput
-            v-if="row.kind === 'named'"
-            v-model="row.basisGrams"
-            type="number"
-            placeholder="Gram weight (optional; required if no macros above)"
-            class="w-full"
-            data-test="serving-basis-grams"
-          />
-          <p v-if="rowErrors[index]" class="text-xs text-error" data-test="serving-error">{{ rowErrors[index] }}</p>
         </div>
-        <UButton label="Add serving" variant="soft" color="neutral" class="w-fit" @click="addRow" />
+        <UButton label="Add serving" variant="soft" color="neutral" class="w-fit" @click="addServing" />
       </div>
 
-      <UButton label="Create food" :disabled="!canSubmit" :loading="loading" class="w-fit" data-test="food-submit" @click="submit" />
+      <UButton label="Create food" :disabled="!canSubmit" :loading="loading" class="w-full sm:w-fit" data-test="food-submit" @click="submit" />
     </div>
   </UCard>
 </template>

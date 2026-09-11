@@ -97,7 +97,10 @@ async function importResult(result: ExternalResult) {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex items-end gap-2">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <UFormField label="Source" class="order-first sm:order-none">
+        <USelect v-model="source" :items="sourceItems" class="w-full sm:w-40" data-test="online-source" />
+      </UFormField>
       <UFormField label="Search" class="flex-1">
         <UInput
           v-model="query"
@@ -108,10 +111,14 @@ async function importResult(result: ExternalResult) {
           @keyup.enter="search"
         />
       </UFormField>
-      <UFormField label="Source">
-        <USelect v-model="source" :items="sourceItems" class="w-40" data-test="online-source" />
-      </UFormField>
-      <UButton label="Search" :loading="searching" :disabled="!query.trim()" data-test="online-search" @click="search" />
+      <UButton
+        label="Search"
+        class="w-full sm:w-auto"
+        :loading="searching"
+        :disabled="!query.trim()"
+        data-test="online-search"
+        @click="search"
+      />
     </div>
 
     <UAlert
@@ -127,7 +134,7 @@ async function importResult(result: ExternalResult) {
       <li
         v-for="result in results"
         :key="resultKey(result)"
-        class="flex items-center gap-2 p-2 rounded-lg bg-elevated/50"
+        class="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-elevated/50"
         data-test="online-result"
       >
         <UBadge :label="SOURCE_LABELS[result.source]" color="neutral" variant="subtle" />
@@ -140,6 +147,7 @@ async function importResult(result: ExternalResult) {
         <UButton
           label="Import"
           size="xs"
+          class="ml-auto"
           :loading="importingKey === resultKey(result)"
           :aria-label="`Import ${result.name}`"
           data-test="online-import"

@@ -228,13 +228,13 @@ async function confirmDelete() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div v-for="profile in profiles" :key="profile.id" data-test="goal-profile-row" class="flex items-center justify-between gap-2 p-3 rounded-lg border border-default">
+    <div v-for="profile in profiles" :key="profile.id" data-test="goal-profile-row" class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-default">
       <div class="flex items-center gap-2">
         <span class="font-medium">{{ profile.name }}</span>
         <span class="text-sm text-dimmed">{{ displayKcal(profile) !== null ? `${displayKcal(profile)} kcal` : '—' }}</span>
         <UBadge v-if="profile.isDefault" color="primary" variant="subtle" label="Default" />
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
         <UButton
           v-if="!profile.isDefault"
           label="Set as default"
@@ -258,7 +258,7 @@ async function confirmDelete() {
 
     <UButton label="Add goal profile" class="w-fit" data-test="add-goal-profile" @click="openCreate" />
 
-    <UModal v-model:open="modalOpen" :title="editing ? 'Edit goal profile' : 'New goal profile'">
+    <NutritionSheet v-model:open="modalOpen" :title="editing ? 'Edit goal profile' : 'New goal profile'">
       <template #body>
         <div class="flex flex-col gap-4">
           <UFormField label="Name" required>
@@ -279,35 +279,40 @@ async function confirmDelete() {
           </UFormField>
 
           <div class="flex flex-col gap-2">
-            <div v-for="key in rowKeys" :key="key" class="flex items-center gap-2" :data-test="`goal-row-${key}`">
+            <div v-for="key in rowKeys" :key="key" class="flex flex-wrap items-center gap-2" :data-test="`goal-row-${key}`">
               <template v-if="inputMode === 'ratio' && (RATIO_MACROS as readonly string[]).includes(key)">
-                <span class="w-32 text-sm font-medium">{{ nutrientMeta(key)?.name }}</span>
+                <span class="w-full sm:w-32 text-sm font-medium">{{ nutrientMeta(key)?.name }}</span>
                 <UInput
                   v-model.number="rows[key]!.ratioPercent"
                   type="number"
                   placeholder="%"
                   :data-test="`goal-ratio-${key}`"
-                  class="w-24"
+                  class="flex-1 sm:w-24 sm:flex-none"
                 />
-                <USelect v-model="rows[key]!.direction" :items="directionItems" :data-test="`goal-direction-${key}`" class="flex-1" />
+                <USelect
+                  v-model="rows[key]!.direction"
+                  :items="directionItems"
+                  :data-test="`goal-direction-${key}`"
+                  class="w-full sm:flex-1"
+                />
               </template>
               <template v-else>
                 <UCheckbox v-model="rows[key]!.enabled" :data-test="`goal-enable-${key}`" />
-                <span class="w-32 text-sm font-medium">{{ nutrientMeta(key)?.name }}</span>
+                <span class="w-full sm:w-32 text-sm font-medium">{{ nutrientMeta(key)?.name }}</span>
                 <UInput
                   v-model.number="rows[key]!.amount"
                   type="number"
                   :disabled="!rows[key]!.enabled"
                   :placeholder="nutrientMeta(key)?.unit"
                   :data-test="`goal-amount-${key}`"
-                  class="w-24"
+                  class="flex-1 sm:w-24 sm:flex-none"
                 />
                 <USelect
                   v-model="rows[key]!.direction"
                   :items="directionItems"
                   :disabled="!rows[key]!.enabled"
                   :data-test="`goal-direction-${key}`"
-                  class="flex-1"
+                  class="w-full sm:flex-1"
                 />
               </template>
             </div>
@@ -323,9 +328,9 @@ async function confirmDelete() {
           <UButton label="Save" :loading="saving" data-test="goal-save" @click="submit" />
         </div>
       </template>
-    </UModal>
+    </NutritionSheet>
 
-    <UModal
+    <NutritionSheet
       v-model:open="deleteModalOpen"
       title="Delete goal profile"
       :description="`Delete ${deleteTarget?.name}? Days already logged keep their snapshotted targets.`"
@@ -336,6 +341,6 @@ async function confirmDelete() {
           <UButton label="Delete" color="error" data-test="confirm-delete-goal" @click="confirmDelete" />
         </div>
       </template>
-    </UModal>
+    </NutritionSheet>
   </div>
 </template>

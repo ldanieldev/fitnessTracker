@@ -1,5 +1,5 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
-import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { apiFetch, makeUser, rebuildSearchIndex, registerViaApi, uniquePrefix } from './helpers'
 
 test('logs, views, toggles and deletes a diary entry', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -40,18 +40,20 @@ test('logs, views, toggles and deletes a diary entry', async ({ page, goto }) =>
   await page.getByRole('tab', { name: 'Consumed' }).click()
   await expect(energyValue).not.toHaveText(before ?? '')
 
-  const heading = page.getByRole('heading', { level: 1 })
+  const heading = page.locator('[data-test="diary-date"]')
   await page.getByRole('button', { name: 'Previous day' }).click()
-  await expect(heading).toHaveText('2026-06-30')
+  await expect(heading).toHaveAttribute('data-date', '2026-06-30')
   await expect(page).toHaveURL(/\/diary\/2026-06-30$/)
 
   await page.getByRole('button', { name: 'Next day' }).click()
   await page.getByRole('button', { name: 'Next day' }).click()
-  await expect(heading).toHaveText('2026-07-02')
+  await expect(heading).toHaveAttribute('data-date', '2026-07-02')
   await expect(page).toHaveURL(/\/diary\/2026-07-02$/)
 
   await goto('/diary/2026-07-01', { waitUntil: 'hydration' })
-  await entryRow.locator('button').last().click()
+  await entryRow.click()
+  await page.locator('[data-test="entry-delete"]').click()
+  await page.locator('[data-test="entry-delete-confirm"]').click()
   await expect(entryRow).toHaveCount(0)
 })
 
@@ -59,9 +61,11 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
+  const p = uniquePrefix()
+
   await goto('/diary/2026-07-03/foods/new', { waitUntil: 'hydration' })
 
-  await page.locator('[data-test="food-name"]').fill('UI Pizza')
+  await page.locator('[data-test="food-name"]').fill(`${p} Pizza`)
   await page.locator('[data-test="serving-label"]').fill('slice')
   await page.locator('[data-test="serving-protein"]').fill('3')
   await page.locator('[data-test="serving-carbohydrate"]').fill('2')
@@ -69,9 +73,10 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
 
   await page.locator('[data-test="food-submit"]').click()
   await expect(page).toHaveURL(/\/diary\/2026-07-03\/add$/)
+  await rebuildSearchIndex(page)
 
-  await page.locator('[data-test="food-search-input"]').fill('UI Pizza')
-  const hitRow = page.locator('[data-test="food-hit"]', { hasText: 'UI Pizza' })
+  await page.locator('[data-test="food-search-input"]').fill(p)
+  const hitRow = page.locator('[data-test="food-hit"]', { hasText: `${p} Pizza` })
   await expect(hitRow).toBeVisible()
 
   await hitRow.locator('[data-test="food-hit-checkbox"]').click()
@@ -81,7 +86,7 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   await expect(page).toHaveURL(/\/diary\/2026-07-03$/)
 
   const entryRow2 = page.locator('[data-test="entry-row"]')
-  await expect(entryRow2).toContainText('UI Pizza')
+  await expect(entryRow2).toContainText(`${p} Pizza`)
   await expect(entryRow2.locator('[data-test="entry-protein"]')).toContainText('6.0')
 })
 
@@ -106,7 +111,8 @@ test('selection mode resets when navigating to another day', async ({ page, goto
   const toggle = page.locator('[data-test="toggle-select-mode"]')
   const copySelected = page.locator('[data-test="copy-selected"]')
 
-  await toggle.click()
+  await page.locator('[data-test="day-menu"]').click()
+  await page.getByRole('menuitem', { name: 'Select entries' }).click()
   await expect(toggle).toHaveText('Done')
 
   await page.locator('[data-test="entry-select"]').click()
@@ -116,7 +122,7 @@ test('selection mode resets when navigating to another day', async ({ page, goto
   await page.getByRole('button', { name: 'Next day' }).click()
   await expect(page).toHaveURL(/\/diary\/2026-07-06$/)
 
-  await expect(toggle).toHaveText('Select')
+  await expect(toggle).toHaveCount(0)
   await expect(page.locator('[data-test="entry-select"]')).toHaveCount(0)
   await expect(copySelected).toHaveCount(0)
 
@@ -125,5 +131,5 @@ test('selection mode resets when navigating to another day', async ({ page, goto
 
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(1)
   await expect(page.locator('[data-test="entry-select"]')).toHaveCount(0)
-  await expect(toggle).toHaveText('Select')
+  await expect(toggle).toHaveCount(0)
 })

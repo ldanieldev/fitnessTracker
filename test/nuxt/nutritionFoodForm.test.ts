@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { readBody } from 'h3'
+import { flushPromises } from '@vue/test-utils'
 import NutritionFoodForm from '../../app/components/nutrition/NutritionFoodForm.vue'
 
 describe('NutritionFoodForm', () => {
@@ -55,5 +56,43 @@ describe('NutritionFoodForm', () => {
     expect((wrapper.find('[data-test="serving-carbohydrate"]').element as HTMLInputElement).value).toBe('37')
     expect((wrapper.find('[data-test="serving-fat"]').element as HTMLInputElement).value).toBe('8')
     expect((wrapper.find('[data-test="serving-basis-grams"]').element as HTMLInputElement).value).toBe('55')
+  })
+
+  it('shows tracked extras and applies OCR nutrients only where a field exists', async () => {
+    registerEndpoint('/api/nutrition/nutrients/tracked', () => [
+      { key: 'energy', name: 'Calories', unit: 'kcal', sortOrder: 0 },
+      { key: 'fiber', name: 'Fiber', unit: 'g', sortOrder: 1 }
+    ])
+    const wrapper = await mountSuspended(NutritionFoodForm)
+    await flushPromises()
+    expect(wrapper.find('[data-test="serving-fiber"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="serving-sodium"]').exists()).toBe(false)
+
+    await wrapper.find('[data-test="ocr-open"]').trigger('click')
+    await wrapper.findComponent({ name: 'NutritionLabelOcr' }).vm.$emit('parsed', {
+      servingGrams: 30, nutrients: { energy: 120, fiber: 4, sodium: 90 }, confidence: 0.9
+    })
+    expect((wrapper.find('[data-test="serving-fiber"]').element as HTMLInputElement).value).toBe('4')
+  })
+
+  it('sends tracked extras in the create body', async () => {
+    registerEndpoint('/api/nutrition/nutrients/tracked', () => [{ key: 'fiber', name: 'Fiber', unit: 'g', sortOrder: 0 }])
+    let captured: { servings: Array<{ nutrients?: Record<string, number> }> } | undefined
+    registerEndpoint('/api/nutrition/foods', {
+      method: 'POST',
+      handler: async (event) => {
+        captured = await readBody(event)
+        return { id: 1 }
+      }
+    })
+    const wrapper = await mountSuspended(NutritionFoodForm)
+    await flushPromises()
+    await wrapper.find('[data-test="food-name"]').setValue('Fiber Bar')
+    await wrapper.find('[data-test="serving-label"]').setValue('bar')
+    await wrapper.find('[data-test="serving-energy"]').setValue('200')
+    await wrapper.find('[data-test="serving-fiber"]').setValue('9')
+    await wrapper.find('[data-test="food-submit"]').trigger('click')
+    await vi.waitFor(() => expect(captured).toBeDefined())
+    expect(captured!.servings[0]!.nutrients).toEqual({ energy: 200, fiber: 9 })
   })
 })

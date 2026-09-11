@@ -191,7 +191,7 @@ const showArchived = ref(false)
       </div>
     </div>
 
-    <UModal
+    <NutritionSheet
       v-model:open="archiveModalOpen"
       title="Archive container"
       :description="`Archive ${archiveTarget?.name}? Logged entries stay put.`"
@@ -202,6 +202,6 @@ const showArchived = ref(false)
           <UButton label="Archive" color="error" data-test="confirm-archive" @click="confirmArchive" />
         </div>
       </template>
-    </UModal>
+    </NutritionSheet>
   </div>
 </template>

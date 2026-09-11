@@ -272,7 +272,8 @@ test('copies a day through the dialog with one item excluded and one adjusted', 
   ])
 
   await goto('/diary/2026-08-01', { waitUntil: 'hydration' })
-  await page.locator('[data-test="copy-day"]').click()
+  await page.locator('[data-test="day-menu"]').click()
+  await page.getByRole('menuitem', { name: 'Copy day' }).click()
 
   await page.locator('[data-test="copy-target-date"]').fill('2026-08-02')
 
@@ -314,6 +315,7 @@ test('copying one entry into a different container on the same date refreshes th
   await goto('/diary/2026-08-03', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(1)
 
+  await page.locator('[data-test="entry-row"]').click()
   await page.locator('[data-test="entry-copy"]').click()
   await page.locator('[data-test="copy-target-container"]').click()
   await page.getByRole('option', { name: targetContainer.name }).click()

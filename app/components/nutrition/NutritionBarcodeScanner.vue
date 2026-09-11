@@ -218,17 +218,19 @@ onUnmounted(() => {
       </div>
     </UCard>
 
-    <UFormField label="Barcode">
-      <div class="flex gap-2">
-        <UInput
-          v-model="manualCode"
-          placeholder="Enter barcode manually"
-          class="flex-1"
-          data-test="scan-manual-input"
-          @keyup.enter="submitManual"
-        />
-        <UButton label="Look up" data-test="scan-manual-submit" @click="submitManual" />
-      </div>
-    </UFormField>
+    <div class="sticky bottom-0 bg-default pt-2 pb-[env(safe-area-inset-bottom)]">
+      <UFormField label="Barcode">
+        <div class="flex gap-2">
+          <UInput
+            v-model="manualCode"
+            placeholder="Enter barcode manually"
+            class="flex-1"
+            data-test="scan-manual-input"
+            @keyup.enter="submitManual"
+          />
+          <UButton label="Look up" class="shrink-0" data-test="scan-manual-submit" @click="submitManual" />
+        </div>
+      </UFormField>
+    </div>
   </div>
 </template>

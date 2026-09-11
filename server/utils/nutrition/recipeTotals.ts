@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull } from 'drizzle-orm'
+import type { FoodForResolve, ResolveResult } from '~~/shared/types/nutrition'
 import { recipeIngredients, recipes } from '~~/server/db/schema'
 import { resolveNutrition } from '~~/shared/utils/nutritionResolve'
 import { normalizeUnitLabel } from '~~/shared/utils/nutritionUnits'
@@ -83,6 +84,22 @@ export async function loadRecipe(
   }
 }
 
+export interface IngredientLineInput {
+  foodServingId: number
+  quantity: number
+  unitLabel: string
+  gramsResolved: number | null
+}
+
+export function resolveIngredientLine(food: FoodForResolve, line: IngredientLineInput): ResolveResult {
+  // A mass ingredient stores the gram basis in foodServingId, so quantity is grams, not servings.
+  const byMass = normalizeUnitLabel(line.unitLabel).kind === 'weight'
+  const pinned = byMass ? undefined : food.servings.find((s) => s.id === line.foodServingId)
+  if (pinned) return resolveNutrition(food, { type: 'serving', servingId: pinned.id }, line.quantity)
+  if (line.gramsResolved !== null) return resolveNutrition(food, { type: 'mass', unit: 'g' }, line.gramsResolved)
+  return resolveNutrition(food, selectUnit(food, line.unitLabel).selection, line.quantity)
+}
+
 export async function computeRecipeNutrition(
   client: DbClient,
   userId: number,
@@ -100,15 +117,7 @@ export async function computeRecipeNutrition(
 
     let resolved
     try {
-      // A mass ingredient stores the gram basis in foodServingId, so quantity is grams, not servings.
-      const byMass = normalizeUnitLabel(ingredient.unitLabel).kind === 'weight'
-      const pinned = byMass ? undefined : food.servings.find((s) => s.id === ingredient.foodServingId)
-
-      resolved = pinned
-        ? resolveNutrition(food, { type: 'serving', servingId: pinned.id }, ingredient.quantity)
-        : ingredient.gramsResolved !== null
-          ? resolveNutrition(food, { type: 'mass', unit: 'g' }, ingredient.gramsResolved)
-          : resolveNutrition(food, selectUnit(food, ingredient.unitLabel).selection, ingredient.quantity)
+      resolved = resolveIngredientLine(food, ingredient)
     } catch {
       brokenIngredients.push(ingredient.foodId)
       continue

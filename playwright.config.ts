@@ -27,7 +27,19 @@ export default defineConfig<ConfigOptions>({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /mobile\//,
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'oneplus-13-chromium',
+      testMatch: /mobile\/.*\.spec\.ts/,
+      use: { ...devices['Pixel 10'], viewport: { width: 360, height: 689 }, deviceScaleFactor: 4 }
+    },
+    {
+      name: 'oneplus-13-firefox',
+      testMatch: /mobile\/.*\.spec\.ts/,
+      // Playwright does not support isMobile in Firefox; this checks Gecko layout at the phone's CSS size.
+      use: { browserName: 'firefox', viewport: { width: 360, height: 689 }, deviceScaleFactor: 4, hasTouch: true }
     }
   ]
 })
