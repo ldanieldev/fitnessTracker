@@ -33,6 +33,7 @@ const fields = [
     label: 'Sex',
     placeholder: 'Select your sex',
     required: true,
+    valueKey: 'value',
     items: [
       { label: 'Male', value: 'm' },
       { label: 'Female', value: 'f' }
