@@ -1,6 +1,8 @@
 <script setup lang="ts">
-async function onCreated(id: number) {
-  await navigateTo(`/nutrition/foods/${id}`, { replace: true })
+const backOrTo = useBackOrTo()
+
+async function onCreated() {
+  await backOrTo('/nutrition/foods')
 }
 </script>
 

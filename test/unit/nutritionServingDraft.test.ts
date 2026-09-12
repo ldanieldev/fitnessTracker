@@ -48,4 +48,22 @@ describe('servingDraft', () => {
     const out = applyParsedNutrients(emptyDraft(), { energy: 230, fiber: 4, sodium: 120 }, fields)
     expect(out.nutrients).toEqual({ energy: '230', fiber: '4' })
   })
+
+  it('derives energy from macros when calories is left blank', async () => {
+    const { draftToInput, emptyDraft } = await import('../../app/utils/nutrition/servingDraft')
+    const out = draftToInput({ ...emptyDraft(), label: 'slice', basisGrams: '40', nutrients: { protein: '7', carbohydrate: '0', fat: '5' } })
+    expect(out.nutrients).toEqual({ protein: 7, carbohydrate: 0, fat: 5, energy: 73 })
+  })
+
+  it('leaves a typed calorie value untouched', async () => {
+    const { draftToInput, emptyDraft } = await import('../../app/utils/nutrition/servingDraft')
+    const out = draftToInput({ ...emptyDraft(), label: 'slice', basisGrams: '40', nutrients: { protein: '7', carbohydrate: '0', fat: '5', energy: '999' } })
+    expect(out.nutrients).toEqual({ protein: 7, carbohydrate: 0, fat: 5, energy: 999 })
+  })
+
+  it('adds no energy key when no macros are present', async () => {
+    const { draftToInput, emptyDraft } = await import('../../app/utils/nutrition/servingDraft')
+    const out = draftToInput({ ...emptyDraft(), label: 'slice', basisGrams: '40', nutrients: { sodium: '120' } })
+    expect(out.nutrients).toEqual({ sodium: 120 })
+  })
 })

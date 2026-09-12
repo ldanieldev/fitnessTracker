@@ -36,8 +36,12 @@ test('creates, edits, and repairs a recipe on the phone', async ({ page, goto })
   await expect(page.locator('[data-test="per-serving-energy"]')).toContainText('250')
 
   await page.locator('[data-test="recipe-save"]').click()
-  await expect(page).toHaveURL(/\/nutrition\/recipes\/\d+$/)
-  const recipeId = Number(page.url().split('/').pop())
+  await expect(page).toHaveURL(/\/nutrition\/recipes$/)
+  const recipes = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/recipes')
+  const recipeId = recipes.json.find((r) => r.name === `${p} Porridge`)!.id
+
+  await page.locator('[data-test="recipe-row"]', { hasText: `${p} Porridge` }).click()
+  await expect(page).toHaveURL(new RegExp(`/nutrition/recipes/${recipeId}$`))
 
   await page.locator('[data-test="ingredient-row"]', { hasText: `${p} Milk` }).click()
   const milkAmount = page.getByRole('dialog').locator('input[inputmode="decimal"]')
@@ -45,6 +49,7 @@ test('creates, edits, and repairs a recipe on the phone', async ({ page, goto })
   await page.locator('[data-test="ingredient-done"]').click()
   await expect(page.locator('[data-test="total-energy"]')).toContainText('620')
   await page.locator('[data-test="recipe-save"]').click()
+  await expect(page).toHaveURL(/\/nutrition\/recipes$/)
   await expect.poll(async () => {
     const r = await apiFetch<{ ingredients: Array<{ quantity: number }> }>(page, 'GET', `/api/nutrition/recipes/${recipeId}`)
     return r.json.ingredients.map((i) => i.quantity)
@@ -58,7 +63,6 @@ test('creates, edits, and repairs a recipe on the phone', async ({ page, goto })
   await page.locator('[data-test="ingredient-remove"]').click()
   await expect(page.locator('[data-test="recipe-save"]')).toBeEnabled()
   await page.locator('[data-test="recipe-save"]').click()
-
-  await goto('/nutrition/recipes', { waitUntil: 'hydration' })
+  await expect(page).toHaveURL(/\/nutrition\/recipes$/)
   await expect(page.locator('[data-test="recipe-row"]', { hasText: `${p} Porridge` })).toContainText('190')
 })

@@ -11,9 +11,11 @@ import {
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseDiaryDate } from '~~/server/utils/nutrition/day'
+import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { parseWith } from '~~/server/utils/nutrition/parseBody'
 import { loadTrackedNutrients } from '~~/server/utils/nutrition/trackedNutrients'
 import { enumerateDates } from '~~/shared/utils/nutritionSummary'
+import { ensureEnergyTarget } from '~~/shared/utils/nutritionTargets'
 
 export interface RangeDay {
   date: string
@@ -58,7 +60,7 @@ export async function loadIntakeRange(
   const nutrientRows = tracked.map((n) => ({ key: n.key, name: n.name, unit: n.unit }))
 
   const dayRows = await db
-    .select({ id: diaryDays.id, date: diaryDays.date, profileName: goalProfiles.name })
+    .select({ id: diaryDays.id, date: diaryDays.date, profileName: goalProfiles.name, calories: goalProfiles.calories })
     .from(diaryDays)
     .leftJoin(goalProfiles, eq(goalProfiles.id, diaryDays.goalProfileId))
     .where(and(eq(diaryDays.userId, userId), gte(diaryDays.date, from), lte(diaryDays.date, to)))
@@ -104,6 +106,7 @@ export async function loadIntakeRange(
   }
 
   const dayByDate = new Map(dayRows.map((d) => [d.date, d]))
+  const energyEntry = trackedKeys.has('energy') ? (await nutrientCatalog()).find((n) => n.key === 'energy') : undefined
 
   const days: RangeDay[] = dates.map((date) => {
     const day = dayByDate.get(date)
@@ -117,7 +120,18 @@ export async function loadIntakeRange(
     const totals: Record<string, number | null> = {}
     for (const n of nutrientRows) totals[n.key] = dayTotals[n.key] ?? 0
 
-    return { date, logged: true, totals, targets: targetsByDay.get(day.id) ?? {}, profileName: day.profileName }
+    let targets = targetsByDay.get(day.id) ?? {}
+    if (energyEntry) {
+      const rows = Object.entries(targets).map(([key, t]) => ({ key, ...t }))
+      const withEnergy = ensureEnergyTarget(
+        rows,
+        (amount) => ({ key: 'energy', amount, direction: energyEntry.defaultDirection }),
+        day.calories === null ? null : Number(day.calories)
+      )
+      targets = Object.fromEntries(withEnergy.map(({ key, ...rest }) => [key, rest]))
+    }
+
+    return { date, logged: true, totals, targets, profileName: day.profileName }
   })
 
   return { nutrients: nutrientRows, days }

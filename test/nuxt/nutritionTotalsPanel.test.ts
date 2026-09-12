@@ -21,4 +21,16 @@ describe('NutritionTotalsPanel', () => {
     })
     expect(wrapper.find('[data-test="total-protein"]').text()).toContain('21')
   })
+
+  it('fills a bar by its calorie share of the per-serving figure', async () => {
+    registerEndpoint('/api/nutrition/nutrients/tracked', () => [])
+    const wrapper = await mountSuspended(NutritionTotalsPanel, {
+      props: {
+        total: { energy: 500, protein: 21, carbohydrate: 67, fat: 9 },
+        perServing: { energy: 200, protein: 10, carbohydrate: 27, fat: 3.6 },
+        servingName: 'serving'
+      }
+    })
+    expect(wrapper.find('[data-test="bar-protein"]').find('[style*="width"]').attributes('style')).toContain('width: 20%')
+  })
 })

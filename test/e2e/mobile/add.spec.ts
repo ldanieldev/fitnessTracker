@@ -59,3 +59,18 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap', async ({ 
   expect(day.json.entries.every((e) => e.containerId === target.id)).toBe(true)
   expect(day.json.entries.find((e) => e.entryType === 'recipe')?.quantity).toBe(2)
 })
+
+test('every add-page tab trigger fits without truncation at the phone viewport', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  await goto('/diary/2026-09-01/add', { waitUntil: 'hydration' })
+
+  const triggers = page.getByRole('tab')
+  const count = await triggers.count()
+  expect(count).toBeGreaterThan(0)
+  for (let i = 0; i < count; i++) {
+    const trigger = triggers.nth(i)
+    const { scrollWidth, clientWidth } = await trigger.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }))
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth)
+  }
+})

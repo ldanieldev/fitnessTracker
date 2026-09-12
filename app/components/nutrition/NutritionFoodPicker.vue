@@ -22,6 +22,7 @@ const toast = useToast()
 const query = ref('')
 const hits = ref<FoodHit[]>([])
 const degraded = ref(false)
+const loaded = ref(false)
 const loading = reactive(new Set<number>())
 const details = reactive(new Map<number, FoodDetail>())
 
@@ -91,6 +92,8 @@ async function runSearch() {
     degraded.value = result.degraded
   } catch (error: unknown) {
     toast.add({ title: 'Search failed', description: errorMessage(error, 'Could not load foods'), color: 'error' })
+  } finally {
+    if (seq === requestSeq) loaded.value = true
   }
 }
 
@@ -193,7 +196,8 @@ function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
       data-test="needs-nutrition-alert"
     />
 
-    <div class="flex flex-col gap-2">
+    <NutritionListSkeleton v-if="!loaded" />
+    <div v-else class="flex flex-col gap-2">
       <NutritionResultRow
         v-for="hit in hits"
         :key="hit.id"
@@ -230,7 +234,7 @@ function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
           />
         </template>
       </NutritionResultRow>
-      <p v-if="hits.length === 0" class="text-sm text-dimmed">No foods found</p>
+      <p v-if="loaded && hits.length === 0" class="text-sm text-dimmed">No foods found</p>
     </div>
   </div>
 </template>

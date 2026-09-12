@@ -48,7 +48,7 @@ const windowItems = [
 const from = computed(() => format(range.value.start, 'yyyy-MM-dd'))
 const to = computed(() => format(range.value.end, 'yyyy-MM-dd'))
 
-const { data: summary } = useNutritionFetch<SummaryResponse>(
+const { data: summary, status: summaryStatus } = useNutritionFetch<SummaryResponse>(
   () => NUTRITION_KEYS.summary(from.value, to.value, windowSize.value),
   () => `/api/nutrition/diary/summary?from=${from.value}&to=${to.value}&window=${windowSize.value}`,
   { watch: [from, to, windowSize] }
@@ -99,7 +99,7 @@ const menu = computed<DropdownMenuItem[][]>(() => [
 <template>
   <UDashboardPanel id="diary-summary">
     <template #header>
-      <UDashboardNavbar title="Summary" :ui="{ right: 'gap-3' }">
+      <UDashboardNavbar title="Summary" :ui="{ right: 'gap-3 min-w-0' }">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -114,7 +114,8 @@ const menu = computed<DropdownMenuItem[][]>(() => [
     </template>
 
     <template #body>
-      <div v-if="narrow" class="flex flex-col gap-2">
+      <NutritionListSkeleton v-if="summaryStatus === 'pending' && !summary" :rows="5" />
+      <div v-else-if="narrow" class="flex flex-col gap-2">
         <div v-for="day in summary?.days ?? []" :key="day.date" :data-test="`summary-row-${day.date}`">
           <UCard data-test="summary-card">
             <div class="flex items-center justify-between gap-2 mb-2">

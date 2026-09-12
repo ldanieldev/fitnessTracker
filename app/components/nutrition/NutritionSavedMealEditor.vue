@@ -11,7 +11,7 @@ interface SavedMealDetail {
 const props = defineProps<{ savedMealId: number | null }>()
 
 const toast = useToast()
-const router = useRouter()
+const backOrTo = useBackOrTo()
 
 const name = ref('')
 
@@ -48,15 +48,16 @@ async function save() {
   const body = { name: name.value.trim(), items: linesPayload(lines.value) }
   try {
     if (props.savedMealId === null) {
-      const { id } = await $fetch<{ id: number }>('/api/nutrition/saved-meals', { method: 'POST', body })
+      await $fetch<{ id: number }>('/api/nutrition/saved-meals', { method: 'POST', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.savedMeals)
-      await router.replace(`/nutrition/saved-meals/${id}`)
+      await backOrTo('/nutrition/saved-meals')
     } else {
       await $fetch(`/api/nutrition/saved-meals/${props.savedMealId}`, { method: 'PUT', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.savedMeals)
       toast.add({ title: 'Saved meal saved', color: 'success' })
+      await backOrTo('/nutrition/saved-meals')
     }
   } catch (error: unknown) {
     toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this meal'), color: 'error' })
@@ -97,7 +98,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
     </template>
 
     <template #body>
-      <div v-if="loaded" class="flex flex-col gap-4 max-w-2xl mx-auto w-full pb-28">
+      <div v-if="loaded" class="flex flex-col gap-6 max-w-2xl mx-auto w-full pb-28 lg:pb-0">
         <UFormField label="Name" required>
           <UInput v-model="name" class="w-full" data-test="meal-name" />
         </UFormField>
@@ -111,7 +112,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
 
         <NutritionTotalsPanel :total="total" />
 
-        <div class="fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:static lg:border-0 lg:bg-transparent">
+        <div class="fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4">
           <UButton block label="Save meal" :loading="saving" :disabled="!canSave" data-test="meal-save" @click="save" />
         </div>
       </div>

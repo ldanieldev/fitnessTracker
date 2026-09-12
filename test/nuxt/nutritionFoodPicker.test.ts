@@ -139,6 +139,23 @@ describe('NutritionFoodPicker', () => {
     expect(first.text()).toContain('Acme')
   })
 
+  it('shows a skeleton instead of the empty text before the first search resolves', async () => {
+    let resolveFetch: (() => void) | undefined
+    registerEndpoint('/api/nutrition/foods/recent', () => new Promise((resolve) => {
+      resolveFetch = () => resolve([])
+    }))
+    const wrapper = await mountSuspended(NutritionFoodPicker, {
+      props: { modelValue: [] as PickedFood[], 'onUpdate:modelValue': () => {} }
+    })
+
+    expect(wrapper.find('[data-test="list-skeleton"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('No foods found')
+
+    resolveFetch?.()
+    await vi.waitFor(() => expect(wrapper.find('[data-test="list-skeleton"]').exists()).toBe(false))
+    expect(wrapper.text()).toContain('No foods found')
+  })
+
   it('preserves quantity and unitLabel when select() is called on an already-picked food', async () => {
     register()
     const initialPicked: PickedFood[] = [{ foodId: 1, name: 'Chicken Breast', brand: null, quantity: 3, unitLabel: 'serving', food: detail(1, 'Chicken Breast') }]

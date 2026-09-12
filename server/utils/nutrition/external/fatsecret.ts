@@ -86,7 +86,13 @@ export function fatsecretFoodToExternal(food: FatsecretFood): ExternalFood {
   }
 }
 
-let cachedToken: { token: string, expiresAt: number } | null = null
+const TOKEN_CACHE_KEY = 'fatsecret:token'
+
+interface StoredToken {
+  token: string
+  expiresAt: number
+}
+
 let pendingToken: Promise<string> | null = null
 
 function requireCredentials(): { clientId: string, clientSecret: string, scope: string } {
@@ -130,17 +136,24 @@ async function requestToken(): Promise<string> {
     },
     body: `grant_type=client_credentials&scope=${scope}`
   })
-  cachedToken = { token: json.access_token, expiresAt: Date.now() + (json.expires_in - 60) * 1000 }
-  return cachedToken.token
+  const stored: StoredToken = { token: json.access_token, expiresAt: Date.now() + (json.expires_in - 60) * 1000 }
+  await useStorage('cache').setItem(TOKEN_CACHE_KEY, stored)
+  return stored.token
 }
 
 function clearPendingToken(): void {
   pendingToken = null
 }
 
-export async function getFatsecretToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt) return cachedToken.token
-  if (!pendingToken) pendingToken = requestToken().finally(clearPendingToken)
+async function resolveToken(): Promise<string> {
+  const cached = await useStorage('cache').getItem<StoredToken>(TOKEN_CACHE_KEY)
+  if (cached && Date.now() < cached.expiresAt) return cached.token
+  return requestToken()
+}
+
+// Checked and set synchronously, before any await, so concurrent callers share one in-flight request.
+export function getFatsecretToken(): Promise<string> {
+  if (!pendingToken) pendingToken = resolveToken().finally(clearPendingToken)
   return pendingToken
 }
 

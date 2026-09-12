@@ -2,6 +2,7 @@
 import type { TrackedNutrient } from '~/composables/useTrackedNutrients'
 import { NUTRITION_MACROS } from '~/constants/nutrition'
 import { formatAmount } from '~/utils/nutrition/macros'
+import { ATWATER } from '~~/shared/utils/nutritionDerive'
 
 const props = defineProps<{
   total: Record<string, number>
@@ -26,6 +27,14 @@ const detailRows = computed(() => rows.value.filter((r) => r.key !== 'energy'))
 function row(key: string) {
   return rows.value.find((r) => r.key === key)!
 }
+
+function barProgress(key: (typeof barKeys)[number]): number | null {
+  const basis = props.perServing ?? props.total
+  const energy = basis.energy
+  const grams = basis[key]
+  if (energy === undefined || grams === undefined || !(energy > 0) || !Number.isFinite(grams)) return null
+  return (grams * ATWATER[key] * 100) / energy
+}
 </script>
 
 <template>
@@ -47,7 +56,7 @@ function row(key: string) {
           :key="key"
           :label="row(key).name"
           :figure="`${formatAmount(key, props.perServing ? props.perServing[key] : total[key])} ${row(key).unit}`"
-          :progress="null"
+          :progress="barProgress(key)"
           :color="BAR_COLOR[key]"
           :data-test="`bar-${key}`"
         />

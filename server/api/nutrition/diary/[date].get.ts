@@ -12,7 +12,9 @@ import {
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseDiaryDate } from '~~/server/utils/nutrition/day'
+import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { requireUserId } from '~~/server/utils/nutrition/session'
+import { ensureEnergyTarget } from '~~/shared/utils/nutritionTargets'
 
 interface Target {
   key: string
@@ -56,6 +58,10 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(diaryDays.userId, userId), eq(diaryDays.date, date)))
     .then((r) => r[0])
 
+  const catalog = await nutrientCatalog()
+  const energyEntry = catalog.find((n) => n.key === 'energy')
+  const makeEnergyTarget = (amount: number): Target => ({ key: 'energy', name: energyEntry!.name, unit: 'kcal', amount, direction: energyEntry!.defaultDirection })
+
   let targets: Target[]
   if (day) {
     targets = await db
@@ -70,9 +76,10 @@ export default defineEventHandler(async (event) => {
       .innerJoin(nutrients, eq(nutrients.id, diaryDayTargets.nutrientId))
       .where(eq(diaryDayTargets.dayId, day.id))
       .then((rows) => rows.map((t) => ({ ...t, amount: Number(t.amount) })))
+    if (energyEntry) targets = ensureEnergyTarget(targets, makeEnergyTarget, null)
   } else {
     const defaultProfile = await db
-      .select({ id: goalProfiles.id })
+      .select({ id: goalProfiles.id, calories: goalProfiles.calories })
       .from(goalProfiles)
       .where(and(eq(goalProfiles.userId, userId), eq(goalProfiles.isDefault, true), isNull(goalProfiles.deletedAt)))
       .then((r) => r[0])
@@ -91,6 +98,9 @@ export default defineEventHandler(async (event) => {
           .where(eq(goalProfileTargets.profileId, defaultProfile.id))
           .then((rows) => rows.map((t) => ({ ...t, amount: Number(t.amount) })))
       : []
+    if (energyEntry && defaultProfile) {
+      targets = ensureEnergyTarget(targets, makeEnergyTarget, defaultProfile.calories === null ? null : Number(defaultProfile.calories))
+    }
   }
 
   const allContainers = await db

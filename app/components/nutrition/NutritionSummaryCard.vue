@@ -57,7 +57,7 @@ const energyLabel = computed(() => {
   if (row && mode.value === 'remaining' && row.state === 'over') return `over by ${formatAmount('energy', Math.abs(row.remaining ?? 0))}`
   return formatAmount('energy', row ? energyDisplay.value : null)
 })
-const energySub = computed(() => (mode.value === 'consumed' ? 'kcal eaten' : 'kcal left'))
+const energySub = computed(() => (mode.value === 'consumed' || energyRow.value?.amount === null ? 'kcal eaten' : 'kcal left'))
 const energyColor = computed(() => (energyRow.value?.state === 'over' ? 'error' : 'primary'))
 const energyTotalText = computed(() => {
   const row = energyRow.value

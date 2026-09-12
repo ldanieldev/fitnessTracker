@@ -23,7 +23,11 @@ test('edits an owned food: header, a serving, a new serving, and a guarded delet
 
   await page.locator('[data-test="food-header-name"]').fill(`${p} Sourdough Loaf`)
   await page.locator('[data-test="food-header-save"]').click()
+  await expect(page).toHaveURL(/\/nutrition\/foods$/)
   await expect.poll(async () => (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json.name).toBe(`${p} Sourdough Loaf`)
+
+  await page.locator('[data-test="my-food-row"]', { hasText: `${p} Sourdough Loaf` }).click()
+  await expect(page).toHaveURL(new RegExp(`/nutrition/foods/${foodId}$`))
 
   const weightCard = page.locator('[data-test="serving-card"]').first()
   await weightCard.locator('[data-test="serving-protein"]').fill('10')
@@ -39,10 +43,6 @@ test('edits an owned food: header, a serving, a new serving, and a guarded delet
   await newCard.locator('[data-test="serving-basis-grams"]').fill('40')
   await newCard.locator('[data-test="serving-card-save"]').click()
   await expect.poll(async () => (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json.servings.length).toBe(2)
-
-  await weightCard.locator('[data-test="serving-protein"]').fill('77')
-  await page.locator('[data-test="food-header-save"]').click()
-  await expect(weightCard.locator('[data-test="serving-protein"]')).toHaveValue('77')
 
   await page.locator('[data-test="serving-card"]').first().locator('[data-test="serving-card-delete"]').click()
   await expect(page.locator('[data-test="serving-card"]').first().locator('[data-test="serving-card-error"]')).toBeVisible()

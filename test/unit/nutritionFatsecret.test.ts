@@ -2,8 +2,20 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 const config = { fatsecret: { clientId: 'id', clientSecret: 'secret', scope: 'basic' } }
 
+function fakeStorage() {
+  const store = new Map<string, unknown>()
+  return {
+    getItem: async (key: string) => store.get(key) ?? null,
+    setItem: async (key: string, value: unknown) => {
+      store.set(key, value)
+    }
+  }
+}
+
 beforeEach(() => {
   vi.resetModules()
+  const storage = fakeStorage()
+  vi.stubGlobal('useStorage', () => storage)
 })
 
 afterEach(() => {

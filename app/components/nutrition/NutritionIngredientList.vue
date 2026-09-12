@@ -10,7 +10,7 @@ const rows = computed(() =>
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-3">
     <NutritionResultRow
       v-for="row in rows"
       :key="row.line.uid"

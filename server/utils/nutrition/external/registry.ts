@@ -1,4 +1,5 @@
 import type { NutrientKey } from '~~/shared/types/nutrition'
+import { cachedBarcode, cachedSearch } from './cache'
 import { fatsecretByBarcode, fatsecretById, fatsecretSearch } from './fatsecret'
 import { offByBarcode, offSearch } from './off'
 import type { ExternalFood, ExternalSourceKey } from './types'
@@ -26,7 +27,12 @@ export function getExternalSources(): ExternalSource[] {
     sources.push({ key: 'fatsecret', search: fatsecretSearch, byBarcode: fatsecretByBarcode, byId: fatsecretById })
   }
 
-  return sources
+  // byId (and import, which calls byId) stay uncached — only search and barcode lookups repeat often enough to matter.
+  return sources.map((source) => ({
+    ...source,
+    search: (q: string, limit: number) => cachedSearch(source, q, limit),
+    byBarcode: (code: string) => cachedBarcode(source, code)
+  }))
 }
 
 export interface ExternalSearchResult {

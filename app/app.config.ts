@@ -9,7 +9,7 @@ export default defineAppConfig({
       defaultVariants: { size: 'md' }
     },
     card: {
-      slots: { root: 'rounded-2xl', header: 'p-3 sm:px-4', body: 'p-3 sm:p-4', footer: 'p-3 sm:px-4' },
+      slots: { root: 'rounded-2xl', header: 'p-4 sm:px-6', body: 'p-4 sm:p-6', footer: 'p-4 sm:px-6' },
       variants: {
         variant: {
           outline: { root: 'bg-elevated ring-0 divide-y divide-default' }

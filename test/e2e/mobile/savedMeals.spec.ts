@@ -27,11 +27,15 @@ test('creates, edits, and deletes a saved meal on the phone', async ({ page, got
   await expect(page.locator('[data-test="total-energy"]')).toContainText('287')
 
   await page.locator('[data-test="meal-save"]').click()
-  await expect(page).toHaveURL(/\/nutrition\/saved-meals\/\d+$/)
-  const mealId = Number(page.url().split('/').pop())
+  await expect(page).toHaveURL(/\/nutrition\/saved-meals$/)
+  const meals = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/saved-meals')
+  const mealId = meals.json.find((m) => m.name === 'Phone Breakfast')!.id
 
+  await page.locator('[data-test="saved-meal-row"]', { hasText: 'Phone Breakfast' }).click()
+  await expect(page).toHaveURL(new RegExp(`/nutrition/saved-meals/${mealId}$`))
   await page.locator('[data-test="meal-name"]').fill('Phone Breakfast v2')
   await page.locator('[data-test="meal-save"]').click()
+  await expect(page).toHaveURL(/\/nutrition\/saved-meals$/)
   await expect.poll(async () => (await apiFetch<{ name: string }>(page, 'GET', `/api/nutrition/saved-meals/${mealId}`)).json.name)
     .toBe('Phone Breakfast v2')
 

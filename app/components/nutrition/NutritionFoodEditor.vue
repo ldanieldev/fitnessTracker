@@ -8,6 +8,7 @@ import { draftFromServing, nutrientFields } from '~/utils/nutrition/servingDraft
 const props = defineProps<{ foodId: number }>()
 
 const toast = useToast()
+const backOrTo = useBackOrTo()
 const { tracked } = useTrackedNutrients()
 const { idToKey } = useNutrientCatalog()
 const fields = computed(() => nutrientFields(tracked.value ?? []))
@@ -53,7 +54,7 @@ async function saveHeader() {
     })
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     toast.add({ title: 'Food saved', color: 'success' })
-    await load()
+    await backOrTo('/nutrition/foods')
   } catch (err: unknown) {
     headerError.value = errorMessage(err, 'Could not save this food')
   } finally {

@@ -63,3 +63,51 @@ describe('evaluateTarget — progress and guards', () => {
     expect(evaluateTarget({ consumed: 0, target: 0, direction: 'max' }).progress).toBe(0)
   })
 })
+
+describe('ensureEnergyTarget', () => {
+  const make = (amount: number) => ({ key: 'energy', amount, direction: 'max' as const })
+
+  it('leaves an existing energy row untouched', async () => {
+    const { ensureEnergyTarget } = await import('../../shared/utils/nutritionTargets')
+    const targets = [{ key: 'energy', amount: 2000, direction: 'max' as const }]
+    expect(ensureEnergyTarget(targets, make)).toBe(targets)
+  })
+
+  it('prefers calories over deriving from macros', async () => {
+    const { ensureEnergyTarget } = await import('../../shared/utils/nutritionTargets')
+    const targets = [
+      { key: 'protein', amount: 175, direction: 'min' as const },
+      { key: 'carbohydrate', amount: 165, direction: 'target' as const },
+      { key: 'fat', amount: 60, direction: 'target' as const }
+    ]
+    const result = ensureEnergyTarget(targets, make, 2200)
+    expect(result.at(-1)).toEqual({ key: 'energy', amount: 2200, direction: 'max' })
+  })
+
+  it('derives energy from protein/carbohydrate/fat when calories is absent', async () => {
+    const { ensureEnergyTarget } = await import('../../shared/utils/nutritionTargets')
+    const targets = [
+      { key: 'protein', amount: 175, direction: 'min' as const },
+      { key: 'carbohydrate', amount: 165, direction: 'target' as const },
+      { key: 'fat', amount: 60, direction: 'target' as const }
+    ]
+    const result = ensureEnergyTarget(targets, make, null)
+    expect(result.at(-1)).toEqual({ key: 'energy', amount: 1900, direction: 'max' })
+  })
+
+  it('leaves targets unchanged when a macro row is missing', async () => {
+    const { ensureEnergyTarget } = await import('../../shared/utils/nutritionTargets')
+    const targets = [
+      { key: 'protein', amount: 175, direction: 'min' as const },
+      { key: 'carbohydrate', amount: 165, direction: 'target' as const }
+    ]
+    expect(ensureEnergyTarget(targets, make)).toBe(targets)
+  })
+
+  it('takes direction from make, not a fixed default', async () => {
+    const { ensureEnergyTarget } = await import('../../shared/utils/nutritionTargets')
+    const targets = [{ key: 'protein', amount: 175, direction: 'min' as const }, { key: 'carbohydrate', amount: 165, direction: 'target' as const }, { key: 'fat', amount: 60, direction: 'target' as const }]
+    const result = ensureEnergyTarget(targets, (amount) => ({ key: 'energy', amount, direction: 'min' as const }))
+    expect(result.at(-1)?.direction).toBe('min')
+  })
+})

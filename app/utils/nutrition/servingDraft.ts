@@ -1,6 +1,7 @@
 import type { ServingBasis } from '~~/shared/types/nutrition'
 import { NUTRITION_MACROS } from '~~/app/constants/nutrition'
 import { numOrUndefined } from '~~/app/composables/useNutritionForms'
+import { deriveEnergy } from '~~/shared/utils/nutritionDerive'
 
 export interface NutrientField {
   key: string
@@ -59,6 +60,10 @@ export function draftError(draft: ServingDraft): string | null {
 
 export function draftToInput(draft: ServingDraft): ServingInputBody {
   const nutrients = numericNutrients(draft)
+  if (nutrients.energy === undefined && (nutrients.protein !== undefined || nutrients.carbohydrate !== undefined || nutrients.fat !== undefined)) {
+    const derived = deriveEnergy(nutrients)
+    if (derived !== null) nutrients.energy = Math.round(derived)
+  }
   const basisGrams = draft.kind === 'named' ? positiveGrams(draft.basisGrams) : undefined
   return {
     kind: draft.kind,

@@ -38,7 +38,7 @@ const activeTab = ref<AddTab>('recent')
 const tabItems = [
   { label: 'Recent', value: 'recent', test: 'local-tab' },
   { label: '★', value: 'favorites', test: 'favorites-tab' },
-  { label: 'My foods', value: 'mine', test: 'my-foods-tab' },
+  { label: 'Mine', value: 'mine', test: 'my-foods-tab' },
   { label: 'Recipes', value: 'recipes', test: 'recipes-tab' },
   { label: 'Meals', value: 'meals', test: 'meals-tab' },
   { label: 'Online', value: 'online', test: 'online-tab' }
@@ -122,8 +122,14 @@ async function onQuickAdd(input: DiaryEntryInput) {
     </template>
 
     <template #body>
-      <div class="max-w-2xl mx-auto w-full pb-24">
-        <UTabs v-model="activeTab" :items="tabItems" :content="false" class="w-full">
+      <div class="max-w-2xl mx-auto w-full pb-24 lg:pb-0">
+        <UTabs
+          v-model="activeTab"
+          :items="tabItems"
+          :content="false"
+          class="w-full"
+          :ui="{ list: 'overflow-x-auto scrollbar-none', trigger: 'shrink-0 text-xs px-2 sm:text-sm sm:px-3' }"
+        >
           <template #default="{ item }">
             <span :data-test="item.test">{{ item.label }}</span>
           </template>

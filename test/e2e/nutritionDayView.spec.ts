@@ -73,6 +73,14 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
 
   await page.locator('[data-test="food-submit"]').click()
   await expect(page).toHaveURL(/\/diary\/2026-07-03\/add$/)
+
+  // A long result list previously pushed the desktop add-tray below the fold; pad the list to guard the sticky fix.
+  for (let i = 0; i < 30; i++) {
+    await apiFetch(page, 'POST', '/api/nutrition/foods', {
+      name: `${p} Filler ${i}`,
+      servings: [{ kind: 'named', label: 'each', quantity: 1, nutrients: { energy: 50 } }]
+    })
+  }
   await rebuildSearchIndex(page)
 
   await page.locator('[data-test="food-search-input"]').fill(p)
@@ -82,7 +90,10 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   await hitRow.locator('[data-test="food-hit-checkbox"]').click()
   await hitRow.locator('input[inputmode="decimal"]').fill('2')
 
-  await page.locator('[data-test="add-selected"]').click()
+  const addSelected = page.locator('[data-test="add-selected"]')
+  await expect(addSelected).toBeInViewport()
+
+  await addSelected.click()
   await expect(page).toHaveURL(/\/diary\/2026-07-03$/)
 
   const entryRow2 = page.locator('[data-test="entry-row"]')

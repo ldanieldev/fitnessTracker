@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { CalendarDate, DateFormatter, getLocalTimeZone, today } from '@internationalized/date'
+import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import type { Range } from '~/types'
-
-const df = new DateFormatter('en-US', {
-  dateStyle: 'medium'
-})
+import { formatRange } from '~/utils/dateRange'
 
 const selected = defineModel<Range>({ required: true })
 const props = withDefaults(defineProps<{ months?: number }>(), { months: 2 })
@@ -76,13 +73,15 @@ const selectRange = (range: { days?: number; months?: number; years?: number }) 
 
 <template>
   <UPopover :content="{ align: 'start' }" :modal="true">
-    <UButton color="neutral" variant="ghost" icon="i-lucide-calendar" class="data-[state=open]:bg-elevated group">
+    <UButton
+      color="neutral"
+      variant="ghost"
+      icon="i-lucide-calendar"
+      class="data-[state=open]:bg-elevated group min-w-0 max-w-[55vw] sm:max-w-none truncate"
+    >
       <span class="truncate">
         <template v-if="selected.start">
-          <template v-if="selected.end"> {{ df.format(selected.start) }} - {{ df.format(selected.end) }} </template>
-          <template v-else>
-            {{ df.format(selected.start) }}
-          </template>
+          {{ formatRange(selected.start, selected.end, new Date()) }}
         </template>
         <template v-else> Pick a date </template>
       </span>

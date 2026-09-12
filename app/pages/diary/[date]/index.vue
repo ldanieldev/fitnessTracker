@@ -27,7 +27,7 @@ const { data: loggedWeek } = useNutritionFetch<{ dates: string[] }>(
 )
 
 const toast = useToast()
-const { day, profiles, updateEntry, deleteEntry, goalName, targets: targetRows, totals, subtotalNutrients, profilesFetch } = useDaySummary(date)
+const { day, profiles, updateEntry, deleteEntry, goalName, targets: targetRows, totals, subtotalNutrients, profilesFetch, dayFetch } = useDaySummary(date)
 await profilesFetch
 
 const mode = ref<'remaining' | 'consumed'>('remaining')
@@ -155,6 +155,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
       <div class="flex flex-col gap-4 max-w-3xl mx-auto w-full pb-24">
         <NutritionSummaryCard v-if="day" v-model:mode="mode" :targets="targetRows" :totals="totals" :goal-name="goalName" @apply-goal="goalOpen = true" />
 
+        <NutritionListSkeleton v-if="dayFetch.status.value === 'pending' && !day" />
         <NutritionContainerCard
           v-for="container in day?.containers ?? []"
           :key="container.id"

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { TargetDirection } from '~~/shared/types/nutrition'
 import { RATIO_MACROS, ratioToGrams } from '~~/shared/utils/nutritionGoals'
+import { ensureEnergyTarget } from '~~/shared/utils/nutritionTargets'
 import type { NutrientCatalogEntry } from './nutrientIds'
 
 export const goalTargetInputSchema = z.object({
@@ -48,7 +49,7 @@ export function buildGoalTargetRows(
     macroGrams = ratioToGrams(input.calories, ratios)
   }
 
-  return input.targets.map((target) => {
+  const rows = input.targets.map((target) => {
     const entry = byKey.get(target.nutrient)
     if (!entry) throw new Error(`Unknown nutrient: ${target.nutrient}`)
 
@@ -64,6 +65,16 @@ export function buildGoalTargetRows(
       amount = target.amount
     }
 
-    return { nutrientId: entry.id, amount, direction: target.direction ?? entry.defaultDirection, ratioPercent }
+    return { key: entry.key, nutrientId: entry.id, amount, direction: target.direction ?? entry.defaultDirection, ratioPercent }
   })
+
+  const energyEntry = byKey.get('energy')
+  if (!energyEntry) return rows.map(({ key, ...row }) => row)
+
+  const withEnergy = ensureEnergyTarget(
+    rows,
+    (amount) => ({ key: 'energy', nutrientId: energyEntry.id, amount, direction: energyEntry.defaultDirection, ratioPercent: null }),
+    input.calories
+  )
+  return withEnergy.map(({ key, ...row }) => row)
 }

@@ -15,7 +15,7 @@ interface RecipeDetail {
 const props = defineProps<{ recipeId: number | null }>()
 
 const toast = useToast()
-const router = useRouter()
+const backOrTo = useBackOrTo()
 
 const name = ref('')
 const servings = ref<number | null>(1)
@@ -68,15 +68,16 @@ async function save() {
   }
   try {
     if (props.recipeId === null) {
-      const { id } = await $fetch<{ id: number }>('/api/nutrition/recipes', { method: 'POST', body })
+      await $fetch<{ id: number }>('/api/nutrition/recipes', { method: 'POST', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.recipes)
-      await router.replace(`/nutrition/recipes/${id}`)
+      await backOrTo('/nutrition/recipes')
     } else {
       await $fetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'PUT', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.recipes)
       toast.add({ title: 'Recipe saved', color: 'success' })
+      await backOrTo('/nutrition/recipes')
     }
   } catch (error: unknown) {
     toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this recipe'), color: 'error' })
@@ -117,7 +118,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
     </template>
 
     <template #body>
-      <div v-if="loaded" class="flex flex-col gap-4 max-w-2xl mx-auto w-full pb-28">
+      <div v-if="loaded" class="flex flex-col gap-6 max-w-2xl mx-auto w-full pb-28 lg:pb-0">
         <UFormField label="Name" required>
           <UInput v-model="name" class="w-full" data-test="recipe-name" />
         </UFormField>
@@ -143,7 +144,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
           <UTextarea v-model="notes" :rows="3" class="w-full" data-test="recipe-notes" />
         </UFormField>
 
-        <div class="fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:static lg:border-0 lg:bg-transparent">
+        <div class="fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4">
           <UButton block label="Save recipe" :loading="saving" :disabled="!canSave" data-test="recipe-save" @click="save" />
         </div>
       </div>
