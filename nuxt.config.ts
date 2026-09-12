@@ -32,6 +32,17 @@ export default defineNuxtConfig({
     'nuxt-auth-utils'
   ],
 
+  $development: {
+    runtimeConfig: {
+      session: {
+        cookie: {
+          // Browsers only exempt localhost from the Secure attribute, so a LAN-IP dev host drops the session cookie.
+          secure: false
+        }
+      }
+    }
+  },
+
   devtools: {
     enabled: true
   },
