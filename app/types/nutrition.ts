@@ -17,6 +17,7 @@ export interface FoodHit {
   isFavorite: boolean
   logCount: number
   energyDensity: number | null
+  perDefault: { label: string, quantity: number, energy: number | null, protein: number | null, carbohydrate: number | null, fat: number | null } | null
 }
 
 export interface PickedFood {

@@ -7,6 +7,7 @@ interface ListedFood {
   brand: string | null
   defaultServing: { label: string, quantity: number } | null
   energy: number | null
+  perDefault: { label: string, quantity: number, energy: number | null, protein: number | null, carbohydrate: number | null, fat: number | null } | null
 }
 
 test('lists only my own live foods with default-serving energy, filtered by q', async ({ page, goto }) => {
@@ -16,7 +17,7 @@ test('lists only my own live foods with default-serving energy, filtered by q', 
   const bread = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'List Sourdough',
     brand: 'Bakery',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 260 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 260, protein: 9 } }]
   })
   const egg = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'List Egg',
@@ -37,8 +38,10 @@ test('lists only my own live foods with default-serving energy, filtered by q', 
     name: 'List Sourdough',
     brand: 'Bakery',
     defaultServing: { label: 'g', quantity: 100 },
-    energy: 260
+    energy: 260,
+    perDefault: { label: 'g', quantity: 100, energy: 260, protein: 9, carbohydrate: null, fat: null }
   })
+  expect(all.json[1].perDefault?.protein).toBe(9)
   expect(all.json[0]).toMatchObject({ id: egg.json.id, defaultServing: { label: 'egg', quantity: 1 }, energy: 69 })
 
   const filtered = await apiFetch<ListedFood[]>(page, 'GET', '/api/nutrition/foods?q=bakery')

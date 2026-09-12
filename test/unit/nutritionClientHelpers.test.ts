@@ -62,13 +62,6 @@ describe('entryEdit', () => {
   })
 })
 
-describe('formatDayTitle', () => {
-  it('formats a diary date as a short weekday title', async () => {
-    const { formatDayTitle } = await import('../../app/utils/nutrition/dayTitle')
-    expect(formatDayTitle('2026-09-10')).toBe('Thu, Sep 10')
-  })
-})
-
 describe('nutritionKeyed', () => {
   it('keys by id and sums', async () => {
     const { keyNutrients, sumKeyed } = await import('../../shared/utils/nutritionKeyed')

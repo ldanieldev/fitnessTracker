@@ -5,8 +5,9 @@ import { NoWeightBasisError, defaultServing, resolveNutrition } from '~~/shared/
 import { foodNutrients, foods, foodServings } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { type ServingNutrientRow, toFoodForResolve } from '~~/server/utils/nutrition/loadFood'
-import { getNutrientId } from '~~/server/utils/nutrition/nutrientIds'
+import { getNutrientId, nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
+import { perDefaultOf } from '~~/server/utils/nutrition/perDefault'
 import { escapeLike } from '~~/server/utils/nutrition/postgresSearch'
 import { requireUserId } from '~~/server/utils/nutrition/session'
 
@@ -72,6 +73,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const energyId = await getNutrientId('energy')
+  const idToKey = new Map((await nutrientCatalog()).map((n) => [n.id, n.key]))
 
   return heads.map((head) => {
     const food = toFoodForResolve(head.id, rowsByFood.get(head.id) ?? [])
@@ -81,7 +83,8 @@ export default defineEventHandler(async (event) => {
       name: head.name,
       brand: head.brand,
       defaultServing: serving ? { label: serving.label, quantity: serving.quantity } : null,
-      energy: defaultEnergy(food, energyId)
+      energy: defaultEnergy(food, energyId),
+      perDefault: perDefaultOf(food, idToKey)
     }
   })
 })

@@ -25,8 +25,6 @@ test('edits quantity, unit, meal, time, and note from the entry sheet', async ({
   await page.locator('[data-test="entry-row"]').click()
 
   await page.locator('[data-test="entry-sheet-quantity"]').fill('50')
-  // Firefox doesn't focus a <button> on click, so the number field's commit-on-blur never fires without an explicit blur.
-  await page.locator('[data-test="entry-sheet-quantity"]').blur()
   await expect(page.locator('[data-test="entry-sheet-preview"]')).toContainText('130')
   await page.locator('[data-test="entry-save"]').click()
   await expect.poll(async () => (await apiFetch<DayJson>(page, 'GET', '/api/nutrition/diary/2026-09-02')).json.entries[0]!.nutrients.energy).toBeCloseTo(130, 6)
@@ -35,8 +33,6 @@ test('edits quantity, unit, meal, time, and note from the entry sheet', async ({
   await page.locator('[data-test="entry-sheet-unit"]').click()
   await page.getByRole('option', { name: 'slice' }).click()
   await page.locator('[data-test="entry-sheet-quantity"]').fill('2')
-  // Firefox doesn't focus a <button> on click, so the number field's commit-on-blur never fires without an explicit blur.
-  await page.locator('[data-test="entry-sheet-quantity"]').blur()
   await expect(page.locator('[data-test="entry-sheet-preview"]')).toContainText('180')
   await page.locator('[data-test="entry-sheet-container"]').click()
   await page.getByRole('option', { name: containers[1]!.name }).click()

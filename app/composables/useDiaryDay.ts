@@ -80,10 +80,12 @@ export interface DiaryEntryPatch {
 
 export function useDiaryDay(date: MaybeRefOrGetter<string>) {
   const toast = useToast()
-  const { data: day, refresh, status, error } = useFetch<DiaryDay>(
+  const fetch = useNutritionFetch<DiaryDay>(
+    () => NUTRITION_KEYS.day(toValue(date)),
     () => `/api/nutrition/diary/${toValue(date)}`,
     { watch: [() => toValue(date)] }
   )
+  const { data: day, refresh, status, error } = fetch
 
   function fail(title: string, err: unknown, fallback: string) {
     toast.add({ title, description: errorMessage(err, fallback), color: 'error' })
@@ -95,7 +97,7 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>) {
         method: 'POST',
         body: inputs
       })
-      await refresh()
+      await invalidateNutrition(NUTRITION_KEYS.day(toValue(date)), 'nutrition:logged:')
       return result
     } catch (err) {
       fail('Log failed', err, 'Could not log these entries')
@@ -106,7 +108,7 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>) {
   async function updateEntry(id: number, patch: DiaryEntryPatch): Promise<boolean> {
     try {
       await $fetch(`/api/nutrition/diary/entries/${id}`, { method: 'PUT', body: patch })
-      await refresh()
+      await invalidateNutrition(NUTRITION_KEYS.day(toValue(date)), 'nutrition:logged:')
       return true
     } catch (err) {
       fail('Update failed', err, 'Could not update this entry')
@@ -117,7 +119,7 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>) {
   async function deleteEntry(id: number): Promise<boolean> {
     try {
       await $fetch(`/api/nutrition/diary/entries/${id}`, { method: 'DELETE' })
-      await refresh()
+      await invalidateNutrition(NUTRITION_KEYS.day(toValue(date)), 'nutrition:logged:')
       return true
     } catch (err) {
       fail('Delete failed', err, 'Could not delete this entry')
@@ -125,5 +127,5 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>) {
     }
   }
 
-  return { day, refresh, status, error, logEntries, updateEntry, deleteEntry }
+  return { day, refresh, status, error, logEntries, updateEntry, deleteEntry, fetch }
 }

@@ -115,7 +115,7 @@ test.describe('external food search, barcode lookup and import', () => {
 
     await expect(page.locator('[data-test="local-tab"]')).toBeVisible()
     // The dev DB accumulates catalogue foods across runs, so the checked row isn't necessarily first — find it by its amount input.
-    const checkedRow = page.locator('[data-test="food-hit"]').filter({ has: page.locator('input[role="spinbutton"]') })
+    const checkedRow = page.locator('[data-test="food-hit"]').filter({ has: page.locator('input[inputmode="decimal"]') })
     await expect(checkedRow).toBeVisible()
 
     // The search-result label and the imported/canonical food name can differ (OFF brand/name splitting), so compare against the stored name, not the search label.

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import type { TrackedNutrient } from '~/composables/useTrackedNutrients'
 import { NUTRITION_MACROS } from '~/constants/nutrition'
+import { formatAmount } from '~/utils/nutrition/macros'
 
 const props = defineProps<{
   total: Record<string, number>
@@ -7,7 +9,8 @@ const props = defineProps<{
   servingName?: string
 }>()
 
-const { tracked } = useTrackedNutrients()
+// Awaited (not useTrackedNutrients()) so the extras chip is present on first render, not a tick later.
+const { data: tracked } = await useNutritionFetch<TrackedNutrient[]>(NUTRITION_KEYS.tracked, '/api/nutrition/nutrients/tracked')
 
 const rows = computed(() => {
   const macroKeys = new Set<string>(NUTRITION_MACROS.map((m) => m.key))
@@ -15,27 +18,49 @@ const rows = computed(() => {
   return [...NUTRITION_MACROS.map((m) => ({ key: m.key, name: m.name, unit: m.unit })), ...extras]
 })
 
-function format(key: string, value: number | undefined) {
-  if (value === undefined) return '—'
-  return key === 'energy' ? value.toFixed(0) : value.toFixed(1)
+const barKeys = ['protein', 'carbohydrate', 'fat'] as const
+const BAR_COLOR = { protein: 'protein', carbohydrate: 'carb', fat: 'fat' } as const
+const extraRows = computed(() => rows.value.filter((r) => !(barKeys as readonly string[]).includes(r.key) && r.key !== 'energy'))
+const detailRows = computed(() => rows.value.filter((r) => r.key !== 'energy'))
+
+function row(key: string) {
+  return rows.value.find((r) => r.key === key)!
 }
 </script>
 
 <template>
   <UCard>
-    <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1 text-sm">
-      <span />
-      <span class="text-dimmed text-xs text-right">Total</span>
-      <span v-if="props.perServing" class="text-dimmed text-xs text-right">Per {{ servingName }}</span>
-      <span v-else />
-      <template v-for="row in rows" :key="row.key">
-        <span>{{ row.name }}</span>
-        <span class="text-right" :data-test="`total-${row.key}`">{{ format(row.key, total[row.key]) }} {{ row.unit }}</span>
-        <span v-if="props.perServing" class="text-right" :data-test="`per-serving-${row.key}`">
-          {{ format(row.key, props.perServing[row.key]) }} {{ row.unit }}
-        </span>
-        <span v-else />
-      </template>
+    <div class="flex flex-col gap-3">
+      <div class="flex items-baseline gap-1 flex-wrap">
+        <span class="text-2xl font-bold tabular-nums text-highlighted" data-test="total-energy">{{ formatAmount('energy', total.energy) }}</span>
+        <span class="text-dimmed text-sm">kcal total</span>
+        <template v-if="props.perServing">
+          <span class="text-dimmed">·</span>
+          <span class="font-semibold tabular-nums" data-test="per-serving-energy">{{ formatAmount('energy', props.perServing.energy) }}</span>
+          <span class="text-dimmed text-sm">per {{ servingName }}</span>
+        </template>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <NutritionMacroBar
+          v-for="key in barKeys"
+          :key="key"
+          :label="row(key).name"
+          :figure="`${formatAmount(key, props.perServing ? props.perServing[key] : total[key])} ${row(key).unit}`"
+          :progress="null"
+          :color="BAR_COLOR[key]"
+          :data-test="`bar-${key}`"
+        />
+      </div>
+
+      <div v-if="props.perServing" class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-xs text-dimmed">
+        <template v-for="r in detailRows" :key="r.key">
+          <span>{{ r.name }} per serving</span>
+          <span class="text-right tabular-nums" :data-test="`per-serving-${r.key}`">{{ formatAmount(r.key, props.perServing[r.key]) }} {{ r.unit }}</span>
+        </template>
+      </div>
+
+      <NutritionMacroText :nutrients="total" :extras="extraRows" test-prefix="total" />
     </div>
   </UCard>
 </template>

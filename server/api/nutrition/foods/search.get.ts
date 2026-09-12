@@ -4,6 +4,7 @@ import { foodFavorites, foodNutrients, foods, foodServings, foodUsageStats } fro
 import { db } from '~~/server/utils/db'
 import { getNutrientId } from '~~/server/utils/nutrition/nutrientIds'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
+import { perDefaultByFood } from '~~/server/utils/nutrition/perDefault'
 import {
   getFallbackProvider,
   getSearchProvider,
@@ -88,9 +89,10 @@ export default defineEventHandler(async (event) => {
     return [{ id: row.id, name: row.name, relevance: ref.relevance }]
   })
 
-  const hits = rerank(candidates, { favorites, usage })
-    .slice(0, query.limit)
-    .map((hit) => ({ ...hit, brand: rowById.get(hit.id)!.brand, energyDensity: densityByFood.get(hit.id) ?? null }))
+  const reranked = rerank(candidates, { favorites, usage }).slice(0, query.limit)
+  const perDefaults = await perDefaultByFood(db, reranked.map((h) => h.id))
+
+  const hits = reranked.map((hit) => ({ ...hit, brand: rowById.get(hit.id)!.brand, energyDensity: densityByFood.get(hit.id) ?? null, perDefault: perDefaults.get(hit.id) ?? null }))
 
   return { hits, degraded }
 })

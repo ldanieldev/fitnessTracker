@@ -10,7 +10,7 @@ const recipes: Array<{ id: number, name: string, servings: number, servingName: 
 describe('NutritionAddRecipes', () => {
   it('filters by name, disables broken recipes with a fix link, and emits servings', async () => {
     const wrapper = await mountSuspended(NutritionAddRecipes, {
-      props: { recipes, selected: [{ recipeId: 1, name: 'Chili', servings: 1, servingName: 'bowl' }] }
+      props: { recipes, selected: [{ recipeId: 1, name: 'Chili', servings: 1, servingName: 'bowl', perServing: { energy: 450, protein: 30 } }] }
     })
     expect(wrapper.findAll('[data-test="recipe-choice"]')).toHaveLength(2)
     const broken = wrapper.findAll('[data-test="recipe-choice"]')[1]!

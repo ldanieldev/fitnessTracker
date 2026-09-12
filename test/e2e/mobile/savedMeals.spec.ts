@@ -21,9 +21,8 @@ test('creates, edits, and deletes a saved meal on the phone', async ({ page, got
   for (const name of [`${p} Egg`, `${p} Toast`]) {
     await page.locator('[data-test="food-hit"]', { hasText: name }).locator('[data-test="food-hit-checkbox"]').click()
   }
-  const eggAmount = page.locator('[data-test="food-hit"]', { hasText: `${p} Egg` }).locator('input[role="spinbutton"]')
+  const eggAmount = page.locator('[data-test="food-hit"]', { hasText: `${p} Egg` }).locator('input[inputmode="decimal"]')
   await eggAmount.fill('3')
-  await eggAmount.blur()
   await page.locator('[data-test="picker-confirm"]').click()
   await expect(page.locator('[data-test="total-energy"]')).toContainText('287')
 

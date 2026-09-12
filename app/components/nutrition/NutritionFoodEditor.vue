@@ -3,7 +3,7 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FoodDetail } from '~/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
 import { keyNutrients } from '~~/shared/utils/nutritionKeyed'
-import { nutrientFields } from '~/utils/nutrition/servingDraft'
+import { draftFromServing, nutrientFields } from '~/utils/nutrition/servingDraft'
 
 const props = defineProps<{ foodId: number }>()
 
@@ -33,6 +33,12 @@ onMounted(load)
 
 const isCatalogue = computed(() => food.value?.createdByUserId === null)
 
+const defaultServing = computed(() => {
+  const servings = food.value?.servings ?? []
+  return servings.find((s) => s.id === food.value?.defaultServingId) ?? servings[0] ?? null
+})
+const defaultDraft = computed(() => (defaultServing.value ? draftFromServing(defaultServing.value, idToKey.value) : null))
+
 function weightTaken(servingId: number | null) {
   return (food.value?.servings ?? []).some((s) => s.kind === 'weight' && s.id !== servingId)
 }
@@ -45,6 +51,7 @@ async function saveHeader() {
       method: 'PUT',
       body: { name: header.value.name.trim(), brand: header.value.brand.trim() || null, barcode: header.value.barcode.trim() || null }
     })
+    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     toast.add({ title: 'Food saved', color: 'success' })
     await load()
   } catch (err: unknown) {
@@ -57,6 +64,7 @@ async function saveHeader() {
 async function fork() {
   try {
     const { id } = await $fetch<{ id: number }>(`/api/nutrition/foods/${props.foodId}/fork`, { method: 'POST' })
+    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     await navigateTo(`/nutrition/foods/${id}`, { replace: true })
   } catch (err: unknown) {
     toast.add({ title: 'Copy failed', description: errorMessage(err, 'Could not copy this food'), color: 'error' })
@@ -78,6 +86,7 @@ const deleteOpen = ref(false)
 async function confirmDelete() {
   try {
     await $fetch(`/api/nutrition/foods/${props.foodId}`, { method: 'DELETE' })
+    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     await navigateTo('/nutrition/foods')
   } catch (err: unknown) {
     toast.add({ title: 'Delete failed', description: errorMessage(err, 'Could not delete this food'), color: 'error' })
@@ -89,11 +98,6 @@ const menu = computed<DropdownMenuItem[][]>(() =>
     ? [[{ label: 'Delete food', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { deleteOpen.value = true } }]]
     : []
 )
-
-function servingMacros(nutrients: Record<number, number>) {
-  const keyed = keyNutrients(nutrients, idToKey.value)
-  return `${(keyed.energy ?? 0).toFixed(0)} kcal · P ${(keyed.protein ?? 0).toFixed(1)} · C ${(keyed.carbohydrate ?? 0).toFixed(1)} · F ${(keyed.fat ?? 0).toFixed(1)}`
-}
 </script>
 
 <template>
@@ -128,7 +132,8 @@ function servingMacros(nutrients: Record<number, number>) {
           <UCard v-for="serving in food.servings" :key="serving.id" data-test="catalogue-serving">
             <div class="flex flex-col gap-1 text-sm">
               <span class="font-medium">{{ serving.quantity }} {{ serving.label }}<template v-if="serving.basisGrams && serving.kind === 'named'"> ({{ serving.basisGrams }} g)</template></span>
-              <span class="text-dimmed">{{ serving.hasOwnNutrition ? servingMacros(serving.nutrients) : 'Derived from the gram weight' }}</span>
+              <NutritionMacroText v-if="serving.hasOwnNutrition" :nutrients="keyNutrients(serving.nutrients, idToKey)" with-energy />
+              <span v-else class="text-dimmed">Derived from the gram weight</span>
             </div>
           </UCard>
         </template>
@@ -145,6 +150,7 @@ function servingMacros(nutrients: Record<number, number>) {
               <UFormField label="Barcode">
                 <UInput v-model="header.barcode" inputmode="numeric" class="w-full" data-test="food-header-barcode" />
               </UFormField>
+              <NutritionServingPreview v-if="defaultDraft" :draft="defaultDraft" />
               <p v-if="headerError" class="text-sm text-error" data-test="food-header-error">{{ headerError }}</p>
               <UButton label="Save" class="w-full sm:w-fit" :loading="headerSaving" :disabled="!header.name.trim()" data-test="food-header-save" @click="saveHeader" />
             </div>

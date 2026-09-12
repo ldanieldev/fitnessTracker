@@ -13,7 +13,7 @@ const emit = defineEmits<{ saved: [id: number] }>()
 
 const toast = useToast()
 const name = ref('')
-const servings = ref(1)
+const servings = ref<number | null>(1)
 const servingName = ref('serving')
 const saving = ref(false)
 
@@ -30,7 +30,7 @@ const description = computed(() => `From ${props.containerName} on ${props.date}
 const canSubmit = computed(() => {
   if (name.value.length < 1 || name.value.length > 255) return false
   if (props.kind === 'recipe') {
-    if (!(servings.value > 0)) return false
+    if (!((servings.value ?? 0) > 0)) return false
     if (servingName.value.length < 1 || servingName.value.length > 64) return false
   }
   return true
@@ -42,13 +42,14 @@ async function submit() {
   const path = props.kind === 'recipe' ? '/api/nutrition/recipes/from-diary' : '/api/nutrition/saved-meals/from-diary'
   const body: Record<string, unknown> = { date: props.date, containerId: props.containerId, name: name.value }
   if (props.kind === 'recipe') {
-    body.servings = servings.value
+    body.servings = servings.value ?? 1
     body.servingName = servingName.value
   }
 
   let result: { id: number, skippedQuickAdds: number, flattenedRecipes: number }
   try {
     result = await $fetch(path, { method: 'POST', body })
+    await invalidateNutrition(props.kind === 'recipe' ? NUTRITION_KEYS.recipes : NUTRITION_KEYS.savedMeals)
   } catch (error: unknown) {
     toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this meal'), color: 'error' })
     return
@@ -76,16 +77,14 @@ async function submit() {
         </UFormField>
         <template v-if="kind === 'recipe'">
           <UFormField label="Servings">
-            <UInputNumber v-model="servings" :min="0" class="w-full" data-test="save-meal-servings" />
+            <NutritionNumberInput v-model="servings" :min="0" class="w-full" data-test="save-meal-servings" />
           </UFormField>
           <UFormField label="Serving name">
             <UInput v-model="servingName" class="w-full" data-test="save-meal-serving-name" />
           </UFormField>
         </template>
+        <UButton label="Save" block :loading="saving" :disabled="!canSubmit || saving" data-test="save-meal-submit" @click="submit" />
       </div>
-    </template>
-    <template #footer>
-      <UButton label="Save" block :loading="saving" :disabled="!canSubmit || saving" data-test="save-meal-submit" @click="submit" />
     </template>
   </NutritionSheet>
 </template>

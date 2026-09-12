@@ -50,10 +50,12 @@ async function save() {
     if (props.savedMealId === null) {
       const { id } = await $fetch<{ id: number }>('/api/nutrition/saved-meals', { method: 'POST', body })
       baseline.value = snapshot(lines.value)
+      await invalidateNutrition(NUTRITION_KEYS.savedMeals)
       await router.replace(`/nutrition/saved-meals/${id}`)
     } else {
       await $fetch(`/api/nutrition/saved-meals/${props.savedMealId}`, { method: 'PUT', body })
       baseline.value = snapshot(lines.value)
+      await invalidateNutrition(NUTRITION_KEYS.savedMeals)
       toast.add({ title: 'Saved meal saved', color: 'success' })
     }
   } catch (error: unknown) {
@@ -67,6 +69,7 @@ async function confirmDelete() {
   try {
     await $fetch(`/api/nutrition/saved-meals/${props.savedMealId}`, { method: 'DELETE' })
     baseline.value = snapshot(lines.value)
+    await invalidateNutrition(NUTRITION_KEYS.savedMeals)
     await navigateTo('/nutrition/saved-meals')
   } catch (error: unknown) {
     toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete this saved meal'), color: 'error' })
@@ -94,7 +97,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
     </template>
 
     <template #body>
-      <div v-if="loaded" class="flex flex-col gap-4 max-w-2xl mx-auto w-full pb-24">
+      <div v-if="loaded" class="flex flex-col gap-4 max-w-2xl mx-auto w-full pb-28">
         <UFormField label="Name" required>
           <UInput v-model="name" class="w-full" data-test="meal-name" />
         </UFormField>

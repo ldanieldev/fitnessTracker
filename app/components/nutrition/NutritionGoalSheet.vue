@@ -24,6 +24,7 @@ async function apply() {
   applying.value = true
   try {
     await $fetch(`/api/nutrition/diary/${props.date}/goal`, { method: 'PUT', body: { profileId: selected.value } })
+    await invalidateNutrition(NUTRITION_KEYS.day(props.date))
   } catch (error: unknown) {
     toast.add({ title: 'Apply failed', description: errorMessage(error, 'Could not apply this goal profile'), color: 'error' })
     return
@@ -60,10 +61,8 @@ async function apply() {
           <UBadge v-if="profile.id === currentId" color="neutral" variant="subtle">Current</UBadge>
           <UBadge v-if="profile.isDefault" color="primary" variant="subtle">Default</UBadge>
         </button>
+        <UButton v-if="profiles.length > 0" label="Apply" block :loading="applying" :disabled="!canApply || applying" data-test="goal-apply" @click="apply" />
       </div>
-    </template>
-    <template v-if="profiles.length > 0" #footer>
-      <UButton label="Apply" block :loading="applying" :disabled="!canApply || applying" data-test="goal-apply" @click="apply" />
     </template>
   </NutritionSheet>
 </template>

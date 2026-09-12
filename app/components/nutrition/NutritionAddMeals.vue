@@ -22,7 +22,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  toggle: [meal: { id: number, name: string }, on: boolean]
+  toggle: [meal: { id: number, name: string, total: Record<string, number> }, on: boolean]
 }>()
 
 const toast = useToast()
@@ -49,17 +49,19 @@ async function toggleExpand(meal: MealRow) {
 
 <template>
   <div class="flex flex-col gap-2">
-    <div v-for="meal in meals" :key="meal.id" class="flex flex-col gap-2 p-2 rounded-lg bg-elevated/50" data-test="meal-choice">
-      <div class="flex items-center gap-2 min-w-0">
-        <UCheckbox
-          :model-value="selectedById.has(meal.id)"
-          data-test="meal-choice-checkbox"
-          @update:model-value="(value) => emit('toggle', { id: meal.id, name: meal.name }, Boolean(value))"
-        />
-        <div class="flex flex-col min-w-0 flex-1">
-          <span class="font-medium truncate">{{ meal.name }}</span>
-          <span class="text-dimmed text-xs">{{ meal.itemCount }} items · {{ (meal.total.energy ?? 0).toFixed(0) }} kcal</span>
-        </div>
+    <NutritionResultRow
+      v-for="meal in meals"
+      :key="meal.id"
+      data-test="meal-choice"
+      :title="meal.name"
+      :amount-text="`${meal.itemCount} items`"
+      :nutrients="meal.total"
+      :energy="meal.total.energy ?? null"
+      selectable
+      :selected="selectedById.has(meal.id)"
+      @toggle="(on) => emit('toggle', { id: meal.id, name: meal.name, total: meal.total }, on)"
+    >
+      <template #actions>
         <UButton
           :icon="expanded.has(meal.id) ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
           variant="ghost"
@@ -67,16 +69,18 @@ async function toggleExpand(meal: MealRow) {
           size="sm"
           aria-label="Expand items"
           data-test="meal-choice-expand"
-          @click="toggleExpand(meal)"
+          @click.stop="toggleExpand(meal)"
         />
-      </div>
-      <ul v-if="expanded.has(meal.id)" class="flex flex-col gap-1 list-none p-0 m-0 ps-6">
-        <li v-for="(item, index) in items.get(meal.id) ?? []" :key="index" class="flex items-center gap-2 text-sm" data-test="meal-choice-item">
-          <span>{{ item.name }} — {{ item.quantity }} {{ item.unitLabel }}</span>
-          <UBadge v-if="item.broken" label="Unavailable" color="error" variant="subtle" />
-        </li>
-      </ul>
-    </div>
+      </template>
+      <template v-if="expanded.has(meal.id)" #default>
+        <ul class="flex flex-col gap-1 list-none p-0 m-0 ps-6">
+          <li v-for="(item, index) in items.get(meal.id) ?? []" :key="index" class="flex items-center gap-2 text-sm" data-test="meal-choice-item">
+            <span>{{ item.name }} — {{ item.quantity }} {{ item.unitLabel }}</span>
+            <UBadge v-if="item.broken" label="Unavailable" color="error" variant="subtle" />
+          </li>
+        </ul>
+      </template>
+    </NutritionResultRow>
     <p v-if="meals.length === 0" class="text-sm text-dimmed">
       No saved meals yet
       <ULink to="/nutrition/saved-meals/new">New saved meal</ULink>

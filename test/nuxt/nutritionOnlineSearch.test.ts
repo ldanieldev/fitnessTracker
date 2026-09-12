@@ -12,7 +12,8 @@ const results = [
     brand: 'Ferrero',
     barcode: '3017624010701',
     hasNutrition: true,
-    attribution: 'Open Food Facts contributors'
+    attribution: 'Open Food Facts contributors',
+    per100g: { energy: 539, protein: 6.3, carbohydrate: 57.5, fat: 30.9 }
   }
 ]
 
@@ -35,9 +36,33 @@ describe('NutritionOnlineSearch', () => {
     expect(wrapper.text()).toContain('Nutella')
     expect(wrapper.text()).toContain('Ferrero')
     expect(wrapper.text()).toContain('Open Food Facts contributors')
+    expect(wrapper.text()).toContain('539')
+    expect(wrapper.find('[data-test="macro-fat"]').text()).toBe('F 30.9')
 
     expect(wrapper.find('[data-test="online-error"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Search is unavailable for USDA: rate limited')
+  })
+
+  it('shows "No nutrition data" and no macros for a result with an empty per100g', async () => {
+    registerEndpoint('/api/nutrition/foods/search/external', () => ({
+      results: [{
+        source: 'usda',
+        externalId: '456',
+        name: 'Mystery Bar',
+        brand: null,
+        barcode: null,
+        hasNutrition: false,
+        attribution: null,
+        per100g: {}
+      }],
+      errors: []
+    }))
+
+    const wrapper = await mountSuspended(NutritionOnlineSearch)
+    await searchNutella(wrapper)
+
+    expect(wrapper.text()).toContain('No nutrition data')
+    expect(wrapper.find('[data-test="macro-protein"]').exists()).toBe(false)
   })
 
   it('imports a result: posts the source and externalId, and emits imported', async () => {

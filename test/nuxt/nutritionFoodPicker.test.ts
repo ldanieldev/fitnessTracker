@@ -10,7 +10,14 @@ import type { FoodDetail, PickedFood } from '../../app/types/nutrition'
 const CheckboxCtor = UCheckbox as unknown as new () => ComponentPublicInstance
 
 const recentHits = [
-  { id: 1, name: 'Chicken Breast', brand: 'Acme', isFavorite: false, logCount: 3 },
+  {
+    id: 1,
+    name: 'Chicken Breast',
+    brand: 'Acme',
+    isFavorite: false,
+    logCount: 3,
+    perDefault: { label: 'g', quantity: 100, energy: 165, protein: 31, carbohydrate: 0, fat: 3.6 }
+  },
   { id: 2, name: 'Brown Rice', brand: null, isFavorite: true, logCount: 5 }
 ]
 
@@ -115,6 +122,21 @@ describe('NutritionFoodPicker', () => {
     const alert = wrapper.find('[data-test="needs-nutrition-alert"]')
     expect(alert.exists()).toBe(true)
     expect(alert.find('a').attributes('href')).toBe('/nutrition/foods/9')
+  })
+
+  it('shows the default-serving macros on every hit', async () => {
+    register()
+    const wrapper = await mountPicker()
+    const first = wrapper.findAll('[data-test="food-hit"]')[0]!
+    expect(first.find('[data-test="macro-protein"]').text()).toBe('P 31')
+    expect(first.text()).toContain('100 g')
+  })
+
+  it('shows the brand on a hit with macros', async () => {
+    register()
+    const wrapper = await mountPicker()
+    const first = wrapper.findAll('[data-test="food-hit"]')[0]!
+    expect(first.text()).toContain('Acme')
   })
 
   it('preserves quantity and unitLabel when select() is called on an already-picked food', async () => {

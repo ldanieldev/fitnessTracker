@@ -5,11 +5,8 @@ export interface TrackedNutrient {
   sortOrder: number
 }
 
-export const TRACKED_NUTRIENTS_KEY = 'nutrition:tracked'
-
 export function useTrackedNutrients() {
-  const { data: tracked, refresh } = useFetch<TrackedNutrient[]>('/api/nutrition/nutrients/tracked', {
-    key: TRACKED_NUTRIENTS_KEY
-  })
-  return { tracked, refresh }
+  const fetch = useNutritionFetch<TrackedNutrient[]>(NUTRITION_KEYS.tracked, '/api/nutrition/nutrients/tracked')
+  const { data: tracked, refresh } = fetch
+  return { tracked, refresh, fetch }
 }

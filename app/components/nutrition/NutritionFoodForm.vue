@@ -82,6 +82,7 @@ async function submit() {
         servings: servings.value.map(draftToInput)
       }
     })
+    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     emit('created', result.id)
   } catch (err: unknown) {
     toast.add({
@@ -134,6 +135,7 @@ async function submit() {
               @click="removeServing(index)"
             />
           </div>
+          <NutritionServingPreview :draft="draft" />
         </div>
         <UButton label="Add serving" variant="soft" color="neutral" class="w-fit" @click="addServing" />
       </div>

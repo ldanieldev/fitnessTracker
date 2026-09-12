@@ -18,12 +18,10 @@ watch(query, (value) => {
   }, 250)
 })
 
-const { data: foods } = await useFetch<ListedFood[]>('/api/nutrition/foods', { query: { q: debouncedQuery } })
+const { data: foods } = await useNutritionFetch<ListedFood[]>(NUTRITION_KEYS.foods, '/api/nutrition/foods', { query: { q: debouncedQuery } })
 
-function subtitle(food: ListedFood) {
-  const serving = food.defaultServing ? `${food.defaultServing.quantity} ${food.defaultServing.label}` : null
-  const energy = `${food.energy?.toFixed(0) ?? '—'} kcal`
-  return [serving, energy].filter(Boolean).join(' · ')
+function amountText(food: ListedFood) {
+  return food.defaultServing ? `${food.defaultServing.quantity} ${food.defaultServing.label}` : null
 }
 </script>
 
@@ -42,21 +40,19 @@ function subtitle(food: ListedFood) {
     <template #body>
       <div class="flex flex-col gap-3 max-w-2xl mx-auto w-full">
         <UInput v-model="query" icon="i-lucide-search" placeholder="Search my foods" class="w-full" data-test="my-food-search" />
-        <NuxtLink
+        <NutritionResultRow
           v-for="food in foods ?? []"
           :key="food.id"
-          :to="`/nutrition/foods/${food.id}`"
-          class="flex items-center gap-3 p-3 rounded-lg bg-elevated/50 min-h-12"
           data-test="my-food-row"
-        >
-          <div class="flex flex-col min-w-0 flex-1">
-            <span class="font-medium truncate">{{ food.name }}</span>
-            <span v-if="food.brand" class="text-dimmed text-xs truncate">{{ food.brand }}</span>
-            <span class="text-dimmed text-xs">{{ subtitle(food) }}</span>
-          </div>
-          <UIcon name="i-lucide-chevron-right" class="text-dimmed size-4" />
-        </NuxtLink>
-        <p v-if="(foods ?? []).length === 0" class="text-sm text-dimmed">No foods yet — foods you create or copy appear here</p>
+          :title="food.name"
+          :subtitle="food.brand"
+          :amount-text="amountText(food)"
+          :energy="food.energy"
+          chevron
+          @open="navigateTo(`/nutrition/foods/${food.id}`)"
+        />
+        <p v-if="(foods ?? []).length === 0 && query.trim()" class="text-sm text-dimmed">No matches for "{{ query }}"</p>
+        <p v-else-if="(foods ?? []).length === 0" class="text-sm text-dimmed">No foods yet — foods you create or copy appear here</p>
       </div>
     </template>
   </UDashboardPanel>

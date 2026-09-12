@@ -16,7 +16,10 @@ const close = () => {
   open.value = false
 }
 
-const links = [
+const { energyLeft } = useTodaySummary()
+const diaryBadge = computed(() => (loggedIn.value && energyLeft.value !== null ? String(Math.round(energyLeft.value)) : undefined))
+
+const links = computed(() => [
   [
     {
       label: 'Dashboard',
@@ -91,7 +94,7 @@ const links = [
       defaultOpen: true,
       type: 'trigger' as const,
       children: [
-        { label: 'Diary', to: '/diary/today', onSelect: close },
+        { label: 'Diary', to: '/diary/today', badge: diaryBadge.value, onSelect: close },
         { label: 'Summary', to: '/diary/summary', onSelect: close },
         { label: 'Recipes', to: '/nutrition/recipes', onSelect: close },
         { label: 'Saved meals', to: '/nutrition/saved-meals', onSelect: close },
@@ -99,7 +102,7 @@ const links = [
       ]
     }
   ]
-] satisfies NavigationMenuItem[][]
+] satisfies NavigationMenuItem[][])
 </script>
 
 <template>

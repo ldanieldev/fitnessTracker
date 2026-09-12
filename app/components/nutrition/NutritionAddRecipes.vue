@@ -16,7 +16,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  toggle: [recipe: { id: number, name: string, servingName: string }, on: boolean]
+  toggle: [recipe: { id: number, name: string, servingName: string, perServing: Record<string, number> }, on: boolean]
   servings: [recipeId: number, servings: number]
 }>()
 
@@ -27,48 +27,41 @@ const filtered = computed(() => {
 })
 
 const selectedById = computed(() => new Map(props.selected.map((r) => [r.recipeId, r])))
-
-function macros(row: RecipeRow) {
-  const p = row.perServing
-  return `per ${row.servingName}: ${(p.energy ?? 0).toFixed(0)} kcal · P ${(p.protein ?? 0).toFixed(0)} · C ${(p.carbohydrate ?? 0).toFixed(0)} · F ${(p.fat ?? 0).toFixed(0)}`
-}
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
     <UInput v-model="query" icon="i-lucide-search" placeholder="Search recipes" class="w-full" data-test="recipe-search" />
     <div class="flex flex-col gap-2">
-      <div
+      <NutritionResultRow
         v-for="row in filtered"
         :key="row.id"
-        class="flex flex-col gap-2 p-2 rounded-lg bg-elevated/50"
         data-test="recipe-choice"
+        :title="row.name"
+        :amount-text="`per ${row.servingName}`"
+        :nutrients="row.perServing"
+        :energy="row.perServing.energy ?? null"
+        selectable
+        :selected="selectedById.has(row.id)"
+        :disabled="row.broken"
+        @toggle="(on) => emit('toggle', { id: row.id, name: row.name, servingName: row.servingName, perServing: row.perServing }, on)"
       >
-        <div class="flex items-center gap-2 min-w-0">
-          <UCheckbox
-            :model-value="selectedById.has(row.id)"
-            :disabled="row.broken"
-            data-test="recipe-choice-checkbox"
-            @update:model-value="(value) => emit('toggle', { id: row.id, name: row.name, servingName: row.servingName }, Boolean(value))"
-          />
-          <div class="flex flex-col min-w-0 flex-1">
-            <span class="font-medium truncate">{{ row.name }}</span>
-            <span class="text-dimmed text-xs truncate">{{ macros(row) }}</span>
-          </div>
-          <ULink v-if="row.broken" :to="`/nutrition/recipes/${row.id}`" class="text-xs" data-test="recipe-fix-link">
+        <template v-if="row.broken" #actions>
+          <ULink :to="`/nutrition/recipes/${row.id}`" class="text-xs" data-test="recipe-fix-link">
             Fix ingredients →
           </ULink>
-        </div>
-        <UInputNumber
-          v-if="selectedById.has(row.id)"
-          :model-value="selectedById.get(row.id)!.servings"
-          :min="0"
-          :step="0.5"
-          class="w-28"
-          data-test="recipe-choice-servings"
-          @update:model-value="(value) => emit('servings', row.id, value)"
-        />
-      </div>
+        </template>
+        <template v-if="selectedById.has(row.id)" #default>
+          <NutritionNumberInput
+            :model-value="selectedById.get(row.id)!.servings"
+            :min="0"
+            :step="0.5"
+            class="w-28"
+            data-test="recipe-choice-servings"
+            @update:model-value="(value) => emit('servings', row.id, value ?? 0)"
+          />
+        </template>
+      </NutritionResultRow>
       <p v-if="filtered.length === 0" class="text-sm text-dimmed">
         No recipes yet
         <ULink to="/nutrition/recipes/new">New recipe</ULink>

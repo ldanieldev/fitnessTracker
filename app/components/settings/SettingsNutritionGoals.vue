@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { errorMessage } from '~/utils/apiError'
 import { RATIO_MACROS } from '~~/shared/utils/nutritionGoals'
+import { MACRO_CLASS } from '~/utils/nutrition/macros'
 
 interface CatalogEntry {
   key: string
@@ -36,8 +37,6 @@ const props = defineProps<{
   catalog: CatalogEntry[]
   tracked: TrackedNutrient[]
 }>()
-const emit = defineEmits<{ changed: [] }>()
-
 const toast = useToast()
 
 function displayKcal(profile: Profile) {
@@ -75,6 +74,10 @@ const rowKeys = computed(() => {
 
 function nutrientMeta(key: string) {
   return props.catalog.find((n) => n.key === key) ?? props.tracked.find((t) => t.key === key)
+}
+
+function nameClass(key: string) {
+  return (MACRO_CLASS as Record<string, string>)[key] ?? ''
 }
 
 function resetRows(profile: Profile | null) {
@@ -173,7 +176,7 @@ async function submit() {
       await $fetch('/api/nutrition/goal-profiles', { method: 'POST', body })
     }
     modalOpen.value = false
-    emit('changed')
+    await invalidateNutrition(NUTRITION_KEYS.profiles)
   } catch (error: unknown) {
     toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save goal profile'), color: 'error' })
   } finally {
@@ -201,7 +204,7 @@ async function setDefault(profile: Profile) {
   } catch (error: unknown) {
     toast.add({ title: 'Set default failed', description: errorMessage(error, 'Could not set default profile'), color: 'error' })
   } finally {
-    emit('changed')
+    await invalidateNutrition(NUTRITION_KEYS.profiles)
   }
 }
 
@@ -221,7 +224,7 @@ async function confirmDelete() {
     toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete goal profile'), color: 'error' })
   } finally {
     deleteTarget.value = null
-    emit('changed')
+    await invalidateNutrition(NUTRITION_KEYS.profiles)
   }
 }
 </script>
@@ -244,11 +247,11 @@ async function confirmDelete() {
           :data-test="`goal-set-default-${profile.id}`"
           @click="setDefault(profile)"
         />
-        <UButton label="Edit" size="sm" variant="ghost" color="neutral" @click="openEdit(profile)" />
+        <UButton label="Edit" size="sm" variant="soft" color="neutral" @click="openEdit(profile)" />
         <UButton
           label="Delete"
           size="sm"
-          variant="ghost"
+          variant="outline"
           color="error"
           :data-test="`goal-delete-${profile.id}`"
           @click="deleteTarget = profile"
@@ -281,7 +284,7 @@ async function confirmDelete() {
           <div class="flex flex-col gap-2">
             <div v-for="key in rowKeys" :key="key" class="flex flex-wrap items-center gap-2" :data-test="`goal-row-${key}`">
               <template v-if="inputMode === 'ratio' && (RATIO_MACROS as readonly string[]).includes(key)">
-                <span class="w-full sm:w-32 text-sm font-medium">{{ nutrientMeta(key)?.name }}</span>
+                <span class="w-full sm:w-32 text-sm font-medium" :class="nameClass(key)">{{ nutrientMeta(key)?.name }}</span>
                 <UInput
                   v-model.number="rows[key]!.ratioPercent"
                   type="number"
@@ -298,7 +301,7 @@ async function confirmDelete() {
               </template>
               <template v-else>
                 <UCheckbox v-model="rows[key]!.enabled" :data-test="`goal-enable-${key}`" />
-                <span class="w-full sm:w-32 text-sm font-medium">{{ nutrientMeta(key)?.name }}</span>
+                <span class="w-full sm:w-32 text-sm font-medium" :class="nameClass(key)">{{ nutrientMeta(key)?.name }}</span>
                 <UInput
                   v-model.number="rows[key]!.amount"
                   type="number"
@@ -319,13 +322,11 @@ async function confirmDelete() {
           </div>
 
           <UCheckbox v-model="isDefault" label="Set as default" data-test="goal-is-default" />
-        </div>
-      </template>
 
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="modalOpen = false" />
-          <UButton label="Save" :loading="saving" data-test="goal-save" @click="submit" />
+          <div class="flex justify-end gap-2">
+            <UButton label="Cancel" color="neutral" variant="outline" @click="modalOpen = false" />
+            <UButton label="Save" :loading="saving" data-test="goal-save" @click="submit" />
+          </div>
         </div>
       </template>
     </NutritionSheet>

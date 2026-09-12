@@ -11,6 +11,7 @@ interface ExternalResult {
   barcode: string | null
   hasNutrition: boolean
   attribution: string | null
+  per100g: Record<string, number> | null
 }
 
 interface ExternalErrorEntry {
@@ -50,6 +51,11 @@ function resultKey(result: ExternalResult) {
   return `${result.source}:${result.externalId}`
 }
 
+// An empty per100g object (no facts returned) must not render as a row full of zero macros.
+function facts(result: ExternalResult): Record<string, number> | null {
+  return result.per100g && Object.keys(result.per100g).length ? result.per100g : null
+}
+
 function errorReason(kind: ExternalErrorEntry['kind']) {
   if (kind === 'rate_limited') return 'rate limited'
   if (kind === 'unconfigured') return 'not configured'
@@ -86,6 +92,7 @@ async function importResult(result: ExternalResult) {
       method: 'POST',
       body: { source: result.source, externalId: result.externalId }
     })
+    await invalidateNutrition(NUTRITION_KEYS.foods)
     emit('imported', { id: imported.id, needsNutrition: imported.needsNutrition })
   } catch (error: unknown) {
     toast.add({ title: 'Import failed', description: errorMessage(error, 'Could not import this food'), color: 'error' })
@@ -130,31 +137,33 @@ async function importResult(result: ExternalResult) {
       data-test="online-error"
     />
 
-    <ul class="flex flex-col gap-2 list-none p-0 m-0">
-      <li
+    <div class="flex flex-col gap-2">
+      <NutritionResultRow
         v-for="result in results"
         :key="resultKey(result)"
-        class="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-elevated/50"
         data-test="online-result"
+        :title="result.name"
+        :subtitle="result.brand"
+        :amount-text="facts(result) ? 'per 100 g' : 'No nutrition data'"
+        :nutrients="facts(result)"
+        :energy="facts(result)?.energy ?? null"
       >
-        <UBadge :label="SOURCE_LABELS[result.source]" color="neutral" variant="subtle" />
-        <div class="flex flex-col flex-1">
-          <span class="font-medium">{{ result.name }}</span>
-          <span v-if="result.brand" class="text-dimmed text-sm">{{ result.brand }}</span>
-          <span v-if="result.attribution" class="text-dimmed text-xs">{{ result.attribution }}</span>
-        </div>
-        <UBadge v-if="!result.hasNutrition" label="No nutrition data" color="warning" variant="subtle" />
-        <UButton
-          label="Import"
-          size="xs"
-          class="ml-auto"
-          :loading="importingKey === resultKey(result)"
-          :aria-label="`Import ${result.name}`"
-          data-test="online-import"
-          @click="importResult(result)"
-        />
-      </li>
-    </ul>
+        <template #actions>
+          <UBadge :label="SOURCE_LABELS[result.source]" color="neutral" variant="subtle" />
+          <UButton
+            label="Import"
+            size="xs"
+            :loading="importingKey === resultKey(result)"
+            :aria-label="`Import ${result.name}`"
+            data-test="online-import"
+            @click="importResult(result)"
+          />
+        </template>
+        <template v-if="result.attribution" #meta>
+          <p class="truncate text-xs text-dimmed">{{ result.attribution }}</p>
+        </template>
+      </NutritionResultRow>
+    </div>
     <p v-if="searched && results.length === 0" class="text-sm text-dimmed">No results found</p>
   </div>
 </template>

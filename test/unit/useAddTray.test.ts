@@ -1,36 +1,60 @@
 import { describe, expect, it } from 'vitest'
+import { ref } from 'vue'
 import type { PickedFood } from '../../app/types/nutrition'
 
-const picked = { foodId: 1, name: 'Oats', brand: null, quantity: 50, unitLabel: 'g', food: { id: 1, servings: [] } } as unknown as PickedFood
+const idToKey = ref(new Map([[1, 'energy'], [2, 'protein'], [3, 'carbohydrate'], [4, 'fat']]))
+
+const picked = {
+  foodId: 1,
+  name: 'Oats',
+  brand: null,
+  quantity: 100,
+  unitLabel: 'g',
+  food: {
+    id: 1,
+    servings: [{ id: 10, kind: 'weight', label: 'g', quantity: 100, basisGrams: 100, hasOwnNutrition: true, nutrients: { 1: 380, 2: 13, 3: 68, 4: 7 } }]
+  }
+} as unknown as PickedFood
 
 describe('useAddTray', () => {
   it('builds one mixed entry array in food, recipe, meal order', async () => {
     const { useAddTray } = await import('../../app/composables/useAddTray')
-    const tray = useAddTray()
+    const tray = useAddTray(idToKey)
     tray.state.foods = [picked]
-    tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl' }, true)
+    tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl', perServing: { energy: 450, protein: 30 } }, true)
     tray.setRecipeServings(7, 1.5)
-    tray.toggleMeal({ id: 9, name: 'Breakfast' }, true)
+    tray.toggleMeal({ id: 9, name: 'Breakfast', total: { energy: 200, protein: 10 } }, true)
 
     expect(tray.count.value).toBe(3)
     expect(tray.ready.value).toBe(true)
     expect(tray.toEntryInputs(4)).toEqual([
-      { entryType: 'food', containerId: 4, foodId: 1, quantity: 50, unitLabel: 'g' },
+      { entryType: 'food', containerId: 4, foodId: 1, quantity: 100, unitLabel: 'g' },
       { entryType: 'recipe', containerId: 4, recipeId: 7, quantity: 1.5, unitLabel: 'bowl' },
       { entryType: 'food', containerId: 4, savedMealId: 9, quantity: 1, unitLabel: 'meal' }
     ])
   })
 
+  it('sums totals from a food resolved by label, a recipe scaled by servings, and a meal', async () => {
+    const { useAddTray } = await import('../../app/composables/useAddTray')
+    const tray = useAddTray(idToKey)
+    tray.state.foods = [picked]
+    tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl', perServing: { energy: 450, protein: 30, carbohydrate: 40, fat: 15 } }, true)
+    tray.setRecipeServings(7, 2)
+    tray.toggleMeal({ id: 9, name: 'Breakfast', total: { energy: 200, protein: 10, carbohydrate: 20, fat: 5 } }, true)
+
+    expect(tray.totals.value).toEqual({ energy: 1480, protein: 83, carbohydrate: 168, fat: 42 })
+  })
+
   it('is not ready with a non-positive amount, and remove/clear empty it', async () => {
     const { useAddTray } = await import('../../app/composables/useAddTray')
-    const tray = useAddTray()
-    tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl' }, true)
+    const tray = useAddTray(idToKey)
+    tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl', perServing: {} }, true)
     tray.setRecipeServings(7, 0)
     expect(tray.ready.value).toBe(false)
     tray.remove('recipe', 7)
     expect(tray.count.value).toBe(0)
-    tray.toggleMeal({ id: 9, name: 'Breakfast' }, true)
-    tray.toggleMeal({ id: 9, name: 'Breakfast' }, true)
+    tray.toggleMeal({ id: 9, name: 'Breakfast', total: {} }, true)
+    tray.toggleMeal({ id: 9, name: 'Breakfast', total: {} }, true)
     expect(tray.state.meals).toHaveLength(1)
     tray.clear()
     expect(tray.count.value).toBe(0)

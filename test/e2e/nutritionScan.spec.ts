@@ -52,7 +52,7 @@ test.describe('barcode scan of a known OFF product', () => {
 
     await expect(page).toHaveURL(addUrlPattern)
     // The dev DB accumulates catalogue foods across runs, so the checked row isn't necessarily first — find it by its amount input.
-    const checkedRow = page.locator('[data-test="food-hit"]').filter({ has: page.locator('input[role="spinbutton"]') })
+    const checkedRow = page.locator('[data-test="food-hit"]').filter({ has: page.locator('input[inputmode="decimal"]') })
     await expect(checkedRow).toBeVisible()
   })
 })

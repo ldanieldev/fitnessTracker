@@ -65,8 +65,6 @@ test('saves a meal as a recipe (skipping a quick-add) and as a saved meal', asyn
   await page.locator('[data-test="save-meal-name"]').fill('Action Bowl')
   const servingsInput = page.locator('[data-test="save-meal-servings"]')
   await servingsInput.fill('2')
-  // Firefox doesn't focus a <button> on click, so the number field's commit-on-blur never fires without an explicit blur.
-  await servingsInput.blur()
   await page.locator('[data-test="save-meal-serving-name"]').fill('bowl')
   await page.locator('[data-test="save-meal-submit"]').click()
   // Scoped to the toast title, not the aria-live region that mirrors the same text.

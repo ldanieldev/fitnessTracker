@@ -1,20 +1,24 @@
 import { computed, reactive } from 'vue'
+import type { Ref } from 'vue'
 import type { DiaryEntryInput } from '~~/app/composables/useDiaryDay'
 import type { PickedFood } from '~~/app/types/nutrition'
+import { resolveByLabel } from '~~/app/utils/nutrition/resolveByLabel'
 
 export interface TrayRecipe {
   recipeId: number
   name: string
   servings: number
   servingName: string
+  perServing: Record<string, number>
 }
 
 export interface TrayMeal {
   savedMealId: number
   name: string
+  total: Record<string, number>
 }
 
-export function useAddTray() {
+export function useAddTray(idToKey: Ref<Map<number, string>>) {
   const state = reactive({ foods: [] as PickedFood[], recipes: [] as TrayRecipe[], meals: [] as TrayMeal[] })
 
   const count = computed(() => state.foods.length + state.recipes.length + state.meals.length)
@@ -24,9 +28,31 @@ export function useAddTray() {
     && state.recipes.every((r) => r.servings > 0)
   )
 
-  function toggleRecipe(recipe: { id: number, name: string, servingName: string }, on: boolean) {
+  const totals = computed(() => {
+    const sums: Record<string, number> = {}
+    const add = (key: string, amount: number) => {
+      sums[key] = (sums[key] ?? 0) + amount
+    }
+    for (const food of state.foods) {
+      const resolved = resolveByLabel(food.food, food.unitLabel, food.quantity)
+      if (!resolved) continue
+      for (const [id, amount] of Object.entries(resolved)) {
+        const key = idToKey.value.get(Number(id))
+        if (key) add(key, amount)
+      }
+    }
+    for (const recipe of state.recipes) {
+      for (const [key, amount] of Object.entries(recipe.perServing)) add(key, amount * recipe.servings)
+    }
+    for (const meal of state.meals) {
+      for (const [key, amount] of Object.entries(meal.total)) add(key, amount)
+    }
+    return sums
+  })
+
+  function toggleRecipe(recipe: { id: number, name: string, servingName: string, perServing: Record<string, number> }, on: boolean) {
     state.recipes = state.recipes.filter((r) => r.recipeId !== recipe.id)
-    if (on) state.recipes.push({ recipeId: recipe.id, name: recipe.name, servings: 1, servingName: recipe.servingName })
+    if (on) state.recipes.push({ recipeId: recipe.id, name: recipe.name, servings: 1, servingName: recipe.servingName, perServing: recipe.perServing })
   }
 
   function setRecipeServings(recipeId: number, servings: number) {
@@ -34,9 +60,9 @@ export function useAddTray() {
     if (entry) entry.servings = servings
   }
 
-  function toggleMeal(meal: { id: number, name: string }, on: boolean) {
+  function toggleMeal(meal: { id: number, name: string, total: Record<string, number> }, on: boolean) {
     state.meals = state.meals.filter((m) => m.savedMealId !== meal.id)
-    if (on) state.meals.push({ savedMealId: meal.id, name: meal.name })
+    if (on) state.meals.push({ savedMealId: meal.id, name: meal.name, total: meal.total })
   }
 
   function remove(kind: 'food' | 'recipe' | 'meal', id: number) {
@@ -61,5 +87,5 @@ export function useAddTray() {
     ]
   }
 
-  return { state, count, ready, toggleRecipe, setRecipeServings, toggleMeal, remove, clear, toEntryInputs }
+  return { state, count, ready, totals, toggleRecipe, setRecipeServings, toggleMeal, remove, clear, toEntryInputs }
 }

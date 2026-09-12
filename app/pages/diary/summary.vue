@@ -48,7 +48,8 @@ const windowItems = [
 const from = computed(() => format(range.value.start, 'yyyy-MM-dd'))
 const to = computed(() => format(range.value.end, 'yyyy-MM-dd'))
 
-const { data: summary } = useFetch<SummaryResponse>(
+const { data: summary } = useNutritionFetch<SummaryResponse>(
+  () => NUTRITION_KEYS.summary(from.value, to.value, windowSize.value),
   () => `/api/nutrition/diary/summary?from=${from.value}&to=${to.value}&window=${windowSize.value}`,
   { watch: [from, to, windowSize] }
 )
@@ -121,11 +122,12 @@ const menu = computed<DropdownMenuItem[][]>(() => [
               <UIcon v-if="day.logged" name="i-lucide-check" class="text-success size-4" />
               <span v-else class="text-dimmed">—</span>
             </div>
+            <NutritionMacroText v-if="day.logged" with-energy :nutrients="day.totals" class="mb-2" />
             <div class="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 text-sm">
               <template v-for="nutrient in trackedNutrients" :key="nutrient.key">
                 <span class="text-dimmed">{{ nutrient.name }}</span>
                 <span :data-test="`summary-${nutrient.key}-total-${day.date}`">{{ totalCell(day, nutrient.key) }}</span>
-                <span :data-test="`summary-${nutrient.key}-avg-${day.date}`">{{ rollingCell(day, nutrient.key) }}</span>
+                <span class="text-dimmed" :data-test="`summary-${nutrient.key}-avg-${day.date}`">{{ rollingCell(day, nutrient.key) }}</span>
               </template>
             </div>
           </UCard>

@@ -68,7 +68,7 @@ function save() {
         />
         <div v-else class="grid grid-cols-2 gap-2">
           <UFormField label="Quantity">
-            <UInputNumber v-model="draft.quantity" :min="0" :step="0.5" class="w-full" data-test="entry-sheet-quantity" />
+            <NutritionNumberInput v-model="draft.quantity" :min="0" :step="0.5" class="w-full" data-test="entry-sheet-quantity" />
           </UFormField>
           <UFormField v-if="showUnit" label="Unit">
             <USelect :model-value="draft.unitLabel" :items="[draft.unitLabel]" disabled class="w-full" data-test="entry-sheet-unit" />
@@ -85,23 +85,19 @@ function save() {
         <UFormField label="Note">
           <UTextarea v-model="draft.notes" :rows="2" :maxlength="2000" class="w-full" data-test="entry-sheet-notes" />
         </UFormField>
-        <p class="text-sm text-dimmed" data-test="entry-sheet-preview">
-          {{ (preview.energy ?? 0).toFixed(0) }} kcal · P {{ (preview.protein ?? 0).toFixed(1) }} · C {{ (preview.carbohydrate ?? 0).toFixed(1) }} · F {{ (preview.fat ?? 0).toFixed(1) }}
-        </p>
+        <NutritionMacroText :nutrients="preview" with-energy data-test="entry-sheet-preview" />
         <p v-if="foodMissing" class="text-xs text-dimmed">This food was deleted, so only the amount can change.</p>
-      </div>
-    </template>
-    <template #footer>
-      <div v-if="entry" class="flex w-full gap-2">
-        <template v-if="confirmingDelete">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="confirmingDelete = false" />
-          <UButton label="Delete entry" color="error" class="ml-auto" data-test="entry-delete-confirm" @click="emit('delete', entry.id); open = false" />
-        </template>
-        <template v-else>
+        <div v-if="!confirmingDelete" class="flex w-full gap-2">
           <UButton icon="i-lucide-trash-2" color="error" variant="soft" aria-label="Delete entry" data-test="entry-delete" @click="confirmingDelete = true" />
           <UButton icon="i-lucide-copy" color="neutral" variant="soft" label="Copy" data-test="entry-copy" @click="emit('copy', entry.id); open = false" />
           <UButton label="Save" class="ml-auto" :disabled="!canSave" data-test="entry-save" @click="save" />
-        </template>
+        </div>
+      </div>
+    </template>
+    <template v-if="entry && confirmingDelete" #footer>
+      <div class="flex w-full gap-2">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="confirmingDelete = false" />
+        <UButton label="Delete entry" color="error" class="ml-auto" data-test="entry-delete-confirm" @click="emit('delete', entry.id); open = false" />
       </div>
     </template>
   </NutritionSheet>

@@ -32,14 +32,14 @@ function replace() {
 <template>
   <NutritionSheet v-model:open="open" :title="line?.name ?? 'Ingredient'">
     <template #body>
-      <NutritionAmountInput v-if="line?.food" v-model="draft" :food="line.food" />
-      <p v-else class="text-sm text-dimmed">This food is no longer available. Remove it or replace it with another food.</p>
-    </template>
-    <template #footer>
-      <div class="flex w-full gap-2">
-        <UButton label="Remove" color="error" variant="soft" data-test="ingredient-remove" @click="remove" />
-        <UButton label="Replace" color="neutral" variant="soft" data-test="ingredient-replace" @click="replace" />
-        <UButton v-if="line?.food" label="Done" class="ml-auto" :disabled="!(draft.quantity > 0)" data-test="ingredient-done" @click="done" />
+      <div class="flex flex-col gap-3">
+        <NutritionAmountInput v-if="line?.food" v-model="draft" :food="line.food" />
+        <p v-else class="text-sm text-dimmed">This food is no longer available. Remove it or replace it with another food.</p>
+        <div class="flex w-full gap-2">
+          <UButton label="Remove" color="error" variant="soft" data-test="ingredient-remove" @click="remove" />
+          <UButton label="Replace" color="neutral" variant="soft" data-test="ingredient-replace" @click="replace" />
+          <UButton v-if="line?.food" label="Done" class="ml-auto" :disabled="!(draft.quantity > 0)" data-test="ingredient-done" @click="done" />
+        </div>
       </div>
     </template>
   </NutritionSheet>

@@ -1,3 +1,4 @@
+import type { NutrientKey } from '~~/shared/types/nutrition'
 import { fatsecretByBarcode, fatsecretById, fatsecretSearch } from './fatsecret'
 import { offByBarcode, offSearch } from './off'
 import type { ExternalFood, ExternalSourceKey } from './types'
@@ -36,6 +37,7 @@ export interface ExternalSearchResult {
   barcode: string | null
   hasNutrition: boolean
   attribution: string | null
+  per100g: Partial<Record<NutrientKey, number>> | null
 }
 
 export interface ExternalSearchErrorEntry {
@@ -52,7 +54,8 @@ function toSearchResult(food: ExternalFood): ExternalSearchResult {
     brand: food.brand,
     barcode: food.barcode,
     hasNutrition: food.per100g !== null && Object.keys(food.per100g).length > 0,
-    attribution: food.attribution
+    attribution: food.attribution,
+    per100g: food.per100g
   }
 }
 

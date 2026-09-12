@@ -19,7 +19,7 @@ const units = computed(() => availableUnits(props.food))
 
 const quantity = computed({
   get: () => props.modelValue.quantity,
-  set: (value: number) => emit('update:modelValue', { ...props.modelValue, quantity: value })
+  set: (value: number | null) => emit('update:modelValue', { ...props.modelValue, quantity: value ?? 0 })
 })
 
 const unitLabel = computed({
@@ -57,14 +57,9 @@ const preview = computed<Partial<Record<PreviewKey, number>> | null>(() => {
 <template>
   <div class="flex flex-col gap-2">
     <div class="grid grid-cols-2 gap-2 w-full">
-      <UInputNumber v-model="quantity" :min="0" :disabled="disabled" class="w-full" :data-test="quantityTest" />
+      <NutritionNumberInput v-model="quantity" :min="0" :disabled="disabled" class="w-full" :data-test="quantityTest" />
       <USelect v-model="unitLabel" :items="units" :disabled="disabled" class="w-full" :data-test="unitTest" />
     </div>
-    <p v-if="preview" class="text-xs text-dimmed">
-      <span v-if="preview.energy !== undefined">{{ preview.energy.toFixed(0) }} kcal</span>
-      <span v-if="preview.protein !== undefined"> · {{ preview.protein.toFixed(1) }} g protein</span>
-      <span v-if="preview.carbohydrate !== undefined"> · {{ preview.carbohydrate.toFixed(1) }} g carb</span>
-      <span v-if="preview.fat !== undefined"> · {{ preview.fat.toFixed(1) }} g fat</span>
-    </p>
+    <NutritionMacroText v-if="preview" :nutrients="preview" with-energy size="xs" data-test="amount-preview" />
   </div>
 </template>

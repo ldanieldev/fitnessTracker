@@ -50,7 +50,7 @@ function setNutrient(key: string, value: string) {
     </div>
     <div class="grid grid-cols-2 gap-2">
       <UFormField label="Quantity">
-        <UInputNumber :model-value="draft.quantity" :min="0" class="w-full" data-test="serving-quantity" @update:model-value="(value) => patch({ quantity: Number(value) })" />
+        <NutritionNumberInput :model-value="draft.quantity" :min="0" class="w-full" data-test="serving-quantity" @update:model-value="(value) => patch({ quantity: value ?? 0 })" />
       </UFormField>
       <UFormField v-if="draft.kind === 'named'" label="Grams (optional)">
         <UInput

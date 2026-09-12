@@ -9,7 +9,6 @@ interface Container {
 }
 
 const props = defineProps<{ containers: Container[] }>()
-const emit = defineEmits<{ changed: [] }>()
 
 const toast = useToast()
 
@@ -33,7 +32,7 @@ async function rename(container: Container) {
   savingId.value = container.id
   try {
     await $fetch(`/api/nutrition/meal-containers/${container.id}`, { method: 'PUT', body: { name } })
-    emit('changed')
+    await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   } catch (error: unknown) {
     toast.add({ title: 'Rename failed', description: errorMessage(error, 'Could not rename container'), color: 'error' })
   } finally {
@@ -59,7 +58,7 @@ async function move(container: Container, direction: -1 | 1) {
   } catch (error: unknown) {
     toast.add({ title: 'Reorder failed', description: errorMessage(error, 'Could not reorder containers'), color: 'error' })
   } finally {
-    emit('changed')
+    await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   }
 }
 
@@ -79,7 +78,7 @@ async function confirmArchive() {
     toast.add({ title: 'Archive failed', description: errorMessage(error, 'Could not archive container'), color: 'error' })
   } finally {
     archiveTarget.value = null
-    emit('changed')
+    await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   }
 }
 
@@ -93,7 +92,7 @@ async function addContainer() {
   try {
     await $fetch('/api/nutrition/meal-containers', { method: 'POST', body: { name } })
     newName.value = ''
-    emit('changed')
+    await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   } catch (error: unknown) {
     toast.add({ title: 'Add failed', description: errorMessage(error, 'Could not add container'), color: 'error' })
   } finally {
@@ -150,7 +149,7 @@ const showArchived = ref(false)
       <UButton
         icon="i-lucide-archive"
         size="sm"
-        variant="ghost"
+        variant="outline"
         color="error"
         aria-label="Archive container"
         :data-test="`container-archive-${container.id}`"
@@ -172,7 +171,7 @@ const showArchived = ref(false)
     <div v-if="archived.length">
       <UButton
         :label="showArchived ? 'Hide archived' : `Archived (${archived.length})`"
-        variant="ghost"
+        variant="soft"
         color="neutral"
         size="sm"
         data-test="archived-toggle"

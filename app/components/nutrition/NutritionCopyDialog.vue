@@ -112,12 +112,12 @@ function confirm() {
               @update:model-value="(value) => checked.set(entry.id, Boolean(value))"
             />
             <span class="flex-1">{{ entry.description }}</span>
-            <UInputNumber
+            <NutritionNumberInput
               :model-value="quantities.get(entry.id) ?? entry.quantity"
               :min="0"
               class="w-20"
               data-test="copy-source-quantity"
-              @update:model-value="(value) => quantities.set(entry.id, value)"
+              @update:model-value="(value) => quantities.set(entry.id, value ?? 0)"
             />
             <span class="text-dimmed text-sm">{{ entry.unitLabel }}</span>
           </div>
@@ -126,12 +126,12 @@ function confirm() {
         <p class="text-sm text-dimmed" data-test="copy-preview">
           {{ previewCount }} item{{ previewCount === 1 ? '' : 's' }} will be copied
         </p>
-      </div>
-    </template>
 
-    <template #footer>
-      <UButton label="Cancel" variant="ghost" color="neutral" @click="emit('update:open', false)" />
-      <UButton label="Copy" :disabled="!canConfirm" data-test="copy-confirm" @click="confirm" />
+        <div class="flex gap-2">
+          <UButton label="Cancel" variant="outline" color="neutral" @click="emit('update:open', false)" />
+          <UButton label="Copy" class="ml-auto" :disabled="!canConfirm" data-test="copy-confirm" @click="confirm" />
+        </div>
+      </div>
     </template>
   </NutritionSheet>
 </template>

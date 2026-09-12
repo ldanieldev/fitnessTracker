@@ -15,7 +15,6 @@ const props = defineProps<{
   catalog: CatalogEntry[]
   tracked: TrackedNutrient[]
 }>()
-const emit = defineEmits<{ changed: [] }>()
 
 const toast = useToast()
 const checked = reactive<Record<string, boolean>>({})
@@ -40,10 +39,8 @@ async function save() {
   saving.value = true
   try {
     await $fetch('/api/nutrition/nutrients/tracked', { method: 'PUT', body: { keys } })
-    // Invalidates the day view's useTrackedNutrients() cache too — same key, different component instance.
-    await refreshNuxtData(TRACKED_NUTRIENTS_KEY)
+    await invalidateNutrition(NUTRITION_KEYS.tracked, NUTRITION_KEYS.catalog)
     toast.add({ title: 'Tracked nutrients updated', color: 'success' })
-    emit('changed')
   } catch (error: unknown) {
     toast.add({
       title: 'Update failed',

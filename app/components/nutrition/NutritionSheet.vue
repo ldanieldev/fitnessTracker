@@ -12,7 +12,13 @@ const narrow = useIsNarrow()
 </script>
 
 <template>
-  <UDrawer v-if="narrow && !fullscreen" v-model:open="open" :title="title" :description="description">
+  <UDrawer
+    v-if="narrow && !fullscreen"
+    v-model:open="open"
+    :title="title"
+    :description="description"
+    :ui="{ container: 'max-h-[85dvh] overscroll-contain' }"
+  >
     <template #body>
       <slot name="body" />
     </template>

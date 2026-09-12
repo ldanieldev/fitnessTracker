@@ -11,6 +11,7 @@ defineProps<{
   ready: boolean
   containerName: string
   items: TrayItem[]
+  totals: Record<string, number>
 }>()
 
 const emit = defineEmits<{
@@ -27,15 +28,13 @@ const sheetOpen = ref(false)
     class="fixed inset-x-0 bottom-0 z-10 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:static lg:border-0 lg:bg-transparent"
   >
     <div class="max-w-2xl mx-auto w-full flex items-center gap-2">
-      <UButton
-        :label="`${count} selected`"
-        variant="ghost"
-        color="neutral"
-        data-test="tray-count"
-        @click="sheetOpen = true"
-      />
+      <UButton variant="soft" color="neutral" class="flex-col items-start gap-0" data-test="tray-count" @click="sheetOpen = true">
+        <span class="text-sm font-medium">{{ count }} {{ count === 1 ? 'item' : 'items' }} · {{ Math.round(totals.energy ?? 0) }} kcal</span>
+        <NutritionMacroText :nutrients="totals" />
+      </UButton>
       <UButton
         :label="`Add to ${containerName}`"
+        color="primary"
         :disabled="!ready"
         class="ml-auto"
         data-test="add-selected"

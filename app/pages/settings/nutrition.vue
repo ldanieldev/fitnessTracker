@@ -1,12 +1,38 @@
 <script setup lang="ts">
-const { data: containers, refresh: refreshContainers } = useFetch('/api/nutrition/meal-containers?includeArchived=1')
-const { data: profiles, refresh: refreshProfiles } = useFetch('/api/nutrition/goal-profiles')
-const { data: catalog, refresh: refreshCatalog } = useFetch('/api/nutrition/nutrients')
-const { tracked, refresh: refreshTracked } = useTrackedNutrients()
-
-async function onTrackedChanged() {
-  await Promise.all([refreshTracked(), refreshCatalog()])
+interface Container {
+  id: number
+  name: string
+  sortOrder: number
+  isArchived: boolean
 }
+
+interface ProfileTarget {
+  nutrient: string
+  amount: number
+  direction: 'min' | 'max' | 'target'
+  ratioPercent: number | null
+}
+
+interface Profile {
+  id: number
+  name: string
+  inputMode: 'grams' | 'ratio'
+  calories: number | null
+  isDefault: boolean
+  targets: ProfileTarget[]
+}
+
+interface CatalogEntry {
+  key: string
+  name: string
+  unit: string
+  defaultDirection: 'min' | 'max' | 'target'
+}
+
+const { data: containers } = useNutritionFetch<Container[]>(NUTRITION_KEYS.containersAll, '/api/nutrition/meal-containers?includeArchived=1')
+const { data: profiles } = useNutritionFetch<Profile[]>(NUTRITION_KEYS.profiles, '/api/nutrition/goal-profiles')
+const { data: catalog } = useNutritionFetch<CatalogEntry[]>(NUTRITION_KEYS.catalog, '/api/nutrition/nutrients')
+const { tracked } = useTrackedNutrients()
 </script>
 
 <template>
@@ -16,7 +42,7 @@ async function onTrackedChanged() {
       description="Rename, reorder, or archive the containers used to organize your diary."
       variant="subtle"
     >
-      <SettingsNutritionContainers :containers="containers ?? []" @changed="refreshContainers" />
+      <SettingsNutritionContainers :containers="containers ?? []" />
     </UPageCard>
 
     <UPageCard
@@ -24,7 +50,7 @@ async function onTrackedChanged() {
       description="Define nutrient targets and choose which profile applies by default."
       variant="subtle"
     >
-      <SettingsNutritionGoals :profiles="profiles ?? []" :catalog="catalog ?? []" :tracked="tracked ?? []" @changed="refreshProfiles" />
+      <SettingsNutritionGoals :profiles="profiles ?? []" :catalog="catalog ?? []" :tracked="tracked ?? []" />
     </UPageCard>
 
     <UPageCard
@@ -32,7 +58,7 @@ async function onTrackedChanged() {
       description="Choose which nutrients appear on your day view and rolling summary."
       variant="subtle"
     >
-      <SettingsNutritionTracked :catalog="catalog ?? []" :tracked="tracked ?? []" @changed="onTrackedChanged" />
+      <SettingsNutritionTracked :catalog="catalog ?? []" :tracked="tracked ?? []" />
     </UPageCard>
 
     <UPageCard
@@ -40,7 +66,7 @@ async function onTrackedChanged() {
       description="Upload daily export .txt files to bring your logged meals into the diary."
       variant="subtle"
     >
-      <SettingsNutritionImport @imported="refreshContainers" />
+      <SettingsNutritionImport />
     </UPageCard>
   </div>
 </template>

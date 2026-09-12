@@ -45,7 +45,10 @@ function poll(jobId: number) {
         result.value = job.result
         jobError.value = job.error
         uploading.value = false
-        if (job.status === 'done') emit('imported')
+        if (job.status === 'done') {
+          await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll, 'nutrition:day:', 'nutrition:logged:')
+          emit('imported')
+        }
       } else {
         poll(jobId)
       }

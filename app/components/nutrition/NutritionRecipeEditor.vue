@@ -18,7 +18,7 @@ const toast = useToast()
 const router = useRouter()
 
 const name = ref('')
-const servings = ref(1)
+const servings = ref<number | null>(1)
 const servingName = ref('serving')
 const notes = ref('')
 
@@ -50,9 +50,9 @@ onMounted(async () => {
   loaded.value = true
 })
 
-const perServing = computed(() => (servings.value > 0 ? divideKeyed(total.value, servings.value) : null))
+const perServing = computed(() => ((servings.value ?? 0) > 0 ? divideKeyed(total.value, servings.value ?? 1) : null))
 const canSave = computed(() =>
-  name.value.trim().length > 0 && servings.value > 0 && servingName.value.trim().length > 0
+  name.value.trim().length > 0 && (servings.value ?? 0) > 0 && servingName.value.trim().length > 0
   && lines.value.length > 0 && !hasBroken.value && !saving.value
 )
 
@@ -61,7 +61,7 @@ async function save() {
   saving.value = true
   const body = {
     name: name.value.trim(),
-    servings: servings.value,
+    servings: servings.value ?? 1,
     servingName: servingName.value.trim(),
     notes: notes.value.trim() || null,
     ingredients: linesPayload(lines.value)
@@ -70,10 +70,12 @@ async function save() {
     if (props.recipeId === null) {
       const { id } = await $fetch<{ id: number }>('/api/nutrition/recipes', { method: 'POST', body })
       baseline.value = snapshot(lines.value)
+      await invalidateNutrition(NUTRITION_KEYS.recipes)
       await router.replace(`/nutrition/recipes/${id}`)
     } else {
       await $fetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'PUT', body })
       baseline.value = snapshot(lines.value)
+      await invalidateNutrition(NUTRITION_KEYS.recipes)
       toast.add({ title: 'Recipe saved', color: 'success' })
     }
   } catch (error: unknown) {
@@ -87,6 +89,7 @@ async function confirmDelete() {
   try {
     await $fetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'DELETE' })
     baseline.value = snapshot(lines.value)
+    await invalidateNutrition(NUTRITION_KEYS.recipes)
     await navigateTo('/nutrition/recipes')
   } catch (error: unknown) {
     toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete this recipe'), color: 'error' })
@@ -114,13 +117,13 @@ const menu = computed<DropdownMenuItem[][]>(() =>
     </template>
 
     <template #body>
-      <div v-if="loaded" class="flex flex-col gap-4 max-w-2xl mx-auto w-full pb-24">
+      <div v-if="loaded" class="flex flex-col gap-4 max-w-2xl mx-auto w-full pb-28">
         <UFormField label="Name" required>
           <UInput v-model="name" class="w-full" data-test="recipe-name" />
         </UFormField>
         <div class="grid grid-cols-2 gap-3">
           <UFormField label="Servings" required>
-            <UInputNumber v-model="servings" :min="0" :step="0.5" class="w-full" data-test="recipe-servings" />
+            <NutritionNumberInput v-model="servings" :min="0" :step="0.5" class="w-full" data-test="recipe-servings" />
           </UFormField>
           <UFormField label="Serving name" required>
             <UInput v-model="servingName" class="w-full" data-test="recipe-serving-name" />

@@ -35,6 +35,7 @@ async function save() {
     } else {
       await $fetch(`/api/nutrition/foods/${props.foodId}/servings`, { method: 'POST', body })
     }
+    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     emit('saved')
   } catch (err: unknown) {
     error.value = errorMessage(err, 'Could not save this serving')
@@ -52,6 +53,7 @@ async function remove() {
   error.value = null
   try {
     await $fetch(`/api/nutrition/foods/${props.foodId}/servings/${props.serving.id}`, { method: 'DELETE' })
+    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     emit('deleted')
   } catch (err: unknown) {
     error.value = errorMessage(err, 'Could not delete this serving')
@@ -64,6 +66,7 @@ async function remove() {
 <template>
   <UCard data-test="serving-card">
     <NutritionServingFields v-model="draft" :fields="fields" :weight-taken="weightTaken" />
+    <NutritionServingPreview :draft="draft" class="mt-2" />
     <p v-if="error" class="text-sm text-error mt-2" data-test="serving-card-error">{{ error }}</p>
     <template #footer>
       <div class="flex gap-2">

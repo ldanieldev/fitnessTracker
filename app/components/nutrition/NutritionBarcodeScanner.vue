@@ -158,6 +158,7 @@ async function importExternal() {
       method: 'POST',
       body: { source: external.value.source, externalId: external.value.externalId }
     })
+    await invalidateNutrition(NUTRITION_KEYS.foods)
     if (unmounted) return
     const suffix = imported.needsNutrition ? '&needsNutrition=1' : ''
     await navigateTo(`/diary/${props.date}/add?foodId=${imported.id}${suffix}`)

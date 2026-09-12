@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { errorMessage } from '~/utils/apiError'
-import type { DiaryEntry, DiaryTargetRow } from '~/composables/useDiaryDay'
+import type { DiaryEntry } from '~/composables/useDiaryDay'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
 import type { CopyOverride } from '~~/shared/utils/nutritionCopy'
 import type { DayAction } from '~/components/nutrition/NutritionDayHeader.vue'
+import { weekOf } from '~/utils/nutrition/week'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MODE_STORAGE_KEY = 'nutrition.diary.mode'
@@ -17,10 +18,17 @@ if (!DATE_RE.test(rawParam.value)) {
 
 const date = computed(() => (DATE_RE.test(rawParam.value) ? rawParam.value : todayDate()))
 
+const week = computed(() => weekOf(date.value))
+const monday = computed(() => week.value[0]!)
+const sunday = computed(() => week.value[6]!)
+const { data: loggedWeek } = useNutritionFetch<{ dates: string[] }>(
+  () => NUTRITION_KEYS.logged(monday.value),
+  () => `/api/nutrition/diary/logged?from=${monday.value}&to=${sunday.value}`
+)
+
 const toast = useToast()
-const { day, refresh, updateEntry, deleteEntry } = useDiaryDay(date)
-const { tracked } = useTrackedNutrients()
-const { data: profiles } = await useFetch<Array<{ id: number, name: string, isDefault: boolean }>>('/api/nutrition/goal-profiles')
+const { day, profiles, updateEntry, deleteEntry, goalName, targets: targetRows, totals, subtotalNutrients, profilesFetch } = useDaySummary(date)
+await profilesFetch
 
 const mode = ref<'remaining' | 'consumed'>('remaining')
 
@@ -40,29 +48,6 @@ watch(mode, (value) => {
     // best-effort — private browsing or disabled storage should not break the toggle
   }
 })
-
-const goalName = computed(() => {
-  const id = day.value?.goalProfileId
-  if (id == null) {
-    return day.value?.persisted === false ? profiles.value?.find((p) => p.isDefault)?.name ?? null : null
-  }
-  return profiles.value?.find((p) => p.id === id)?.name ?? 'Deleted profile'
-})
-
-const targetRows = computed<DiaryTargetRow[]>(() => {
-  const targets = day.value?.targets ?? []
-  const byKey = new Map(targets.map((t) => [t.key, t]))
-  return (tracked.value ?? []).map((nutrient) => {
-    const target = byKey.get(nutrient.key)
-    return target
-      ? { key: target.key, name: target.name, unit: target.unit, amount: target.amount, direction: target.direction }
-      : { key: nutrient.key, name: nutrient.name, unit: nutrient.unit, amount: null, direction: null }
-  })
-})
-
-const subtotalNutrients = computed(() =>
-  (tracked.value ?? []).map((n) => ({ key: n.key, name: n.name, unit: n.unit }))
-)
 
 const selection = useEntrySelection()
 
@@ -99,6 +84,10 @@ const saveAsOpen = computed({
 function onSaveAs(containerId: number, kind: 'recipe' | 'saved-meal') {
   saveAs.value = { containerId, kind }
 }
+
+const anySheetOpen = computed(() =>
+  copyDialogOpen.value || entrySheetOpen.value || notesOpen.value || goalOpen.value || saveAsOpen.value
+)
 
 function openCopyDialog(entries: DiaryEntry[]) {
   copySourceEntries.value = entries
@@ -148,9 +137,8 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
   }
   copyDialogOpen.value = false
   selection.clear()
-  if (payload.targetDate === date.value) {
-    await refresh()
-  } else {
+  await invalidateNutrition(NUTRITION_KEYS.day(date.value), NUTRITION_KEYS.day(payload.targetDate), 'nutrition:logged:')
+  if (payload.targetDate !== date.value) {
     await navigateTo(`/diary/${payload.targetDate}`)
   }
 }
@@ -160,11 +148,12 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
   <UDashboardPanel id="diary">
     <template #header>
       <NutritionDayHeader :date="date" @navigate="(d) => navigateTo(`/diary/${d}`)" @action="onDayAction" />
+      <NutritionWeekStrip :date="date" :logged="loggedWeek?.dates ?? []" @navigate="(d) => navigateTo(`/diary/${d}`)" />
     </template>
 
     <template #body>
       <div class="flex flex-col gap-4 max-w-3xl mx-auto w-full pb-24">
-        <NutritionDayTargets v-if="day" v-model:mode="mode" :targets="targetRows" :totals="day.totals" :goal-name="goalName" />
+        <NutritionSummaryCard v-if="day" v-model:mode="mode" :targets="targetRows" :totals="totals" :goal-name="goalName" @apply-goal="goalOpen = true" />
 
         <NutritionContainerCard
           v-for="container in day?.containers ?? []"
@@ -193,12 +182,12 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
       </div>
 
       <div v-if="selection.state.active" class="fixed inset-x-0 bottom-0 z-10 flex gap-2 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:static lg:border-0 lg:bg-transparent">
-        <UButton label="Done" variant="ghost" color="neutral" data-test="toggle-select-mode" @click="selection.toggle()" />
+        <UButton label="Done" variant="soft" color="neutral" data-test="toggle-select-mode" @click="selection.toggle()" />
         <UButton label="Copy selected" class="ml-auto" :disabled="selection.state.selected.size === 0" data-test="copy-selected" @click="copySelected" />
       </div>
 
       <UButton
-        v-if="!selection.state.active"
+        v-if="!selection.state.active && !anySheetOpen"
         icon="i-lucide-plus"
         size="xl"
         class="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-10 rounded-full shadow-lg"
@@ -224,14 +213,13 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         @copy="copyEntry"
       />
 
-      <NutritionDayNotesSheet v-model:open="notesOpen" :date="date" :notes="day?.notes ?? null" @saved="refresh" />
+      <NutritionDayNotesSheet v-model:open="notesOpen" :date="date" :notes="day?.notes ?? null" />
 
       <NutritionGoalSheet
         v-model:open="goalOpen"
         :date="date"
         :profiles="profiles ?? []"
         :current-id="day?.goalProfileId ?? null"
-        @applied="refresh"
       />
 
       <NutritionSaveMealSheet
@@ -240,7 +228,6 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         :date="date"
         :container-id="saveAs?.containerId ?? 0"
         :container-name="saveAsContainerName"
-        @saved="() => refresh()"
       />
     </template>
   </UDashboardPanel>
