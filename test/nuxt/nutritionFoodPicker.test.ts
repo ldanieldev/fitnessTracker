@@ -65,6 +65,15 @@ describe('NutritionFoodPicker', () => {
     expect(model[0]!.food.name).toBe('Chicken Breast')
   })
 
+  it('fills the star only for favourited foods', async () => {
+    register()
+    const wrapper = await mountPicker()
+    const icons = wrapper.findAll('[data-test="favorite-icon"]')
+    expect(icons).toHaveLength(2)
+    expect(icons[0]!.classes()).not.toContain('[&_path]:fill-current')
+    expect(icons[1]!.classes()).toContain('[&_path]:fill-current')
+  })
+
   it('keeps one pick when multiple is false', async () => {
     register()
     const wrapper = await mountPicker({ multiple: false })
@@ -82,6 +91,18 @@ describe('NutritionFoodPicker', () => {
     await flushPromises()
     expect(wrapper.findAll('[data-test="food-hit"]')[0]!.text()).toContain('Scanned Bar')
     expect((wrapper.props('modelValue') as PickedFood[]).map((p) => p.foodId)).toEqual([9])
+  })
+
+  it('keeps a picked food visible when a later list response does not contain it', async () => {
+    register()
+    const wrapper = await mountPicker()
+    await (wrapper.vm as unknown as { select: (id: number) => Promise<void> }).select(9)
+    await flushPromises()
+    await (wrapper.vm as unknown as { runSearch: () => Promise<void> }).runSearch()
+    await flushPromises()
+    const names = wrapper.findAll('[data-test="food-hit"]').map((row) => row.text())
+    expect(names[0]).toContain('Scanned Bar')
+    expect(names).toHaveLength(3)
   })
 
   it('shows the degraded hint from search', async () => {
@@ -154,6 +175,12 @@ describe('NutritionFoodPicker', () => {
     resolveFetch?.()
     await vi.waitFor(() => expect(wrapper.find('[data-test="list-skeleton"]').exists()).toBe(false))
     expect(wrapper.text()).toContain('No foods found')
+  })
+
+  it('labels the search input for assistive tech', async () => {
+    register()
+    const wrapper = await mountPicker()
+    expect(wrapper.find('[data-test="food-search-input"]').attributes('aria-label')).toBe('Search foods')
   })
 
   it('preserves quantity and unitLabel when select() is called on an already-picked food', async () => {

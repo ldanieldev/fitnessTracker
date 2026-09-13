@@ -78,12 +78,12 @@ export interface DiaryEntryPatch {
   notes?: string | null
 }
 
-export function useDiaryDay(date: MaybeRefOrGetter<string>) {
+export function useDiaryDay(date: MaybeRefOrGetter<string>, opts: { immediate?: boolean } = {}) {
   const toast = useToast()
   const fetch = useNutritionFetch<DiaryDay>(
     () => NUTRITION_KEYS.day(toValue(date)),
     () => `/api/nutrition/diary/${toValue(date)}`,
-    { watch: [() => toValue(date)] }
+    { watch: [() => toValue(date)], immediate: opts.immediate ?? true }
   )
   const { data: day, refresh, status, error } = fetch
 

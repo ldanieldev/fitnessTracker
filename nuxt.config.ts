@@ -65,7 +65,9 @@ export default defineNuxtConfig({
       apiKey: process.env.NUXT_MEILI_API_KEY ?? ''
     },
     off: {
-      userAgent: process.env.NUXT_OFF_USER_AGENT ?? ''
+      userAgent: process.env.NUXT_OFF_USER_AGENT ?? '',
+      productUrl: process.env.NUXT_OFF_PRODUCT_URL ?? 'https://world.openfoodfacts.org/api/v2/product',
+      searchUrl: process.env.NUXT_OFF_SEARCH_URL ?? 'https://search.openfoodfacts.org/search'
     },
     usda: {
       apiKey: process.env.NUXT_USDA_API_KEY ?? ''

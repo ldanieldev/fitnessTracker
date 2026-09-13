@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { todayDate } from '../../shared/utils/nutritionSummary'
+import { useToday } from '../../app/composables/useToday'
 import DashboardToday from '../../app/components/dashboard/DashboardToday.vue'
 
 describe('DashboardToday', () => {
@@ -12,8 +13,12 @@ describe('DashboardToday', () => {
     }))
     registerEndpoint('/api/nutrition/nutrients/tracked', () => [{ key: 'energy', name: 'Calories', unit: 'kcal', sortOrder: 0 }])
     registerEndpoint('/api/nutrition/goal-profiles', () => [{ id: 1, name: 'cut1', isDefault: true, inputMode: 'grams', calories: null, targets: [] }])
+    // Production ordering: the component mounts while today is still null and the client plugin resolves it afterwards.
+    const today = useToday()
+    today.value = null
     const wrapper = await mountSuspended(DashboardToday)
-    await new Promise((r) => setTimeout(r, 0))
+    today.value = todayDate()
+    await new Promise((r) => setTimeout(r, 20))
     expect(wrapper.find('[data-test="energy-value"]').text()).toBe('437')
     expect(wrapper.find('a[data-test="dashboard-today"]').attributes('href')).toBe('/diary/today')
   })

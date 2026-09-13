@@ -3,8 +3,8 @@ import { evaluateTarget } from '~~/shared/utils/nutritionTargets'
 import type { DiaryTargetRow } from '~/composables/useDiaryDay'
 
 // Non-blocking: no internal await, so callers (e.g. the shared layout) don't stall SSR/hydration on nutrition data. Callers that need the data settled can await the returned `*Fetch` handles themselves.
-export function useDaySummary(date: MaybeRefOrGetter<string>) {
-  const { day, updateEntry, deleteEntry, fetch: dayFetch } = useDiaryDay(date)
+export function useDaySummary(date: MaybeRefOrGetter<string>, opts: { immediate?: boolean } = {}) {
+  const { day, updateEntry, deleteEntry, fetch: dayFetch } = useDiaryDay(date, opts)
   const { tracked, fetch: trackedFetch } = useTrackedNutrients()
   const profilesFetch = useNutritionFetch<Array<{ id: number, name: string, isDefault: boolean }>>(NUTRITION_KEYS.profiles, '/api/nutrition/goal-profiles')
   const profiles = profilesFetch.data

@@ -31,7 +31,7 @@ const selectedById = computed(() => new Map(props.selected.map((r) => [r.recipeI
 
 <template>
   <div class="flex flex-col gap-3">
-    <UInput v-model="query" icon="i-lucide-search" placeholder="Search recipes" class="w-full" data-test="recipe-search" />
+    <UInput v-model="query" icon="i-lucide-search" placeholder="Search recipes" aria-label="Search recipes" class="w-full" data-test="recipe-search" />
     <div class="flex flex-col gap-2">
       <NutritionResultRow
         v-for="row in filtered"
@@ -57,6 +57,7 @@ const selectedById = computed(() => new Map(props.selected.map((r) => [r.recipeI
             :min="0"
             :step="0.5"
             class="w-28"
+            aria-label="Servings"
             data-test="recipe-choice-servings"
             @update:model-value="(value) => emit('servings', row.id, value ?? 0)"
           />

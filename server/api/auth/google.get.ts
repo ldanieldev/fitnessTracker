@@ -33,7 +33,8 @@ const googleHandler = defineOAuthGoogleEventHandler({
           name: user.name,
           avatar_url: user.avatarUrl,
           age: user.age,
-          sex: user.sex
+          sex: user.sex,
+          weekStart: user.weekStart as 0 | 1
         }
       })
 

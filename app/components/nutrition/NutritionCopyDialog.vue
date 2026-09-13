@@ -116,6 +116,7 @@ function confirm() {
               :model-value="quantities.get(entry.id) ?? entry.quantity"
               :min="0"
               class="w-20"
+              aria-label="Quantity"
               data-test="copy-source-quantity"
               @update:model-value="(value) => quantities.set(entry.id, value ?? 0)"
             />

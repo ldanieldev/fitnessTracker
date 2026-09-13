@@ -5,7 +5,6 @@ import type { IngredientSnapshotItem } from '~~/shared/utils/nutritionRecipe'
 const props = defineProps<{ entry: DiaryEntry, selectable?: boolean, selected?: boolean }>()
 const emit = defineEmits<{ open: [], 'toggle-select': [] }>()
 
-const expanded = ref(false)
 const ingredients = computed<IngredientSnapshotItem[]>(() =>
   props.entry.entryType === 'recipe' && Array.isArray(props.entry.ingredientSnapshot) ? props.entry.ingredientSnapshot as IngredientSnapshotItem[] : []
 )
@@ -26,21 +25,10 @@ const ingredients = computed<IngredientSnapshotItem[]>(() =>
     @open="emit('open')"
     @toggle="emit('toggle-select')"
   >
-    <template #actions>
-      <UButton
-        v-if="entry.entryType === 'recipe'"
-        :icon="expanded ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-        variant="ghost"
-        color="neutral"
-        size="xs"
-        aria-label="Show ingredients"
-        @click.stop="expanded = !expanded"
-      />
-    </template>
-    <template v-if="expanded" #default>
-      <div class="flex flex-col gap-1 text-xs text-dimmed">
-        <div v-for="(ingredient, index) in ingredients" :key="index">{{ ingredient.name }} — {{ ingredient.quantity }} {{ ingredient.unitLabel }}</div>
-      </div>
+    <template v-if="entry.entryType === 'recipe'" #default>
+      <ul class="ps-6 text-xs text-dimmed" data-test="entry-ingredients">
+        <li v-for="(ingredient, index) in ingredients" :key="index">{{ ingredient.name }} · {{ ingredient.quantity }} {{ ingredient.unitLabel }}</li>
+      </ul>
     </template>
   </NutritionResultRow>
 </template>

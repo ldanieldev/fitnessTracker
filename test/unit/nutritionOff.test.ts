@@ -52,6 +52,19 @@ describe('offHitsToExternal', () => {
   })
 })
 
+const PRODUCT_URL = 'https://world.openfoodfacts.org/api/v2/product'
+const SEARCH_URL = 'https://search.openfoodfacts.org/search'
+
+function stubOffConfig(overrides: Partial<{ productUrl: string, searchUrl: string }> = {}) {
+  vi.stubGlobal('useRuntimeConfig', () => ({
+    off: { userAgent: 'Test/1.0 (a@b.com)', productUrl: PRODUCT_URL, searchUrl: SEARCH_URL, ...overrides }
+  }))
+}
+
+function fetchError(status: number | undefined, cause?: Error) {
+  return Object.assign(new Error(`HTTP ${status}`), { name: 'FetchError', status, cause })
+}
+
 describe('offByBarcode', () => {
   it('throws unconfigured when the user agent is empty', async () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: '' } }))
@@ -62,9 +75,9 @@ describe('offByBarcode', () => {
   })
 
   it('sends the configured User-Agent and returns the mapped product', async () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: 'Test/1.0 (a@b.com)' } }))
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(offProduct), { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+    stubOffConfig()
+    const fetchMock = vi.fn().mockResolvedValue(offProduct)
+    vi.stubGlobal('$fetch', fetchMock)
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     const food = await offByBarcode('3017624010701')
     expect(food!.name).toBe('Nutella')
@@ -72,40 +85,48 @@ describe('offByBarcode', () => {
     expect((init.headers as Record<string, string>)['User-Agent']).toBe('Test/1.0 (a@b.com)')
   })
 
+  it('builds its request URL from the configured productUrl', async () => {
+    stubOffConfig({ productUrl: '/api/nutrition/_test/off/product' })
+    const fetchMock = vi.fn().mockResolvedValue(offProduct)
+    vi.stubGlobal('$fetch', fetchMock)
+    const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
+    await offByBarcode('3017624010701')
+    const [url] = fetchMock.mock.calls[0]!
+    expect(url).toBe('/api/nutrition/_test/off/product/3017624010701.json?fields=code,product_name,brands,serving_size,nutriments')
+  })
+
   it('returns null when OFF reports status 0 (not found)', async () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: 'Test/1.0 (a@b.com)' } }))
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 0, status_verbose: 'product not found' }), { status: 200 }))
-    )
+    stubOffConfig()
+    vi.stubGlobal('$fetch', vi.fn().mockResolvedValue({ status: 0, status_verbose: 'product not found' }))
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     expect(await offByBarcode('0')).toBeNull()
   })
 
   it('returns null on an HTTP 404', async () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: 'Test/1.0 (a@b.com)' } }))
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('not found', { status: 404 })))
+    stubOffConfig()
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(fetchError(404)))
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     expect(await offByBarcode('0')).toBeNull()
   })
 
   it('maps HTTP 429 to a rate_limited ExternalSourceError', async () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: 'Test/1.0 (a@b.com)' } }))
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('too many requests', { status: 429 })))
+    stubOffConfig()
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(fetchError(429)))
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     await expect(offByBarcode('0')).rejects.toMatchObject({ name: 'ExternalSourceError', kind: 'rate_limited' })
   })
 
   it('maps a network failure to an unavailable ExternalSourceError', async () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: 'Test/1.0 (a@b.com)' } }))
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
+    stubOffConfig()
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(fetchError(undefined, new Error('network down'))))
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     await expect(offByBarcode('0')).rejects.toMatchObject({ name: 'ExternalSourceError', kind: 'unavailable' })
   })
 
   it('maps an aborted request to an unavailable ExternalSourceError', async () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: 'Test/1.0 (a@b.com)' } }))
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' })))
+    stubOffConfig()
+    const abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' })
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(fetchError(undefined, abortErr)))
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     await expect(offByBarcode('0')).rejects.toMatchObject({ name: 'ExternalSourceError', kind: 'unavailable' })
   })
@@ -113,9 +134,9 @@ describe('offByBarcode', () => {
 
 describe('offSearch', () => {
   it('sends the configured User-Agent and returns mapped foods for a search query', async () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: 'Test/1.0 (a@b.com)' } }))
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(offSearchNutella), { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+    stubOffConfig()
+    const fetchMock = vi.fn().mockResolvedValue(offSearchNutella)
+    vi.stubGlobal('$fetch', fetchMock)
     const { offSearch } = await import('../../server/utils/nutrition/external/off')
     const foods = await offSearch('nutella', 3)
     expect(foods).toHaveLength(3)

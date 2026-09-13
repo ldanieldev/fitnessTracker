@@ -5,6 +5,8 @@ import { formatRange } from '~/utils/dateRange'
 
 const selected = defineModel<Range>({ required: true })
 const props = withDefaults(defineProps<{ months?: number }>(), { months: 2 })
+const { user } = useUserSession()
+const weekStart = computed(() => user.value?.weekStart ?? 1)
 
 const ranges = [
   { label: 'Last 7 days', days: 7 },
@@ -110,7 +112,7 @@ const selectRange = (range: { days?: number; months?: number; years?: number }) 
           />
         </div>
 
-        <UCalendar v-model="calendarRange" class="p-2" :number-of-months="props.months" range />
+        <UCalendar v-model="calendarRange" class="p-2" :number-of-months="props.months" :week-starts-on="weekStart" range />
       </div>
     </template>
   </UPopover>

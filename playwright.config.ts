@@ -5,6 +5,10 @@ import type { ConfigOptions } from '@nuxt/test-utils/playwright'
 
 // test-only fixture routes are gated on this; the Nitro server test-utils boots inherits it
 process.env.NUXT_TEST_FIXTURES ??= '1'
+// OFF-dependent specs must be hermetic: point at the test-only stub routes, never the real API, even if .env sets a real one
+process.env.NUXT_OFF_USER_AGENT ??= 'my-fitness-journal-e2e/1.0'
+process.env.NUXT_OFF_PRODUCT_URL = '/api/nutrition/_test/off/product'
+process.env.NUXT_OFF_SEARCH_URL = '/api/nutrition/_test/off/search'
 
 export default defineConfig<ConfigOptions>({
   testDir: './test/e2e',

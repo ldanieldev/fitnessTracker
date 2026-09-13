@@ -1,0 +1,2 @@
+ALTER TABLE "app"."users" ADD COLUMN "week_start" smallint DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "app"."users" ADD CONSTRAINT "users_week_start_check" CHECK ("app"."users"."week_start" in (0, 1));

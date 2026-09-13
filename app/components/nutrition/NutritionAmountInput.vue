@@ -57,7 +57,7 @@ const preview = computed<Partial<Record<PreviewKey, number>> | null>(() => {
 <template>
   <div class="flex flex-col gap-2">
     <div class="grid grid-cols-2 gap-2 w-full">
-      <NutritionNumberInput v-model="quantity" :min="0" :disabled="disabled" class="w-full" :data-test="quantityTest" />
+      <NutritionNumberInput v-model="quantity" :min="0" :disabled="disabled" class="w-full" aria-label="Amount" :data-test="quantityTest" />
       <USelect v-model="unitLabel" :items="units" :disabled="disabled" class="w-full" :data-test="unitTest" />
     </div>
     <NutritionMacroText v-if="preview" :nutrients="preview" with-energy size="xs" data-test="amount-preview" />

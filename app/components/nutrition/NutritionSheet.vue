@@ -12,7 +12,7 @@ const narrow = useIsNarrow()
 </script>
 
 <template>
-  <UDrawer
+  <LazyUDrawer
     v-if="narrow && !fullscreen"
     v-model:open="open"
     :title="title"
@@ -25,7 +25,7 @@ const narrow = useIsNarrow()
     <template v-if="$slots.footer" #footer>
       <slot name="footer" />
     </template>
-  </UDrawer>
+  </LazyUDrawer>
   <UModal v-else v-model:open="open" :title="title" :description="description" :fullscreen="Boolean(fullscreen) && narrow">
     <template #body>
       <slot name="body" />

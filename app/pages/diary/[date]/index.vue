@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { errorMessage } from '~/utils/apiError'
 import type { DiaryEntry } from '~/composables/useDiaryDay'
-import { todayDate } from '~~/shared/utils/nutritionSummary'
 import type { CopyOverride } from '~~/shared/utils/nutritionCopy'
 import type { DayAction } from '~/components/nutrition/NutritionDayHeader.vue'
 import { weekOf } from '~/utils/nutrition/week'
@@ -13,17 +12,20 @@ const route = useRoute()
 const rawParam = computed(() => String(route.params.date))
 
 if (!DATE_RE.test(rawParam.value)) {
-  await navigateTo(`/diary/${todayDate()}`, { replace: true })
+  await navigateTo('/diary/today', { replace: true })
 }
 
-const date = computed(() => (DATE_RE.test(rawParam.value) ? rawParam.value : todayDate()))
+// The redirect above aborts rendering for an invalid param, so this never needs a `todayDate()` fallback that would run during SSR.
+const date = computed(() => rawParam.value)
 
-const week = computed(() => weekOf(date.value))
-const monday = computed(() => week.value[0]!)
-const sunday = computed(() => week.value[6]!)
+const { user } = useUserSession()
+const weekStart = computed<0 | 1>(() => user.value?.weekStart ?? 1)
+const week = computed(() => weekOf(date.value, weekStart.value))
+const weekStartDate = computed(() => week.value[0]!)
+const weekEndDate = computed(() => week.value[6]!)
 const { data: loggedWeek } = useNutritionFetch<{ dates: string[] }>(
-  () => NUTRITION_KEYS.logged(monday.value),
-  () => `/api/nutrition/diary/logged?from=${monday.value}&to=${sunday.value}`
+  () => NUTRITION_KEYS.logged(weekStartDate.value),
+  () => `/api/nutrition/diary/logged?from=${weekStartDate.value}&to=${weekEndDate.value}`
 )
 
 const toast = useToast()
@@ -148,7 +150,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
   <UDashboardPanel id="diary">
     <template #header>
       <NutritionDayHeader :date="date" @navigate="(d) => navigateTo(`/diary/${d}`)" @action="onDayAction" />
-      <NutritionWeekStrip :date="date" :logged="loggedWeek?.dates ?? []" @navigate="(d) => navigateTo(`/diary/${d}`)" />
+      <NutritionWeekStrip :date="date" :logged="loggedWeek?.dates ?? []" :week-start="weekStart" @navigate="(d) => navigateTo(`/diary/${d}`)" />
     </template>
 
     <template #body>
@@ -197,7 +199,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         data-test="fab-add"
       />
 
-      <NutritionCopyDialog
+      <LazyNutritionCopyDialog
         v-model:open="copyDialogOpen"
         :source-entries="copySourceEntries"
         :containers="copyContainers"
@@ -205,7 +207,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         @confirm="onCopyConfirm"
       />
 
-      <NutritionEntrySheet
+      <LazyNutritionEntrySheet
         v-model:open="entrySheetOpen"
         :entry="editingEntry"
         :containers="copyContainers"
@@ -214,16 +216,16 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         @copy="copyEntry"
       />
 
-      <NutritionDayNotesSheet v-model:open="notesOpen" :date="date" :notes="day?.notes ?? null" />
+      <LazyNutritionDayNotesSheet v-model:open="notesOpen" :date="date" :notes="day?.notes ?? null" />
 
-      <NutritionGoalSheet
+      <LazyNutritionGoalSheet
         v-model:open="goalOpen"
         :date="date"
         :profiles="profiles ?? []"
         :current-id="day?.goalProfileId ?? null"
       />
 
-      <NutritionSaveMealSheet
+      <LazyNutritionSaveMealSheet
         v-model:open="saveAsOpen"
         :kind="saveAs?.kind ?? 'recipe'"
         :date="date"

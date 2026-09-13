@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { weekOf, shiftWeek } from '~/utils/nutrition/week'
-import { todayDate } from '~~/shared/utils/nutritionSummary'
 
-const props = defineProps<{ date: string, logged: string[] }>()
+const props = defineProps<{ date: string, logged: string[], weekStart: 0 | 1 }>()
 const emit = defineEmits<{ navigate: [date: string] }>()
 
-const days = computed(() => weekOf(props.date))
+const today = useToday()
+const days = computed(() => weekOf(props.date, props.weekStart))
 const loggedSet = computed(() => new Set(props.logged))
 const DOW = new Intl.DateTimeFormat('en-US', { weekday: 'short' })
 const dayLabel = (d: string) => DOW.format(new Date(`${d}T00:00:00`))
@@ -44,7 +44,7 @@ function onPointerUp(e: PointerEvent) {
         <span>{{ dayLabel(d) }}</span>
         <span class="text-[15px] font-semibold" :class="d === date ? 'text-white' : 'text-highlighted'">{{ dayNumber(d) }}</span>
         <span class="mt-0.5 size-1 rounded-full" :class="loggedSet.has(d) ? 'bg-protein' : 'bg-transparent'" :data-test="loggedSet.has(d) ? 'logged-dot' : undefined" />
-        <span v-if="d === todayDate()" class="sr-only">today</span>
+        <span v-if="d === today" class="sr-only">today</span>
       </button>
     </div>
     <UButton icon="i-lucide-chevron-right" variant="ghost" color="neutral" size="xs" class="hidden sm:inline-flex" aria-label="Next week" data-test="week-next" @click="move(1)" />

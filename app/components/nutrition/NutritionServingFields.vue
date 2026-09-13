@@ -43,6 +43,7 @@ function setNutrient(key: string, value: string) {
         v-else
         :model-value="draft.label"
         placeholder="e.g. slice"
+        aria-label="Serving label"
         class="w-full"
         data-test="serving-label"
         @update:model-value="(value) => patch({ label: String(value) })"

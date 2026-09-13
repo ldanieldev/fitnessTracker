@@ -1,11 +1,10 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { makeUser, registerViaApi } from './helpers'
 
-const NUTELLA_BARCODE = '3017624010701'
+// Distinct from the real Nutella barcode (3017624010701) already in the dev DB, so this always hits the stub route, not that local row.
+const STUB_BARCODE = '4017624010700'
 
 test('shows the viewfinder or a permission notice, and the manual path lands on the new-food page prefilled', async ({ page, goto }) => {
-  test.skip(!process.env.NUXT_OFF_USER_AGENT, 'OFF not configured')
-
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -23,10 +22,7 @@ test('shows the viewfinder or a permission notice, and the manual path lands on 
   await expect(page.locator('[data-test="food-barcode"]')).toHaveValue('0000000000000')
 })
 
-// Nutella was already imported into the dev DB by earlier runs, so the lookup may return `local` immediately; both paths are accepted.
 test.describe('barcode scan of a known OFF product', () => {
-  test.skip(!process.env.NUXT_OFF_USER_AGENT, 'OFF not configured')
-
   test('resolves to the add page with the food checked', async ({ page, goto }) => {
     await goto('/', { waitUntil: 'hydration' })
     await registerViaApi(page, makeUser())
@@ -34,7 +30,7 @@ test.describe('barcode scan of a known OFF product', () => {
     const today = new Date().toISOString().slice(0, 10)
     await goto(`/diary/${today}/scan`, { waitUntil: 'hydration' })
 
-    await page.locator('[data-test="scan-manual-input"]').fill(NUTELLA_BARCODE)
+    await page.locator('[data-test="scan-manual-input"]').fill(STUB_BARCODE)
     await page.locator('[data-test="scan-manual-submit"]').click()
 
     const addUrlPattern = new RegExp(`/diary/${today}/add\\?foodId=\\d+$`)
@@ -54,5 +50,6 @@ test.describe('barcode scan of a known OFF product', () => {
     // The dev DB accumulates catalogue foods across runs, so the checked row isn't necessarily first — find it by its amount input.
     const checkedRow = page.locator('[data-test="food-hit"]').filter({ has: page.locator('input[inputmode="decimal"]') })
     await expect(checkedRow).toBeVisible()
+    await expect(checkedRow).toContainText('Stub Nutella')
   })
 })

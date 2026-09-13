@@ -38,7 +38,7 @@ const activeTab = ref<AddTab>('recent')
 const tabItems = [
   { label: 'Recent', value: 'recent', test: 'local-tab' },
   { label: '★', value: 'favorites', test: 'favorites-tab' },
-  { label: 'Mine', value: 'mine', test: 'my-foods-tab' },
+  { label: 'My foods', value: 'mine', test: 'my-foods-tab' },
   { label: 'Recipes', value: 'recipes', test: 'recipes-tab' },
   { label: 'Meals', value: 'meals', test: 'meals-tab' },
   { label: 'Online', value: 'online', test: 'online-tab' }
@@ -182,7 +182,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
 
       <NutritionSheet v-model:open="quickAddOpen" title="Quick add">
         <template #body>
-          <NutritionQuickAddForm :containers="containers ?? []" @submit="onQuickAdd" />
+          <LazyNutritionQuickAddForm :containers="containers ?? []" @submit="onQuickAdd" />
         </template>
       </NutritionSheet>
     </template>

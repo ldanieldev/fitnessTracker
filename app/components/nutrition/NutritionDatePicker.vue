@@ -7,6 +7,8 @@ const props = defineProps<{ date: string }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ pick: [date: string] }>()
 const narrow = useIsNarrow()
+const { user } = useUserSession()
+const weekStart = computed(() => user.value?.weekStart ?? 1)
 
 const model = computed({
   get: () => {
@@ -24,7 +26,7 @@ const model = computed({
 
 function today() {
   open.value = false
-  emit('pick', todayDate())
+  emit('pick', useToday().value ?? todayDate())
 }
 </script>
 
@@ -32,7 +34,7 @@ function today() {
   <NutritionSheet v-if="narrow" v-model:open="open" title="Go to date">
     <template #body>
       <div class="flex flex-col items-center gap-3">
-        <UCalendar v-model="model" data-test="day-calendar" />
+        <UCalendar v-model="model" :week-starts-on="weekStart" data-test="day-calendar" />
         <UButton label="Today" variant="soft" block data-test="day-picker-today" @click="today" />
       </div>
     </template>
@@ -41,7 +43,7 @@ function today() {
     <slot />
     <template #content>
       <div class="flex flex-col gap-2 p-2">
-        <UCalendar v-model="model" data-test="day-calendar" />
+        <UCalendar v-model="model" :week-starts-on="weekStart" data-test="day-calendar" />
         <UButton label="Today" variant="soft" block data-test="day-picker-today" @click="today" />
       </div>
     </template>

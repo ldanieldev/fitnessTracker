@@ -2,7 +2,7 @@
 import { format } from 'date-fns'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Range } from '~/types'
-import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
+import { shiftDate } from '~~/shared/utils/nutritionSummary'
 
 interface SummaryNutrient {
   key: string
@@ -26,17 +26,26 @@ interface SummaryResponse {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const route = useRoute()
 
-const rangeEnd = todayDate()
-const rangeStart = shiftDate(rangeEnd, -13)
+const rangeEnd = computed(() => useToday().value)
 
 function queryDate(value: unknown, fallback: string) {
   return typeof value === 'string' && DATE_RE.test(value) ? value : fallback
 }
 
-const range = ref<Range>({
-  start: new Date(`${queryDate(route.query.from, rangeStart)}T00:00:00`),
-  end: new Date(`${queryDate(route.query.to, rangeEnd)}T00:00:00`)
+// `from`/`to` fall back independently to the last-14-days-ending-today default, so a range isn't buildable until today resolves unless the query already supplies both.
+function buildRange(end: string | null): Range | null {
+  const from = queryDate(route.query.from, end ? shiftDate(end, -13) : '')
+  const to = queryDate(route.query.to, end ?? '')
+  return from && to ? { start: new Date(`${from}T00:00:00`), end: new Date(`${to}T00:00:00`) } : null
+}
+
+const range = ref<Range | null>(buildRange(rangeEnd.value))
+
+watch(rangeEnd, (end) => {
+  if (range.value) return
+  range.value = buildRange(end)
 })
+
 const windowSize = ref(7)
 
 const windowItems = [
@@ -45,13 +54,13 @@ const windowItems = [
   { label: '14-day', value: 14 }
 ]
 
-const from = computed(() => format(range.value.start, 'yyyy-MM-dd'))
-const to = computed(() => format(range.value.end, 'yyyy-MM-dd'))
+const from = computed(() => (range.value ? format(range.value.start, 'yyyy-MM-dd') : null))
+const to = computed(() => (range.value ? format(range.value.end, 'yyyy-MM-dd') : null))
 
 const { data: summary, status: summaryStatus } = useNutritionFetch<SummaryResponse>(
-  () => NUTRITION_KEYS.summary(from.value, to.value, windowSize.value),
+  () => NUTRITION_KEYS.summary(from.value ?? 'pending', to.value ?? 'pending', windowSize.value),
   () => `/api/nutrition/diary/summary?from=${from.value}&to=${to.value}&window=${windowSize.value}`,
-  { watch: [from, to, windowSize] }
+  { watch: [from, to, windowSize], immediate: range.value !== null }
 )
 
 const { tracked } = useTrackedNutrients()
@@ -105,7 +114,7 @@ const menu = computed<DropdownMenuItem[][]>(() => [
         </template>
 
         <template #right>
-          <DashboardDateRangePicker v-model="range" :months="narrow ? 1 : 2" />
+          <DashboardDateRangePicker v-if="range" v-model="range" :months="narrow ? 1 : 2" />
           <UDropdownMenu :items="menu">
             <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" aria-label="Summary actions" data-test="summary-menu" />
           </UDropdownMenu>
@@ -114,7 +123,7 @@ const menu = computed<DropdownMenuItem[][]>(() => [
     </template>
 
     <template #body>
-      <NutritionListSkeleton v-if="summaryStatus === 'pending' && !summary" :rows="5" />
+      <NutritionListSkeleton v-if="!range || (summaryStatus === 'pending' && !summary)" :rows="5" />
       <div v-else-if="narrow" class="flex flex-col gap-2">
         <div v-for="day in summary?.days ?? []" :key="day.date" :data-test="`summary-row-${day.date}`">
           <UCard data-test="summary-card">

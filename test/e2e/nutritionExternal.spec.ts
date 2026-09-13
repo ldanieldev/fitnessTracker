@@ -1,7 +1,8 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
 
-const NUTELLA_BARCODE = '3017624010701'
+// Distinct from the real Nutella barcode (3017624010701) already in the dev DB, so the OFF import lookup always resolves via the stub.
+const STUB_BARCODE = '4017624010700'
 
 test.describe('external food search, barcode lookup and import', () => {
   test.skip(!process.env.NUXT_OFF_USER_AGENT, 'OFF not configured')
@@ -14,7 +15,7 @@ test.describe('external food search, barcode lookup and import', () => {
     const found = await apiFetch<{ found: string, foodId?: number, external?: { source: string, externalId: string } }>(
       page,
       'GET',
-      `/api/nutrition/foods/barcode/${NUTELLA_BARCODE}`
+      `/api/nutrition/foods/barcode/${STUB_BARCODE}`
     )
     expect(found.status).toBe(200)
     expect(['off', 'local']).toContain(found.json.found)
@@ -25,7 +26,7 @@ test.describe('external food search, barcode lookup and import', () => {
       page,
       'POST',
       '/api/nutrition/foods/import',
-      { source: 'off', externalId: NUTELLA_BARCODE }
+      { source: 'off', externalId: STUB_BARCODE }
     )
     expect(imported.status).toBe(200)
     expect(imported.json.needsNutrition).toBe(false)
@@ -45,7 +46,7 @@ test.describe('external food search, barcode lookup and import', () => {
       page,
       'POST',
       '/api/nutrition/foods/import',
-      { source: 'off', externalId: NUTELLA_BARCODE }
+      { source: 'off', externalId: STUB_BARCODE }
     )
     expect(reimported.status).toBe(200)
     expect(reimported.json.id).toBe(id)
@@ -53,7 +54,7 @@ test.describe('external food search, barcode lookup and import', () => {
     const localAfterImport = await apiFetch<{ found: string, foodId: number }>(
       page,
       'GET',
-      `/api/nutrition/foods/barcode/${NUTELLA_BARCODE}`
+      `/api/nutrition/foods/barcode/${STUB_BARCODE}`
     )
     expect(localAfterImport.json.found).toBe('local')
     expect(localAfterImport.json.foodId).toBe(id)

@@ -1,11 +1,8 @@
 import type { NutrientKey } from '~~/shared/types/nutrition'
-import { fetchJson, HttpStatusError } from './http'
 import { parseServingGrams } from './mapExternalFood'
 import type { ExternalFood } from './types'
 import { ExternalSourceError } from './types'
 
-const PRODUCT_URL = 'https://world.openfoodfacts.org/api/v2/product'
-const SEARCH_URL = 'https://search.openfoodfacts.org/search'
 const PRODUCT_FIELDS = 'code,product_name,brands,serving_size,nutriments'
 const SEARCH_FIELDS = 'code,product_name,brands,nutriments,serving_size'
 const ATTRIBUTION = 'Open Food Facts — ODbL'
@@ -82,39 +79,63 @@ function requireUserAgent(): string {
   return userAgent
 }
 
+interface OfetchError extends Error {
+  status?: number
+  cause?: unknown
+}
+
+function isOfetchError(err: unknown): err is OfetchError {
+  return err instanceof Error && err.name === 'FetchError'
+}
+
+function isAbort(err: OfetchError): boolean {
+  return err.cause instanceof Error && err.cause.name === 'AbortError'
+}
+
 function mapOffError(err: unknown): ExternalSourceError {
   if (err instanceof ExternalSourceError) return err
-  if (err instanceof HttpStatusError) {
+  if (isOfetchError(err)) {
+    if (isAbort(err)) return new ExternalSourceError('off', 'unavailable', 'Open Food Facts request timed out')
     if (err.status === 429) return new ExternalSourceError('off', 'rate_limited', 'Open Food Facts rate limit exceeded')
     return new ExternalSourceError('off', 'unavailable', `Open Food Facts request failed with HTTP ${err.status}`)
-  }
-  if (err instanceof Error && err.name === 'AbortError') {
-    return new ExternalSourceError('off', 'unavailable', 'Open Food Facts request timed out')
   }
   return new ExternalSourceError('off', 'unavailable', 'Open Food Facts request failed')
 }
 
+// $fetch (not global fetch) so a relative NUXT_OFF_PRODUCT_URL/SEARCH_URL (e2e stub) resolves via Nitro's internal dispatch, no network hop.
+async function fetchOff<T>(url: string, userAgent: string): Promise<T> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 5000)
+  try {
+    return await $fetch<T>(url, { headers: { 'User-Agent': userAgent }, signal: controller.signal, retry: 0 })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export async function offByBarcode(code: string): Promise<ExternalFood | null> {
   const userAgent = requireUserAgent()
+  const { productUrl } = useRuntimeConfig().off
   try {
-    const json = await fetchJson<{ status: number, product?: OffProduct }>(
-      `${PRODUCT_URL}/${encodeURIComponent(code)}.json?fields=${PRODUCT_FIELDS}`,
-      { headers: { 'User-Agent': userAgent } }
+    const json = await fetchOff<{ status: number, product?: OffProduct }>(
+      `${productUrl}/${encodeURIComponent(code)}.json?fields=${PRODUCT_FIELDS}`,
+      userAgent
     )
     if (json.status === 0 || !json.product) return null
     return offProductToExternal(json.product)
   } catch (err) {
-    if (err instanceof HttpStatusError && err.status === 404) return null
+    if (isOfetchError(err) && err.status === 404) return null
     throw mapOffError(err)
   }
 }
 
 export async function offSearch(q: string, limit: number): Promise<ExternalFood[]> {
   const userAgent = requireUserAgent()
+  const { searchUrl } = useRuntimeConfig().off
   try {
-    const json = await fetchJson<{ hits: OffProduct[] }>(
-      `${SEARCH_URL}?q=${encodeURIComponent(q)}&page_size=${limit}&fields=${SEARCH_FIELDS}`,
-      { headers: { 'User-Agent': userAgent } }
+    const json = await fetchOff<{ hits: OffProduct[] }>(
+      `${searchUrl}?q=${encodeURIComponent(q)}&page_size=${limit}&fields=${SEARCH_FIELDS}`,
+      userAgent
     )
     return offHitsToExternal(json.hits)
   } catch (err) {

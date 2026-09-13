@@ -55,6 +55,10 @@ function mineHit(row: MineRow): FoodHit {
   }
 }
 
+function pickedHit(p: PickedFood): FoodHit {
+  return { id: p.foodId, name: p.name, brand: p.brand, isFavorite: false, logCount: 0, energyDensity: null, perDefault: null }
+}
+
 function hitNutrients(hit: FoodHit): Record<string, number | null | undefined> | null {
   if (!hit.perDefault) return null
   const { energy, protein, carbohydrate, fat } = hit.perDefault
@@ -88,7 +92,9 @@ async function runSearch() {
       : trimmed ? await fetchSearch(trimmed) : await fetchRecent(props.source === 'favorites')
     // drop stale responses: a slower recents/search fetch can resolve after a newer one and clobber its hits
     if (seq !== requestSeq) return
-    hits.value = result.hits
+    // a picked food must stay on screen even when the fresh list (recents cap, search miss) does not contain it
+    const missing = picked.value.filter((p) => !result.hits.some((hit) => hit.id === p.foodId)).map(pickedHit)
+    hits.value = [...missing, ...result.hits]
     degraded.value = result.degraded
   } catch (error: unknown) {
     toast.add({ title: 'Search failed', description: errorMessage(error, 'Could not load foods'), color: 'error' })
@@ -159,7 +165,7 @@ async function select(id: number) {
   await toggle(id, true)
 }
 
-defineExpose({ select, pending })
+defineExpose({ select, pending, runSearch })
 
 async function toggleFavorite(hit: FoodHit) {
   try {
@@ -177,7 +183,7 @@ function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
 
 <template>
   <div class="flex flex-col gap-3">
-    <UInput v-model="query" placeholder="Search foods" icon="i-lucide-search" class="w-full" data-test="food-search-input">
+    <UInput v-model="query" placeholder="Search foods" aria-label="Search foods" icon="i-lucide-search" class="w-full" data-test="food-search-input">
       <template v-if="scanTo" #trailing>
         <UButton icon="i-lucide-scan-barcode" variant="ghost" size="xs" :to="scanTo" data-test="scan-button" />
       </template>
@@ -214,13 +220,17 @@ function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
       >
         <template #actions>
           <UButton
-            :icon="hit.isFavorite ? 'i-lucide-star' : 'i-lucide-star-off'"
             variant="ghost"
             color="warning"
             size="sm"
+            square
             :aria-label="hit.isFavorite ? 'Unfavorite' : 'Favorite'"
+            data-test="favorite-toggle"
             @click.stop="toggleFavorite(hit)"
-          />
+          >
+            <!-- lucide paths carry fill="none" as an attribute, so the fill must target the path itself -->
+            <UIcon name="i-lucide-star" mode="svg" class="size-5" :class="hit.isFavorite ? '[&_path]:fill-current' : ''" data-test="favorite-icon" />
+          </UButton>
           <UDropdownMenu :items="hitMenu(hit)">
             <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" size="sm" aria-label="Food actions" @click.stop />
           </UDropdownMenu>
