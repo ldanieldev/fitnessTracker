@@ -40,6 +40,11 @@ export default defineNuxtConfig({
           secure: false
         }
       }
+    },
+    vite: {
+      server: {
+        allowedHosts: true
+      }
     }
   },
 
