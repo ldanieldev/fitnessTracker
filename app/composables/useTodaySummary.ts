@@ -5,7 +5,8 @@ export function useTodaySummary() {
   watch(
     today,
     (value) => {
-      if (value !== null) summary.dayFetch.refresh()
+      // every caller (layout badge, Today card) shares the key, so only the first one to see today's date fetches
+      if (value !== null && summary.dayFetch.status.value === 'idle') summary.dayFetch.execute()
     },
     { immediate: true }
   )

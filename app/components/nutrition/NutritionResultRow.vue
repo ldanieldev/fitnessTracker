@@ -41,18 +41,26 @@ function onTap() {
 
 <template>
   <div class="rounded-xl bg-elevated" :class="rootClass" :data-test="dataTest">
+    <!-- The row itself is a plain click target: a button role here would nest the checkbox and action buttons inside a button. -->
     <div
       class="flex items-center gap-3 px-3 py-2 min-h-14"
       :class="[(selectable || chevron) && !disabled ? 'cursor-pointer active:bg-accented' : '', disabled ? 'opacity-60' : '']"
-      :role="selectable || chevron ? 'button' : undefined"
-      :tabindex="selectable || chevron ? 0 : undefined"
       @click="onTap"
-      @keydown.enter="onTap"
-      @keydown.space.prevent="onTap"
     >
       <UCheckbox v-if="selectable" :model-value="selected" :disabled="disabled" :data-test="checkboxHook" @click.stop @update:model-value="(v) => emit('toggle', Boolean(v))" />
       <div class="min-w-0 flex-1">
-        <div class="truncate font-medium text-highlighted">{{ title }}</div>
+        <button
+          v-if="selectable || chevron"
+          type="button"
+          class="block w-full truncate text-left font-medium text-highlighted"
+          :disabled="disabled"
+          :aria-pressed="selectable ? selected : undefined"
+          :data-test="`${dataTest}-title`"
+          @click.stop="onTap"
+        >
+          {{ title }}
+        </button>
+        <div v-else class="truncate font-medium text-highlighted">{{ title }}</div>
         <div class="flex flex-wrap items-baseline gap-x-2 text-xs text-dimmed">
           <span v-if="subtitle" class="truncate">{{ subtitle }}</span>
           <span v-if="amountText">{{ amountText }}</span>
