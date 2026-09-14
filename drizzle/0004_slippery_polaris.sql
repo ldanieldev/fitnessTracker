@@ -1,1 +1,0 @@
-ALTER TABLE "app"."food_servings" ADD CONSTRAINT "serving_basis_grams_positive" CHECK (basis_grams is null or basis_grams > 0);

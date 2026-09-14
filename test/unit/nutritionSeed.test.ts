@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { NutrientSeed } from '../../server/db/seed/nutrition'
 
-const MIGRATION = new URL('../../drizzle/0007_seed_nutrients.sql', import.meta.url)
+const MIGRATION = new URL('../../drizzle/0001_nutrition.sql', import.meta.url)
 
 const ROW_RE = /\('([^']*)', '([^']*)', '([^']*)', (true|false), '([^']*)', (\d+)\)/g
 

@@ -1,2 +1,0 @@
-CREATE INDEX "food_owner_live" ON "app"."foods" USING btree ("created_by_user_id","deleted_at");--> statement-breakpoint
-CREATE INDEX "diary_entry_day_container_order" ON "app"."diary_entries" USING btree ("day_id","container_id","sort_order");

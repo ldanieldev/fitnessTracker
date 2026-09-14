@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const MIGRATION = new URL('../../drizzle/0008_seed_food_sources.sql', import.meta.url)
-const MYMACROS_MIGRATION = new URL('../../drizzle/0011_seed_food_source_mymacros.sql', import.meta.url)
+const MIGRATION = new URL('../../drizzle/0001_nutrition.sql', import.meta.url)
 
 interface FoodSourceSeedRow {
   key: string
@@ -16,7 +15,8 @@ const ROW_RE = /\('([^']*)','([^']*)',(NULL|'[^']*'),(true|false),(true|false)\)
 
 function rowsFrom(migration: URL): FoodSourceSeedRow[] {
   const sql = readFileSync(migration, 'utf8')
-  const values = sql.slice(sql.indexOf('VALUES') + 'VALUES'.length, sql.indexOf('ON CONFLICT'))
+  const insert = sql.slice(sql.indexOf('INSERT INTO "app"."food_sources"'))
+  const values = insert.slice(insert.indexOf('VALUES') + 'VALUES'.length, insert.indexOf(';'))
   return [...values.matchAll(ROW_RE)].map((m) => ({
     key: m[1]!,
     name: m[2]!,
@@ -31,8 +31,8 @@ function migrationRows(): FoodSourceSeedRow[] {
 }
 
 describe('seed_food_sources migration', () => {
-  it('seeds exactly off, usda, fatsecret and user', () => {
-    expect(migrationRows().map((r) => r.key)).toEqual(['off', 'usda', 'fatsecret', 'user'])
+  it('seeds exactly off, usda, fatsecret, user and mymacros', () => {
+    expect(migrationRows().map((r) => r.key)).toEqual(['off', 'usda', 'fatsecret', 'user', 'mymacros'])
   })
 
   it('marks off and usda persistable, fatsecret fetch-only', () => {
@@ -62,17 +62,9 @@ describe('seed_food_sources migration', () => {
   })
 })
 
-describe('seed_food_source_mymacros migration', () => {
-  it('seeds the mymacros source as persistable with no attribution required', () => {
-    const rows = rowsFrom(MYMACROS_MIGRATION)
-    expect(rows).toHaveLength(1)
-    expect(rows[0]!.key).toBe('mymacros')
-    expect(rows[0]!.persistable).toBe(true)
-    expect(rows[0]!.attributionRequired).toBe(false)
-  })
-
-  it('upserts on the key so re-running it is a no-op', () => {
-    const sql = readFileSync(MYMACROS_MIGRATION, 'utf8')
-    expect(sql).toContain('ON CONFLICT (key) DO UPDATE SET')
+describe('mymacros food source', () => {
+  it('is seeded as persistable with no attribution required', () => {
+    const row = rowsFrom(MIGRATION).find((r) => r.key === 'mymacros')
+    expect(row).toMatchObject({ persistable: true, attributionRequired: false })
   })
 })
