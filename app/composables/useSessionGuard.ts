@@ -23,8 +23,7 @@ function isUnauthorized(error: unknown): boolean {
   return !!error && typeof error === 'object' && 'statusCode' in error && (error as { statusCode?: number }).statusCode === 401
 }
 
-// Nuxt's auto-imported $fetch is a snapshot taken at boot (see useNutritionData.ts), so every call site uses this instead of bare $fetch.
-// Request/options types mirror $fetch's own (method, body, query, responseType, ...) so every existing call site keeps its inference.
+// Nuxt's auto-imported $fetch is a boot-time snapshot (see useNutritionData.ts), so every call site uses this instead; its parameter types mirror $fetch's so call sites keep their inference.
 export function apiFetch<T = unknown>(request: Parameters<typeof $fetch>[0], opts?: Parameters<typeof $fetch>[1]): Promise<T> {
   return $fetch<T>(request, opts).catch(async (error: unknown) => {
     if (isUnauthorized(error) && (await handleUnauthorized())) {

@@ -25,8 +25,7 @@ export const NUTRITION_LIST_KEYS = [
   NUTRITION_KEYS.tracked
 ]
 
-// useFetch captures $fetch from '#build/fetch' at module load (node_modules/nuxt/dist/app/composables/fetch.js: `let _$fetch = fetchOptions.$fetch || $fetch$1`) — apiFetch can't reach it, so useFetch reads get their own 401 handling here.
-// `getCachedData`'s NoInfer<T> makes the real UseFetchOptions<T> type reject itself under a generic (unresolved) T — widen at the call boundary only.
+// useFetch captures $fetch from '#build/fetch' at module load (nuxt/dist/app/composables/fetch.js), so apiFetch can't reach it and 401s are handled here. Options are widened at the call because getCachedData's NoInfer<T> rejects UseFetchOptions<T> under a generic T.
 export function useNutritionFetch<T>(key: string | (() => string), url: string | (() => string), opts: UseFetchOptions<T> = {}) {
   const existingHooks = opts.onResponseError
   const onExistingResponseError = Array.isArray(existingHooks) ? existingHooks : existingHooks ? [existingHooks] : []

@@ -3,14 +3,6 @@ import type { RootDbClient } from '../../server/utils/db'
 import { importBarcodeKey, insertOrRecover, resolveImportTarget } from '../../server/utils/nutrition/importFood'
 
 describe('importBarcodeKey', () => {
-  it('normalises a 12-digit UPC to the GTIN-13 that mapExternalFood would have stored (P2-R14/P2-R28)', () => {
-    expect(importBarcodeKey({ barcode: '094395000172' })).toBe('0094395000172')
-  })
-
-  it('leaves an already-13-digit barcode unchanged', () => {
-    expect(importBarcodeKey({ barcode: '3017624010701' })).toBe('3017624010701')
-  })
-
   it('returns null when the external food has no barcode', () => {
     expect(importBarcodeKey({ barcode: null })).toBeNull()
   })

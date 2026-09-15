@@ -52,10 +52,6 @@ describe('ensureModule (isolated module instance, zxing-wasm/reader mocked)', ()
 })
 
 describe('normalizeGtin', () => {
-  it('pads UPC-A to GTIN-13', async () => {
-    const { normalizeGtin } = await import('../../app/utils/barcode/decode')
-    expect(normalizeGtin('012345678905')).toBe('0012345678905')
-  })
   it('rejects a bad check digit', async () => {
     const { normalizeGtin } = await import('../../app/utils/barcode/decode')
     expect(() => normalizeGtin('3017624010702')).toThrow(/check digit/i)

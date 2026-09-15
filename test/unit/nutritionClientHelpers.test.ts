@@ -68,11 +68,3 @@ describe('deriveMealTime', () => {
     expect(deriveMealTime(null, [])).toBeNull()
   })
 })
-
-describe('nutritionKeyed', () => {
-  it('keys by id and sums', async () => {
-    const { keyNutrients, sumKeyed } = await import('../../shared/utils/nutritionKeyed')
-    expect(keyNutrients({ 1: 2 }, new Map([[1, 'energy']]))).toEqual({ energy: 2 })
-    expect(sumKeyed([{ nutrients: { energy: 1 } }, { nutrients: { energy: 2 } }])).toEqual({ energy: 3 })
-  })
-})

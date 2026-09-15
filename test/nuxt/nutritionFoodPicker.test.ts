@@ -145,18 +145,12 @@ describe('NutritionFoodPicker', () => {
     expect(alert.find('a').attributes('href')).toBe('/nutrition/foods/9')
   })
 
-  it('shows the default-serving macros on every hit', async () => {
+  it('shows the brand and the default-serving macros on a hit', async () => {
     register()
     const wrapper = await mountPicker()
     const first = wrapper.findAll('[data-test="food-hit"]')[0]!
     expect(first.find('[data-test="macro-protein"]').text()).toBe('P 31')
     expect(first.text()).toContain('100 g')
-  })
-
-  it('shows the brand on a hit with macros', async () => {
-    register()
-    const wrapper = await mountPicker()
-    const first = wrapper.findAll('[data-test="food-hit"]')[0]!
     expect(first.text()).toContain('Acme')
   })
 

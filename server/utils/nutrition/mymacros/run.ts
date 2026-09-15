@@ -90,8 +90,7 @@ async function addMissingServings(db: RootDbClient, foodId: number, missing: Pla
   })
 }
 
-// meal_container_user_name_unique guards a race between two imports; a single import runs sequentially, but this
-// keeps the get-or-create correct regardless.
+// meal_container_user_name_unique keeps this get-or-create correct if two imports race.
 async function ensureContainer(db: RootDbClient, userId: number, name: string): Promise<{ id: number, created: boolean }> {
   const existing = await db
     .select({ id: mealContainers.id })

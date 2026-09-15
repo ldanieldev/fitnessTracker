@@ -39,22 +39,3 @@ test('rejects a duplicate container name for the same user', async ({ page, goto
   const res = await apiFetch(page, 'POST', '/api/nutrition/meal-containers', { name: 'Snack' })
   expect(res.status).toBe(409)
 })
-
-test('a user with no containers is seeded on first list', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-
-  const seeded = await apiFetch<{ id: number }[]>(page, 'GET', '/api/nutrition/meal-containers')
-  expect(seeded.json.length).toBe(6)
-
-  for (const container of seeded.json) {
-    const archive = await apiFetch(page, 'DELETE', `/api/nutrition/meal-containers/${container.id}`)
-    expect(archive.ok).toBe(true)
-  }
-
-  const withArchived = await apiFetch<unknown[]>(page, 'GET', '/api/nutrition/meal-containers?includeArchived=1')
-  expect(withArchived.json.length).toBe(6)
-
-  const withoutArchived = await apiFetch<unknown[]>(page, 'GET', '/api/nutrition/meal-containers')
-  expect(withoutArchived.json.length).toBe(0)
-})

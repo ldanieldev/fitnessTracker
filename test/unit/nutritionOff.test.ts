@@ -170,8 +170,7 @@ describe('offSearch', () => {
 })
 
 describe('fetchJson', () => {
-  // Real 20 ms timeout rather than fake timers: AbortController's own timer must fire and its
-  // abort event must propagate through the stub, which vi.useFakeTimers() would freeze too.
+  // Real 20 ms timeout, not fake timers: vi.useFakeTimers() would also freeze AbortController's timer and its abort event.
   it('rejects with AbortError when the request exceeds the timeout', async () => {
     vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
       init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })))

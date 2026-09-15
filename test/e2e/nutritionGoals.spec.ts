@@ -108,7 +108,7 @@ test('ratio mode stores percentages and derives grams', async ({ page, goto }) =
   expect(bad.status).toBe(400)
 })
 
-test('a day with no applied profile follows the current default; an explicitly applied one survives a later default change', async ({ page, goto }) => {
+test('new and unapplied days follow the current default; an explicitly applied profile survives a later default change', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -141,9 +141,23 @@ test('a day with no applied profile follows the current default; an explicitly a
   await page.locator('[data-test="goal-apply"]').click()
   await expect(page.locator('[data-test="energy-value"]')).toContainText('1400')
 
-  await apiFetch(page, 'POST', '/api/nutrition/goal-profiles', {
-    name: 'Default C', inputMode: 'grams', isDefault: true, targets: [{ nutrient: 'energy', amount: 2200, direction: 'max' }]
-  })
+  await goto('/settings/nutrition', { waitUntil: 'hydration' })
+  const [addResponse] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes('/api/nutrition/goal-profiles') && r.request().method() === 'POST'),
+    (async () => {
+      await page.locator('[data-test="add-goal-profile"]').click()
+      await page.locator('[data-test="goal-name"]').fill('Default C')
+      await page.locator('[data-test="goal-enable-energy"]').click()
+      await page.locator('[data-test="goal-amount-energy"]').fill('2200')
+      await page.locator('[data-test="goal-is-default"]').click()
+      await page.locator('[data-test="goal-save"]').click()
+    })()
+  ])
+  expect(addResponse.ok()).toBe(true)
+
   await goto(`/diary/${date}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="energy-value"]')).toContainText('1400')
+
+  await goto('/diary/2025-01-01', { waitUntil: 'hydration' })
+  await expect(page.locator('[data-test="energy-value"]')).toContainText('2200')
 })

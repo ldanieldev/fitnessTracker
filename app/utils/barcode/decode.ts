@@ -14,8 +14,7 @@ export function browserOverrides(wasmUrl: string) {
   return { locateFile: () => wasmUrl }
 }
 
-// zxing-wasm defaults to fetching from jsDelivr; Node's fetch can't reach file:// under vitest's worker pool, so pass bytes directly.
-// node:fs/node:module are dynamic imports so Vite's dev server (which stubs node:module with no createRequire) never has to load them for the client.
+// Node's fetch can't reach the wasm via file:// under vitest, so bytes are passed directly. node:fs/node:module are dynamic imports because Vite's dev server stubs node:module without createRequire.
 async function ensureModule() {
   if (!prepared) {
     prepared = (async () => {

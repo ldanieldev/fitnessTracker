@@ -156,7 +156,6 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
       }
     }
 
-    // g and any other mass alias (lb, ...) share one weight basis, consistency-checked together.
     const weightRows: Array<{ perGram: MacroSet, grams: number }> = []
     if (gItems) for (const item of gItems) weightRows.push({ perGram: perUnitOfRow(item.row), grams: item.row.quantity })
     for (const unit of extraWeightUnits) {

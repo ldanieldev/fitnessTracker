@@ -1,12 +1,5 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
-import { apiFetch, makeUser, pollUntil, registerViaApi, type ApiResult } from './helpers'
-import type { Page } from '@playwright/test'
-
-// test-utils' worker-scoped Nitro server is never registered with the Inngest dev server, so this test-only route rebuilds directly instead of going through search/rebuild.requested.
-async function rebuildSearchIndex(page: Page) {
-  const res = await apiFetch(page, 'POST', '/api/nutrition/_test/search-rebuild')
-  if (!res.ok) throw new Error(`test-only rebuild route failed: ${res.status}`)
-}
+import { apiFetch, makeUser, pollUntil, rebuildSearchIndex, registerViaApi, type ApiResult } from './helpers'
 
 test('reranks search hits by favourite then log frequency, and flags the degraded provider', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -36,8 +29,7 @@ test('reranks search hits by favourite then log frequency, and flags the degrade
     expect(logged.ok).toBe(true)
   }
 
-  const degraded = !process.env.NUXT_MEILI_HOST
-  if (!degraded) await rebuildSearchIndex(page)
+  await rebuildSearchIndex(page)
 
   type SearchResult = ApiResult<{
     hits: Array<{ id: number, name: string, brand: string | null, energyDensity: number | null }>
@@ -49,19 +41,12 @@ test('reranks search hits by favourite then log frequency, and flags the degrade
     (res) => res.json.hits.length === 3
   )
 
-  expect(search.json.degraded).toBe(degraded)
+  expect(search.json.degraded).toBe(!process.env.NUXT_MEILI_HOST)
   expect(search.json.hits.map((h) => h.id)).toEqual([wing, thigh, breast])
 })
 
-test('empty q returns no hits without querying the provider', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-
-  const empty = await apiFetch<{ hits: unknown[], degraded: boolean }>(page, 'GET', '/api/nutrition/foods/search?q=')
-  expect(empty.json.hits).toEqual([])
-})
-
 test('a percent sign or backslash in the query does not 500', async ({ page, goto }) => {
+  test.skip(!!process.env.NUXT_MEILI_HOST, 'escapeLike only runs on the Postgres fallback provider')
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -85,7 +70,7 @@ test('a hit for a food with a weight serving carries its energy density', async 
     servings: [{ kind: 'named', label: 'wrap', quantity: 1, nutrients: { energy: 120 } }]
   })
 
-  if (process.env.NUXT_MEILI_HOST) await rebuildSearchIndex(page)
+  await rebuildSearchIndex(page)
 
   type DensimeterResult = ApiResult<{ hits: Array<{ name: string, energyDensity: number | null }> }>
 

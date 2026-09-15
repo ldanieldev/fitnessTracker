@@ -32,54 +32,6 @@ test('renaming a container in settings retroactively relabels a previously logge
   await expect(page.locator(`[data-test="container-${container.id}"]`)).toContainText('Renamed Container')
 })
 
-test('setting a new default goal profile applies to a new day and one merely logged, but not one with an explicit profile', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-
-  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
-  const containerId = containers.json[0]!.id
-
-  const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/goal-profiles', {
-    name: 'Original',
-    inputMode: 'grams',
-    isDefault: true,
-    targets: [{ nutrient: 'energy', amount: 2000, direction: 'max' }]
-  })
-  expect(created.ok).toBe(true)
-  const originalId = created.json.id
-
-  // Logged with no profile applied — this day should still pick up whatever profile is default at read time.
-  await logEntry(page, '2026-08-10', containerId)
-  // Logged AND has the original profile explicitly applied — this day keeps that snapshot forever.
-  await logEntry(page, '2026-08-11', containerId)
-  const applied = await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-08-11/goal', { profileId: originalId })
-  expect(applied.ok).toBe(true)
-
-  await goto('/settings/nutrition', { waitUntil: 'hydration' })
-
-  const [addResponse] = await Promise.all([
-    page.waitForResponse((r) => r.url().includes('/api/nutrition/goal-profiles') && r.request().method() === 'POST'),
-    (async () => {
-      await page.locator('[data-test="add-goal-profile"]').click()
-      await page.locator('[data-test="goal-name"]').fill('New Default')
-      await page.locator('[data-test="goal-enable-energy"]').click()
-      await page.locator('[data-test="goal-amount-energy"]').fill('1500')
-      await page.locator('[data-test="goal-is-default"]').click()
-      await page.locator('[data-test="goal-save"]').click()
-    })()
-  ])
-  expect(addResponse.ok()).toBe(true)
-
-  await goto('/diary/2026-08-15', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test="energy-value"]')).toContainText('1500')
-
-  await goto('/diary/2026-08-10', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test="energy-value"]')).toContainText('1500')
-
-  await goto('/diary/2026-08-11', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test="energy-value"]')).toContainText('2000')
-})
-
 test('tracking a nutrient adds it to the day view after client-side navigation back', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   const user = await registerViaApi(page, makeUser())

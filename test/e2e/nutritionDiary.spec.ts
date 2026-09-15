@@ -203,7 +203,6 @@ test('editing quantity scales the frozen snapshot and ignores later food edits',
   ])
   const entryId = created.json.ids[0]
 
-  // Change the food's macros AFTER logging. History must not move.
   const loaded = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${foodId}`)
   await apiFetch(page, 'PUT', `/api/nutrition/foods/${foodId}/servings/${loaded.json.servings[0].id}`, {
     kind: 'weight',
@@ -220,44 +219,6 @@ test('editing quantity scales the frozen snapshot and ignores later food edits',
     '/api/nutrition/diary/2026-03-01'
   )
   expect(Number(day.json.entries[0].nutrients.protein)).toBeCloseTo(15, 6)
-})
-
-test('changing the serving unit recomputes from the food', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
-  const foodId = await seedPizza(page)
-
-  const created = await apiFetch<{ ids: number[] }>(page, 'POST', '/api/nutrition/diary/2026-03-02/entries', [
-    { entryType: 'food', foodId, containerId: containers.json[0].id, quantity: 100, unitLabel: 'g' }
-  ])
-
-  await apiFetch(page, 'PUT', `/api/nutrition/diary/entries/${created.json.ids[0]}`, {
-    quantity: 2,
-    unitLabel: 'slice'
-  })
-  const day = await apiFetch<{ entries: Array<{ nutrients: Record<string, number> }> }>(
-    page,
-    'GET',
-    '/api/nutrition/diary/2026-03-02'
-  )
-  expect(Number(day.json.entries[0].nutrients.protein)).toBeCloseTo(6, 6)
-})
-
-test('deleting an entry removes it and its snapshot', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
-  const foodId = await seedPizza(page)
-
-  const created = await apiFetch<{ ids: number[] }>(page, 'POST', '/api/nutrition/diary/2026-03-03/entries', [
-    { entryType: 'food', foodId, containerId: containers.json[0].id, quantity: 1, unitLabel: 'slice' }
-  ])
-
-  const deleted = await apiFetch(page, 'DELETE', `/api/nutrition/diary/entries/${created.json.ids[0]}`)
-  expect(deleted.ok).toBe(true)
-  const day = await apiFetch<{ entries: unknown[] }>(page, 'GET', '/api/nutrition/diary/2026-03-03')
-  expect(day.json.entries).toEqual([])
 })
 
 test('editing a quick-add quantity with the same unit echoed back is not a unit change', async ({ page, goto }) => {

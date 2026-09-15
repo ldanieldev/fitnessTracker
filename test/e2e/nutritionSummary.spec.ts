@@ -39,7 +39,7 @@ test('rolling summary excludes an unlogged day rather than treating it as zero',
   expect(fifth.rolling.energy).toBe((1900 + 2000) / 2)
 })
 
-test('export returns json with nulled unlogged totals and csv with blank cells', async ({ page, goto }) => {
+test('export returns json with nulled unlogged totals', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -57,14 +57,6 @@ test('export returns json with nulled unlogged totals and csv with blank cells',
   expect(json.json.days.length).toBe(5)
   const skipped = json.json.days.find((d) => d.date === '2026-04-04')!
   expect(skipped.totals.energy).toBeNull()
-
-  const csv = await page.evaluate(async () => {
-    const res = await fetch('/api/nutrition/diary/export?from=2026-04-01&to=2026-04-05&format=csv')
-    return { contentType: res.headers.get('content-type'), text: await res.text() }
-  })
-  expect(csv.contentType).toContain('text/csv')
-  const lines = csv.text.split('\n')
-  expect(lines[4].startsWith('2026-04-04,,')).toBe(true)
 })
 
 test('summary page renders unlogged days as an em dash and exports csv', async ({ page, goto }) => {
@@ -95,7 +87,7 @@ test('summary page renders unlogged days as an em dash and exports csv', async (
   expect(openedUrl).toContain('format=csv')
 })
 
-test('csv export covers only the tracked nutrients and carries each one\'s target', async ({ page, goto }) => {
+test('csv export covers only the tracked nutrients, carries each one\'s target, and leaves unlogged totals blank', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -110,12 +102,16 @@ test('csv export covers only the tracked nutrients and carries each one\'s targe
   await logDay(page, '2026-06-01', 1800)
 
   const csv = await page.evaluate(async () => {
-    const res = await fetch('/api/nutrition/diary/export?from=2026-06-01&to=2026-06-01&format=csv')
-    return res.text()
+    const res = await fetch('/api/nutrition/diary/export?from=2026-06-01&to=2026-06-02&format=csv')
+    return { contentType: res.headers.get('content-type'), text: await res.text() }
   })
-  const lines = csv.split('\n')
+  expect(csv.contentType).toContain('text/csv')
+  const lines = csv.text.split('\n')
   expect(lines[0]).toBe(
     'date,profile,energy,energy_target,protein,protein_target,carbohydrate,carbohydrate_target,fat,fat_target,fiber,fiber_target'
   )
   expect(lines[1]).toBe('2026-06-01,Cut,1800,1900,0,,0,,0,,0,')
+  const unlogged = lines[2]!.split(',')
+  expect(unlogged[0]).toBe('2026-06-02')
+  expect(unlogged[2]).toBe('')
 })

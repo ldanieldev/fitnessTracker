@@ -20,8 +20,7 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-// UModal teleports its content to document.body; find it via a DOMWrapper around the real body and
-// interact through real DOM events (findAllComponents can't see teleported components without a subTree).
+// UModal teleports to document.body, which findAllComponents can't see without a subTree, so tests drive the real body through DOM events.
 async function mountDialog() {
   const wrapper = await mountSuspended(NutritionCopyDialog, {
     attachTo: document.body,

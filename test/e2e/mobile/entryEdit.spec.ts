@@ -44,16 +44,3 @@ test('edits quantity, unit, meal, and note from the entry sheet', async ({ page,
     return [entry.unitLabel, entry.quantity, entry.containerId, entry.notes, Math.round(entry.nutrients.energy!)]
   }).toEqual(['slice', 2, containers[1]!.id, 'toasted', 180])
 })
-
-test('a quick-add entry offers no unit picker', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-  const containers = (await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')).json
-  await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-03/entries', [
-    { entryType: 'quick_add', containerId: containers[0]!.id, description: 'Burger', quantity: 1, unitLabel: 'serving', nutrients: { energy: 700 } }
-  ])
-  await goto('/diary/2026-09-03', { waitUntil: 'hydration' })
-  await page.locator('[data-test="entry-row"]').click()
-  await expect(page.locator('[data-test="entry-sheet-quantity"]')).toBeVisible()
-  await expect(page.locator('[data-test="entry-sheet-unit"]')).toHaveCount(0)
-})

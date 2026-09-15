@@ -34,11 +34,7 @@ export async function snapshotTargets(tx: DbClient, dayId: number, profileId: nu
   }
 }
 
-/**
- * Two tabs logging to the same new date race here; the unique (user_id, date) index plus
- * onConflictDoNothing makes the loser fall through to the select rather than fail.
- */
-// goalProfileId stays null here — a day with no profile applied follows the current default at read time (resolveDayTargets).
+// Concurrent first writes to a date race here: the (user_id, date) unique index plus onConflictDoNothing sends the loser to the final select. goalProfileId stays null so the day follows the current default (resolveDayTargets).
 export async function ensureDay(tx: DbClient, userId: number, date: string) {
   const existing = await tx
     .select({ id: diaryDays.id })
@@ -66,7 +62,6 @@ export async function ensureDay(tx: DbClient, userId: number, date: string) {
     .then((r) => r[0]!)
 }
 
-/** Picks which target set a day shows: an explicitly applied profile keeps its snapshot; otherwise it follows the current default. */
 export function resolveDayTargets<T>(goalProfileId: number | null, snapshotTargets: T, defaultProfileTargets: T): T {
   return goalProfileId !== null ? snapshotTargets : defaultProfileTargets
 }

@@ -1,40 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
 
-test('computes per-serving nutrition from live ingredients', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-
-  const flour = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
-    name: 'Flour',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 10 } }]
-  })
-  const cheese = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
-    name: 'Cheese',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 25 } }]
-  })
-  const cheeseFood = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${cheese.json.id}`)
-
-  const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/recipes', {
-    name: 'Homemade Pizza',
-    servings: 8,
-    servingName: 'Slices',
-    ingredients: [
-      { foodId: flour.json.id, quantity: 400, unitLabel: 'g' },
-      { foodId: cheese.json.id, foodServingId: cheeseFood.json.servings[0].id, quantity: 200, unitLabel: 'g' }
-    ]
-  })
-
-  const recipe = await apiFetch<{ perServing: Record<string, number>, total: Record<string, number> }>(
-    page,
-    'GET',
-    `/api/nutrition/recipes/${created.json.id}`
-  )
-  // total protein = 40 + 50 = 90 over 8 servings = 11.25
-  expect(Number(recipe.json.total.protein)).toBeCloseTo(90, 6)
-  expect(Number(recipe.json.perServing.protein)).toBeCloseTo(11.25, 6)
-})
-
 test('recipes are live: editing an ingredient food moves perServing', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
@@ -66,31 +32,6 @@ test('recipes are live: editing an ingredient food moves perServing', async ({ p
 
   const after = await apiFetch<{ perServing: Record<string, number> }>(page, 'GET', `/api/nutrition/recipes/${created.json.id}`)
   expect(Number(after.json.perServing.protein)).toBeCloseTo(20, 6)
-})
-
-test('reports a soft-deleted ingredient as broken', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-
-  const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
-    name: 'Doomed',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 10 } }]
-  })
-  const loadedFood = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${food.json.id}`)
-
-  const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/recipes', {
-    name: 'Fragile',
-    servings: 4,
-    servingName: 'Portions',
-    ingredients: [
-      { foodId: food.json.id, foodServingId: loadedFood.json.servings[0].id, quantity: 200, unitLabel: 'g' }
-    ]
-  })
-
-  await apiFetch(page, 'DELETE', `/api/nutrition/foods/${food.json.id}`)
-
-  const recipe = await apiFetch<{ brokenIngredients: number[] }>(page, 'GET', `/api/nutrition/recipes/${created.json.id}`)
-  expect(recipe.json.brokenIngredients).toContain(food.json.id)
 })
 
 test('reports an ingredient as broken when its serving is deleted', async ({ page, goto }) => {
@@ -245,6 +186,9 @@ test('refuses to log a recipe with a broken ingredient', async ({ page, goto }) 
   const recipeId = recipe.json.id
 
   await apiFetch(page, 'DELETE', `/api/nutrition/foods/${foodId}`)
+
+  const broken = await apiFetch<{ brokenIngredients: number[] }>(page, 'GET', `/api/nutrition/recipes/${recipeId}`)
+  expect(broken.json.brokenIngredients).toContain(foodId)
 
   const res = await apiFetch(page, 'POST', '/api/nutrition/diary/2026-05-02/entries', [
     { entryType: 'recipe', recipeId, containerId: containers.json[0].id, quantity: 1, unitLabel: 'Portions' }

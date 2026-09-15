@@ -115,8 +115,7 @@ export async function importExternalFood(db: RootDbClient, userId: number, exter
     throw createError({ statusCode: 400, statusMessage: (err as Error).message })
   }
 
-  // A concurrent import can win the race between findExistingImportedFood and this insert; the unique indexes on
-  // (source_id, external_id) catch it, and insertOrRecover looks the winner up instead of surfacing a raw 500.
+  // A concurrent import can win the race to this insert; the (source_id, external_id) unique indexes catch it and insertOrRecover returns the winner instead of a 500.
   return insertOrRecover(
     db,
     async (tx) => {

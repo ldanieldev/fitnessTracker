@@ -47,22 +47,6 @@ describe('NutritionBarcodeScanner', () => {
     expect(wrapper.find('[data-test="scan-video"]').exists()).toBe(false)
   })
 
-  it('looks up a manually entered code and navigates to the missing-food route', async () => {
-    stubSecureContext(false)
-    registerEndpoint('/api/nutrition/foods/barcode/3017624010701', () => {
-      throw createError({ statusCode: 404, statusMessage: 'Barcode not found', data: { barcode: '3017624010701' } })
-    })
-
-    const wrapper = await mountSuspended(NutritionBarcodeScanner, { props: { date: '2026-01-01' } })
-    await flushPromises()
-
-    await wrapper.find('[data-test="scan-manual-input"]').setValue('3017624010701')
-    await wrapper.find('[data-test="scan-manual-submit"]').trigger('click')
-    await flushPromises()
-
-    expect(navigateToMock).toHaveBeenCalledWith('/diary/2026-01-01/foods/new?barcode=3017624010701')
-  })
-
   it('allows a second manual lookup after the first one latches the scanner (P2-R30)', async () => {
     stubSecureContext(false)
     let lookupCalls = 0

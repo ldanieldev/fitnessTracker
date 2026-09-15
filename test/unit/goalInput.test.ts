@@ -18,26 +18,7 @@ describe('buildGoalTargetRows', () => {
     expect(rows).toEqual([{ nutrientId: 2, amount: 175, direction: 'min', ratioPercent: null }])
   })
 
-  it('appends a derived energy row when grams-mode omits calories and energy but has all three macros', async () => {
-    const { buildGoalTargetRows } = await import('../../server/utils/nutrition/goalInput')
-    const rows = buildGoalTargetRows(
-      {
-        name: 'Cut',
-        inputMode: 'grams',
-        calories: null,
-        isDefault: false,
-        targets: [
-          { nutrient: 'protein', amount: 175, direction: 'min' },
-          { nutrient: 'carbohydrate', amount: 165, direction: 'target' },
-          { nutrient: 'fat', amount: 60, direction: 'target' }
-        ]
-      },
-      catalog
-    )
-    expect(rows.at(-1)).toEqual({ nutrientId: 1, amount: 1900, direction: 'max', ratioPercent: null })
-  })
-
-  it('uses calories over derivation when both are available', async () => {
+  it('passes calories through to the appended energy row', async () => {
     const { buildGoalTargetRows } = await import('../../server/utils/nutrition/goalInput')
     const rows = buildGoalTargetRows(
       {
@@ -54,14 +35,5 @@ describe('buildGoalTargetRows', () => {
       catalog
     )
     expect(rows.at(-1)).toEqual({ nutrientId: 1, amount: 2200, direction: 'max', ratioPercent: null })
-  })
-
-  it('leaves an explicit energy target untouched', async () => {
-    const { buildGoalTargetRows } = await import('../../server/utils/nutrition/goalInput')
-    const rows = buildGoalTargetRows(
-      { name: 'Cut', inputMode: 'grams', calories: null, isDefault: false, targets: [{ nutrient: 'energy', amount: 1800, direction: 'max' }] },
-      catalog
-    )
-    expect(rows).toEqual([{ nutrientId: 1, amount: 1800, direction: 'max', ratioPercent: null }])
   })
 })

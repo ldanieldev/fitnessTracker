@@ -23,8 +23,7 @@ vi.mock('tesseract.js', () => ({
   }))
 }))
 
-// happy-dom's canvas has no adapter registered (getContext('2d') returns null), so image
-// loading/preprocessing can't run here; stub the module to hand back an inert canvas.
+// happy-dom's canvas has no adapter (getContext('2d') returns null), so image preprocessing is stubbed to return an inert canvas.
 vi.mock('~/utils/ocr/preprocess', () => ({
   loadImageToCanvas: vi.fn(async () => document.createElement('canvas')),
   preprocessForOcr: vi.fn(() => ({}) as ImageData)

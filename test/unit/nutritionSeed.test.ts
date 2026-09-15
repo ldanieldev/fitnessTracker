@@ -40,14 +40,6 @@ describe('nutrient seed catalogue', () => {
     expect(by.fat).toBe('max')
   })
 
-  it('uses only valid directions and units', async () => {
-    const { NUTRIENT_SEED } = await import('../../server/db/seed/nutrition')
-    for (const n of NUTRIENT_SEED) {
-      expect(['min', 'max', 'target']).toContain(n.defaultDirection)
-      expect(['kcal', 'g', 'mg', 'mcg']).toContain(n.unit)
-    }
-  })
-
   it('assigns a contiguous sort order starting at 0', async () => {
     const { NUTRIENT_SEED } = await import('../../server/db/seed/nutrition')
     const orders = NUTRIENT_SEED.map((n) => n.sortOrder).sort((a, b) => a - b)

@@ -42,8 +42,8 @@ test('copying recomputes from the food as it is today', async ({ page, goto }) =
     'GET',
     '/api/nutrition/diary/2026-04-02'
   )
-  expect(Number(source.json.entries[0].nutrients.protein)).toBeCloseTo(10, 6) // history frozen
-  expect(Number(copy.json.entries[0].nutrients.protein)).toBeCloseTo(20, 6) // copy recomputed
+  expect(Number(source.json.entries[0].nutrients.protein)).toBeCloseTo(10, 6)
+  expect(Number(copy.json.entries[0].nutrients.protein)).toBeCloseTo(20, 6)
   expect(source.json.entries[0].description).toBe('Oats')
   expect(copy.json.entries[0].description).toBe('Oats (renamed)')
 })

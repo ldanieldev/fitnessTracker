@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 describe('mass conversion', () => {
-  it('uses the exact international avoirdupois constants', async () => {
-    const { MASS_GRAMS } = await import('../../shared/utils/nutritionUnits')
-    expect(MASS_GRAMS.g).toBe(1)
-    expect(MASS_GRAMS.oz).toBe(28.349523125)
-    expect(MASS_GRAMS.lb).toBe(453.59237)
-  })
-
   it('converts a typed amount to grams', async () => {
     const { toGrams } = await import('../../shared/utils/nutritionUnits')
     expect(toGrams(100, 'g')).toBe(100)

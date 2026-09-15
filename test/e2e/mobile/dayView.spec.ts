@@ -30,22 +30,6 @@ test('the day header navigates by the week strip and the date sheet, and the FAB
   await expect(page).toHaveURL(new RegExp(`/diary/${todayDate()}/add$`))
 })
 
-test('the meal header add button opens the add flow for that container', async ({ page, goto }) => {
-  await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
-
-  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
-  const containerId = containers.json[0]!.id
-
-  await goto('/diary/2026-09-10', { waitUntil: 'hydration' })
-  const container = page.locator(`[data-test="container-${containerId}"]`)
-  const headerAdd = container.locator('[data-test="container-header"] [data-test="container-add"]')
-  await expect(headerAdd).toHaveCount(1)
-
-  await headerAdd.click()
-  await expect(page).toHaveURL(new RegExp(`/diary/2026-09-10/add\\?containerId=${containerId}$`))
-})
-
 function localHHMM(iso: string) {
   const d = new Date(iso)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`

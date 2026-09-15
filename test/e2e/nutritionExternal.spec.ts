@@ -77,22 +77,8 @@ test.describe('external food search, barcode lookup and import', () => {
     expect(barcode).toBe('0000000000000')
   })
 
-  test('finds nutella via external search with no errors', async ({ page, goto }) => {
-    await goto('/', { waitUntil: 'hydration' })
-    await registerViaApi(page, makeUser())
-
-    const res = await apiFetch<{ results: unknown[], errors: unknown[] }>(
-      page,
-      'GET',
-      '/api/nutrition/foods/search/external?q=nutella&source=off'
-    )
-    expect(res.status).toBe(200)
-    expect(res.json.results.length).toBeGreaterThan(0)
-    expect(res.json.errors).toEqual([])
-  })
-
   // source=off avoids the USDA DEMO_KEY rate limit; rerun-safe since re-importing the same row returns its existing id.
-  test('searches online, imports a result, and shows it checked in the local tab', async ({ page, goto }) => {
+  test('searches online with no source errors, imports a result, and shows it checked in the local tab', async ({ page, goto }) => {
     await goto('/', { waitUntil: 'hydration' })
     await registerViaApi(page, makeUser())
 
@@ -107,6 +93,7 @@ test.describe('external food search, barcode lookup and import', () => {
 
     const result = page.locator('[data-test="online-result"]').first()
     await expect(result).toBeVisible()
+    await expect(page.locator('[data-test="online-error"]')).toHaveCount(0)
 
     // The search stub also carries a lang: 'es' hit and a Thai-named one; off.ts must filter both out.
     await expect(page.locator('[data-test="online-result"]', { hasText: 'Crema de Nutella' })).toHaveCount(0)

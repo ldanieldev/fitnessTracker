@@ -50,7 +50,6 @@ describe('requireSessionUser', () => {
     expect(event.context.sessionUserExists).toBe(true)
     expect(dbMock.select).toHaveBeenCalledTimes(1)
 
-    // Second call on the same event re-uses the cached existence check.
     await requireSessionUser(event)
     expect(dbMock.select).toHaveBeenCalledTimes(1)
   })
