@@ -183,6 +183,34 @@ describe('NutritionFoodPicker', () => {
     expect(wrapper.find('[data-test="food-search-input"]').attributes('aria-label')).toBe('Search foods')
   })
 
+  it('offers "Remove from recents" only on the recent source, and it hides then refreshes the list', async () => {
+    register()
+    const wrapper = await mountPicker({ source: 'recent' })
+    const menu = (wrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }).hitMenu({ id: 1 })
+    expect(menu[0]!.map((item) => item.label)).toEqual(['View food', 'Remove from recents'])
+
+    let deleteCalled = false
+    registerEndpoint('/api/nutrition/foods/1/recent', { method: 'DELETE', handler: () => {
+      deleteCalled = true
+      return { ok: true }
+    } })
+    await (menu[0]![1] as unknown as { onSelect: () => Promise<void> }).onSelect()
+    await flushPromises()
+    expect(deleteCalled).toBe(true)
+  })
+
+  it('does not offer "Remove from recents" on the favorites or mine source', async () => {
+    register()
+    const favWrapper = await mountPicker({ source: 'favorites' })
+    const favMenu = (favWrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }).hitMenu({ id: 1 })
+    expect(favMenu[0]!.map((item) => item.label)).toEqual(['View food'])
+
+    registerEndpoint('/api/nutrition/foods', () => [])
+    const mineWrapper = await mountPicker({ source: 'mine' })
+    const mineMenu = (mineWrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }).hitMenu({ id: 1 })
+    expect(mineMenu[0]!.map((item) => item.label)).toEqual(['View food'])
+  })
+
   it('preserves quantity and unitLabel when select() is called on an already-picked food', async () => {
     register()
     const initialPicked: PickedFood[] = [{ foodId: 1, name: 'Chicken Breast', brand: null, quantity: 3, unitLabel: 'serving', food: detail(1, 'Chicken Breast') }]

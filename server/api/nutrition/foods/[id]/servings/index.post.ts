@@ -6,7 +6,7 @@ import { loadEditableFood } from '~~/server/utils/nutrition/loadEditableFood'
 import { nutrientIdMap } from '~~/server/utils/nutrition/nutrientIds'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { selectGramBasis } from '~~/shared/utils/nutritionResolve'
 
 export default defineEventHandler(async (event) => {

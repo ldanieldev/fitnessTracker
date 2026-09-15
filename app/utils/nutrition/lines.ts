@@ -47,7 +47,7 @@ export async function loadEditorLines(
 ): Promise<EditorLine[]> {
   return Promise.all(
     lines.map(async (line) => {
-      const food = await $fetch<FoodDetail>(`/api/nutrition/foods/${line.foodId}`).catch(() => null)
+      const food = await apiFetch<FoodDetail>(`/api/nutrition/foods/${line.foodId}`).catch(() => null)
       return {
         uid: nextUid(),
         foodId: line.foodId,

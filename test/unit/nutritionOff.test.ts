@@ -52,6 +52,28 @@ describe('offHitsToExternal', () => {
   })
 })
 
+describe('isEnglishHit', () => {
+  it('keeps a hit explicitly tagged lang: en', async () => {
+    const { isEnglishHit } = await import('../../server/utils/nutrition/external/off')
+    expect(isEnglishHit({ code: '1', product_name: 'Nutella', lang: 'en' })).toBe(true)
+  })
+
+  it('drops a hit tagged with a non-English lang', async () => {
+    const { isEnglishHit } = await import('../../server/utils/nutrition/external/off')
+    expect(isEnglishHit({ code: '1', product_name: 'Nutella', lang: 'es' })).toBe(false)
+  })
+
+  it('keeps a hit with no reported lang', async () => {
+    const { isEnglishHit } = await import('../../server/utils/nutrition/external/off')
+    expect(isEnglishHit({ code: '1', product_name: 'Nutella' })).toBe(true)
+  })
+
+  it('drops a Thai-named hit even when mislabelled lang: en', async () => {
+    const { isEnglishHit } = await import('../../server/utils/nutrition/external/off')
+    expect(isEnglishHit({ code: '1', product_name: 'นูเทลล่า', lang: 'en' })).toBe(false)
+  })
+})
+
 const PRODUCT_URL = 'https://world.openfoodfacts.org/api/v2/product'
 const SEARCH_URL = 'https://search.openfoodfacts.org/search'
 

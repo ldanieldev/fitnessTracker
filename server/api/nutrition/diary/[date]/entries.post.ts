@@ -7,7 +7,7 @@ import { loadFood } from '~~/server/utils/nutrition/loadFood'
 import { nutrientIdMap } from '~~/server/utils/nutrition/nutrientIds'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { loadSavedMeal } from '~~/server/utils/nutrition/savedMeal'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

@@ -1,6 +1,6 @@
 import { MeiliSearchProvider } from '~~/server/utils/nutrition/meiliSearch'
 import { getSearchProvider, isDegradedProvider } from '~~/server/utils/nutrition/searchProvider'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   await requireUserId(event)

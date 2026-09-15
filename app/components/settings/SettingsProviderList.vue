@@ -54,7 +54,7 @@ const canUnlink = computed(() => props.linkedProviders.length > 1)
 async function unlink(provider: string) {
   unlinking.value = provider
   try {
-    await $fetch(`/api/auth/providers/${provider}`, { method: 'DELETE' })
+    await apiFetch(`/api/auth/providers/${provider}`, { method: 'DELETE' })
     toast.add({
       title: `${provider} unlinked`,
       color: 'success'

@@ -71,7 +71,7 @@ async function search() {
   if (!trimmed) return
   searching.value = true
   try {
-    const result = await $fetch<{ results: ExternalResult[], errors: ExternalErrorEntry[] }>(
+    const result = await apiFetch<{ results: ExternalResult[], errors: ExternalErrorEntry[] }>(
       '/api/nutrition/foods/search/external',
       { query: { q: trimmed, source: source.value, limit: 25 } }
     )
@@ -88,7 +88,7 @@ async function search() {
 async function importResult(result: ExternalResult) {
   importingKey.value = resultKey(result)
   try {
-    const imported = await $fetch<{ id: number, needsNutrition: boolean, owned: boolean }>('/api/nutrition/foods/import', {
+    const imported = await apiFetch<{ id: number, needsNutrition: boolean, owned: boolean }>('/api/nutrition/foods/import', {
       method: 'POST',
       body: { source: result.source, externalId: result.externalId }
     })

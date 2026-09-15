@@ -24,7 +24,7 @@ watch(() => props.entry, async (value) => {
   confirmingDelete.value = false
   if (value?.entryType === 'food' && value.foodId !== null) {
     try {
-      food.value = await $fetch<FoodDetail>(`/api/nutrition/foods/${value.foodId}`)
+      food.value = await apiFetch<FoodDetail>(`/api/nutrition/foods/${value.foodId}`)
     } catch {
       foodMissing.value = true
     }
@@ -74,14 +74,9 @@ function save() {
             <USelect :model-value="draft.unitLabel" :items="[draft.unitLabel]" disabled class="w-full" data-test="entry-sheet-unit" />
           </UFormField>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <UFormField label="Meal">
-            <USelect v-model="draft.containerId" :items="containerItems" class="w-full" data-test="entry-sheet-container" />
-          </UFormField>
-          <UFormField label="Time">
-            <UInput v-model="draft.time" type="time" class="w-full" data-test="entry-sheet-time" />
-          </UFormField>
-        </div>
+        <UFormField label="Meal">
+          <USelect v-model="draft.containerId" :items="containerItems" class="w-full" data-test="entry-sheet-container" />
+        </UFormField>
         <UFormField label="Note">
           <UTextarea v-model="draft.notes" :rows="2" :maxlength="2000" class="w-full" data-test="entry-sheet-notes" />
         </UFormField>

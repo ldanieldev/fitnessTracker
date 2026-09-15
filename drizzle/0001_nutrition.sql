@@ -67,6 +67,7 @@ CREATE TABLE "app"."food_usage_stats" (
 	"food_id" integer NOT NULL,
 	"log_count" integer DEFAULT 0 NOT NULL,
 	"last_logged_at" timestamp NOT NULL,
+	"hidden_at" timestamp,
 	CONSTRAINT "food_usage_stats_user_id_food_id_pk" PRIMARY KEY("user_id","food_id")
 );
 --> statement-breakpoint
@@ -214,6 +215,16 @@ CREATE TABLE "app"."diary_entry_nutrients" (
 	CONSTRAINT "diary_entry_nutrients_entry_id_nutrient_id_pk" PRIMARY KEY("entry_id","nutrient_id")
 );
 --> statement-breakpoint
+CREATE TABLE "app"."diary_meal_times" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "app"."diary_meal_times_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now(),
+	"day_id" integer NOT NULL,
+	"container_id" integer NOT NULL,
+	"time" varchar(5) NOT NULL,
+	CONSTRAINT "diary_meal_time_day_container_unique" UNIQUE("day_id","container_id")
+);
+--> statement-breakpoint
 CREATE TABLE "app"."meal_containers" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "app"."meal_containers_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -273,6 +284,8 @@ ALTER TABLE "app"."diary_entries" ADD CONSTRAINT "diary_entries_food_serving_id_
 ALTER TABLE "app"."diary_entries" ADD CONSTRAINT "diary_entries_recipe_id_recipes_id_fk" FOREIGN KEY ("recipe_id") REFERENCES "app"."recipes"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "app"."diary_entry_nutrients" ADD CONSTRAINT "diary_entry_nutrients_entry_id_diary_entries_id_fk" FOREIGN KEY ("entry_id") REFERENCES "app"."diary_entries"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "app"."diary_entry_nutrients" ADD CONSTRAINT "diary_entry_nutrients_nutrient_id_nutrients_id_fk" FOREIGN KEY ("nutrient_id") REFERENCES "app"."nutrients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "app"."diary_meal_times" ADD CONSTRAINT "diary_meal_times_day_id_diary_days_id_fk" FOREIGN KEY ("day_id") REFERENCES "app"."diary_days"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "app"."diary_meal_times" ADD CONSTRAINT "diary_meal_times_container_id_meal_containers_id_fk" FOREIGN KEY ("container_id") REFERENCES "app"."meal_containers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "app"."meal_containers" ADD CONSTRAINT "meal_containers_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "app"."import_jobs" ADD CONSTRAINT "import_jobs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "food_one_weight_serving" ON "app"."food_servings" USING btree ("food_id") WHERE kind = 'weight' and deleted_at is null;--> statement-breakpoint
@@ -285,9 +298,7 @@ CREATE UNIQUE INDEX "goal_profile_one_default" ON "app"."goal_profiles" USING bt
 CREATE INDEX "search_outbox_pending" ON "app"."search_outbox" USING btree ("id") WHERE processed_at is null;--> statement-breakpoint
 CREATE INDEX "diary_entry_day_container_order" ON "app"."diary_entries" USING btree ("day_id","container_id","sort_order");--> statement-breakpoint
 CREATE UNIQUE INDEX "diary_entry_import_key_unique" ON "app"."diary_entries" USING btree ("import_key") WHERE import_key is not null;--> statement-breakpoint
-ALTER TABLE "app"."users" ADD CONSTRAINT "users_week_start_check" CHECK ("app"."users"."week_start" in (0, 1));
---> statement-breakpoint
--- Kept in step with NUTRIENT_SEED in server/db/seed/nutrition.ts and FOOD_SOURCE seeds; test/unit/nutritionSeed.test.ts and nutritionFoodSourcesSeed.test.ts assert they match.
+ALTER TABLE "app"."users" ADD CONSTRAINT "users_week_start_check" CHECK ("app"."users"."week_start" in (0, 1));--> statement-breakpoint
 INSERT INTO "app"."nutrients" ("key", "name", "unit", "is_macro", "default_direction", "sort_order") VALUES
   ('energy', 'Calories', 'kcal', true, 'max', 0),
   ('protein', 'Protein', 'g', true, 'min', 1),

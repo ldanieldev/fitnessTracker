@@ -43,6 +43,7 @@ export interface DiaryContainer {
   isArchived: boolean
   entries: DiaryEntry[]
   subtotals: Record<string, number>
+  mealTime: string | null
 }
 
 export interface DiaryDay {
@@ -93,7 +94,7 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>, opts: { immediate?: 
 
   async function logEntries(inputs: DiaryEntryInput[]): Promise<{ ids: number[] } | null> {
     try {
-      const result = await $fetch<{ ids: number[] }>(`/api/nutrition/diary/${toValue(date)}/entries`, {
+      const result = await apiFetch<{ ids: number[] }>(`/api/nutrition/diary/${toValue(date)}/entries`, {
         method: 'POST',
         body: inputs
       })
@@ -107,7 +108,7 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>, opts: { immediate?: 
 
   async function updateEntry(id: number, patch: DiaryEntryPatch): Promise<boolean> {
     try {
-      await $fetch(`/api/nutrition/diary/entries/${id}`, { method: 'PUT', body: patch })
+      await apiFetch(`/api/nutrition/diary/entries/${id}`, { method: 'PUT', body: patch })
       await invalidateNutrition(NUTRITION_KEYS.day(toValue(date)), 'nutrition:logged:')
       return true
     } catch (err) {
@@ -118,7 +119,7 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>, opts: { immediate?: 
 
   async function deleteEntry(id: number): Promise<boolean> {
     try {
-      await $fetch(`/api/nutrition/diary/entries/${id}`, { method: 'DELETE' })
+      await apiFetch(`/api/nutrition/diary/entries/${id}`, { method: 'DELETE' })
       await invalidateNutrition(NUTRITION_KEYS.day(toValue(date)), 'nutrition:logged:')
       return true
     } catch (err) {

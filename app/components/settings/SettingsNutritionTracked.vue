@@ -38,7 +38,7 @@ async function save() {
   }
   saving.value = true
   try {
-    await $fetch('/api/nutrition/nutrients/tracked', { method: 'PUT', body: { keys } })
+    await apiFetch('/api/nutrition/nutrients/tracked', { method: 'PUT', body: { keys } })
     await invalidateNutrition(NUTRITION_KEYS.tracked, NUTRITION_KEYS.catalog)
     toast.add({ title: 'Tracked nutrients updated', color: 'success' })
   } catch (error: unknown) {

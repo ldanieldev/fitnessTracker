@@ -1,4 +1,5 @@
 import type { UseFetchOptions } from 'nuxt/app'
+import type { FetchContext, FetchResponse } from 'ofetch'
 
 export const NUTRITION_KEYS = {
   containers: 'nutrition:containers',
@@ -24,9 +25,19 @@ export const NUTRITION_LIST_KEYS = [
   NUTRITION_KEYS.tracked
 ]
 
+// useFetch captures $fetch from '#build/fetch' at module load (node_modules/nuxt/dist/app/composables/fetch.js: `let _$fetch = fetchOptions.$fetch || $fetch$1`) — apiFetch can't reach it, so useFetch reads get their own 401 handling here.
 // `getCachedData`'s NoInfer<T> makes the real UseFetchOptions<T> type reject itself under a generic (unresolved) T — widen at the call boundary only.
 export function useNutritionFetch<T>(key: string | (() => string), url: string | (() => string), opts: UseFetchOptions<T> = {}) {
-  return useFetch<T>(url, { ...opts, key } as Parameters<typeof useFetch<T>>[1])
+  const existingHooks = opts.onResponseError
+  const onExistingResponseError = Array.isArray(existingHooks) ? existingHooks : existingHooks ? [existingHooks] : []
+  return useFetch<T>(url, {
+    ...opts,
+    key,
+    onResponseError(context: FetchContext & { response: FetchResponse<unknown> }) {
+      if (context.response.status === 401) handleUnauthorized()
+      for (const hook of onExistingResponseError) (hook as (c: unknown) => unknown)(context)
+    }
+  } as Parameters<typeof useFetch<T>>[1])
 }
 
 // A key ending in ':' is a prefix matching every mounted fetch under it (logged weeks, days).

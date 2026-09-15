@@ -11,7 +11,7 @@ test('reading an untouched date returns an empty day without persisting one', as
   expect(day.json.persisted).toBe(false)
 })
 
-test('writing a note persists the day and snapshots the default profile targets', async ({ page, goto }) => {
+test('writing a note persists the day and it follows the default profile targets', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -40,7 +40,7 @@ test('writing a note persists the day and snapshots the default profile targets'
   expect(energy!.direction).toBe('max')
 })
 
-test('editing a goal profile never rewrites a day already snapshotted', async ({ page, goto }) => {
+test('editing a goal profile never rewrites a day with an explicitly applied profile', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -53,6 +53,8 @@ test('editing a goal profile never rewrites a day already snapshotted', async ({
   const { id } = created.json
 
   await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-01-17/notes', { notes: 'x' })
+  // A day with no profile applied follows the current default instead — apply one explicitly to pin this day's targets.
+  await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-01-17/goal', { profileId: id })
 
   await apiFetch(page, 'PUT', `/api/nutrition/goal-profiles/${id}`, {
     name: 'Cut',

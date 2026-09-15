@@ -108,6 +108,10 @@ test.describe('external food search, barcode lookup and import', () => {
     const result = page.locator('[data-test="online-result"]').first()
     await expect(result).toBeVisible()
 
+    // The search stub also carries a lang: 'es' hit and a Thai-named one; off.ts must filter both out.
+    await expect(page.locator('[data-test="online-result"]', { hasText: 'Crema de Nutella' })).toHaveCount(0)
+    await expect(page.locator('[data-test="online-result"]', { hasText: 'นูเทลล่าสตับ' })).toHaveCount(0)
+
     const [importResponse] = await Promise.all([
       page.waitForResponse((res) => res.url().includes('/api/nutrition/foods/import') && res.request().method() === 'POST'),
       result.locator('[data-test="online-import"]').click()

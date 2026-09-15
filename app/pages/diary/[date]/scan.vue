@@ -1,6 +1,10 @@
 <script setup lang="ts">
 const route = useRoute()
 const date = computed(() => String(route.params.date))
+const containerId = computed(() => {
+  const n = Number(route.query.containerId)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+})
 </script>
 
 <template>
@@ -18,7 +22,7 @@ const date = computed(() => String(route.params.date))
 
     <template #body>
       <div class="max-w-2xl mx-auto w-full">
-        <NutritionBarcodeScanner :date="date" />
+        <NutritionBarcodeScanner :date="date" :container-id="containerId" />
       </div>
     </template>
   </UDashboardPanel>

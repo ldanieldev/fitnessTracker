@@ -5,7 +5,7 @@ interface DayJson {
   entries: Array<{ id: number, containerId: number, quantity: number, unitLabel: string, loggedAt: string, notes: string | null, nutrients: Record<string, number> }>
 }
 
-test('edits quantity, unit, meal, time, and note from the entry sheet', async ({ page, goto }) => {
+test('edits quantity, unit, meal, and note from the entry sheet', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -36,15 +36,13 @@ test('edits quantity, unit, meal, time, and note from the entry sheet', async ({
   await expect(page.locator('[data-test="entry-sheet-preview"]')).toContainText('180')
   await page.locator('[data-test="entry-sheet-container"]').click()
   await page.getByRole('option', { name: containers[1]!.name }).click()
-  await page.locator('[data-test="entry-sheet-time"]').fill('12:05')
   await page.locator('[data-test="entry-sheet-notes"]').fill('toasted')
   await page.locator('[data-test="entry-save"]').click()
 
   await expect.poll(async () => {
     const entry = (await apiFetch<DayJson>(page, 'GET', '/api/nutrition/diary/2026-09-02')).json.entries[0]!
-    const at = new Date(entry.loggedAt)
-    return [entry.unitLabel, entry.quantity, entry.containerId, entry.notes, at.getHours(), at.getMinutes(), Math.round(entry.nutrients.energy!)]
-  }).toEqual(['slice', 2, containers[1]!.id, 'toasted', 12, 5, 180])
+    return [entry.unitLabel, entry.quantity, entry.containerId, entry.notes, Math.round(entry.nutrients.energy!)]
+  }).toEqual(['slice', 2, containers[1]!.id, 'toasted', 180])
 })
 
 test('a quick-add entry offers no unit picker', async ({ page, goto }) => {

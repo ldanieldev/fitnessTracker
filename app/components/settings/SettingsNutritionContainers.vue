@@ -31,7 +31,7 @@ async function rename(container: Container) {
   if (!name || name === container.name) return
   savingId.value = container.id
   try {
-    await $fetch(`/api/nutrition/meal-containers/${container.id}`, { method: 'PUT', body: { name } })
+    await apiFetch(`/api/nutrition/meal-containers/${container.id}`, { method: 'PUT', body: { name } })
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   } catch (error: unknown) {
     toast.add({ title: 'Rename failed', description: errorMessage(error, 'Could not rename container'), color: 'error' })
@@ -47,11 +47,11 @@ async function move(container: Container, direction: -1 | 1) {
   if (!neighbor) return
   try {
     // Sequential, not Promise.all: if the second PUT fails, only the partner has moved rather than both landing on the same sortOrder.
-    await $fetch(`/api/nutrition/meal-containers/${neighbor.id}`, {
+    await apiFetch(`/api/nutrition/meal-containers/${neighbor.id}`, {
       method: 'PUT',
       body: { name: neighbor.name, sortOrder: container.sortOrder }
     })
-    await $fetch(`/api/nutrition/meal-containers/${container.id}`, {
+    await apiFetch(`/api/nutrition/meal-containers/${container.id}`, {
       method: 'PUT',
       body: { name: container.name, sortOrder: neighbor.sortOrder }
     })
@@ -73,7 +73,7 @@ const archiveModalOpen = computed({
 async function confirmArchive() {
   if (!archiveTarget.value) return
   try {
-    await $fetch(`/api/nutrition/meal-containers/${archiveTarget.value.id}`, { method: 'DELETE' })
+    await apiFetch(`/api/nutrition/meal-containers/${archiveTarget.value.id}`, { method: 'DELETE' })
   } catch (error: unknown) {
     toast.add({ title: 'Archive failed', description: errorMessage(error, 'Could not archive container'), color: 'error' })
   } finally {
@@ -90,7 +90,7 @@ async function addContainer() {
   if (!name) return
   adding.value = true
   try {
-    await $fetch('/api/nutrition/meal-containers', { method: 'POST', body: { name } })
+    await apiFetch('/api/nutrition/meal-containers', { method: 'POST', body: { name } })
     newName.value = ''
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   } catch (error: unknown) {

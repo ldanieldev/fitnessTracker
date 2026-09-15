@@ -4,7 +4,7 @@ import { db } from '~~/server/utils/db'
 import { buildGoalTargetRows, goalProfileSchema } from '~~/server/utils/nutrition/goalInput'
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 
 export default defineEventHandler(async (event) => {

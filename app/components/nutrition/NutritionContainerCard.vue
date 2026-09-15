@@ -2,6 +2,7 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import { NUTRITION_MACROS } from '~/constants/nutrition'
 import { macroParts } from '~/utils/nutrition/macros'
+import { deriveMealTime } from '~/utils/nutrition/mealTime'
 import type { DiaryContainer } from '~/composables/useDiaryDay'
 
 interface SubtotalNutrient {
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   'toggle-entry': [id: number]
   'open-entry': [id: number]
   'save-as': [containerId: number, kind: 'recipe' | 'saved-meal']
+  'edit-time': [containerId: number]
 }>()
 
 const addHref = computed(() => `/diary/${props.date}/add?containerId=${props.container.id}`)
@@ -54,15 +56,26 @@ const subtotals = computed(() =>
 )
 
 const energy = computed(() => props.container.subtotals.energy ?? 0)
+const displayTime = computed(() => deriveMealTime(props.container.mealTime, props.container.entries))
 </script>
 
 <template>
   <UCard :data-test="`container-${container.id}`">
     <template #header>
       <div class="flex items-center justify-between gap-2" data-test="container-header">
-        <div class="flex min-w-0 items-baseline gap-2">
+        <div class="flex min-w-0 items-center gap-2">
           <span class="truncate font-semibold text-highlighted">{{ container.name }}</span>
           <span class="shrink-0 text-xs tabular-nums text-dimmed">{{ Math.round(energy) }} kcal</span>
+          <UButton
+            v-if="displayTime"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            icon="i-lucide-clock"
+            :label="displayTime"
+            data-test="container-time"
+            @click="emit('edit-time', container.id)"
+          />
         </div>
         <div class="flex shrink-0 items-center gap-1">
           <UDropdownMenu :items="menu">

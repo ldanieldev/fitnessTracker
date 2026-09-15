@@ -4,6 +4,7 @@ import type { DiaryEntry } from '~/composables/useDiaryDay'
 import type { CopyOverride } from '~~/shared/utils/nutritionCopy'
 import type { DayAction } from '~/components/nutrition/NutritionDayHeader.vue'
 import { weekOf } from '~/utils/nutrition/week'
+import { deriveMealTime } from '~/utils/nutrition/mealTime'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MODE_STORAGE_KEY = 'nutrition.diary.mode'
@@ -73,6 +74,16 @@ const notesOpen = ref(false)
 const goalOpen = ref(false)
 const saveAs = ref<{ kind: 'recipe' | 'saved-meal', containerId: number } | null>(null)
 
+const mealTimeContainerId = ref<number | null>(null)
+const mealTimeContainer = computed(() => day.value?.containers.find((c) => c.id === mealTimeContainerId.value) ?? null)
+const mealTimeValue = computed(() => (mealTimeContainer.value ? deriveMealTime(mealTimeContainer.value.mealTime, mealTimeContainer.value.entries) : null))
+const mealTimeOpen = computed({
+  get: () => mealTimeContainerId.value !== null,
+  set: (value) => {
+    if (!value) mealTimeContainerId.value = null
+  }
+})
+
 const saveAsContainerName = computed(() =>
   day.value?.containers.find((c) => c.id === saveAs.value?.containerId)?.name ?? ''
 )
@@ -88,7 +99,7 @@ function onSaveAs(containerId: number, kind: 'recipe' | 'saved-meal') {
 }
 
 const anySheetOpen = computed(() =>
-  copyDialogOpen.value || entrySheetOpen.value || notesOpen.value || goalOpen.value || saveAsOpen.value
+  copyDialogOpen.value || entrySheetOpen.value || notesOpen.value || goalOpen.value || saveAsOpen.value || mealTimeOpen.value
 )
 
 function openCopyDialog(entries: DiaryEntry[]) {
@@ -132,7 +143,7 @@ interface CopyConfirmPayload {
 
 async function onCopyConfirm(payload: CopyConfirmPayload) {
   try {
-    await $fetch('/api/nutrition/diary/copy', { method: 'POST', body: payload })
+    await apiFetch('/api/nutrition/diary/copy', { method: 'POST', body: payload })
   } catch (error: unknown) {
     toast.add({ title: 'Copy failed', description: errorMessage(error, 'Could not copy these entries'), color: 'error' })
     return
@@ -170,6 +181,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
           @copy-container="copyContainer"
           @toggle-entry="selection.toggleEntry"
           @save-as="onSaveAs"
+          @edit-time="(id) => (mealTimeContainerId = id)"
         />
 
         <button
@@ -231,6 +243,14 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         :date="date"
         :container-id="saveAs?.containerId ?? 0"
         :container-name="saveAsContainerName"
+      />
+
+      <LazyNutritionMealTimeSheet
+        v-model:open="mealTimeOpen"
+        :date="date"
+        :container-id="mealTimeContainerId ?? 0"
+        :value="mealTimeValue"
+        :has-stored="Boolean(mealTimeContainer?.mealTime)"
       />
     </template>
   </UDashboardPanel>

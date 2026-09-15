@@ -23,7 +23,7 @@ let pendingSeq = 0
 
 async function load() {
   try {
-    food.value = await $fetch<FoodDetail>(`/api/nutrition/foods/${props.foodId}`)
+    food.value = await apiFetch<FoodDetail>(`/api/nutrition/foods/${props.foodId}`)
     header.value = { name: food.value.name, brand: food.value.brand ?? '', barcode: food.value.barcode ?? '' }
   } catch {
     notFound.value = true
@@ -48,7 +48,7 @@ async function saveHeader() {
   headerSaving.value = true
   headerError.value = null
   try {
-    await $fetch(`/api/nutrition/foods/${props.foodId}`, {
+    await apiFetch(`/api/nutrition/foods/${props.foodId}`, {
       method: 'PUT',
       body: { name: header.value.name.trim(), brand: header.value.brand.trim() || null, barcode: header.value.barcode.trim() || null }
     })
@@ -64,7 +64,7 @@ async function saveHeader() {
 
 async function fork() {
   try {
-    const { id } = await $fetch<{ id: number }>(`/api/nutrition/foods/${props.foodId}/fork`, { method: 'POST' })
+    const { id } = await apiFetch<{ id: number }>(`/api/nutrition/foods/${props.foodId}/fork`, { method: 'POST' })
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     await navigateTo(`/nutrition/foods/${id}`, { replace: true })
   } catch (err: unknown) {
@@ -86,7 +86,7 @@ const deleteOpen = ref(false)
 
 async function confirmDelete() {
   try {
-    await $fetch(`/api/nutrition/foods/${props.foodId}`, { method: 'DELETE' })
+    await apiFetch(`/api/nutrition/foods/${props.foodId}`, { method: 'DELETE' })
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     await navigateTo('/nutrition/foods')
   } catch (err: unknown) {

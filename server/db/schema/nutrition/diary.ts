@@ -51,6 +51,21 @@ export const diaryDays = appSchema.table(
   (table) => [unique('diary_day_user_date_unique').on(table.userId, table.date)]
 )
 
+export const diaryMealTimes = appSchema.table(
+  'diary_meal_times',
+  {
+    ...commonColumns,
+    dayId: integer('day_id')
+      .notNull()
+      .references(() => diaryDays.id, { onDelete: 'cascade' }),
+    containerId: integer('container_id')
+      .notNull()
+      .references(() => mealContainers.id, { onDelete: 'cascade' }),
+    time: varchar('time', { length: 5 }).notNull()
+  },
+  (table) => [unique('diary_meal_time_day_container_unique').on(table.dayId, table.containerId)]
+)
+
 export const diaryDayTargets = appSchema.table(
   'diary_day_targets',
   {

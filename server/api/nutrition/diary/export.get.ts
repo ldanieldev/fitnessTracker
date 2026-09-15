@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { parseWith } from '~~/server/utils/nutrition/parseBody'
 import { loadIntakeRange, parseIntakeRangeQuery } from '~~/server/utils/nutrition/summary'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { toCsv } from '~~/shared/utils/nutritionExport'
 
 const formatQuerySchema = z.object({ format: z.enum(['csv', 'json']).default('csv') })

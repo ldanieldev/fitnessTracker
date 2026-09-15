@@ -1,5 +1,5 @@
 import { inngest } from '~~/server/utils/inngest/client'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

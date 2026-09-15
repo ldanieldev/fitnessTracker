@@ -4,7 +4,7 @@ import { mealContainers } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { containerColumns } from '~~/server/utils/nutrition/containerColumns'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 
 const containerSchema = z.object({

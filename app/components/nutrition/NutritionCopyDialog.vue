@@ -103,24 +103,30 @@ function confirm() {
           <div
             v-for="entry in sourceEntries"
             :key="entry.id"
-            class="flex flex-wrap items-center gap-2"
+            class="flex flex-col gap-1"
             data-test="copy-source-row"
           >
-            <UCheckbox
-              :model-value="checked.get(entry.id) ?? true"
-              data-test="copy-source-checkbox"
-              @update:model-value="(value) => checked.set(entry.id, Boolean(value))"
-            />
-            <span class="flex-1">{{ entry.description }}</span>
-            <NutritionNumberInput
-              :model-value="quantities.get(entry.id) ?? entry.quantity"
-              :min="0"
-              class="w-20"
-              aria-label="Quantity"
-              data-test="copy-source-quantity"
-              @update:model-value="(value) => quantities.set(entry.id, value ?? 0)"
-            />
-            <span class="text-dimmed text-sm">{{ entry.unitLabel }}</span>
+            <div class="flex items-center gap-2">
+              <UCheckbox
+                :model-value="checked.get(entry.id) ?? true"
+                data-test="copy-source-checkbox"
+                @update:model-value="(value) => checked.set(entry.id, Boolean(value))"
+              />
+              <span class="flex-1 truncate">{{ entry.description }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <!-- NutritionNumberInput's root is w-full, so the width has to sit on a wrapper or the unit gets pushed across the row -->
+              <div class="w-28 shrink-0">
+                <NutritionNumberInput
+                  :model-value="quantities.get(entry.id) ?? entry.quantity"
+                  :min="0"
+                  aria-label="Quantity"
+                  data-test="copy-source-quantity"
+                  @update:model-value="(value) => quantities.set(entry.id, value ?? 0)"
+                />
+              </div>
+              <span class="shrink-0 whitespace-nowrap text-dimmed text-sm">{{ entry.unitLabel }}</span>
+            </div>
           </div>
         </div>
 

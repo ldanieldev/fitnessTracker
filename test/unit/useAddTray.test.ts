@@ -1,8 +1,22 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import type { PickedFood } from '../../app/types/nutrition'
 
 const idToKey = ref(new Map([[1, 'energy'], [2, 'protein'], [3, 'carbohydrate'], [4, 'fat']]))
+
+// Nuxt's real useState is only available under the nuxt vitest project; this mimics its per-key ref sharing for the node project.
+const stateStore = new Map<string, ReturnType<typeof ref>>()
+beforeEach(() => {
+  stateStore.clear()
+  vi.stubGlobal('useState', (key: string, init: () => unknown) => {
+    if (!stateStore.has(key)) stateStore.set(key, ref(init()))
+    return stateStore.get(key)
+  })
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const picked = {
   foodId: 1,
@@ -19,7 +33,7 @@ const picked = {
 describe('useAddTray', () => {
   it('builds one mixed entry array in food, recipe, meal order', async () => {
     const { useAddTray } = await import('../../app/composables/useAddTray')
-    const tray = useAddTray(idToKey)
+    const tray = useAddTray(idToKey, '2026-09-01')
     tray.state.foods = [picked]
     tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl', perServing: { energy: 450, protein: 30 } }, true)
     tray.setRecipeServings(7, 1.5)
@@ -36,7 +50,7 @@ describe('useAddTray', () => {
 
   it('sums totals from a food resolved by label, a recipe scaled by servings, and a meal', async () => {
     const { useAddTray } = await import('../../app/composables/useAddTray')
-    const tray = useAddTray(idToKey)
+    const tray = useAddTray(idToKey, '2026-09-01')
     tray.state.foods = [picked]
     tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl', perServing: { energy: 450, protein: 30, carbohydrate: 40, fat: 15 } }, true)
     tray.setRecipeServings(7, 2)
@@ -47,7 +61,7 @@ describe('useAddTray', () => {
 
   it('is not ready with a non-positive amount, and remove/clear empty it', async () => {
     const { useAddTray } = await import('../../app/composables/useAddTray')
-    const tray = useAddTray(idToKey)
+    const tray = useAddTray(idToKey, '2026-09-01')
     tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl', perServing: {} }, true)
     tray.setRecipeServings(7, 0)
     expect(tray.ready.value).toBe(false)
@@ -58,5 +72,19 @@ describe('useAddTray', () => {
     expect(tray.state.meals).toHaveLength(1)
     tray.clear()
     expect(tray.count.value).toBe(0)
+  })
+
+  it('persists state across two instances for the same date, isolated from a different date', async () => {
+    const { useAddTray } = await import('../../app/composables/useAddTray')
+    const first = useAddTray(idToKey, '2026-09-01')
+    first.state.foods = [picked]
+
+    const second = useAddTray(idToKey, '2026-09-01')
+    expect(second.state.foods).toEqual([picked])
+    expect(second.count.value).toBe(1)
+
+    const otherDate = useAddTray(idToKey, '2026-09-02')
+    expect(otherDate.state.foods).toEqual([])
+    expect(otherDate.count.value).toBe(0)
   })
 })

@@ -45,7 +45,7 @@ const loading = ref(false)
 async function onSubmit(payload: FormSubmitEvent<SchemaWithCurrent | SchemaWithoutCurrent>) {
   loading.value = true
   try {
-    await $fetch('/api/auth/password', {
+    await apiFetch('/api/auth/password', {
       method: 'PUT',
       body: {
         currentPassword: 'currentPassword' in payload.data ? payload.data.currentPassword : undefined,

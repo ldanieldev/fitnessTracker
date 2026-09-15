@@ -4,8 +4,9 @@ import type { ExternalFood } from './types'
 import { ExternalSourceError } from './types'
 
 const PRODUCT_FIELDS = 'code,product_name,brands,serving_size,nutriments'
-const SEARCH_FIELDS = 'code,product_name,brands,nutriments,serving_size'
+const SEARCH_FIELDS = 'code,product_name,brands,nutriments,serving_size,lang'
 const ATTRIBUTION = 'Open Food Facts — ODbL'
+const LATIN_LETTER = /\p{Script=Latin}/u
 
 interface OffNutriments {
   'energy-kcal_100g'?: number
@@ -25,6 +26,7 @@ interface OffProduct {
   brands?: string | string[]
   serving_size?: string
   nutriments?: OffNutriments
+  lang?: string
 }
 
 function firstBrand(brands: string | string[] | undefined): string | null {
@@ -69,8 +71,14 @@ function isCompleteHit(hit: OffProduct): boolean {
     typeof hit.product_name === 'string' && hit.product_name.trim().length > 0
 }
 
+// Keeps a hit with no reported lang, but drops non-English langs and names with no Latin letter (mislabelled lang).
+export function isEnglishHit(hit: OffProduct): boolean {
+  if (hit.lang !== undefined && hit.lang !== 'en') return false
+  return LATIN_LETTER.test(hit.product_name ?? '')
+}
+
 export function offHitsToExternal(hits: OffProduct[]): ExternalFood[] {
-  return hits.filter(isCompleteHit).map(offProductToExternal)
+  return hits.filter(isCompleteHit).filter(isEnglishHit).map(offProductToExternal)
 }
 
 function requireUserAgent(): string {
@@ -133,8 +141,9 @@ export async function offSearch(q: string, limit: number): Promise<ExternalFood[
   const userAgent = requireUserAgent()
   const { searchUrl } = useRuntimeConfig().off
   try {
+    // search-a-licious `langs` scopes which language-specific subfields (e.g. product_name.en) are searched; see its OpenAPI /search docs.
     const json = await fetchOff<{ hits: OffProduct[] }>(
-      `${searchUrl}?q=${encodeURIComponent(q)}&page_size=${limit}&fields=${SEARCH_FIELDS}`,
+      `${searchUrl}?q=${encodeURIComponent(q)}&page_size=${limit}&fields=${SEARCH_FIELDS}&langs=en`,
       userAgent
     )
     return offHitsToExternal(json.hits)

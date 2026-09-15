@@ -66,17 +66,17 @@ function hitNutrients(hit: FoodHit): Record<string, number | null | undefined> |
 }
 
 async function fetchRecent(favorites: boolean) {
-  const rows = await $fetch<Array<Omit<FoodHit, 'energyDensity'>>>('/api/nutrition/foods/recent', { query: favorites ? { favorites: '1' } : {} })
+  const rows = await apiFetch<Array<Omit<FoodHit, 'energyDensity'>>>('/api/nutrition/foods/recent', { query: favorites ? { favorites: '1' } : {} })
   return { hits: rows.map((row) => ({ ...row, energyDensity: null, perDefault: row.perDefault ?? null })), degraded: false }
 }
 
 async function fetchMine(q: string) {
-  const rows = await $fetch<MineRow[]>('/api/nutrition/foods', { query: q ? { q } : {} })
+  const rows = await apiFetch<MineRow[]>('/api/nutrition/foods', { query: q ? { q } : {} })
   return { hits: rows.map(mineHit), degraded: false }
 }
 
 async function fetchSearch(q: string) {
-  const result = await $fetch<{ hits: FoodHit[], degraded: boolean }>('/api/nutrition/foods/search', { query: { q, limit: 25 } })
+  const result = await apiFetch<{ hits: FoodHit[], degraded: boolean }>('/api/nutrition/foods/search', { query: { q, limit: 25 } })
   const hits = result.hits.map((hit) => ({ ...hit, energyDensity: hit.energyDensity ?? null, perDefault: hit.perDefault ?? null }))
   // The search endpoint isn't favorites-scoped, so the ★ tab filters client-side to keep non-favourites from appearing under it.
   return { hits: props.source === 'favorites' ? hits.filter((hit) => hit.isFavorite) : hits, degraded: result.degraded }
@@ -111,14 +111,17 @@ watch(query, () => {
 
 watch(() => props.source, runSearch)
 
-onMounted(runSearch)
+let initialLoad: Promise<void> | null = null
+onMounted(() => {
+  initialLoad = runSearch()
+})
 
 async function loadDetail(id: number): Promise<FoodDetail | null> {
   const cached = details.get(id)
   if (cached) return cached
   loading.add(id)
   try {
-    const food = await $fetch<FoodDetail>(`/api/nutrition/foods/${id}`)
+    const food = await apiFetch<FoodDetail>(`/api/nutrition/foods/${id}`)
     details.set(id, food)
     return food
   } catch (error: unknown) {
@@ -163,21 +166,34 @@ async function select(id: number) {
     hits.value = [{ id, name: food.name, brand: food.brand, isFavorite: false, logCount: 0, energyDensity: null, perDefault: null }, ...hits.value]
   }
   await toggle(id, true)
+  // A caller driving select() before mount's own runSearch resolves would otherwise still see the loading skeleton.
+  if (initialLoad) await initialLoad
 }
 
-defineExpose({ select, pending, runSearch })
+defineExpose({ select, pending, runSearch, hitMenu })
 
 async function toggleFavorite(hit: FoodHit) {
   try {
-    await $fetch(`/api/nutrition/foods/${hit.id}/favorite`, { method: hit.isFavorite ? 'DELETE' : 'PUT' })
+    await apiFetch(`/api/nutrition/foods/${hit.id}/favorite`, { method: hit.isFavorite ? 'DELETE' : 'PUT' })
     await runSearch()
   } catch (error: unknown) {
     toast.add({ title: 'Favourite failed', description: errorMessage(error, 'Could not update favourites'), color: 'error' })
   }
 }
 
+async function removeFromRecents(hit: FoodHit) {
+  try {
+    await apiFetch(`/api/nutrition/foods/${hit.id}/recent`, { method: 'DELETE' })
+    await runSearch()
+  } catch (error: unknown) {
+    toast.add({ title: 'Remove failed', description: errorMessage(error, 'Could not remove this food from recents'), color: 'error' })
+  }
+}
+
 function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
-  return [[{ label: 'View food', icon: 'i-lucide-info', to: `/nutrition/foods/${hit.id}` }]]
+  const items: DropdownMenuItem[] = [{ label: 'View food', icon: 'i-lucide-info', to: `/nutrition/foods/${hit.id}` }]
+  if (props.source === 'recent') items.push({ label: 'Remove from recents', icon: 'i-lucide-eye-off', onSelect: () => removeFromRecents(hit) })
+  return [items]
 }
 </script>
 
@@ -208,6 +224,7 @@ function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
         v-for="hit in hits"
         :key="hit.id"
         data-test="food-hit"
+        :data-food-id="hit.id"
         :title="hit.name"
         :subtitle="hit.brand"
         :amount-text="hit.perDefault ? `${hit.perDefault.quantity} ${hit.perDefault.label}` : null"

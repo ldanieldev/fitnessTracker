@@ -11,7 +11,7 @@ const deleting = ref(false)
 async function deleteAccount() {
   deleting.value = true
   try {
-    await $fetch(`/api/users/${user.value!.id}`, { method: 'DELETE' })
+    await apiFetch(`/api/users/${user.value!.id}`, { method: 'DELETE' })
     await clearSession()
     await navigateTo('/auth/login')
   } catch (error: unknown) {

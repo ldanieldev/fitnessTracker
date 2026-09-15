@@ -1,5 +1,5 @@
-import { and, eq, isNull } from 'drizzle-orm'
-import { diaryDays, diaryDayTargets, goalProfiles, goalProfileTargets } from '~~/server/db/schema'
+import { and, eq } from 'drizzle-orm'
+import { diaryDays, diaryDayTargets, goalProfileTargets } from '~~/server/db/schema'
 import type { DbClient } from '../db'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -38,6 +38,7 @@ export async function snapshotTargets(tx: DbClient, dayId: number, profileId: nu
  * Two tabs logging to the same new date race here; the unique (user_id, date) index plus
  * onConflictDoNothing makes the loser fall through to the select rather than fail.
  */
+// goalProfileId stays null here — a day with no profile applied follows the current default at read time (resolveDayTargets).
 export async function ensureDay(tx: DbClient, userId: number, date: string) {
   const existing = await tx
     .select({ id: diaryDays.id })
@@ -48,31 +49,24 @@ export async function ensureDay(tx: DbClient, userId: number, date: string) {
 
   if (existing) return existing
 
-  const defaultProfile = await tx
-    .select({ id: goalProfiles.id })
-    .from(goalProfiles)
-    .where(and(eq(goalProfiles.userId, userId), eq(goalProfiles.isDefault, true), isNull(goalProfiles.deletedAt)))
-    .limit(1)
-    .then((r) => r[0])
-
   const inserted = await tx
     .insert(diaryDays)
-    .values({ userId, date, goalProfileId: defaultProfile?.id ?? null })
+    .values({ userId, date, goalProfileId: null })
     .onConflictDoNothing()
     .returning({ id: diaryDays.id })
     .then((r) => r[0])
 
-  if (!inserted) {
-    return tx
-      .select({ id: diaryDays.id })
-      .from(diaryDays)
-      .where(and(eq(diaryDays.userId, userId), eq(diaryDays.date, date)))
-      .limit(1)
-      .then((r) => r[0]!)
-  }
+  if (inserted) return inserted
 
-  if (defaultProfile) {
-    await snapshotTargets(tx, inserted.id, defaultProfile.id)
-  }
-  return inserted
+  return tx
+    .select({ id: diaryDays.id })
+    .from(diaryDays)
+    .where(and(eq(diaryDays.userId, userId), eq(diaryDays.date, date)))
+    .limit(1)
+    .then((r) => r[0]!)
+}
+
+/** Picks which target set a day shows: an explicitly applied profile keeps its snapshot; otherwise it follows the current default. */
+export function resolveDayTargets<T>(goalProfileId: number | null, snapshotTargets: T, defaultProfileTargets: T): T {
+  return goalProfileId !== null ? snapshotTargets : defaultProfileTargets
 }

@@ -3,7 +3,7 @@ import { foods } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { findFirstBarcodeMatch, getExternalSources } from '~~/server/utils/nutrition/external/registry'
 import { barcodeCandidates } from '~~/server/utils/nutrition/barcodeCandidates'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const BARCODE_RE = /^\d{8,14}$/
 

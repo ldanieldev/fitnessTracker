@@ -1,5 +1,5 @@
 {
-  "id": "e87d67bf-3c1a-4a72-a476-3eb0b6df8db3",
+  "id": "fd474b56-fbf3-4452-97ef-720212e425b6",
   "prevId": "d8a641ef-8804-43f1-a05f-e4af8664531c",
   "version": "7",
   "dialect": "postgresql",
@@ -2349,6 +2349,12 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true
+        },
+        "hidden_at": {
+          "name": "hidden_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -3878,6 +3884,106 @@
         }
       },
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "app.diary_meal_times": {
+      "name": "diary_meal_times",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "diary_meal_times_id_seq",
+            "schema": "app",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "day_id": {
+          "name": "day_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "container_id": {
+          "name": "container_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time": {
+          "name": "time",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "diary_meal_times_day_id_diary_days_id_fk": {
+          "name": "diary_meal_times_day_id_diary_days_id_fk",
+          "tableFrom": "diary_meal_times",
+          "tableTo": "diary_days",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "day_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "diary_meal_times_container_id_meal_containers_id_fk": {
+          "name": "diary_meal_times_container_id_meal_containers_id_fk",
+          "tableFrom": "diary_meal_times",
+          "tableTo": "meal_containers",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "container_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "diary_meal_time_day_container_unique": {
+          "name": "diary_meal_time_day_container_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "day_id",
+            "container_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

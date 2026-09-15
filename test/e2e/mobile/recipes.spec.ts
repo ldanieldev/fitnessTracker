@@ -48,6 +48,7 @@ test('creates, edits, and repairs a recipe on the phone', async ({ page, goto })
   await milkAmount.fill('2')
   await page.locator('[data-test="ingredient-done"]').click()
   await expect(page.locator('[data-test="total-energy"]')).toContainText('620')
+  await expect(page.locator('[data-test="donut-protein"]')).toContainText('29')
   await page.locator('[data-test="recipe-save"]').click()
   await expect(page).toHaveURL(/\/nutrition\/recipes$/)
   await expect.poll(async () => {

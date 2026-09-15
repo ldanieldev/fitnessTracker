@@ -31,9 +31,9 @@ async function save() {
   try {
     const body = draftToInput(draft.value)
     if (props.serving) {
-      await $fetch(`/api/nutrition/foods/${props.foodId}/servings/${props.serving.id}`, { method: 'PUT', body })
+      await apiFetch(`/api/nutrition/foods/${props.foodId}/servings/${props.serving.id}`, { method: 'PUT', body })
     } else {
-      await $fetch(`/api/nutrition/foods/${props.foodId}/servings`, { method: 'POST', body })
+      await apiFetch(`/api/nutrition/foods/${props.foodId}/servings`, { method: 'POST', body })
     }
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     emit('saved')
@@ -52,7 +52,7 @@ async function remove() {
   busy.value = true
   error.value = null
   try {
-    await $fetch(`/api/nutrition/foods/${props.foodId}/servings/${props.serving.id}`, { method: 'DELETE' })
+    await apiFetch(`/api/nutrition/foods/${props.foodId}/servings/${props.serving.id}`, { method: 'DELETE' })
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     emit('deleted')
   } catch (err: unknown) {

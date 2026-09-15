@@ -131,7 +131,8 @@ export const foodUsageStats = appSchema.table(
       .notNull()
       .references(() => foods.id, { onDelete: 'cascade' }),
     logCount: integer('log_count').notNull().default(0),
-    lastLoggedAt: timestamp('last_logged_at').notNull()
+    lastLoggedAt: timestamp('last_logged_at').notNull(),
+    hiddenAt: timestamp('hidden_at')
   },
   (table) => [primaryKey({ columns: [table.userId, table.foodId] })]
 )

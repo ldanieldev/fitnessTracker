@@ -1,18 +1,16 @@
 import { eq } from 'drizzle-orm'
 import { users } from '~~/server/db/schema'
+import { requireSessionUser } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  const sessionUser = await requireSessionUser(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (Number.isNaN(id) || id === 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid user ID' })
   }
 
-  if (session.user.id !== id) {
+  if (sessionUser.id !== id) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 

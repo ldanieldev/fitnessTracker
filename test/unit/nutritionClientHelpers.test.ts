@@ -31,11 +31,9 @@ describe('resolveByLabel', () => {
 })
 
 describe('entryEdit', () => {
-  it('merges a new time onto the same local calendar date', async () => {
-    const { mergeTime, timeOf } = await import('../../app/utils/nutrition/entryEdit')
+  it('formats the local HH:MM of an ISO timestamp', async () => {
+    const { timeOf } = await import('../../app/utils/nutrition/entryEdit')
     const original = new Date(2026, 8, 10, 7, 40).toISOString()
-    const merged = new Date(mergeTime(original, '12:05'))
-    expect([merged.getFullYear(), merged.getMonth(), merged.getDate(), merged.getHours(), merged.getMinutes()]).toEqual([2026, 8, 10, 12, 5])
     expect(timeOf(original)).toBe('07:40')
   })
 
@@ -46,19 +44,28 @@ describe('entryEdit', () => {
     expect(entryPatch(food, { ...draftFromEntry(food), quantity: 200, unitLabel: 'slice', notes: '  ' })).toEqual({ quantity: 200, unitLabel: 'slice' })
 
     const recipe = entry({ entryType: 'recipe', unitLabel: 'bowl', quantity: 1, notes: 'old' })
-    const patch = entryPatch(recipe, { ...draftFromEntry(recipe), unitLabel: 'plate', containerId: 2, notes: '', time: '08:00' })
+    const patch = entryPatch(recipe, { ...draftFromEntry(recipe), unitLabel: 'plate', containerId: 2, notes: '' })
     expect(patch).toMatchObject({ containerId: 2, notes: null })
     expect(patch).not.toHaveProperty('unitLabel')
-    expect(new Date(patch.loggedAt!).getHours()).toBe(8)
-
-    const malformed = entryPatch(food, { ...draftFromEntry(food), time: '' })
-    expect(malformed).toEqual({})
   })
 
   it('scales a snapshot by the quantity ratio', async () => {
     const { scaledPreview } = await import('../../app/utils/nutrition/entryEdit')
     expect(scaledPreview({ energy: 300, protein: 12 }, 150, 75)).toEqual({ energy: 150, protein: 6 })
     expect(scaledPreview({ energy: 300 }, 150, 0)).toEqual({ energy: 0 })
+  })
+})
+
+describe('deriveMealTime', () => {
+  it('prefers the stored time, else the earliest entry, else null', async () => {
+    const { deriveMealTime } = await import('../../app/utils/nutrition/mealTime')
+    const entries = [
+      { loggedAt: new Date(2026, 8, 10, 12, 5).toISOString() },
+      { loggedAt: new Date(2026, 8, 10, 7, 40).toISOString() }
+    ]
+    expect(deriveMealTime('09:00', entries)).toBe('09:00')
+    expect(deriveMealTime(null, entries)).toBe('07:40')
+    expect(deriveMealTime(null, [])).toBeNull()
   })
 })
 

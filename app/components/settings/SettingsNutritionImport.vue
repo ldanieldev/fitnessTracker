@@ -38,7 +38,7 @@ function clearPoll() {
 function poll(jobId: number) {
   pollTimer = setTimeout(async () => {
     try {
-      const job = await $fetch<ImportJob>(`/api/nutrition/import/mymacros/${jobId}`)
+      const job = await apiFetch<ImportJob>(`/api/nutrition/import/mymacros/${jobId}`)
       if (unmounted) return
       status.value = job.status
       if (job.status === 'done' || job.status === 'failed') {
@@ -71,7 +71,7 @@ async function submit() {
   for (const file of selectedFiles.value) formData.append('files', file, file.name)
 
   try {
-    const { jobId } = await $fetch<{ jobId: number }>('/api/nutrition/import/mymacros', { method: 'POST', body: formData })
+    const { jobId } = await apiFetch<{ jobId: number }>('/api/nutrition/import/mymacros', { method: 'POST', body: formData })
     status.value = 'queued'
     poll(jobId)
   } catch (error: unknown) {

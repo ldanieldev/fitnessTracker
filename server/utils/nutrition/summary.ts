@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte, sum } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNull, lte, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import type { TargetDirection } from '~~/shared/types/nutrition'
 import {
@@ -7,10 +7,11 @@ import {
   diaryEntries,
   diaryEntryNutrients,
   goalProfiles,
+  goalProfileTargets,
   nutrients
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
-import { parseDiaryDate } from '~~/server/utils/nutrition/day'
+import { parseDiaryDate, resolveDayTargets } from '~~/server/utils/nutrition/day'
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { parseWith } from '~~/server/utils/nutrition/parseBody'
 import { loadTrackedNutrients } from '~~/server/utils/nutrition/trackedNutrients'
@@ -60,12 +61,38 @@ export async function loadIntakeRange(
   const nutrientRows = tracked.map((n) => ({ key: n.key, name: n.name, unit: n.unit }))
 
   const dayRows = await db
-    .select({ id: diaryDays.id, date: diaryDays.date, profileName: goalProfiles.name, calories: goalProfiles.calories })
+    .select({
+      id: diaryDays.id,
+      date: diaryDays.date,
+      goalProfileId: diaryDays.goalProfileId,
+      profileName: goalProfiles.name,
+      calories: goalProfiles.calories
+    })
     .from(diaryDays)
     .leftJoin(goalProfiles, eq(goalProfiles.id, diaryDays.goalProfileId))
     .where(and(eq(diaryDays.userId, userId), gte(diaryDays.date, from), lte(diaryDays.date, to)))
 
   const dayIds = dayRows.map((d) => d.id)
+
+  const defaultProfile = await db
+    .select({ id: goalProfiles.id, name: goalProfiles.name, calories: goalProfiles.calories })
+    .from(goalProfiles)
+    .where(and(eq(goalProfiles.userId, userId), eq(goalProfiles.isDefault, true), isNull(goalProfiles.deletedAt)))
+    .then((r) => r[0])
+
+  const defaultProfileTargetRows = defaultProfile
+    ? await db
+        .select({ key: nutrients.key, amount: goalProfileTargets.amount, direction: goalProfileTargets.direction })
+        .from(goalProfileTargets)
+        .innerJoin(nutrients, eq(nutrients.id, goalProfileTargets.nutrientId))
+        .where(eq(goalProfileTargets.profileId, defaultProfile.id))
+    : []
+
+  const defaultTargets: Record<string, { amount: number, direction: TargetDirection }> = {}
+  for (const row of defaultProfileTargetRows) {
+    if (!trackedKeys.has(row.key)) continue
+    defaultTargets[row.key] = { amount: Number(row.amount), direction: row.direction as TargetDirection }
+  }
 
   const targetRows = dayIds.length
     ? await db
@@ -120,18 +147,22 @@ export async function loadIntakeRange(
     const totals: Record<string, number | null> = {}
     for (const n of nutrientRows) totals[n.key] = dayTotals[n.key] ?? 0
 
-    let targets = targetsByDay.get(day.id) ?? {}
+    const usesDefault = day.goalProfileId === null
+    const calories = usesDefault ? defaultProfile?.calories ?? null : day.calories
+    const profileName = usesDefault ? defaultProfile?.name ?? null : day.profileName
+
+    let targets = resolveDayTargets(day.goalProfileId, targetsByDay.get(day.id) ?? {}, defaultTargets)
     if (energyEntry) {
       const rows = Object.entries(targets).map(([key, t]) => ({ key, ...t }))
       const withEnergy = ensureEnergyTarget(
         rows,
         (amount) => ({ key: 'energy', amount, direction: energyEntry.defaultDirection }),
-        day.calories === null ? null : Number(day.calories)
+        calories === null ? null : Number(calories)
       )
       targets = Object.fromEntries(withEnergy.map(({ key, ...rest }) => [key, rest]))
     }
 
-    return { date, logged: true, totals, targets, profileName: day.profileName }
+    return { date, logged: true, totals, targets, profileName }
   })
 
   return { nutrients: nutrientRows, days }

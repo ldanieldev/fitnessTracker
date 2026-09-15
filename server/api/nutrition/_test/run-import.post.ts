@@ -4,7 +4,7 @@ import { importJobs } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { runMyMacrosImport } from '~~/server/utils/nutrition/mymacros/run'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const bodySchema = z.object({ jobId: z.number().int() })
 

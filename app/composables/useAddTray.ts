@@ -1,4 +1,4 @@
-import { computed, reactive } from 'vue'
+import { computed } from 'vue'
 import type { Ref } from 'vue'
 import type { DiaryEntryInput } from '~~/app/composables/useDiaryDay'
 import type { PickedFood } from '~~/app/types/nutrition'
@@ -18,8 +18,9 @@ export interface TrayMeal {
   total: Record<string, number>
 }
 
-export function useAddTray(idToKey: Ref<Map<number, string>>) {
-  const state = reactive({ foods: [] as PickedFood[], recipes: [] as TrayRecipe[], meals: [] as TrayMeal[] })
+export function useAddTray(idToKey: Ref<Map<number, string>>, date?: string) {
+  // useState's ref auto-wraps its object value in reactive() and returns the same ref for a repeat key, so this survives Add -> /scan -> Add.
+  const state = useState(`nutrition:tray:${date}`, () => ({ foods: [] as PickedFood[], recipes: [] as TrayRecipe[], meals: [] as TrayMeal[] })).value
 
   const count = computed(() => state.foods.length + state.recipes.length + state.meals.length)
   const ready = computed(() =>

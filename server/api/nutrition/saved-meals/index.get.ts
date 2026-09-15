@@ -3,7 +3,7 @@ import { savedMeals } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { describeLines } from '~~/server/utils/nutrition/libraryLines'
 import { loadSavedMeal } from '~~/server/utils/nutrition/savedMeal'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

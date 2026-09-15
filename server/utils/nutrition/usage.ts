@@ -10,7 +10,8 @@ export async function recordFoodUsage(tx: DbClient, userId: number, foodId: numb
       target: [foodUsageStats.userId, foodUsageStats.foodId],
       set: {
         logCount: sql`${foodUsageStats.logCount} + 1`,
-        lastLoggedAt: sql`excluded.last_logged_at`
+        lastLoggedAt: sql`excluded.last_logged_at`,
+        hiddenAt: null
       }
     })
 }

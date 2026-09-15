@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { diaryDays, diaryEntries } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

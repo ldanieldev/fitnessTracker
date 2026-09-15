@@ -3,7 +3,7 @@ import { db } from '~~/server/utils/db'
 import { flattenContainerEntries, loadContainerEntriesForUser } from '~~/server/utils/nutrition/fromDiary'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { createRecipe } from '~~/server/utils/nutrition/recipeInput'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const fromDiarySchema = z.object({
   date: z.string(),

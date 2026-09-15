@@ -2,7 +2,7 @@ import { importJobs } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { isMyMacrosHeader } from '~~/server/utils/nutrition/mymacros/parse'
 import { queueImportJob } from '~~/server/utils/nutrition/mymacros/queue'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const MAX_FILES = 200
 const MAX_FILE_BYTES = 64 * 1024

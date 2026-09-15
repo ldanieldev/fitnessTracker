@@ -4,7 +4,7 @@ import { getExternalSources } from '~~/server/utils/nutrition/external/registry'
 import { ExternalSourceError } from '~~/server/utils/nutrition/external/types'
 import { importExternalFood } from '~~/server/utils/nutrition/importFood'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const importSchema = z.object({
   source: z.enum(['off', 'usda', 'fatsecret']),

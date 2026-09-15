@@ -60,6 +60,36 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap', async ({ 
   expect(day.json.entries.find((e) => e.entryType === 'recipe')?.quantity).toBe(2)
 })
 
+test('removing a food from recents hides it there but leaves it searchable and pickable again', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const p = uniquePrefix()
+
+  const containers = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const target = containers.json[1]!
+  const oats = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+    name: `${p} Oats`, servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+  })
+  await rebuildSearchIndex(page)
+  await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-02/entries', [
+    { entryType: 'food', containerId: target.id, foodId: oats.json.id, quantity: 100, unitLabel: 'g' }
+  ])
+
+  await goto('/diary/2026-09-02/add', { waitUntil: 'hydration' })
+  const recentRow = page.locator('[data-test="food-hit"]', { hasText: `${p} Oats` })
+  await expect(recentRow).toBeVisible()
+
+  await recentRow.getByRole('button', { name: 'Food actions' }).click()
+  await page.getByRole('menuitem', { name: 'Remove from recents' }).click()
+  await expect(recentRow).toHaveCount(0)
+
+  await page.locator('[data-test="food-search-input"]').fill(`${p} Oats`)
+  const searchRow = page.locator('[data-test="food-hit"]', { hasText: `${p} Oats` })
+  await expect(searchRow).toBeVisible()
+  await searchRow.locator('[data-test="food-hit-checkbox"]').click()
+  await expect(searchRow.locator('input[inputmode="decimal"]')).toBeVisible()
+})
+
 test('every add-page tab trigger fits without truncation at the phone viewport', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())

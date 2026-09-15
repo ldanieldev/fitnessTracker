@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 import type { TargetDirection } from '~~/shared/types/nutrition'
 import { goalProfiles, goalProfileTargets, nutrients } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 interface EchoedTarget {
   nutrient: string

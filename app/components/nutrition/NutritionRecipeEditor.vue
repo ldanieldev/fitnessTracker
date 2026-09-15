@@ -36,7 +36,7 @@ const {
 onMounted(async () => {
   if (props.recipeId !== null) {
     try {
-      const recipe = await $fetch<RecipeDetail>(`/api/nutrition/recipes/${props.recipeId}`)
+      const recipe = await apiFetch<RecipeDetail>(`/api/nutrition/recipes/${props.recipeId}`)
       name.value = recipe.name
       servings.value = recipe.servings
       servingName.value = recipe.servingName
@@ -68,12 +68,12 @@ async function save() {
   }
   try {
     if (props.recipeId === null) {
-      await $fetch<{ id: number }>('/api/nutrition/recipes', { method: 'POST', body })
+      await apiFetch<{ id: number }>('/api/nutrition/recipes', { method: 'POST', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.recipes)
       await backOrTo('/nutrition/recipes')
     } else {
-      await $fetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'PUT', body })
+      await apiFetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'PUT', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.recipes)
       toast.add({ title: 'Recipe saved', color: 'success' })
@@ -88,7 +88,7 @@ async function save() {
 
 async function confirmDelete() {
   try {
-    await $fetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'DELETE' })
+    await apiFetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'DELETE' })
     baseline.value = snapshot(lines.value)
     await invalidateNutrition(NUTRITION_KEYS.recipes)
     await navigateTo('/nutrition/recipes')

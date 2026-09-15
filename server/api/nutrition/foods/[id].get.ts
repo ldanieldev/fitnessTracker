@@ -4,7 +4,7 @@ import { energyDensity } from '~~/shared/utils/nutritionDerive'
 import { foodSources } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { loadFood } from '~~/server/utils/nutrition/loadFood'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { getNutrientId } from '~~/server/utils/nutrition/nutrientIds'
 
 export default defineEventHandler(async (event) => {

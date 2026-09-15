@@ -1,9 +1,14 @@
 <script setup lang="ts">
 const route = useRoute()
 const date = computed(() => String(route.params.date))
+const containerId = computed(() => {
+  const n = Number(route.query.containerId)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+})
 
 async function onCreated() {
-  await navigateTo(`/diary/${date.value}/add`)
+  const suffix = containerId.value !== undefined ? `?containerId=${containerId.value}` : ''
+  await navigateTo(`/diary/${date.value}/add${suffix}`)
 }
 </script>
 

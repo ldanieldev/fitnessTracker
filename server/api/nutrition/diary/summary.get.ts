@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { parseWith } from '~~/server/utils/nutrition/parseBody'
 import { loadIntakeRange, parseIntakeRangeQuery } from '~~/server/utils/nutrition/summary'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { rollingAverage } from '~~/shared/utils/nutritionSummary'
 
 const windowQuerySchema = z.object({ window: z.coerce.number().int().min(1).max(90).default(7) })

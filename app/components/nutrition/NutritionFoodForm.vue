@@ -73,7 +73,7 @@ async function submit() {
   if (!canSubmit.value) return
   loading.value = true
   try {
-    const result = await $fetch<{ id: number }>('/api/nutrition/foods', {
+    const result = await apiFetch<{ id: number }>('/api/nutrition/foods', {
       method: 'POST',
       body: {
         name: name.value.trim(),

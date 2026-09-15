@@ -50,6 +50,8 @@ function barProgress(key: (typeof barKeys)[number]): number | null {
         </template>
       </div>
 
+      <NutritionMacroDonut :nutrients="total" />
+
       <div class="flex flex-col gap-2">
         <NutritionMacroBar
           v-for="key in barKeys"

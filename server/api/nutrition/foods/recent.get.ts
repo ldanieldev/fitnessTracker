@@ -4,7 +4,7 @@ import { foodFavorites, foods, foodUsageStats } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { perDefaultByFood } from '~~/server/utils/nutrition/perDefault'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const querySchema = z.object({ favorites: z.enum(['1']).optional() })
 
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
       and(
         isNull(foods.deletedAt),
         or(isNull(foods.createdByUserId), eq(foods.createdByUserId, userId)),
-        query.favorites ? sql`${foodFavorites.userId} is not null` : undefined
+        query.favorites ? sql`${foodFavorites.userId} is not null` : isNull(foodUsageStats.hiddenAt)
       )
     )
 

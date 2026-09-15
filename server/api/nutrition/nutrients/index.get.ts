@@ -1,5 +1,5 @@
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   await requireUserId(event)

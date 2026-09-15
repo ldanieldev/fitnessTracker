@@ -7,7 +7,7 @@ import { nutrientIdMap } from '~~/server/utils/nutrition/nutrientIds'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
 import { assertCanReplaceServing, ServingInUseError } from '~~/server/utils/nutrition/servingGuards'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

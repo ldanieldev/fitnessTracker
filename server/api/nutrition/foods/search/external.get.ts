@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { aggregateExternalResults, getExternalSources } from '~~/server/utils/nutrition/external/registry'
 import type { ExternalSourceKey } from '~~/server/utils/nutrition/external/types'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const ALL_SOURCE_KEYS: ExternalSourceKey[] = ['off', 'usda', 'fatsecret']
 

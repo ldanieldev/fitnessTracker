@@ -29,7 +29,7 @@ const {
 onMounted(async () => {
   if (props.savedMealId !== null) {
     try {
-      const meal = await $fetch<SavedMealDetail>(`/api/nutrition/saved-meals/${props.savedMealId}`)
+      const meal = await apiFetch<SavedMealDetail>(`/api/nutrition/saved-meals/${props.savedMealId}`)
       name.value = meal.name
       lines.value = await loadEditorLines(meal.items)
     } catch (error: unknown) {
@@ -48,12 +48,12 @@ async function save() {
   const body = { name: name.value.trim(), items: linesPayload(lines.value) }
   try {
     if (props.savedMealId === null) {
-      await $fetch<{ id: number }>('/api/nutrition/saved-meals', { method: 'POST', body })
+      await apiFetch<{ id: number }>('/api/nutrition/saved-meals', { method: 'POST', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.savedMeals)
       await backOrTo('/nutrition/saved-meals')
     } else {
-      await $fetch(`/api/nutrition/saved-meals/${props.savedMealId}`, { method: 'PUT', body })
+      await apiFetch(`/api/nutrition/saved-meals/${props.savedMealId}`, { method: 'PUT', body })
       baseline.value = snapshot(lines.value)
       await invalidateNutrition(NUTRITION_KEYS.savedMeals)
       toast.add({ title: 'Saved meal saved', color: 'success' })
@@ -68,7 +68,7 @@ async function save() {
 
 async function confirmDelete() {
   try {
-    await $fetch(`/api/nutrition/saved-meals/${props.savedMealId}`, { method: 'DELETE' })
+    await apiFetch(`/api/nutrition/saved-meals/${props.savedMealId}`, { method: 'DELETE' })
     baseline.value = snapshot(lines.value)
     await invalidateNutrition(NUTRITION_KEYS.savedMeals)
     await navigateTo('/nutrition/saved-meals')

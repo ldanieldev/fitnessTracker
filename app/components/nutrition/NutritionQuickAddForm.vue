@@ -3,6 +3,7 @@ import type { DiaryEntryInput } from '~/composables/useDiaryDay'
 
 const props = defineProps<{
   containers: Array<{ id: number, name: string }>
+  defaultContainerId?: number
 }>()
 
 const emit = defineEmits<{
@@ -14,7 +15,7 @@ const energy = ref('')
 const protein = ref('')
 const carbohydrate = ref('')
 const fat = ref('')
-const containerId = ref<number | undefined>(props.containers[0]?.id)
+const containerId = ref<number | undefined>(props.defaultContainerId ?? props.containers[0]?.id)
 
 const containerItems = useContainerItems(() => props.containers)
 

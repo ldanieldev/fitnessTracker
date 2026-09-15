@@ -43,7 +43,7 @@ const weekStartLoading = ref(false)
 async function onWeekStartSubmit(payload: FormSubmitEvent<WeekStartSchema>) {
   weekStartLoading.value = true
   try {
-    await $fetch(`/api/users/${user.value!.id}`, {
+    await apiFetch(`/api/users/${user.value!.id}`, {
       method: 'PUT',
       body: payload.data
     })
@@ -69,7 +69,7 @@ async function onWeekStartSubmit(payload: FormSubmitEvent<WeekStartSchema>) {
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
-    await $fetch(`/api/users/${user.value!.id}`, {
+    await apiFetch(`/api/users/${user.value!.id}`, {
       method: 'PUT',
       body: payload.data
     })

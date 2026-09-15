@@ -4,7 +4,7 @@ import { diaryDays } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { ensureDay, parseDiaryDate } from '~~/server/utils/nutrition/day'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const notesPutSchema = z.object({ notes: z.string().max(5000).nullable() })
 

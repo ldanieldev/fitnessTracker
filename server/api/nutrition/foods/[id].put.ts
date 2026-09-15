@@ -5,7 +5,7 @@ import { db } from '~~/server/utils/db'
 import { loadEditableFood } from '~~/server/utils/nutrition/loadEditableFood'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const foodUpdateSchema = z.object({
   name: z.string().min(1).max(255),

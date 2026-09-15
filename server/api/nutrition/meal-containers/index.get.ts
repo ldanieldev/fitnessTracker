@@ -3,7 +3,7 @@ import { mealContainers } from '~~/server/db/schema'
 import { seedContainersForUser } from '~~/server/db/seed/nutrition'
 import { db } from '~~/server/utils/db'
 import { containerColumns } from '~~/server/utils/nutrition/containerColumns'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

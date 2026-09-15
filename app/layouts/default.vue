@@ -95,10 +95,10 @@ const links = computed(() => [
       type: 'trigger' as const,
       children: [
         { label: 'Diary', to: '/diary/today', badge: diaryBadge.value, onSelect: close },
-        { label: 'Summary', to: '/diary/summary', onSelect: close },
-        { label: 'Recipes', to: '/nutrition/recipes', onSelect: close },
+        { label: 'Foods', to: '/nutrition/foods', onSelect: close },
         { label: 'Saved meals', to: '/nutrition/saved-meals', onSelect: close },
-        { label: 'Foods', to: '/nutrition/foods', onSelect: close }
+        { label: 'Recipes', to: '/nutrition/recipes', onSelect: close },
+        { label: 'Summary', to: '/diary/summary', onSelect: close }
       ]
     }
   ]

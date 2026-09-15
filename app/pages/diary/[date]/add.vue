@@ -19,7 +19,7 @@ const { data: recipes, refresh: refreshRecipes } = await useNutritionFetch<Recip
 const { data: meals, refresh: refreshMeals } = await useNutritionFetch<MealRow[]>(NUTRITION_KEYS.savedMeals, '/api/nutrition/saved-meals')
 
 const { idToKey } = useNutrientCatalog()
-const tray = useAddTray(idToKey)
+const tray = useAddTray(idToKey, date.value)
 const containerId = ref<number | undefined>()
 watch(containers, (list) => {
   if (containerId.value !== undefined || !list?.length) return
@@ -56,6 +56,8 @@ onMounted(async () => {
   if (foodId === undefined) return
   await picker.value?.select(foodId)
   needsNutritionFoodId.value = route.query.needsNutrition === '1' ? foodId : null
+  await nextTick()
+  document.querySelector(`[data-test="food-hit"][data-food-id="${foodId}"]`)?.scrollIntoView({ block: 'center' })
 })
 
 watch(() => tray.state.foods.map((f) => f.foodId), (ids) => {
@@ -140,7 +142,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
             ref="picker"
             v-model="tray.state.foods"
             :source="pickerSource"
-            :scan-to="`/diary/${date}/scan`"
+            :scan-to="`/diary/${date}/scan?containerId=${containerId}`"
             :needs-nutrition-food-id="needsNutritionFoodId"
           >
             <template #actions>
@@ -182,7 +184,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
 
       <NutritionSheet v-model:open="quickAddOpen" title="Quick add">
         <template #body>
-          <LazyNutritionQuickAddForm :containers="containers ?? []" @submit="onQuickAdd" />
+          <LazyNutritionQuickAddForm :containers="containers ?? []" :default-container-id="containerId" @submit="onQuickAdd" />
         </template>
       </NutritionSheet>
     </template>

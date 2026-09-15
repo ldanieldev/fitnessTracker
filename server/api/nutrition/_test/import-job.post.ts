@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { importJobs } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const bodySchema = z.object({
   files: z.array(z.object({ name: z.string().min(1), text: z.string() })).min(1)

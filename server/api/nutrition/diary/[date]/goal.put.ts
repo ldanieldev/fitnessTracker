@@ -4,7 +4,7 @@ import { diaryDays, goalProfiles } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { ensureDay, parseDiaryDate, snapshotTargets } from '~~/server/utils/nutrition/day'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const goalPutSchema = z.object({ profileId: z.number().int() })
 

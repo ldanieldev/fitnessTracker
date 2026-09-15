@@ -5,6 +5,7 @@ import {
   diaryDayTargets,
   diaryEntries,
   diaryEntryNutrients,
+  diaryMealTimes,
   goalProfiles,
   goalProfileTargets,
   mealContainers,
@@ -13,7 +14,7 @@ import {
 import { db } from '~~/server/utils/db'
 import { parseDiaryDate } from '~~/server/utils/nutrition/day'
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { ensureEnergyTarget } from '~~/shared/utils/nutritionTargets'
 
 interface Target {
@@ -63,7 +64,7 @@ export default defineEventHandler(async (event) => {
   const makeEnergyTarget = (amount: number): Target => ({ key: 'energy', name: energyEntry!.name, unit: 'kcal', amount, direction: energyEntry!.defaultDirection })
 
   let targets: Target[]
-  if (day) {
+  if (day && day.goalProfileId !== null) {
     targets = await db
       .select({
         key: nutrients.key,
@@ -177,6 +178,14 @@ export default defineEventHandler(async (event) => {
       .map((c) => c!.id)
   )
 
+  const mealTimeRows = day
+    ? await db
+        .select({ containerId: diaryMealTimes.containerId, time: diaryMealTimes.time })
+        .from(diaryMealTimes)
+        .where(eq(diaryMealTimes.dayId, day.id))
+    : []
+  const mealTimes = new Map(mealTimeRows.map((r) => [r.containerId, r.time]))
+
   const containers = allContainers
     .filter((c) => !c.isArchived || archivedWithEntries.has(c.id))
     .map((c) => {
@@ -191,7 +200,8 @@ export default defineEventHandler(async (event) => {
         sortOrder: c.sortOrder,
         isArchived: c.isArchived,
         entries: containerEntries,
-        subtotals
+        subtotals,
+        mealTime: mealTimes.get(c.id) ?? null
       }
     })
 

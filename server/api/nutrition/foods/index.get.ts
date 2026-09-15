@@ -9,7 +9,7 @@ import { getNutrientId, nutrientCatalog } from '~~/server/utils/nutrition/nutrie
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { perDefaultOf } from '~~/server/utils/nutrition/perDefault'
 import { escapeLike } from '~~/server/utils/nutrition/postgresSearch'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 const listQuerySchema = z.object({
   q: z.string().trim().max(255).optional(),

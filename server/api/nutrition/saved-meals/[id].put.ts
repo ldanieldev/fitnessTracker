@@ -6,7 +6,7 @@ import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { type PreparedIngredient, resolveIngredientGrams } from '~~/server/utils/nutrition/recipeInput'
 import { loadSavedMeal } from '~~/server/utils/nutrition/savedMeal'
 import { savedMealSchema } from '~~/server/utils/nutrition/savedMealInput'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

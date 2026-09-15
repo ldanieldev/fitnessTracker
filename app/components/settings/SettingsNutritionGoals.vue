@@ -171,12 +171,12 @@ async function submit() {
   saving.value = true
   try {
     if (editing.value) {
-      await $fetch(`/api/nutrition/goal-profiles/${editing.value.id}`, { method: 'PUT', body })
+      await apiFetch(`/api/nutrition/goal-profiles/${editing.value.id}`, { method: 'PUT', body })
     } else {
-      await $fetch('/api/nutrition/goal-profiles', { method: 'POST', body })
+      await apiFetch('/api/nutrition/goal-profiles', { method: 'POST', body })
     }
     modalOpen.value = false
-    await invalidateNutrition(NUTRITION_KEYS.profiles)
+    await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
   } catch (error: unknown) {
     toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save goal profile'), color: 'error' })
   } finally {
@@ -186,7 +186,7 @@ async function submit() {
 
 async function setDefault(profile: Profile) {
   try {
-    await $fetch(`/api/nutrition/goal-profiles/${profile.id}`, {
+    await apiFetch(`/api/nutrition/goal-profiles/${profile.id}`, {
       method: 'PUT',
       body: {
         name: profile.name,
@@ -204,7 +204,7 @@ async function setDefault(profile: Profile) {
   } catch (error: unknown) {
     toast.add({ title: 'Set default failed', description: errorMessage(error, 'Could not set default profile'), color: 'error' })
   } finally {
-    await invalidateNutrition(NUTRITION_KEYS.profiles)
+    await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
   }
 }
 
@@ -219,12 +219,12 @@ const deleteModalOpen = computed({
 async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
-    await $fetch(`/api/nutrition/goal-profiles/${deleteTarget.value.id}`, { method: 'DELETE' })
+    await apiFetch(`/api/nutrition/goal-profiles/${deleteTarget.value.id}`, { method: 'DELETE' })
   } catch (error: unknown) {
     toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete goal profile'), color: 'error' })
   } finally {
     deleteTarget.value = null
-    await invalidateNutrition(NUTRITION_KEYS.profiles)
+    await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
   }
 }
 </script>

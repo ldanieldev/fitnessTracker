@@ -23,7 +23,7 @@ async function apply() {
   if (!canApply.value || applying.value) return
   applying.value = true
   try {
-    await $fetch(`/api/nutrition/diary/${props.date}/goal`, { method: 'PUT', body: { profileId: selected.value } })
+    await apiFetch(`/api/nutrition/diary/${props.date}/goal`, { method: 'PUT', body: { profileId: selected.value } })
     await invalidateNutrition(NUTRITION_KEYS.day(props.date))
   } catch (error: unknown) {
     toast.add({ title: 'Apply failed', description: errorMessage(error, 'Could not apply this goal profile'), color: 'error' })

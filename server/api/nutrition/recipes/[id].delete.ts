@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { recipes } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { loadRecipe } from '~~/server/utils/nutrition/recipeTotals'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

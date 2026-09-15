@@ -11,9 +11,7 @@ export function useDaySummary(date: MaybeRefOrGetter<string>, opts: { immediate?
 
   const goalName = computed(() => {
     const id = day.value?.goalProfileId
-    if (id == null) {
-      return day.value?.persisted === false ? profiles.value?.find((p) => p.isDefault)?.name ?? null : null
-    }
+    if (id == null) return profiles.value?.find((p) => p.isDefault)?.name ?? null
     return profiles.value?.find((p) => p.id === id)?.name ?? 'Deleted profile'
   })
 

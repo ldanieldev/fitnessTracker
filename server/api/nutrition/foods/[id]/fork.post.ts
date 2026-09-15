@@ -3,7 +3,7 @@ import { foodNutrients, foods, foodServings } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { loadFood } from '~~/server/utils/nutrition/loadFood'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

@@ -38,7 +38,7 @@ async function toggleExpand(meal: MealRow) {
   expanded.add(meal.id)
   if (items.has(meal.id)) return
   try {
-    const detail = await $fetch<{ items: MealItem[] }>(`/api/nutrition/saved-meals/${meal.id}`)
+    const detail = await apiFetch<{ items: MealItem[] }>(`/api/nutrition/saved-meals/${meal.id}`)
     items.set(meal.id, detail.items)
   } catch (error: unknown) {
     expanded.delete(meal.id)

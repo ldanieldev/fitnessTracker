@@ -1,7 +1,7 @@
 import { db } from '~~/server/utils/db'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { createSavedMeal, savedMealSchema } from '~~/server/utils/nutrition/savedMealInput'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

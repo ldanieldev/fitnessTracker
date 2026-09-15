@@ -1,6 +1,7 @@
 import { eq, getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
+import { requireSessionUser } from '~~/server/utils/session'
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).optional(),
@@ -12,17 +13,14 @@ const updateProfileSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  const sessionUser = await requireSessionUser(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (Number.isNaN(id) || id === 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid user ID' })
   }
 
-  if (session.user.id !== id) {
+  if (sessionUser.id !== id) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
@@ -38,7 +36,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check email uniqueness if changed
-  if (parsed.data.email !== undefined && parsed.data.email !== session.user.email) {
+  if (parsed.data.email !== undefined && parsed.data.email !== sessionUser.email) {
     const existing = await db
       .select({ id: users.id })
       .from(users)

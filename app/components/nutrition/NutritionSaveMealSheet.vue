@@ -48,7 +48,7 @@ async function submit() {
 
   let result: { id: number, skippedQuickAdds: number, flattenedRecipes: number }
   try {
-    result = await $fetch(path, { method: 'POST', body })
+    result = await apiFetch<{ id: number, skippedQuickAdds: number, flattenedRecipes: number }>(path, { method: 'POST', body })
     await invalidateNutrition(props.kind === 'recipe' ? NUTRITION_KEYS.recipes : NUTRITION_KEYS.savedMeals)
   } catch (error: unknown) {
     toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this meal'), color: 'error' })

@@ -13,7 +13,7 @@ import {
   type SearchCandidateRef
 } from '~~/server/utils/nutrition/searchProvider'
 import { rerank, type SearchCandidate } from '~~/server/utils/nutrition/searchRank'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 import { energyDensity } from '~~/shared/utils/nutritionDerive'
 
 const CANDIDATE_POOL_LIMIT = 100

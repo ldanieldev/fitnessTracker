@@ -3,7 +3,7 @@ import { describeLines } from '~~/server/utils/nutrition/libraryLines'
 import { keyNutrients } from '~~/shared/utils/nutritionKeyed'
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { computeRecipeNutrition, loadRecipe } from '~~/server/utils/nutrition/recipeTotals'
-import { requireUserId } from '~~/server/utils/nutrition/session'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
