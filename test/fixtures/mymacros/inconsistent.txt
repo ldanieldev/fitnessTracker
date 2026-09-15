@@ -1,0 +1,34 @@
+tester's Daily Meals - 09-07-2026
+
+-----------
+Meal 1
+-----------
+Totals
+Protein: 15.00
+Carbs: 86.00
+Fat: 3.00
+Calories: 430.00
+
+Sourdough Bread
+Serving Size: 50.00 Grams
+Total Calories: 130.00
+Protein: 5.00
+Carbs: 26.00
+Total Fat: 1.0
+
+Sourdough Bread
+Serving Size: 100.00 Grams
+Total Calories: 300.00
+Protein: 10.00
+Carbs: 60.00
+Total Fat: 2.0
+
+
+---------------
+Daily Totals
+---------------
+Protein: 15.00
+Carbs: 86.00
+Fat: 3.00
+Calories: 440.00
+

@@ -3,4 +3,48 @@
 
 @theme static {
   --font-sans: 'Public Sans', sans-serif;
+  --color-protein: var(--macro-protein);
+  --color-carb: var(--macro-carb);
+  --color-fat: var(--macro-fat);
+  --color-macro-other: var(--macro-other);
+}
+
+:root {
+  --ui-bg: #f6f7f9;
+  --ui-bg-elevated: #ffffff;
+  --ui-bg-accented: #eef0f4;
+  --ui-border: #e2e5ea;
+  --ui-border-accented: #d5d9e0;
+  --ui-text: #111318;
+  --ui-text-highlighted: #000000;
+  --ui-text-dimmed: #5b6270;
+  --ui-text-muted: #6b7280;
+  --ui-radius: 0.25rem;
+  --macro-protein: #16a34a;
+  --macro-carb: #d97706;
+  --macro-fat: #9333ea;
+  --macro-other: #64748b;
+}
+
+.dark {
+  --ui-bg: #0e1015;
+  --ui-bg-muted: #13161c;
+  --ui-bg-elevated: #171a21;
+  --ui-bg-accented: #1f232c;
+  --ui-border: #262b35;
+  --ui-border-muted: #262b35;
+  --ui-border-accented: #303645;
+  --ui-text: #e8eaf0;
+  --ui-text-highlighted: #ffffff;
+  --ui-text-dimmed: #8b93a4;
+  --ui-text-muted: #a0a7b6;
+  --ui-text-toned: #c2c7d2;
+  --macro-protein: #22c55e;
+  --macro-carb: #f59e0b;
+  --macro-fat: #a855f7;
+  --macro-other: #64748b;
+}
+
+body {
+  font-variant-numeric: tabular-nums;
 }

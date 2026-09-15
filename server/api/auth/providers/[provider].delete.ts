@@ -1,11 +1,9 @@
 import { and, eq } from 'drizzle-orm'
 import { authProviders } from '~~/server/db/schema'
+import { requireSessionUser } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  const sessionUser = await requireSessionUser(event)
 
   const provider = getRouterParam(event, 'provider')
   if (!provider || !['credentials', 'github', 'google'].includes(provider)) {
@@ -16,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const allProviders = await db
     .select({ provider: authProviders.provider })
     .from(authProviders)
-    .where(eq(authProviders.userId, session.user.id))
+    .where(eq(authProviders.userId, sessionUser.id))
 
   if (allProviders.length <= 1) {
     throw createError({
@@ -29,7 +27,7 @@ export default defineEventHandler(async (event) => {
     .delete(authProviders)
     .where(
       and(
-        eq(authProviders.userId, session.user.id),
+        eq(authProviders.userId, sessionUser.id),
         eq(authProviders.provider, provider)
       )
     )

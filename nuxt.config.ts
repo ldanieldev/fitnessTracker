@@ -32,13 +32,51 @@ export default defineNuxtConfig({
     'nuxt-auth-utils'
   ],
 
+  $development: {
+    runtimeConfig: {
+      session: {
+        cookie: {
+          // Browsers only exempt localhost from the Secure attribute, so a LAN-IP dev host drops the session cookie.
+          secure: false
+        }
+      }
+    },
+    vite: {
+      server: {
+        allowedHosts: true
+      }
+    }
+  },
+
   devtools: {
     enabled: true
   },
 
   css: ['~/assets/css/main.css'],
 
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark'
+  },
+
   runtimeConfig: {
+    meili: {
+      host: process.env.NUXT_MEILI_HOST ?? '',
+      apiKey: process.env.NUXT_MEILI_API_KEY ?? ''
+    },
+    off: {
+      userAgent: process.env.NUXT_OFF_USER_AGENT ?? '',
+      productUrl: process.env.NUXT_OFF_PRODUCT_URL ?? 'https://world.openfoodfacts.org/api/v2/product',
+      searchUrl: process.env.NUXT_OFF_SEARCH_URL ?? 'https://search.openfoodfacts.org/search'
+    },
+    usda: {
+      apiKey: process.env.NUXT_USDA_API_KEY ?? ''
+    },
+    fatsecret: {
+      clientId: process.env.NUXT_FATSECRET_CLIENT_ID ?? '',
+      clientSecret: process.env.NUXT_FATSECRET_CLIENT_SECRET ?? '',
+      scope: process.env.NUXT_FATSECRET_SCOPE ?? 'basic'
+    },
     oauth: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID,

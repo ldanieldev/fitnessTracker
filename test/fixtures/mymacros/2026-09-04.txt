@@ -1,0 +1,137 @@
+tester's Daily Meals - 09-04-2026
+
+-----------
+Meal 1
+-----------
+Totals
+Protein: 35.23
+Carbs: 38.76
+Fat: 18.80
+Calories: 465.50
+
+Sourdough Bread
+Serving Size: 63.00 Grams
+Total Calories: 163.80
+Protein: 6.30
+Carbs: 32.76
+Total Fat: 1.26
+
+Smoked Ham
+Serving Size: 44.00 Grams
+Total Calories: 65.19
+Protein: 7.33
+Carbs: 2.44
+Total Fat: 2.4444444
+
+Large Egg
+Serving Size: 3.00 egg
+Total Calories: 207.00
+Protein: 18.00
+Carbs: 0.00
+Total Fat: 15.0
+
+Large Egg White
+Serving Size: 1.00 egg
+Total Calories: 16.10
+Protein: 3.60
+Carbs: 0.20
+Total Fat: 0.1
+
+Onion Seasoning Mix
+Serving Size: 53.00 Grams 
+Total Calories: 13.42
+Protein: 0.00
+Carbs: 3.35
+Total Fat: 0.0
+
+
+-----------
+Meal 2
+-----------
+Totals
+Protein: 55.80
+Carbs: 42.84
+Fat: 0.00
+Calories: 411.20
+
+Jerk Chicken 
+Serving Size: 1.00 Serving
+Total Calories: 239.20
+Protein: 52.80
+Carbs: 2.84
+Total Fat: 0.0
+
+Jasmine Rice (dry)
+Serving Size: 50.00 Grams
+Total Calories: 172.00
+Protein: 3.00
+Carbs: 40.00
+Total Fat: 0.0
+
+
+-----------
+Meal 3
+-----------
+Totals
+Protein: 25.19
+Carbs: 35.53
+Fat: 7.46
+Calories: 305.22
+
+Oreo Protein Ice cream 
+Serving Size: 1.00 Pint
+Total Calories: 305.22
+Protein: 25.19
+Carbs: 35.53
+Total Fat: 7.4574165
+
+
+----------
+Snack
+----------
+Totals
+Protein: 3.00
+Carbs: 75.00
+Fat: 21.00
+Calories: 480.00
+
+Oreo
+Serving Size: 9.00 Cookie
+Total Calories: 480.00
+Protein: 3.00
+Carbs: 75.00
+Total Fat: 21.0
+
+
+-----------
+Meal 4
+-----------
+Totals
+Protein: 55.80
+Carbs: 42.84
+Fat: 0.00
+Calories: 411.20
+
+Jerk Chicken 
+Serving Size: 1.00 Serving
+Total Calories: 239.20
+Protein: 52.80
+Carbs: 2.84
+Total Fat: 0.0
+
+Jasmine Rice (dry)
+Serving Size: 50.00 Grams
+Total Calories: 172.00
+Protein: 3.00
+Carbs: 40.00
+Total Fat: 0.0
+
+
+---------------
+Daily Totals
+---------------
+Protein: 175.03
+Carbs: 234.97
+Fat: 47.26
+Calories: 2073.12
+

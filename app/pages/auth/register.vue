@@ -33,6 +33,7 @@ const fields = [
     label: 'Sex',
     placeholder: 'Select your sex',
     required: true,
+    valueKey: 'value',
     items: [
       { label: 'Male', value: 'm' },
       { label: 'Female', value: 'f' }
@@ -94,7 +95,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
     const { confirmPassword, ...data } = payload.data
-    await $fetch('/api/auth/register', {
+    await apiFetch('/api/auth/register', {
       method: 'POST',
       body: data
     })

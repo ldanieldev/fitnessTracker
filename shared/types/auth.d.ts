@@ -6,6 +6,7 @@ declare module '#auth-utils' {
     avatar_url: string | null
     age: number
     sex: string | null
+    weekStart: 0 | 1
   }
 }
 

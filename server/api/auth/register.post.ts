@@ -1,6 +1,7 @@
 import { eq, getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { users, authProviders } from '~~/server/db/schema'
+import { seedContainersForUser } from '~~/server/db/seed/nutrition'
 
 const registerSchema = z.object({
   name: z.string().min(1),
@@ -66,7 +67,8 @@ export default defineEventHandler(async (event) => {
           name: user.name,
           avatar_url: user.avatarUrl,
           age: user.age,
-          sex: user.sex
+          sex: user.sex,
+          weekStart: user.weekStart as 0 | 1
         }
       })
 
@@ -92,7 +94,8 @@ export default defineEventHandler(async (event) => {
     .returning(userColumns)
     .then((r) => r[0]!)
 
-  // Link credentials provider
+  await seedContainersForUser(user.id)
+
   await db.insert(authProviders).values({
     userId: user.id,
     provider: 'credentials',
@@ -106,7 +109,8 @@ export default defineEventHandler(async (event) => {
       name: user.name,
       avatar_url: user.avatarUrl,
       age: user.age,
-      sex: user.sex
+      sex: user.sex,
+      weekStart: user.weekStart as 0 | 1
     }
   })
 

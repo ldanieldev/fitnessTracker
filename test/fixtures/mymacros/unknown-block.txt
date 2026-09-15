@@ -1,0 +1,30 @@
+tester's Daily Meals - 09-06-2026
+
+-----------
+Meal 1
+-----------
+Totals
+Protein: 6.00
+Carbs: 0.00
+Fat: 5.00
+Calories: 69.00
+
+Large Egg
+Serving Size: 1.00 egg
+Total Calories: 69.00
+Protein: 6.00
+Carbs: 0.00
+Total Fat: 5.0
+
+Water
+Notes: keep hydrated
+
+
+---------------
+Daily Totals
+---------------
+Protein: 6.00
+Carbs: 0.00
+Fat: 5.00
+Calories: 69.00
+

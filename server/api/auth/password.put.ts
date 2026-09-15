@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users, authProviders } from '~~/server/db/schema'
+import { requireSessionUser } from '~~/server/utils/session'
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().optional(),
@@ -8,10 +9,7 @@ const changePasswordSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  const sessionUser = await requireSessionUser(event)
 
   const body = await readBody(event)
   const parsed = changePasswordSchema.safeParse(body)
@@ -27,7 +25,7 @@ export default defineEventHandler(async (event) => {
   const user = await db
     .select({ id: users.id, password: users.password })
     .from(users)
-    .where(eq(users.id, session.user.id))
+    .where(eq(users.id, sessionUser.id))
     .limit(1)
     .then((r) => r[0]!)
 
@@ -46,7 +44,7 @@ export default defineEventHandler(async (event) => {
   await db
     .update(users)
     .set({ password: hashedPassword })
-    .where(eq(users.id, session.user.id))
+    .where(eq(users.id, sessionUser.id))
 
   // If user didn't have credentials provider, add it
   if (!user.password) {
@@ -55,7 +53,7 @@ export default defineEventHandler(async (event) => {
       .from(authProviders)
       .where(
         and(
-          eq(authProviders.userId, session.user.id),
+          eq(authProviders.userId, sessionUser.id),
           eq(authProviders.provider, 'credentials')
         )
       )
@@ -63,9 +61,9 @@ export default defineEventHandler(async (event) => {
 
     if (!hasCredentials.length) {
       await db.insert(authProviders).values({
-        userId: session.user.id,
+        userId: sessionUser.id,
         provider: 'credentials',
-        providerAccountId: session.user.email
+        providerAccountId: sessionUser.email
       })
     }
   }

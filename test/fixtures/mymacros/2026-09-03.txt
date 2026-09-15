@@ -1,0 +1,123 @@
+tester's Daily Meals - 09-03-2026
+
+-----------
+Meal 1
+-----------
+Totals
+Protein: 32.36
+Carbs: 49.34
+Fat: 7.47
+Calories: 373.43
+
+Silk Vanilla Almond Milk
+Serving Size: 12.00 Ounces
+Total Calories: 39.75
+Protein: 1.50
+Carbs: 0.00
+Total Fat: 3.75
+
+Impact Whey Chocolate Smooth
+Serving Size: 40.00 Grams
+Total Calories: 160.00
+Protein: 28.80
+Carbs: 4.80
+Total Fat: 3.1999998
+
+Banana
+Serving Size: 195.00 Gram
+Total Calories: 173.68
+Protein: 2.06
+Carbs: 44.54
+Total Fat: 0.51675
+
+
+-----------
+Meal 2
+-----------
+Totals
+Protein: 74.00
+Carbs: 50.00
+Fat: 15.50
+Calories: 641.00
+
+Garlic Parm Chicken & Spicy Marinara
+Serving Size: 1.00 Serving
+Total Calories: 531.00
+Protein: 54.00
+Carbs: 45.00
+Total Fat: 15.0
+
+Slate, Mocha Latte
+Serving Size: 1.00 Serving
+Total Calories: 110.00
+Protein: 20.00
+Carbs: 5.00
+Total Fat: 0.5
+
+
+-----------
+Meal 3
+-----------
+Totals
+Protein: 55.80
+Carbs: 42.84
+Fat: 0.00
+Calories: 411.20
+
+Jerk Chicken 
+Serving Size: 1.00 Serving
+Total Calories: 239.20
+Protein: 52.80
+Carbs: 2.84
+Total Fat: 0.0
+
+Jasmine Rice (dry)
+Serving Size: 50.00 Grams
+Total Calories: 172.00
+Protein: 3.00
+Carbs: 40.00
+Total Fat: 0.0
+
+
+----------
+Snack
+----------
+Totals
+Protein: 1.60
+Carbs: 23.20
+Fat: 8.80
+Calories: 176.00
+
+Brownie
+Serving Size: 40.00 G
+Total Calories: 176.00
+Protein: 1.60
+Carbs: 23.20
+Total Fat: 8.8
+
+
+-----------
+Meal 4
+-----------
+Totals
+Protein: 10.18
+Carbs: 11.64
+Fat: 23.27
+Calories: 296.70
+
+Creamy peanut butter spread, creamy
+Serving Size: 48.00 Grams
+Total Calories: 296.70
+Protein: 10.18
+Carbs: 11.64
+Total Fat: 23.270401
+
+
+---------------
+Daily Totals
+---------------
+Protein: 173.94
+Carbs: 177.01
+Fat: 55.04
+Calories: 1898.33
+

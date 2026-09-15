@@ -23,6 +23,82 @@ table app.body_parts {
   }
 }
 
+table app.diary_day_targets {
+  day_id integer [not null]
+  nutrient_id integer [not null]
+  amount numeric [not null]
+  direction varchar [not null]
+
+  indexes {
+    (day_id, nutrient_id) [pk]
+  }
+}
+
+table app.diary_days {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  date date [not null]
+  notes text [default: `null`]
+  goal_profile_id integer [default: `null`]
+
+  indexes {
+    (user_id, date) [name: 'diary_day_user_date_unique', unique]
+  }
+}
+
+table app.diary_entries {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  day_id integer [not null]
+  container_id integer [not null]
+  sort_order integer [not null]
+  logged_at timestamp [not null, default: `now()`]
+  entry_type varchar [not null]
+  food_id integer [default: `null`]
+  food_serving_id integer [default: `null`]
+  recipe_id integer [default: `null`]
+  quantity numeric [not null]
+  unit_label varchar(64) [not null]
+  grams_resolved numeric [default: `null`]
+  description varchar(255) [default: `null`]
+  brand_snapshot varchar(255) [default: `null`]
+  ingredient_snapshot jsonb [default: `null`]
+  notes text [default: `null`]
+  import_key varchar(64) [default: `null`]
+
+  indexes {
+    
+    (day_id, container_id, sort_order) [name: 'diary_entry_day_container_order']
+    import_key [name: 'diary_entry_import_key_unique', unique]
+  }
+}
+
+table app.diary_entry_nutrients {
+  entry_id integer [not null]
+  nutrient_id integer [not null]
+  amount numeric [not null]
+
+  indexes {
+    (entry_id, nutrient_id) [pk]
+  }
+}
+
+table app.diary_meal_times {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  day_id integer [not null]
+  container_id integer [not null]
+  time varchar(5) [not null]
+
+  indexes {
+    (day_id, container_id) [name: 'diary_meal_time_day_container_unique', unique]
+  }
+}
+
 table app.equipment {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -81,6 +157,153 @@ table app.exercises {
   }
 }
 
+table app.food_favorites {
+  user_id integer [not null]
+  food_id integer [not null]
+
+  indexes {
+    (user_id, food_id) [pk]
+  }
+}
+
+table app.food_nutrients {
+  food_serving_id integer [not null]
+  nutrient_id integer [not null]
+  amount numeric [not null]
+
+  indexes {
+    (food_serving_id, nutrient_id) [pk]
+  }
+}
+
+table app.food_servings {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  food_id integer [not null]
+  kind varchar [not null]
+  label varchar(64) [not null]
+  quantity numeric [not null, default: '1']
+  basis_grams numeric [default: `null`]
+  has_own_nutrition boolean [not null]
+  origin varchar [not null]
+  user_modified boolean [not null, default: false]
+  sort_order integer [not null, default: 0]
+  deleted_at timestamp [default: `null`]
+
+  indexes {
+    food_id [name: 'food_one_weight_serving', unique]
+    
+    
+    
+    
+  }
+}
+
+table app.food_sources {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  key varchar [not null]
+  name varchar(255) [not null]
+  license_notice text [default: `null`]
+  attribution_required boolean [not null, default: false]
+  persistable boolean [not null, default: true]
+
+  indexes {
+    key [name: 'food_source_key_unique', unique]
+  }
+}
+
+table app.food_usage_stats {
+  user_id integer [not null]
+  food_id integer [not null]
+  log_count integer [not null, default: 0]
+  last_logged_at timestamp [not null]
+  hidden_at timestamp
+
+  indexes {
+    (user_id, food_id) [pk]
+  }
+}
+
+table app.foods {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  name varchar(255) [not null]
+  brand varchar(255) [default: `null`]
+  created_by_user_id integer [default: `null`]
+  source_id integer [default: `null`]
+  external_id varchar(255) [default: `null`]
+  barcode varchar(64) [default: `null`]
+  forked_from_food_id integer [default: `null`]
+  is_verified boolean [not null, default: false]
+  deleted_at timestamp [default: `null`]
+
+  indexes {
+    barcode [name: 'food_catalog_barcode_unique', unique]
+    (source_id, external_id) [name: 'food_catalog_external_unique', unique]
+    (created_by_user_id, source_id, external_id) [name: 'food_owned_external_unique', unique]
+    (created_by_user_id, deleted_at) [name: 'food_owner_live']
+  }
+}
+
+table app.goal_profile_targets {
+  profile_id integer [not null]
+  nutrient_id integer [not null]
+  amount numeric [not null]
+  direction varchar [not null]
+  ratio_percent numeric [default: `null`]
+
+  indexes {
+    (profile_id, nutrient_id) [pk]
+  }
+}
+
+table app.goal_profiles {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  name varchar(255) [not null]
+  input_mode varchar [not null]
+  calories numeric [default: `null`]
+  is_default boolean [not null, default: false]
+  deleted_at timestamp [default: `null`]
+
+  indexes {
+    user_id [name: 'goal_profile_one_default', unique]
+  }
+}
+
+table app.import_jobs {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  source varchar [not null]
+  status varchar [not null, default: 'queued']
+  file_count integer [not null]
+  payload jsonb [not null]
+  result jsonb [default: `null`]
+  error text [default: `null`]
+}
+
+table app.meal_containers {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  name varchar(64) [not null]
+  sort_order integer [not null]
+  is_archived boolean [not null, default: false]
+
+  indexes {
+    (user_id, name) [name: 'meal_container_user_name_unique', unique]
+  }
+}
+
 table app.muscles {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -90,6 +313,22 @@ table app.muscles {
 
   indexes {
     name [name: 'muscle_name', unique]
+  }
+}
+
+table app.nutrients {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  key varchar(64) [not null]
+  name varchar(255) [not null]
+  unit varchar [not null]
+  is_macro boolean [not null, default: false]
+  default_direction varchar [not null, default: 'target']
+  sort_order integer [not null]
+
+  indexes {
+    key [name: 'nutrient_key_unique', unique]
   }
 }
 
@@ -127,6 +366,68 @@ table app.programs {
   created_by_user_id integer [default: `null`]
 }
 
+table app.recipe_ingredients {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  recipe_id integer [not null]
+  food_id integer [not null]
+  food_serving_id integer [not null]
+  quantity numeric [not null]
+  unit_label varchar(64) [not null]
+  grams_resolved numeric [default: `null`]
+  sort_order integer [not null]
+}
+
+table app.recipes {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  name varchar(255) [not null]
+  servings numeric [not null]
+  serving_name varchar(64) [not null]
+  finished_weight_g numeric [default: `null`]
+  notes text [default: `null`]
+  deleted_at timestamp [default: `null`]
+}
+
+table app.saved_meal_items {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  saved_meal_id integer [not null]
+  food_id integer [not null]
+  food_serving_id integer [not null]
+  quantity numeric [not null]
+  unit_label varchar(64) [not null]
+  grams_resolved numeric [default: `null`]
+  sort_order integer [not null]
+}
+
+table app.saved_meals {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  name varchar(255) [not null]
+  deleted_at timestamp [default: `null`]
+}
+
+table app.search_outbox {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  entity varchar(32) [not null]
+  entity_id integer [not null]
+  op varchar [not null]
+  processed_at timestamp [default: `null`]
+
+  indexes {
+    id [name: 'search_outbox_pending']
+  }
+}
+
 table app.user_program_enrollments {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -152,6 +453,16 @@ table app.user_program_workout_completions {
   }
 }
 
+table app.user_tracked_nutrients {
+  user_id integer [not null]
+  nutrient_id integer [not null]
+  sort_order integer [not null]
+
+  indexes {
+    (user_id, nutrient_id) [pk]
+  }
+}
+
 table app.users {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -163,9 +474,11 @@ table app.users {
   avatar_url varchar(255) [default: `null`]
   is_active boolean [default: true]
   password varchar(255)
+  week_start smallint [not null, default: 1]
 
   indexes {
     email [name: 'users_email_unique', unique]
+    
   }
 }
 
@@ -233,6 +546,32 @@ table app.workout_templates {
 
 ref auth_providers_user_id_users_id_fk: app.auth_providers.user_id > app.users.id [delete: cascade, update: no action]
 
+ref diary_day_targets_day_id_diary_days_id_fk: app.diary_day_targets.day_id > app.diary_days.id [delete: cascade, update: no action]
+
+ref diary_day_targets_nutrient_id_nutrients_id_fk: app.diary_day_targets.nutrient_id > app.nutrients.id [delete: no action, update: no action]
+
+ref diary_days_user_id_users_id_fk: app.diary_days.user_id > app.users.id [delete: cascade, update: no action]
+
+ref diary_days_goal_profile_id_goal_profiles_id_fk: app.diary_days.goal_profile_id > app.goal_profiles.id [delete: set null, update: no action]
+
+ref diary_entries_day_id_diary_days_id_fk: app.diary_entries.day_id > app.diary_days.id [delete: cascade, update: no action]
+
+ref diary_entries_container_id_meal_containers_id_fk: app.diary_entries.container_id > app.meal_containers.id [delete: restrict, update: no action]
+
+ref diary_entries_food_id_foods_id_fk: app.diary_entries.food_id > app.foods.id [delete: no action, update: no action]
+
+ref diary_entries_food_serving_id_food_servings_id_fk: app.diary_entries.food_serving_id > app.food_servings.id [delete: no action, update: no action]
+
+ref diary_entries_recipe_id_recipes_id_fk: app.diary_entries.recipe_id > app.recipes.id [delete: no action, update: no action]
+
+ref diary_entry_nutrients_entry_id_diary_entries_id_fk: app.diary_entry_nutrients.entry_id > app.diary_entries.id [delete: cascade, update: no action]
+
+ref diary_entry_nutrients_nutrient_id_nutrients_id_fk: app.diary_entry_nutrients.nutrient_id > app.nutrients.id [delete: no action, update: no action]
+
+ref diary_meal_times_day_id_diary_days_id_fk: app.diary_meal_times.day_id > app.diary_days.id [delete: cascade, update: no action]
+
+ref diary_meal_times_container_id_meal_containers_id_fk: app.diary_meal_times.container_id > app.meal_containers.id [delete: cascade, update: no action]
+
 ref exercise_equipment_exercise_id_exercises_id_fk: app.exercise_equipment.exercise_id > app.exercises.id [delete: cascade, update: no action]
 
 ref exercise_equipment_equipment_id_equipment_id_fk: app.exercise_equipment.equipment_id > app.equipment.id [delete: cascade, update: no action]
@@ -245,6 +584,36 @@ ref exercises_exercise_type_id_exercise_types_id_fk: app.exercises.exercise_type
 
 ref exercises_created_by_user_id_users_id_fk: app.exercises.created_by_user_id > app.users.id [delete: cascade, update: no action]
 
+ref food_favorites_user_id_users_id_fk: app.food_favorites.user_id > app.users.id [delete: cascade, update: no action]
+
+ref food_favorites_food_id_foods_id_fk: app.food_favorites.food_id > app.foods.id [delete: cascade, update: no action]
+
+ref food_nutrients_food_serving_id_food_servings_id_fk: app.food_nutrients.food_serving_id > app.food_servings.id [delete: cascade, update: no action]
+
+ref food_nutrients_nutrient_id_nutrients_id_fk: app.food_nutrients.nutrient_id > app.nutrients.id [delete: no action, update: no action]
+
+ref food_servings_food_id_foods_id_fk: app.food_servings.food_id > app.foods.id [delete: cascade, update: no action]
+
+ref food_usage_stats_user_id_users_id_fk: app.food_usage_stats.user_id > app.users.id [delete: cascade, update: no action]
+
+ref food_usage_stats_food_id_foods_id_fk: app.food_usage_stats.food_id > app.foods.id [delete: cascade, update: no action]
+
+ref foods_created_by_user_id_users_id_fk: app.foods.created_by_user_id > app.users.id [delete: cascade, update: no action]
+
+ref foods_source_id_food_sources_id_fk: app.foods.source_id > app.food_sources.id [delete: no action, update: no action]
+
+ref foods_forked_from_food_id_foods_id_fk: app.foods.forked_from_food_id > app.foods.id [delete: no action, update: no action]
+
+ref goal_profile_targets_profile_id_goal_profiles_id_fk: app.goal_profile_targets.profile_id > app.goal_profiles.id [delete: cascade, update: no action]
+
+ref goal_profile_targets_nutrient_id_nutrients_id_fk: app.goal_profile_targets.nutrient_id > app.nutrients.id [delete: no action, update: no action]
+
+ref goal_profiles_user_id_users_id_fk: app.goal_profiles.user_id > app.users.id [delete: cascade, update: no action]
+
+ref import_jobs_user_id_users_id_fk: app.import_jobs.user_id > app.users.id [delete: cascade, update: no action]
+
+ref meal_containers_user_id_users_id_fk: app.meal_containers.user_id > app.users.id [delete: cascade, update: no action]
+
 ref muscles_body_part_id_body_parts_id_fk: app.muscles.body_part_id > app.body_parts.id [delete: cascade, update: no action]
 
 ref program_phases_program_id_programs_id_fk: app.program_phases.program_id > app.programs.id [delete: cascade, update: no action]
@@ -255,6 +624,22 @@ ref program_workouts_template_id_workout_templates_id_fk: app.program_workouts.t
 
 ref programs_created_by_user_id_users_id_fk: app.programs.created_by_user_id > app.users.id [delete: cascade, update: no action]
 
+ref recipe_ingredients_recipe_id_recipes_id_fk: app.recipe_ingredients.recipe_id > app.recipes.id [delete: cascade, update: no action]
+
+ref recipe_ingredients_food_id_foods_id_fk: app.recipe_ingredients.food_id > app.foods.id [delete: no action, update: no action]
+
+ref recipe_ingredients_food_serving_id_food_servings_id_fk: app.recipe_ingredients.food_serving_id > app.food_servings.id [delete: no action, update: no action]
+
+ref recipes_user_id_users_id_fk: app.recipes.user_id > app.users.id [delete: cascade, update: no action]
+
+ref saved_meal_items_saved_meal_id_saved_meals_id_fk: app.saved_meal_items.saved_meal_id > app.saved_meals.id [delete: cascade, update: no action]
+
+ref saved_meal_items_food_id_foods_id_fk: app.saved_meal_items.food_id > app.foods.id [delete: no action, update: no action]
+
+ref saved_meal_items_food_serving_id_food_servings_id_fk: app.saved_meal_items.food_serving_id > app.food_servings.id [delete: no action, update: no action]
+
+ref saved_meals_user_id_users_id_fk: app.saved_meals.user_id > app.users.id [delete: cascade, update: no action]
+
 ref user_program_enrollments_user_id_users_id_fk: app.user_program_enrollments.user_id > app.users.id [delete: cascade, update: no action]
 
 ref user_program_enrollments_program_id_programs_id_fk: app.user_program_enrollments.program_id > app.programs.id [delete: cascade, update: no action]
@@ -264,6 +649,10 @@ ref user_program_workout_completions_enrollment_id_user_program_enrollments_id_f
 ref user_program_workout_completions_program_workout_id_program_workouts_id_fk: app.user_program_workout_completions.program_workout_id > app.program_workouts.id [delete: cascade, update: no action]
 
 ref user_program_workout_completions_session_id_workout_sessions_id_fk: app.user_program_workout_completions.session_id > app.workout_sessions.id [delete: set null, update: no action]
+
+ref user_tracked_nutrients_user_id_users_id_fk: app.user_tracked_nutrients.user_id > app.users.id [delete: cascade, update: no action]
+
+ref user_tracked_nutrients_nutrient_id_nutrients_id_fk: app.user_tracked_nutrients.nutrient_id > app.nutrients.id [delete: no action, update: no action]
 
 ref workout_entries_session_id_workout_sessions_id_fk: app.workout_entries.session_id > app.workout_sessions.id [delete: cascade, update: no action]
 

@@ -72,7 +72,7 @@ const loading = ref(false)
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
-    await $fetch('/api/auth/login', {
+    await apiFetch('/api/auth/login', {
       method: 'POST',
       body: payload.data
     })

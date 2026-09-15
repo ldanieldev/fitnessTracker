@@ -1,5 +1,5 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
-import { makeUser, registerViaApi, uniqueEmail } from './helpers'
+import { apiFetch, makeUser, registerViaApi, uniqueEmail } from './helpers'
 
 // Auth guard + credentials register/login/logout. No real OAuth provider, so these run unattended in CI.
 
@@ -7,6 +7,41 @@ test.describe('auth guard', () => {
   test('redirects an unauthenticated visit to a protected route to /auth/login', async ({ page, goto }) => {
     await goto('/', { waitUntil: 'hydration' })
     await expect(page).toHaveURL(/\/auth\/login/)
+  })
+})
+
+test.describe('stale session', () => {
+  test('a cookie outliving its user row 401s and lands on login, not a 500', async ({ page, goto }) => {
+    await goto('/', { waitUntil: 'hydration' })
+    await registerViaApi(page, makeUser())
+
+    // Deletes only the calling session's own user row — the one test-only exception to never deleting rows.
+    const del = await apiFetch(page, 'POST', '/api/nutrition/_test/delete-user')
+    expect(del.ok).toBe(true)
+
+    await goto('/diary/today', { waitUntil: 'hydration' })
+    await expect(page).toHaveURL(/\/auth\/login/)
+  })
+
+  test('a raw $fetch mutation on an already-open page 401s and lands on login, not just a toast', async ({ page, goto }) => {
+    await goto('/', { waitUntil: 'hydration' })
+    await registerViaApi(page, makeUser())
+
+    await goto('/diary/today', { waitUntil: 'hydration' })
+    await expect(page).toHaveURL(/\/diary\/\d{4}-\d{2}-\d{2}$/)
+
+    // Deletes only the calling session's own user row — the one test-only exception to never deleting rows.
+    const del = await apiFetch(page, 'POST', '/api/nutrition/_test/delete-user')
+    expect(del.ok).toBe(true)
+
+    // Day notes save is a raw $fetch call (not useNutritionFetch) — the page was already open before the row disappeared.
+    await page.locator('[data-test="day-menu"]').click()
+    await page.getByRole('menuitem', { name: 'Day notes' }).click()
+    await page.locator('[data-test="day-notes-input"]').fill('Should not save')
+    await page.locator('[data-test="day-notes-save"]').click()
+
+    await expect(page).toHaveURL(/\/auth\/login/)
+    await expect(page.getByText('Save failed', { exact: true })).toHaveCount(0)
   })
 })
 

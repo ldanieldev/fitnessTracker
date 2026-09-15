@@ -1,27 +1,26 @@
 import { eq, getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
+import { requireSessionUser } from '~~/server/utils/session'
 
 const updateProfileSchema = z.object({
-  name: z.string().min(1),
-  email: z.email(),
-  age: z.coerce.number().min(13).max(120),
+  name: z.string().min(1).optional(),
+  email: z.email().optional(),
+  age: z.coerce.number().min(13).max(120).optional(),
   sex: z.enum(['m', 'f']).optional(),
-  avatarUrl: z.string().url().optional().or(z.literal(''))
+  avatarUrl: z.string().url().optional().or(z.literal('')),
+  weekStart: z.union([z.literal(0), z.literal(1)]).optional()
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  const sessionUser = await requireSessionUser(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (Number.isNaN(id) || id === 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid user ID' })
   }
 
-  if (session.user.id !== id) {
+  if (sessionUser.id !== id) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
@@ -37,7 +36,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check email uniqueness if changed
-  if (parsed.data.email !== session.user.email) {
+  if (parsed.data.email !== undefined && parsed.data.email !== sessionUser.email) {
     const existing = await db
       .select({ id: users.id })
       .from(users)
@@ -59,7 +58,8 @@ export default defineEventHandler(async (event) => {
       email: parsed.data.email,
       age: parsed.data.age,
       sex: parsed.data.sex,
-      avatarUrl: parsed.data.avatarUrl || null
+      avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl || null : undefined,
+      weekStart: parsed.data.weekStart
     })
     .where(eq(users.id, id))
     .returning(userColumns)
@@ -73,7 +73,8 @@ export default defineEventHandler(async (event) => {
       name: user.name,
       avatar_url: user.avatarUrl,
       age: user.age,
-      sex: user.sex
+      sex: user.sex,
+      weekStart: user.weekStart as 0 | 1
     }
   })
 
