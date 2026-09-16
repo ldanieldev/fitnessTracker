@@ -30,7 +30,7 @@ function replace() {
 </script>
 
 <template>
-  <NutritionSheet v-model:open="open" :title="line?.name ?? 'Ingredient'">
+  <AppSheet v-model:open="open" :title="line?.name ?? 'Ingredient'">
     <template #body>
       <div class="flex flex-col gap-3">
         <NutritionAmountInput v-if="line?.food" v-model="draft" :food="line.food" />
@@ -42,5 +42,5 @@ function replace() {
         </div>
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

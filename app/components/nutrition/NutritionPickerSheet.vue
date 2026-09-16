@@ -20,7 +20,7 @@ function confirm() {
 </script>
 
 <template>
-  <NutritionSheet v-model:open="open" :title="title" fullscreen>
+  <AppSheet v-model:open="open" :title="title" fullscreen>
     <template #body>
       <NutritionFoodPicker ref="picker" v-model="picked" :multiple="multiple" />
     </template>
@@ -33,5 +33,5 @@ function confirm() {
         @click="confirm"
       />
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

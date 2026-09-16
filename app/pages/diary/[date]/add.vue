@@ -182,11 +182,11 @@ async function onQuickAdd(input: DiaryEntryInput) {
         @remove="(kind, id) => tray.remove(kind, id)"
       />
 
-      <NutritionSheet v-model:open="quickAddOpen" title="Quick add">
+      <AppSheet v-model:open="quickAddOpen" title="Quick add">
         <template #body>
           <LazyNutritionQuickAddForm :containers="containers ?? []" :default-container-id="containerId" @submit="onQuickAdd" />
         </template>
-      </NutritionSheet>
+      </AppSheet>
     </template>
   </UDashboardPanel>
 </template>

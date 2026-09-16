@@ -52,7 +52,7 @@ const selectedById = computed(() => new Map(props.selected.map((r) => [r.recipeI
           </ULink>
         </template>
         <template v-if="selectedById.has(row.id)" #default>
-          <NutritionNumberInput
+          <AppNumberInput
             :model-value="selectedById.get(row.id)!.servings"
             :min="0"
             :step="0.5"

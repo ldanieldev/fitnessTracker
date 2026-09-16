@@ -31,12 +31,12 @@ async function save() {
 </script>
 
 <template>
-  <NutritionSheet v-model:open="open" title="Day notes">
+  <AppSheet v-model:open="open" title="Day notes">
     <template #body>
       <div class="flex flex-col gap-3">
         <UTextarea v-model="text" :rows="5" :maxlength="5000" class="w-full" data-test="day-notes-input" />
         <UButton label="Save" block :loading="saving" :disabled="saving" data-test="day-notes-save" @click="save" />
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

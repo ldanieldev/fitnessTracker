@@ -31,7 +31,7 @@ async function save(value: string | null) {
 </script>
 
 <template>
-  <NutritionSheet v-model:open="open" title="Meal time">
+  <AppSheet v-model:open="open" title="Meal time">
     <template #body>
       <div class="flex flex-col gap-3">
         <UInput v-model="time" type="time" class="w-full" data-test="meal-time-input" />
@@ -48,5 +48,5 @@ async function save(value: string | null) {
         />
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

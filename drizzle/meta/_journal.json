@@ -15,6 +15,13 @@
       "when": 1789437981715,
       "tag": "0001_nutrition",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789538564629,
+      "tag": "0002_body_metrics",
+      "breakpoints": true
     }
   ]
 }

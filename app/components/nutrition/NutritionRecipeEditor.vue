@@ -124,7 +124,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
         </UFormField>
         <div class="grid grid-cols-2 gap-3">
           <UFormField label="Servings" required>
-            <NutritionNumberInput v-model="servings" :min="0" :step="0.5" class="w-full" data-test="recipe-servings" />
+            <AppNumberInput v-model="servings" :min="0" :step="0.5" class="w-full" data-test="recipe-servings" />
           </UFormField>
           <UFormField label="Serving name" required>
             <UInput v-model="servingName" class="w-full" data-test="recipe-serving-name" />
@@ -152,14 +152,14 @@ const menu = computed<DropdownMenuItem[][]>(() =>
       <NutritionPickerSheet v-model:open="pickerOpen" :multiple="replaceUid === null" :title="replaceUid ? 'Replace ingredient' : 'Add ingredients'" @confirm="onPicked" />
       <NutritionIngredientSheet v-model:open="sheetOpen" :line="editingLine" @update="onLineUpdate" @remove="onLineRemove" @replace="openPicker" />
 
-      <NutritionSheet v-model:open="deleteOpen" title="Delete recipe" :description="`Delete ${name}? Logged entries keep their numbers.`">
+      <AppSheet v-model:open="deleteOpen" title="Delete recipe" :description="`Delete ${name}? Logged entries keep their numbers.`">
         <template #footer>
           <div class="flex w-full justify-end gap-2">
             <UButton label="Cancel" color="neutral" variant="outline" @click="deleteOpen = false" />
             <UButton label="Delete" color="error" data-test="confirm-delete-recipe" @click="confirmDelete" />
           </div>
         </template>
-      </NutritionSheet>
+      </AppSheet>
     </template>
   </UDashboardPanel>
 </template>

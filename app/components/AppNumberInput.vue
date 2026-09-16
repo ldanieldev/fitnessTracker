@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { parseAmount } from '~/utils/nutrition/numberInput'
+import { parseAmount } from '~/utils/numberInput'
 
 defineOptions({ inheritAttrs: false })
 

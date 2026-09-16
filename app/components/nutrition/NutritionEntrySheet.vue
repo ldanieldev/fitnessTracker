@@ -55,7 +55,7 @@ function save() {
 </script>
 
 <template>
-  <NutritionSheet v-model:open="open" :title="entry?.description ?? 'Entry'">
+  <AppSheet v-model:open="open" :title="entry?.description ?? 'Entry'">
     <template #body>
       <div v-if="entry && draft" class="flex flex-col gap-3">
         <NutritionAmountInput
@@ -68,7 +68,7 @@ function save() {
         />
         <div v-else class="grid grid-cols-2 gap-2">
           <UFormField label="Quantity">
-            <NutritionNumberInput v-model="draft.quantity" :min="0" :step="0.5" class="w-full" data-test="entry-sheet-quantity" />
+            <AppNumberInput v-model="draft.quantity" :min="0" :step="0.5" class="w-full" data-test="entry-sheet-quantity" />
           </UFormField>
           <UFormField v-if="showUnit" label="Unit">
             <USelect :model-value="draft.unitLabel" :items="[draft.unitLabel]" disabled class="w-full" data-test="entry-sheet-unit" />
@@ -95,5 +95,5 @@ function save() {
         <UButton label="Delete entry" color="error" class="ml-auto" data-test="entry-delete-confirm" @click="emit('delete', entry.id); open = false" />
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

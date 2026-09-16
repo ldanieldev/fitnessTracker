@@ -184,14 +184,14 @@ const menu = computed<DropdownMenuItem[][]>(() =>
         </template>
       </div>
 
-      <NutritionSheet v-model:open="deleteOpen" title="Delete food" :description="`Delete ${food?.name}? Logged entries keep their numbers.`">
+      <AppSheet v-model:open="deleteOpen" title="Delete food" :description="`Delete ${food?.name}? Logged entries keep their numbers.`">
         <template #footer>
           <div class="flex w-full justify-end gap-2">
             <UButton label="Cancel" color="neutral" variant="outline" @click="deleteOpen = false" />
             <UButton label="Delete" color="error" data-test="confirm-delete-food" @click="confirmDelete" />
           </div>
         </template>
-      </NutritionSheet>
+      </AppSheet>
     </template>
   </UDashboardPanel>
 </template>

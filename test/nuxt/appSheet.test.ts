@@ -3,7 +3,7 @@ import { flushPromises } from '@vue/test-utils'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import type { ComponentPublicInstance } from 'vue'
 import { UDrawer, UModal } from '#components'
-import NutritionSheet from '../../app/components/nutrition/NutritionSheet.vue'
+import AppSheet from '../../app/components/AppSheet.vue'
 
 // Nuxt UI's generic component type hits the FunctionalComponent findComponent overload; cast to get a VueWrapper.
 const DrawerCtor = UDrawer as unknown as new () => ComponentPublicInstance
@@ -28,7 +28,7 @@ afterEach(() => {
 })
 
 async function mountSheet(props: Record<string, unknown> = {}) {
-  const wrapper = await mountSuspended(NutritionSheet, {
+  const wrapper = await mountSuspended(AppSheet, {
     attachTo: document.body,
     props: { open: true, title: 'Edit entry', ...props },
     slots: { body: () => 'Sheet body' }
@@ -37,7 +37,7 @@ async function mountSheet(props: Record<string, unknown> = {}) {
   return wrapper
 }
 
-describe('NutritionSheet', () => {
+describe('AppSheet', () => {
   it('renders a bottom drawer below sm', async () => {
     stubMatchMedia(true)
     const wrapper = await mountSheet({})

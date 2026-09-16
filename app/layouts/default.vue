@@ -28,29 +28,24 @@ const links = computed(() => [
       onSelect: close
     },
     {
-      label: 'Metrics',
-      icon: 'i-lucide-trending-up',
+      label: 'Body',
+      icon: 'i-lucide-person-standing',
       defaultOpen: true,
       type: 'trigger' as const,
       children: [
         {
-          label: 'Progress',
-          // to: '/progress',
+          label: 'Measurements',
+          to: '/body',
           onSelect: close
         },
         {
-          label: 'Body Metrics',
-          // to: '/body-metrics',
+          label: 'Progress',
+          to: '/body/progress',
           onSelect: close
         },
         {
           label: 'Goals',
-          // to: '/goals',
-          onSelect: close
-        },
-        {
-          label: 'Calendar',
-          // to: '/calendar',
+          to: '/body/goals',
           onSelect: close
         }
       ]
