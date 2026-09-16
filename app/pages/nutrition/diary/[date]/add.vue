@@ -82,7 +82,7 @@ async function submit() {
   const result = await logEntries(tray.toEntryInputs(containerId.value))
   if (result) {
     tray.clear()
-    await navigateTo(`/diary/${date.value}`)
+    await navigateTo(`/nutrition/diary/${date.value}`)
   } else {
     await Promise.all([refreshRecipes(), refreshMeals()])
   }
@@ -94,7 +94,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
   const result = await logEntries([input])
   if (result) {
     quickAddOpen.value = false
-    await navigateTo(`/diary/${date.value}`)
+    await navigateTo(`/nutrition/diary/${date.value}`)
   }
 }
 </script>
@@ -104,7 +104,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
     <template #header>
       <UDashboardNavbar>
         <template #leading>
-          <UButton icon="i-lucide-chevron-left" variant="ghost" color="neutral" aria-label="Back" class="lg:hidden" :to="`/diary/${date}`" />
+          <UButton icon="i-lucide-chevron-left" variant="ghost" color="neutral" aria-label="Back" class="lg:hidden" :to="`/nutrition/diary/${date}`" />
           <UDashboardSidebarCollapse class="hidden lg:flex" />
         </template>
         <template #title>
@@ -142,13 +142,13 @@ async function onQuickAdd(input: DiaryEntryInput) {
             ref="picker"
             v-model="tray.state.foods"
             :source="pickerSource"
-            :scan-to="`/diary/${date}/scan?containerId=${containerId}`"
+            :scan-to="`/nutrition/diary/${date}/scan?containerId=${containerId}`"
             :needs-nutrition-food-id="needsNutritionFoodId"
           >
             <template #actions>
               <div class="flex gap-2 overflow-x-auto">
                 <UButton icon="i-lucide-zap" label="Quick add" size="sm" variant="soft" color="neutral" data-test="toggle-quick-add" @click="quickAddOpen = true" />
-                <UButton icon="i-lucide-plus" label="New food" size="sm" variant="soft" color="neutral" :to="`/diary/${date}/foods/new`" />
+                <UButton icon="i-lucide-plus" label="New food" size="sm" variant="soft" color="neutral" :to="`/nutrition/diary/${date}/foods/new`" />
               </div>
             </template>
           </NutritionFoodPicker>

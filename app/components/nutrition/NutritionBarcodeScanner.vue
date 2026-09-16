@@ -91,12 +91,12 @@ async function handleHit(rawText: string) {
     const result = await lookup(code)
     if (unmounted) return
     if (result.kind === 'local') {
-      await navigateTo(`/diary/${props.date}/add?foodId=${result.foodId}${containerQuery.value}`)
+      await navigateTo(`/nutrition/diary/${props.date}/add?foodId=${result.foodId}${containerQuery.value}`)
     } else if (result.kind === 'external') {
       external.value = result.external
     } else {
       if (result.errors.length > 0) toast.add({ title: 'Barcode sources unavailable', color: 'warning' })
-      await navigateTo(`/diary/${props.date}/foods/new?barcode=${code}${containerQuery.value}`)
+      await navigateTo(`/nutrition/diary/${props.date}/foods/new?barcode=${code}${containerQuery.value}`)
     }
   } catch (err: unknown) {
     if (!unmounted) toast.add({ title: 'Lookup failed', description: errorMessage(err, 'Could not look up this barcode'), color: 'error' })
@@ -164,7 +164,7 @@ async function importExternal() {
     await invalidateNutrition(NUTRITION_KEYS.foods)
     if (unmounted) return
     const suffix = imported.needsNutrition ? '&needsNutrition=1' : ''
-    await navigateTo(`/diary/${props.date}/add?foodId=${imported.id}${suffix}${containerQuery.value}`)
+    await navigateTo(`/nutrition/diary/${props.date}/add?foodId=${imported.id}${suffix}${containerQuery.value}`)
   } catch (err: unknown) {
     if (!unmounted) toast.add({ title: 'Import failed', description: errorMessage(err, 'Could not import this food'), color: 'error' })
   } finally {

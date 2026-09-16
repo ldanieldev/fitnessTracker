@@ -2,7 +2,7 @@
 import { todayDate } from '~~/shared/utils/nutritionSummary'
 
 onMounted(() => {
-  navigateTo(`/diary/${todayDate()}`, { replace: true })
+  navigateTo(`/nutrition/diary/${todayDate()}`, { replace: true })
 })
 </script>
 

@@ -13,7 +13,7 @@ const route = useRoute()
 const rawParam = computed(() => String(route.params.date))
 
 if (!DATE_RE.test(rawParam.value)) {
-  await navigateTo('/diary/today', { replace: true })
+  await navigateTo('/nutrition/diary/today', { replace: true })
 }
 
 // The redirect above aborts rendering for an invalid param, so this never needs a `todayDate()` fallback that would run during SSR.
@@ -129,7 +129,7 @@ function copySelected() {
 function onDayAction(action: DayAction) {
   if (action === 'copy-day') copyDay()
   else if (action === 'select') selection.toggle()
-  else if (action === 'summary') navigateTo('/diary/summary')
+  else if (action === 'summary') navigateTo('/nutrition/diary/summary')
   else if (action === 'notes') notesOpen.value = true
   else if (action === 'goal') goalOpen.value = true
 }
@@ -152,7 +152,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
   selection.clear()
   await invalidateNutrition(NUTRITION_KEYS.day(date.value), NUTRITION_KEYS.day(payload.targetDate), 'nutrition:logged:')
   if (payload.targetDate !== date.value) {
-    await navigateTo(`/diary/${payload.targetDate}`)
+    await navigateTo(`/nutrition/diary/${payload.targetDate}`)
   }
 }
 </script>
@@ -160,8 +160,8 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
 <template>
   <UDashboardPanel id="diary">
     <template #header>
-      <NutritionDayHeader :date="date" @navigate="(d) => navigateTo(`/diary/${d}`)" @action="onDayAction" />
-      <NutritionWeekStrip :date="date" :logged="loggedWeek?.dates ?? []" :week-start="weekStart" @navigate="(d) => navigateTo(`/diary/${d}`)" />
+      <NutritionDayHeader :date="date" @navigate="(d) => navigateTo(`/nutrition/diary/${d}`)" @action="onDayAction" />
+      <NutritionWeekStrip :date="date" :logged="loggedWeek?.dates ?? []" :week-start="weekStart" @navigate="(d) => navigateTo(`/nutrition/diary/${d}`)" />
     </template>
 
     <template #body>
@@ -207,7 +207,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         size="xl"
         class="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-10 rounded-full shadow-lg"
         aria-label="Add food"
-        :to="`/diary/${date}/add`"
+        :to="`/nutrition/diary/${date}/add`"
         data-test="fab-add"
       />
 

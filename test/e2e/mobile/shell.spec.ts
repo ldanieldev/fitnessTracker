@@ -21,5 +21,5 @@ test('the dashboard Today card reaches the diary for today', async ({ page, goto
   await expect(card).toBeVisible()
   await card.click()
 
-  await expect(page).toHaveURL(new RegExp(`/diary/${todayDate()}$`))
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${todayDate()}$`))
 })

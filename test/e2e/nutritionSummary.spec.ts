@@ -68,7 +68,7 @@ test('summary page renders unlogged days as an em dash and exports csv', async (
   await logDay(page, '2026-05-03', 1900)
   await logDay(page, '2026-05-05', 2000)
 
-  await goto('/diary/summary?from=2026-05-01&to=2026-05-05', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/summary?from=2026-05-01&to=2026-05-05', { waitUntil: 'hydration' })
 
   await expect(page.locator('[data-test="summary-energy-total-2026-05-04"]')).toHaveText('—')
   await expect(page.locator('[data-test="summary-energy-total-2026-05-01"]')).toHaveText('1800.0')

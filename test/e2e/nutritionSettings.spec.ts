@@ -28,7 +28,7 @@ test('renaming a container in settings retroactively relabels a previously logge
   ])
   expect(renameResponse.ok()).toBe(true)
 
-  await goto('/diary/2026-08-01', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-08-01', { waitUntil: 'hydration' })
   await expect(page.locator(`[data-test="container-${container.id}"]`)).toContainText('Renamed Container')
 })
 
@@ -37,7 +37,7 @@ test('tracking a nutrient adds it to the day view after client-side navigation b
   const user = await registerViaApi(page, makeUser())
 
   // Hard nav establishes the SPA and mounts the diary page — this is the only full page load in the test.
-  await goto('/diary/2026-08-20', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-08-20', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="sodium-state"]')).toHaveCount(0)
 
   // From here on: only in-app clicks and browser-back, the client-side path that left the tracked cache stale pre-fix.
@@ -60,7 +60,7 @@ test('tracking a nutrient adds it to the day view after client-side navigation b
   await page.goBack()
   await page.waitForURL('**/settings/security')
   await page.goBack()
-  await page.waitForURL('**/diary/2026-08-20')
+  await page.waitForURL('**/nutrition/diary/2026-08-20')
 
   await expect(page.locator('[data-test="sodium-state"]')).toBeVisible()
   await expect(page.locator('[data-test="sodium-state"]')).toHaveText('none')

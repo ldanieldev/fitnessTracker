@@ -43,6 +43,6 @@ test('deleting an account removes every logged own food, recipe, saved meal, and
   const del = await apiFetch(page, 'DELETE', `/api/users/${userId}`)
   expect(del.status).toBe(200)
 
-  await goto('/diary/today', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/today', { waitUntil: 'hydration' })
   await expect(page).toHaveURL(/\/auth\/login/)
 })

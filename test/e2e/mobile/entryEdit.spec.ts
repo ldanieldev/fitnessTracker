@@ -21,7 +21,7 @@ test('edits quantity, unit, meal, and note from the entry sheet', async ({ page,
     { entryType: 'food', containerId: containers[0]!.id, foodId: food.json.id, quantity: 100, unitLabel: 'g' }
   ])
 
-  await goto('/diary/2026-09-02', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-02', { waitUntil: 'hydration' })
   await page.locator('[data-test="entry-row"]').click()
 
   await page.locator('[data-test="entry-sheet-quantity"]').fill('50')

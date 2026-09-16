@@ -8,7 +8,7 @@ const containerId = computed(() => {
 
 async function onCreated() {
   const suffix = containerId.value !== undefined ? `?containerId=${containerId.value}` : ''
-  await navigateTo(`/diary/${date.value}/add${suffix}`)
+  await navigateTo(`/nutrition/diary/${date.value}/add${suffix}`)
 }
 </script>
 

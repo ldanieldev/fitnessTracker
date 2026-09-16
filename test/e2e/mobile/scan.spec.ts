@@ -9,7 +9,7 @@ async function scanBarcode(page: import('@playwright/test').Page, today: string,
   await page.locator('[data-test="scan-manual-input"]').fill(code)
   await page.locator('[data-test="scan-manual-submit"]').click()
 
-  const addUrlPattern = new RegExp(`/diary/${today}/add\\?foodId=\\d+&containerId=\\d+$`)
+  const addUrlPattern = new RegExp(`/nutrition/diary/${today}/add\\?foodId=\\d+&containerId=\\d+$`)
   const externalCard = page.locator('[data-test="scan-external-card"]')
 
   await Promise.race([
@@ -34,11 +34,11 @@ test('scanning twice keeps the tray and container, and the scanned row lands in 
   const target = containers.json[1]!
 
   const today = new Date().toISOString().slice(0, 10)
-  await goto(`/diary/${today}/add?containerId=${target.id}`, { waitUntil: 'hydration' })
+  await goto(`/nutrition/diary/${today}/add?containerId=${target.id}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="add-container"]')).toContainText(target.name)
 
   await page.locator('[data-test="scan-button"]').click()
-  await expect(page).toHaveURL(new RegExp(`/diary/${today}/scan\\?containerId=${target.id}$`))
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${today}/scan\\?containerId=${target.id}$`))
   const firstFoodId = await scanBarcode(page, today, STUB_BARCODE)
 
   await expect(page.locator('[data-test="add-container"]')).toContainText(target.name)
@@ -49,7 +49,7 @@ test('scanning twice keeps the tray and container, and the scanned row lands in 
   await expect(firstRow).toBeInViewport()
 
   await page.locator('[data-test="scan-button"]').click()
-  await expect(page).toHaveURL(new RegExp(`/diary/${today}/scan\\?containerId=${target.id}$`))
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${today}/scan\\?containerId=${target.id}$`))
   await scanBarcode(page, today, STUB_BARCODE_2)
 
   await expect(page.locator('[data-test="add-container"]')).toContainText(target.name)

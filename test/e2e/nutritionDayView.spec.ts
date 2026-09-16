@@ -25,7 +25,7 @@ test('logs, views, toggles and deletes a diary entry', async ({ page, goto }) =>
     { entryType: 'food', containerId, foodId, quantity: 150, unitLabel: 'g' }
   ])
 
-  await goto('/diary/2026-07-01', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-07-01', { waitUntil: 'hydration' })
 
   const entryRow = page.locator('[data-test="entry-row"]')
   await expect(entryRow).toContainText('Chicken Breast')
@@ -44,13 +44,13 @@ test('logs, views, toggles and deletes a diary entry', async ({ page, goto }) =>
   const heading = page.locator('[data-test="diary-date"]')
   await page.locator('[data-test="week-day-2026-06-30"]').click()
   await expect(heading).toHaveAttribute('data-date', '2026-06-30')
-  await expect(page).toHaveURL(/\/diary\/2026-06-30$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-06-30$/)
 
   await page.locator('[data-test="week-day-2026-07-02"]').click()
   await expect(heading).toHaveAttribute('data-date', '2026-07-02')
-  await expect(page).toHaveURL(/\/diary\/2026-07-02$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-07-02$/)
 
-  await goto('/diary/2026-07-01', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-07-01', { waitUntil: 'hydration' })
   await entryRow.click()
   await page.locator('[data-test="entry-delete"]').click()
   await page.locator('[data-test="entry-delete-confirm"]').click()
@@ -63,7 +63,7 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
 
   const p = uniquePrefix()
 
-  await goto('/diary/2026-07-03/foods/new', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-07-03/foods/new', { waitUntil: 'hydration' })
 
   await page.locator('[data-test="food-name"]').fill(`${p} Pizza`)
   await page.locator('[data-test="serving-label"]').fill('slice')
@@ -72,7 +72,7 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   await page.locator('[data-test="serving-fat"]').fill('5')
 
   await page.locator('[data-test="food-submit"]').click()
-  await expect(page).toHaveURL(/\/diary\/2026-07-03\/add$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-07-03\/add$/)
 
   // A long result list previously pushed the desktop add-tray below the fold; pad the list to guard the sticky fix.
   for (let i = 0; i < 30; i++) {
@@ -94,7 +94,7 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   await expect(addSelected).toBeInViewport()
 
   await addSelected.click()
-  await expect(page).toHaveURL(/\/diary\/2026-07-03$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-07-03$/)
 
   const entryRow2 = page.locator('[data-test="entry-row"]')
   await expect(entryRow2).toContainText(`${p} Pizza`)
@@ -117,7 +117,7 @@ test('selection mode resets when navigating to another day', async ({ page, goto
     { entryType: 'food', foodId: food.json.id, containerId, quantity: 100, unitLabel: 'g' }
   ])
 
-  await goto('/diary/2026-07-01', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-07-01', { waitUntil: 'hydration' })
 
   const toggle = page.locator('[data-test="toggle-select-mode"]')
   const copySelected = page.locator('[data-test="copy-selected"]')
@@ -131,14 +131,14 @@ test('selection mode resets when navigating to another day', async ({ page, goto
   await expect(copySelected).toBeEnabled()
 
   await page.locator('[data-test="week-day-2026-07-02"]').click()
-  await expect(page).toHaveURL(/\/diary\/2026-07-02$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-07-02$/)
 
   await expect(toggle).toHaveCount(0)
   await expect(page.locator('[data-test="entry-select"]')).toHaveCount(0)
   await expect(copySelected).toHaveCount(0)
 
   await page.locator('[data-test="week-day-2026-07-01"]').click()
-  await expect(page).toHaveURL(/\/diary\/2026-07-01$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-07-01$/)
 
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(1)
   await expect(page.locator('[data-test="entry-select"]')).toHaveCount(0)
