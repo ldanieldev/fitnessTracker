@@ -1,5 +1,4 @@
-import { eq } from 'drizzle-orm'
-import { users } from '~~/server/db/schema'
+import { deleteAccount } from '~~/server/utils/deleteAccount'
 import { requireSessionUser } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
@@ -14,7 +13,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
-  await db.delete(users).where(eq(users.id, id))
+  await deleteAccount(id)
   await clearUserSession(event)
 
   return { success: true }
