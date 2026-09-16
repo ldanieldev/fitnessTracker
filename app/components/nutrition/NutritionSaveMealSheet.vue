@@ -69,7 +69,7 @@ async function submit() {
 </script>
 
 <template>
-  <NutritionSheet v-model:open="open" :title="title" :description="description">
+  <AppSheet v-model:open="open" :title="title" :description="description">
     <template #body>
       <div class="flex flex-col gap-3">
         <UFormField label="Name">
@@ -77,7 +77,7 @@ async function submit() {
         </UFormField>
         <template v-if="kind === 'recipe'">
           <UFormField label="Servings">
-            <NutritionNumberInput v-model="servings" :min="0" class="w-full" data-test="save-meal-servings" />
+            <AppNumberInput v-model="servings" :min="0" class="w-full" data-test="save-meal-servings" />
           </UFormField>
           <UFormField label="Serving name">
             <UInput v-model="servingName" class="w-full" data-test="save-meal-serving-name" />
@@ -86,5 +86,5 @@ async function submit() {
         <UButton label="Save" block :loading="saving" :disabled="!canSubmit || saving" data-test="save-meal-submit" @click="submit" />
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 describe('parseAmount', () => {
   it('parses decimals with . or , and rejects blanks', async () => {
-    const { parseAmount } = await import('../../app/utils/nutrition/numberInput')
+    const { parseAmount } = await import('../../app/utils/numberInput')
     expect(parseAmount('100')).toBe(100)
     expect(parseAmount('1.5')).toBe(1.5)
     expect(parseAmount('1,5')).toBe(1.5)

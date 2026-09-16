@@ -120,14 +120,14 @@ const menu = computed<DropdownMenuItem[][]>(() =>
       <NutritionPickerSheet v-model:open="pickerOpen" :multiple="replaceUid === null" :title="replaceUid ? 'Replace ingredient' : 'Add ingredients'" @confirm="onPicked" />
       <NutritionIngredientSheet v-model:open="sheetOpen" :line="editingLine" @update="onLineUpdate" @remove="onLineRemove" @replace="openPicker" />
 
-      <NutritionSheet v-model:open="deleteOpen" title="Delete saved meal" :description="`Delete ${name}? Logged entries keep their numbers.`">
+      <AppSheet v-model:open="deleteOpen" title="Delete saved meal" :description="`Delete ${name}? Logged entries keep their numbers.`">
         <template #footer>
           <div class="flex w-full justify-end gap-2">
             <UButton label="Cancel" color="neutral" variant="outline" @click="deleteOpen = false" />
             <UButton label="Delete" color="error" data-test="confirm-delete-meal" @click="confirmDelete" />
           </div>
         </template>
-      </NutritionSheet>
+      </AppSheet>
     </template>
   </UDashboardPanel>
 </template>

@@ -42,7 +42,7 @@ const sheetOpen = ref(false)
       />
     </div>
 
-    <NutritionSheet v-model:open="sheetOpen" title="Selected">
+    <AppSheet v-model:open="sheetOpen" title="Selected">
       <template #body>
         <div class="flex flex-col gap-2">
           <div v-for="item in items" :key="`${item.kind}-${item.id}`" class="flex items-center gap-2 p-2 rounded-lg bg-elevated/50" data-test="tray-item">
@@ -62,6 +62,6 @@ const sheetOpen = ref(false)
           </div>
         </div>
       </template>
-    </NutritionSheet>
+    </AppSheet>
   </div>
 </template>

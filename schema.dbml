@@ -304,6 +304,66 @@ table app.meal_containers {
   }
 }
 
+table app.measurement_goals {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  type_id integer [not null]
+  target_value numeric [not null]
+  target_date date [default: `null`]
+  start_value numeric [not null]
+  start_date date [not null]
+
+  indexes {
+    (user_id, type_id) [name: 'measurement_goal_one_per_type', unique]
+  }
+}
+
+table app.measurement_type_prefs {
+  user_id integer [not null]
+  type_id integer [not null]
+  hidden boolean [not null, default: false]
+  sort_order integer [default: `null`]
+
+  indexes {
+    (user_id, type_id) [pk]
+  }
+}
+
+table app.measurement_types {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [default: `null`]
+  key varchar(64) [default: `null`]
+  name varchar(64) [not null]
+  unit varchar(16) [not null]
+  precision smallint [not null, default: 1]
+  direction varchar [not null, default: 'neutral']
+  deleted_at timestamp [default: `null`]
+
+  indexes {
+    key [name: 'measurement_type_builtin_key', unique]
+    user_id [name: 'measurement_type_user_name', unique]
+  }
+}
+
+table app.measurements {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  type_id integer [not null]
+  value numeric [not null]
+  measured_at timestamp [not null, default: `now()`]
+  measured_on date [not null]
+
+  indexes {
+    (user_id, type_id, measured_on) [name: 'measurement_user_type_day']
+  }
+}
+
 table app.muscles {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -613,6 +673,20 @@ ref goal_profiles_user_id_users_id_fk: app.goal_profiles.user_id > app.users.id 
 ref import_jobs_user_id_users_id_fk: app.import_jobs.user_id > app.users.id [delete: cascade, update: no action]
 
 ref meal_containers_user_id_users_id_fk: app.meal_containers.user_id > app.users.id [delete: cascade, update: no action]
+
+ref measurement_goals_user_id_users_id_fk: app.measurement_goals.user_id > app.users.id [delete: cascade, update: no action]
+
+ref measurement_goals_type_id_measurement_types_id_fk: app.measurement_goals.type_id > app.measurement_types.id [delete: cascade, update: no action]
+
+ref measurement_type_prefs_user_id_users_id_fk: app.measurement_type_prefs.user_id > app.users.id [delete: cascade, update: no action]
+
+ref measurement_type_prefs_type_id_measurement_types_id_fk: app.measurement_type_prefs.type_id > app.measurement_types.id [delete: cascade, update: no action]
+
+ref measurement_types_user_id_users_id_fk: app.measurement_types.user_id > app.users.id [delete: cascade, update: no action]
+
+ref measurements_user_id_users_id_fk: app.measurements.user_id > app.users.id [delete: cascade, update: no action]
+
+ref measurements_type_id_measurement_types_id_fk: app.measurements.type_id > app.measurement_types.id [delete: no action, update: no action]
 
 ref muscles_body_part_id_body_parts_id_fk: app.muscles.body_part_id > app.body_parts.id [delete: cascade, update: no action]
 

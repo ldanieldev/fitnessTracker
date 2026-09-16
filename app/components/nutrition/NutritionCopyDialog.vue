@@ -89,7 +89,7 @@ function confirm() {
 </script>
 
 <template>
-  <NutritionSheet :open="open" title="Copy entries" @update:open="emit('update:open', $event)">
+  <AppSheet :open="open" title="Copy entries" @update:open="emit('update:open', $event)">
     <template #body>
       <div class="flex flex-col gap-4">
         <UFormField label="Target date">
@@ -115,9 +115,9 @@ function confirm() {
               <span class="flex-1 truncate">{{ entry.description }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <!-- NutritionNumberInput's root is w-full, so the width has to sit on a wrapper or the unit gets pushed across the row -->
+              <!-- AppNumberInput's root is w-full, so the width has to sit on a wrapper or the unit gets pushed across the row -->
               <div class="w-28 shrink-0">
-                <NutritionNumberInput
+                <AppNumberInput
                   :model-value="quantities.get(entry.id) ?? entry.quantity"
                   :min="0"
                   aria-label="Quantity"
@@ -140,5 +140,5 @@ function confirm() {
         </div>
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

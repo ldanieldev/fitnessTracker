@@ -261,7 +261,7 @@ async function confirmDelete() {
 
     <UButton label="Add goal profile" class="w-fit" data-test="add-goal-profile" @click="openCreate" />
 
-    <NutritionSheet v-model:open="modalOpen" :title="editing ? 'Edit goal profile' : 'New goal profile'">
+    <AppSheet v-model:open="modalOpen" :title="editing ? 'Edit goal profile' : 'New goal profile'">
       <template #body>
         <div class="flex flex-col gap-4">
           <UFormField label="Name" required>
@@ -329,9 +329,9 @@ async function confirmDelete() {
           </div>
         </div>
       </template>
-    </NutritionSheet>
+    </AppSheet>
 
-    <NutritionSheet
+    <AppSheet
       v-model:open="deleteModalOpen"
       title="Delete goal profile"
       :description="`Delete ${deleteTarget?.name}? Days already logged keep their snapshotted targets.`"
@@ -342,6 +342,6 @@ async function confirmDelete() {
           <UButton label="Delete" color="error" data-test="confirm-delete-goal" @click="confirmDelete" />
         </div>
       </template>
-    </NutritionSheet>
+    </AppSheet>
   </div>
 </template>

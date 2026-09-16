@@ -27,8 +27,11 @@ test.describe('stale session', () => {
     await goto('/', { waitUntil: 'hydration' })
     await registerViaApi(page, makeUser())
 
+    // The nutrient catalogue is fetched lazily after hydration; if it lands after the delete it 401s and redirects first, pre-empting the mutation under test.
+    const catalogLoaded = page.waitForResponse((r) => r.url().includes('/api/nutrition/nutrients'))
     await goto('/diary/today', { waitUntil: 'hydration' })
     await expect(page).toHaveURL(/\/diary\/\d{4}-\d{2}-\d{2}$/)
+    await catalogLoaded
 
     // Deletes only the calling session's own user row — the one test-only exception to never deleting rows.
     const del = await apiFetch(page, 'POST', '/api/nutrition/_test/delete-user')

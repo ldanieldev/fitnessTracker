@@ -31,6 +31,7 @@ const period = ref<Period>('daily')
 
     <template #body>
       <DashboardToday class="mb-4" />
+      <DashboardBodyMetric class="mb-4" />
       <DashboardWorkoutStats :period="period" :range="range" />
     </template>
   </UDashboardPanel>

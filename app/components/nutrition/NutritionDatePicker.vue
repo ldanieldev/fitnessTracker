@@ -31,14 +31,14 @@ function today() {
 </script>
 
 <template>
-  <NutritionSheet v-if="narrow" v-model:open="open" title="Go to date">
+  <AppSheet v-if="narrow" v-model:open="open" title="Go to date">
     <template #body>
       <div class="flex flex-col items-center gap-3">
         <UCalendar v-model="model" :week-starts-on="weekStart" data-test="day-calendar" />
         <UButton label="Today" variant="soft" block data-test="day-picker-today" @click="today" />
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
   <UPopover v-else v-model:open="open" :content="{ align: 'start' }">
     <slot />
     <template #content>

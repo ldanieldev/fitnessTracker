@@ -37,7 +37,7 @@ async function apply() {
 </script>
 
 <template>
-  <NutritionSheet v-model:open="open" title="Apply goal profile">
+  <AppSheet v-model:open="open" title="Apply goal profile">
     <template #body>
       <div class="flex flex-col gap-3">
         <p class="text-sm text-dimmed">Changes this day's targets only.</p>
@@ -64,5 +64,5 @@ async function apply() {
         <UButton v-if="profiles.length > 0" label="Apply" block :loading="applying" :disabled="!canApply || applying" data-test="goal-apply" @click="apply" />
       </div>
     </template>
-  </NutritionSheet>
+  </AppSheet>
 </template>

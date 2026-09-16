@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useIsNarrow } from '../../composables/useIsNarrow'
+import { useIsNarrow } from '../composables/useIsNarrow'
 
 defineProps<{
   title: string
