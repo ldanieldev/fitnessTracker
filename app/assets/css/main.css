@@ -24,6 +24,8 @@
   --macro-carb: #d97706;
   --macro-fat: #9333ea;
   --macro-other: #64748b;
+  --logo-ink: #1e293b;
+  --logo-page-fill: transparent;
 }
 
 .dark {
@@ -43,6 +45,8 @@
   --macro-carb: #f59e0b;
   --macro-fat: #a855f7;
   --macro-other: #64748b;
+  --logo-ink: #ffffff;
+  --logo-page-fill: #ffffff;
 }
 
 body {

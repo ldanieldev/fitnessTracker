@@ -101,12 +101,15 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         :schema="schema"
         title="Login"
         description="Enter your credentials to access your account."
-        icon="i-lucide-user"
         :fields="fields"
         :providers="providers"
         :loading="loading"
         @submit="onSubmit"
       >
+        <template #leading>
+          <AppLogo class="size-20 shrink-0 inline-block" />
+        </template>
+
         <template #footer>
           Don't have an account?
           <ULink to="/auth/register" class="text-primary font-medium"> Register </ULink>

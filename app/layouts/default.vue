@@ -127,12 +127,12 @@ const links = computed(() => [
             trailingIcon: 'text-dimmed'
           }"
           to="/"
-          :avatar="{
-            src: 'https://github.com/nuxt.png',
-            alt: 'uxt'
-          }"
-          >{{ collapsed ? undefined : appName }}</UButton
         >
+          <template #leading>
+            <AppLogo class="size-12 shrink-0" />
+          </template>
+          {{ collapsed ? undefined : appName }}
+        </UButton>
       </template>
 
       <template #default="{ collapsed }">
