@@ -68,7 +68,7 @@ const links = computed(() => [
         },
         {
           label: 'Exercises',
-          // to: '/exercises',
+          to: '/workouts/exercises',
           onSelect: close
         },
         {

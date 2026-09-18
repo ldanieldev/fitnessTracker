@@ -18,7 +18,10 @@
     "test:e2e:ui": "playwright test --ui",
     "dbml": "tsx ./server/db/dbml.ts",
     "db:seed": "tsx ./server/db/seed/run.ts",
-    "ocr:assets": "bun scripts/copy-ocr-assets.ts"
+    "ocr:assets": "bun scripts/copy-ocr-assets.ts",
+    "exercises:seed": "bun scripts/exercises/buildSeed.ts",
+    "exercises:assets": "bun scripts/exercises/fetchAssets.ts",
+    "exercises:bodymap": "bun scripts/exercises/buildBodyMap.ts"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.129",

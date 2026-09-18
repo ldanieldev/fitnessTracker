@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* Tailwind's auto-detection misses shared/, where the category colour classes live. */
+@source "../../../shared";
+
 @theme static {
   --font-sans: 'Public Sans', sans-serif;
   --color-protein: var(--macro-protein);

@@ -4,7 +4,19 @@ import { importMyMacros } from '~~/server/utils/inngest/functions/importMyMacros
 import { searchOutboxDrain } from '~~/server/utils/inngest/functions/searchOutboxDrain'
 import { searchRebuild } from '~~/server/utils/inngest/functions/searchRebuild'
 import { searchNightlyRebuild } from '~~/server/utils/inngest/functions/searchNightlyRebuild'
+import { exerciseSearchOutboxDrain } from '~~/server/utils/inngest/functions/exerciseSearchOutboxDrain'
+import { exerciseSearchRebuild } from '~~/server/utils/inngest/functions/exerciseSearchRebuild'
 
 export default defineEventHandler(
-  serve({ client: inngest, functions: [searchOutboxDrain, searchRebuild, searchNightlyRebuild, importMyMacros] })
+  serve({
+    client: inngest,
+    functions: [
+      searchOutboxDrain,
+      searchRebuild,
+      searchNightlyRebuild,
+      exerciseSearchOutboxDrain,
+      exerciseSearchRebuild,
+      importMyMacros
+    ]
+  })
 )

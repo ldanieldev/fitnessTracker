@@ -48,6 +48,55 @@ describe('useRestTimer', () => {
     expect(onComplete).toHaveBeenCalledOnce()
   })
 
+  it('counts down from the wall clock when ticks are delayed in the background', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+
+    timer.start(60)
+    vi.setSystemTime(Date.now() + 30000)
+    vi.advanceTimersByTime(1000)
+
+    expect(timer.remainingSeconds.value).toBe(29)
+    expect(timer.isRunning.value).toBe(true)
+  })
+
+  it('completes on the first tick after the rest ended while ticks were suspended', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+    const onComplete = vi.fn()
+    timer.onComplete(onComplete)
+
+    timer.start(10)
+    vi.setSystemTime(Date.now() + 45000)
+    vi.advanceTimersByTime(1000)
+
+    expect(timer.remainingSeconds.value).toBe(0)
+    expect(timer.isRunning.value).toBe(false)
+    expect(onComplete).toHaveBeenCalledOnce()
+  })
+
+  it('rounds a partly elapsed second up so the display does not skip ahead', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+
+    timer.start(60)
+    vi.setSystemTime(Date.now() + 250)
+    vi.advanceTimersByTime(1000)
+
+    expect(timer.remainingSeconds.value).toBe(59)
+  })
+
+  it('keeps an adjusted time when later ticks read the clock', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+
+    timer.start(60)
+    timer.adjustTime(5)
+    vi.advanceTimersByTime(1000)
+
+    expect(timer.remainingSeconds.value).toBe(64)
+  })
+
   it('should skip (stop immediately)', async () => {
     const { useRestTimer } = await import('../../app/composables/useRestTimer')
     const timer = useRestTimer()

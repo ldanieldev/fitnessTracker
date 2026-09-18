@@ -5,13 +5,27 @@ import type { WorkoutExercise } from '~/types/workout'
 const session = useWorkoutSession()
 const restTimerOpen = ref(false)
 const restTimerRef = ref<{ restart: () => void }>()
+const wakeLock = useWakeLock()
 
 // Cast readonly exercises to mutable for child component props
 const exercises = computed(() => session.exercises.value as unknown as WorkoutExercise[])
 
 onMounted(() => {
   session.loadMockData()
+  wakeLock.enable()
 })
+
+onBeforeUnmount(() => {
+  wakeLock.disable()
+})
+
+function toggleWakeLock() {
+  if (wakeLock.active.value) {
+    wakeLock.disable()
+  } else {
+    wakeLock.enable()
+  }
+}
 
 // Add exercise search
 const selectedExerciseId = ref<number | undefined>(undefined)
@@ -57,6 +71,17 @@ function handleLogSet(index: number, data: { weight: number; reps: number; rpe: 
           </template>
 
           <template #right>
+            <UButton
+              v-if="wakeLock.isSupported.value"
+              :icon="wakeLock.active.value ? 'i-lucide-sun' : 'i-lucide-sun-dim'"
+              :color="wakeLock.active.value ? 'primary' : 'neutral'"
+              :aria-label="wakeLock.active.value ? 'Screen staying awake' : 'Keep screen awake'"
+              :aria-pressed="wakeLock.active.value"
+              variant="ghost"
+              size="sm"
+              data-test="wake-lock-toggle"
+              @click="toggleWakeLock"
+            />
             <UButton icon="i-lucide-timer" variant="ghost" color="neutral" size="sm" @click="restTimerOpen = true" />
             <UButton
               label="End Workout"

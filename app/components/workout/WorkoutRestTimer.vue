@@ -27,7 +27,7 @@ defineExpose({ restart })
 
 restTimer.onComplete(() => {
   if (navigator.vibrate) {
-    navigator.vibrate(200)
+    navigator.vibrate([200, 100, 200])
   }
   if (!open.value) {
     toast.add({ title: 'Rest complete!', icon: 'i-lucide-timer', color: 'success' })

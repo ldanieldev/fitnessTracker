@@ -11,18 +11,6 @@ table app.auth_providers {
   }
 }
 
-table app.body_parts {
-  id integer [pk, not null]
-  created_at timestamp [not null, default: `now()`]
-  updated_at timestamp [default: `now()`]
-  name varchar(255) [not null]
-  image_url varchar(255) [default: `null`]
-
-  indexes {
-    name [name: 'body_part_name', unique]
-  }
-}
-
 table app.diary_day_targets {
   day_id integer [not null]
   nutrient_id integer [not null]
@@ -103,10 +91,41 @@ table app.equipment {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [default: `now()`]
-  name varchar(255) [not null]
+  key varchar(64) [not null]
+  name varchar(64) [not null]
 
   indexes {
-    name [name: 'equipment_name', unique]
+    key [name: 'equipment_key', unique]
+  }
+}
+
+table app.exercise_categories {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [default: `null`]
+  key varchar(64) [default: `null`]
+  name varchar(64) [not null]
+  color varchar(32) [not null]
+  sort_order smallint [not null, default: 0]
+  deleted_at timestamp [default: `null`]
+
+  indexes {
+    key [name: 'exercise_category_shared_key', unique]
+    user_id [name: 'exercise_category_user_name', unique]
+  }
+}
+
+table app.exercise_category_prefs {
+  user_id integer [not null]
+  category_id integer [not null]
+  name varchar(64) [default: `null`]
+  color varchar(32) [default: `null`]
+  sort_order smallint [default: `null`]
+  hidden_at timestamp [default: `null`]
+
+  indexes {
+    (user_id, category_id) [pk]
   }
 }
 
@@ -129,14 +148,45 @@ table app.exercise_muscles {
   }
 }
 
-table app.exercise_types {
+table app.exercise_prefs {
+  user_id integer [not null]
+  exercise_id integer [not null]
+  category_id integer [default: `null`]
+  tracking_type varchar [default: `null`]
+  load_style varchar [default: `null`]
+  bar_weight numeric [default: `null`]
+  weight_increment numeric [default: `null`]
+  rest_seconds integer [default: `null`]
+  notes varchar(2000) [default: `null`]
+  link varchar(500) [default: `null`]
+  favorite boolean [not null, default: false]
+  hidden_at timestamp [default: `null`]
+
+  indexes {
+    (user_id, exercise_id) [pk]
+  }
+}
+
+table app.exercise_variation_groups {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [default: `now()`]
-  name varchar(255) [not null]
+  user_id integer [not null]
+  name varchar(64) [not null]
 
   indexes {
-    name [name: 'exercise_type_name', unique]
+    user_id [name: 'variation_group_user_name', unique]
+  }
+}
+
+table app.exercise_variation_members {
+  group_id integer [not null]
+  user_id integer [not null]
+  exercise_id integer [not null]
+
+  indexes {
+    (group_id, exercise_id) [pk]
+    (user_id, exercise_id) [name: 'variation_member_one_group', unique]
   }
 }
 
@@ -145,15 +195,21 @@ table app.exercises {
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [default: `now()`]
   name varchar(255) [not null]
-  exercise_type_id integer [default: `null`]
+  category_id integer [not null]
+  tracking_type varchar [not null]
+  load_style varchar [default: `null`]
+  bar_weight numeric [default: `null`]
   difficulty varchar [default: `null`]
-  image_url varchar(255) [default: `null`]
-  video_url varchar(255) [default: `null`]
   instructions jsonb [default: `null`]
+  images jsonb [not null, default: `'[]'::jsonb`]
+  external_id varchar(128) [default: `null`]
   created_by_user_id integer [default: `null`]
+  deleted_at timestamp [default: `null`]
 
   indexes {
-    (name, created_by_user_id) [name: 'exercise_name_user', unique]
+    external_id [name: 'exercise_external_id', unique]
+    created_by_user_id [name: 'exercise_user_name', unique]
+    (created_by_user_id, deleted_at) [name: 'exercise_owner_live']
   }
 }
 
@@ -368,11 +424,13 @@ table app.muscles {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [default: `now()`]
-  name varchar(255) [not null]
-  body_part_id integer [not null]
+  key varchar(64) [not null]
+  name varchar(64) [not null]
+  category_key varchar(64) [not null]
+  body_map_groups jsonb [not null, default: `'[]'::jsonb`]
 
   indexes {
-    name [name: 'muscle_name', unique]
+    key [name: 'muscle_key', unique]
   }
 }
 
@@ -632,6 +690,12 @@ ref diary_meal_times_day_id_diary_days_id_fk: app.diary_meal_times.day_id > app.
 
 ref diary_meal_times_container_id_meal_containers_id_fk: app.diary_meal_times.container_id > app.meal_containers.id [delete: cascade, update: no action]
 
+ref exercise_categories_user_id_users_id_fk: app.exercise_categories.user_id > app.users.id [delete: cascade, update: no action]
+
+ref exercise_category_prefs_user_id_users_id_fk: app.exercise_category_prefs.user_id > app.users.id [delete: cascade, update: no action]
+
+ref exercise_category_prefs_category_id_exercise_categories_id_fk: app.exercise_category_prefs.category_id > app.exercise_categories.id [delete: cascade, update: no action]
+
 ref exercise_equipment_exercise_id_exercises_id_fk: app.exercise_equipment.exercise_id > app.exercises.id [delete: cascade, update: no action]
 
 ref exercise_equipment_equipment_id_equipment_id_fk: app.exercise_equipment.equipment_id > app.equipment.id [delete: cascade, update: no action]
@@ -640,7 +704,21 @@ ref exercise_muscles_exercise_id_exercises_id_fk: app.exercise_muscles.exercise_
 
 ref exercise_muscles_muscle_id_muscles_id_fk: app.exercise_muscles.muscle_id > app.muscles.id [delete: cascade, update: no action]
 
-ref exercises_exercise_type_id_exercise_types_id_fk: app.exercises.exercise_type_id > app.exercise_types.id [delete: cascade, update: no action]
+ref exercise_prefs_user_id_users_id_fk: app.exercise_prefs.user_id > app.users.id [delete: cascade, update: no action]
+
+ref exercise_prefs_exercise_id_exercises_id_fk: app.exercise_prefs.exercise_id > app.exercises.id [delete: cascade, update: no action]
+
+ref exercise_prefs_category_id_exercise_categories_id_fk: app.exercise_prefs.category_id > app.exercise_categories.id [delete: set null, update: no action]
+
+ref exercise_variation_groups_user_id_users_id_fk: app.exercise_variation_groups.user_id > app.users.id [delete: cascade, update: no action]
+
+ref exercise_variation_members_group_id_exercise_variation_groups_id_fk: app.exercise_variation_members.group_id > app.exercise_variation_groups.id [delete: cascade, update: no action]
+
+ref exercise_variation_members_user_id_users_id_fk: app.exercise_variation_members.user_id > app.users.id [delete: cascade, update: no action]
+
+ref exercise_variation_members_exercise_id_exercises_id_fk: app.exercise_variation_members.exercise_id > app.exercises.id [delete: cascade, update: no action]
+
+ref exercises_category_id_exercise_categories_id_fk: app.exercises.category_id > app.exercise_categories.id [delete: restrict, update: no action]
 
 ref exercises_created_by_user_id_users_id_fk: app.exercises.created_by_user_id > app.users.id [delete: cascade, update: no action]
 
@@ -687,8 +765,6 @@ ref measurement_types_user_id_users_id_fk: app.measurement_types.user_id > app.u
 ref measurements_user_id_users_id_fk: app.measurements.user_id > app.users.id [delete: cascade, update: no action]
 
 ref measurements_type_id_measurement_types_id_fk: app.measurements.type_id > app.measurement_types.id [delete: no action, update: no action]
-
-ref muscles_body_part_id_body_parts_id_fk: app.muscles.body_part_id > app.body_parts.id [delete: cascade, update: no action]
 
 ref program_phases_program_id_programs_id_fk: app.program_phases.program_id > app.programs.id [delete: cascade, update: no action]
 

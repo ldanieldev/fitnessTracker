@@ -5,6 +5,7 @@ export function useRestTimer() {
   const remainingSeconds = ref(0)
   const totalSeconds = ref(60)
   let intervalId: ReturnType<typeof setInterval> | null = null
+  let endsAt = 0
   let completeCallback: (() => void) | null = null
 
   const progress = computed(() => {
@@ -25,14 +26,13 @@ export function useRestTimer() {
     }
   }
 
+  function secondsLeft() {
+    return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000))
+  }
+
+  // Reads the clock instead of decrementing because browsers throttle intervals on hidden pages.
   function tick() {
-    if (remainingSeconds.value <= 0) {
-      clearTimer()
-      isRunning.value = false
-      completeCallback?.()
-      return
-    }
-    remainingSeconds.value--
+    remainingSeconds.value = secondsLeft()
     if (remainingSeconds.value <= 0) {
       clearTimer()
       isRunning.value = false
@@ -40,12 +40,17 @@ export function useRestTimer() {
     }
   }
 
-  function start(seconds: number) {
+  function run(seconds: number) {
     clearTimer()
-    totalSeconds.value = seconds
+    endsAt = Date.now() + seconds * 1000
     remainingSeconds.value = seconds
     isRunning.value = true
     intervalId = setInterval(tick, 1000)
+  }
+
+  function start(seconds: number) {
+    totalSeconds.value = seconds
+    run(seconds)
   }
 
   function skip() {
@@ -55,14 +60,12 @@ export function useRestTimer() {
   }
 
   function reset() {
-    clearTimer()
-    remainingSeconds.value = totalSeconds.value
-    isRunning.value = true
-    intervalId = setInterval(tick, 1000)
+    run(totalSeconds.value)
   }
 
   function adjustTime(delta: number) {
-    remainingSeconds.value = Math.max(0, remainingSeconds.value + delta)
+    endsAt += delta * 1000
+    remainingSeconds.value = secondsLeft()
     if (remainingSeconds.value === 0 && isRunning.value) {
       clearTimer()
       isRunning.value = false
@@ -70,11 +73,7 @@ export function useRestTimer() {
   }
 
   function setPreset(seconds: number) {
-    clearTimer()
-    totalSeconds.value = seconds
-    remainingSeconds.value = seconds
-    isRunning.value = true
-    intervalId = setInterval(tick, 1000)
+    start(seconds)
   }
 
   function onComplete(cb: () => void) {
