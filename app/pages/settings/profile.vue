@@ -28,20 +28,22 @@ const state = reactive<Partial<Schema>>({
 
 const loading = ref(false)
 
-const weekStartSchema = z.object({
-  weekStart: z.union([z.literal(0), z.literal(1)])
+const preferencesSchema = z.object({
+  weekStart: z.union([z.literal(0), z.literal(1)]),
+  defaultRestSeconds: z.number({ message: 'Default rest is required' }).int().min(10).max(600)
 })
 
-type WeekStartSchema = z.input<typeof weekStartSchema>
+type PreferencesSchema = z.input<typeof preferencesSchema>
 
-const weekStartState = reactive<Partial<WeekStartSchema>>({
-  weekStart: user.value?.weekStart ?? 1
+const preferencesState = reactive<Partial<PreferencesSchema>>({
+  weekStart: user.value?.weekStart ?? 1,
+  defaultRestSeconds: user.value?.defaultRestSeconds ?? 60
 })
 
-const weekStartLoading = ref(false)
+const preferencesLoading = ref(false)
 
-async function onWeekStartSubmit(payload: FormSubmitEvent<WeekStartSchema>) {
-  weekStartLoading.value = true
+async function onPreferencesSubmit(payload: FormSubmitEvent<PreferencesSchema>) {
+  preferencesLoading.value = true
   try {
     await apiFetch(`/api/users/${user.value!.id}`, {
       method: 'PUT',
@@ -62,7 +64,7 @@ async function onWeekStartSubmit(payload: FormSubmitEvent<WeekStartSchema>) {
       color: 'error'
     })
   } finally {
-    weekStartLoading.value = false
+    preferencesLoading.value = false
   }
 }
 
@@ -145,10 +147,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       description="Customize how the app behaves for you."
       variant="subtle"
     >
-      <UForm :schema="weekStartSchema" :state="weekStartState" class="flex flex-col gap-4 max-w-xs" @submit="onWeekStartSubmit">
+      <UForm :schema="preferencesSchema" :state="preferencesState" class="flex flex-col gap-4 max-w-xs" @submit="onPreferencesSubmit">
         <UFormField label="Week starts on" name="weekStart" required>
           <USelect
-            v-model="weekStartState.weekStart"
+            v-model="preferencesState.weekStart"
             :items="[
               { label: 'Sunday', value: 0 },
               { label: 'Monday', value: 1 }
@@ -157,7 +159,11 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
           />
         </UFormField>
 
-        <UButton type="submit" label="Save changes" :loading="weekStartLoading" class="w-fit" />
+        <UFormField label="Default rest" name="defaultRestSeconds" hint="seconds" required>
+          <AppNumberInput v-model="preferencesState.defaultRestSeconds" :min="10" :step="15" data-test="setting-default-rest" />
+        </UFormField>
+
+        <UButton type="submit" label="Save changes" :loading="preferencesLoading" class="w-fit" />
       </UForm>
     </UPageCard>
   </div>

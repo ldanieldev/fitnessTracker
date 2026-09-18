@@ -1,0 +1,181 @@
+<script setup lang="ts">
+import type { SetMeasures, WorkoutEntry, WorkoutSession } from '~~/shared/types/workout'
+import { errorMessage } from '~/utils/apiError'
+
+type SetValues = SetMeasures & { comment?: string }
+type SetResponse = { session: WorkoutSession }
+
+const props = defineProps<{ session: WorkoutSession }>()
+
+const emit = defineEmits<{
+  'update:session': [session: WorkoutSession]
+  'setLogged': []
+  'delete': []
+}>()
+
+const toast = useToast()
+const pickerOpen = ref(false)
+
+function fail(err: unknown, fallback: string) {
+  toast.add({ title: 'Update failed', description: errorMessage(err, fallback), color: 'error' })
+}
+
+async function applySession(action: () => Promise<WorkoutSession>, fallback: string) {
+  try {
+    emit('update:session', await action())
+  } catch (err: unknown) {
+    fail(err, fallback)
+  }
+}
+
+function patchSession(body: Record<string, unknown>, fallback: string) {
+  return applySession(
+    () => apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}`, { method: 'PATCH', body }),
+    fallback
+  )
+}
+
+function addExercise(exerciseId: number) {
+  return applySession(
+    () => apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}/entries`, { method: 'POST', body: { exerciseId } }),
+    'Could not add this exercise'
+  )
+}
+
+function moveEntry(entry: WorkoutEntry, direction: -1 | 1) {
+  return applySession(
+    () => apiFetch<WorkoutSession>(`/api/workouts/entries/${entry.id}`, {
+      method: 'PATCH',
+      body: { sortOrder: entry.sortOrder + direction }
+    }),
+    'Could not reorder this exercise'
+  )
+}
+
+function removeEntry(entryId: number) {
+  return applySession(
+    () => apiFetch<WorkoutSession>(`/api/workouts/entries/${entryId}`, { method: 'DELETE' }),
+    'Could not remove this exercise'
+  )
+}
+
+function removeSet(setId: number) {
+  return applySession(
+    () => apiFetch<WorkoutSession>(`/api/workouts/sets/${setId}`, { method: 'DELETE' }),
+    'Could not remove this set'
+  )
+}
+
+const saveErrors = reactive(new Map<string, string>())
+const retries = new Map<string, () => Promise<SetResponse>>()
+
+function saveKey(entryId: number, setId: number | null) {
+  return `${entryId}:${setId ?? 'new'}`
+}
+
+function entryErrors(entryId: number): Record<string, string> {
+  const prefix = `${entryId}:`
+  const errors: Record<string, string> = {}
+  for (const [key, message] of saveErrors) {
+    if (key.startsWith(prefix)) errors[key.slice(prefix.length)] = message
+  }
+  return errors
+}
+
+function forgetSave(key: string) {
+  saveErrors.delete(key)
+  retries.delete(key)
+}
+
+let lastSessionId: number | null = null
+watch(() => props.session, (value) => {
+  if (value.id !== lastSessionId) {
+    lastSessionId = value.id
+    saveErrors.clear()
+    retries.clear()
+    return
+  }
+  for (const key of [...saveErrors.keys()]) {
+    const [entryPart, setPart] = key.split(':')
+    const entry = value.entries.find((candidate) => String(candidate.id) === entryPart)
+    if (!entry || (setPart !== 'new' && !entry.sets.some((set) => String(set.id) === setPart))) forgetSave(key)
+  }
+}, { immediate: true })
+
+async function saveSet(entryId: number, setId: number | null, action: () => Promise<SetResponse>): Promise<boolean> {
+  const key = saveKey(entryId, setId)
+  try {
+    emit('update:session', (await action()).session)
+    forgetSave(key)
+    return true
+  } catch (err: unknown) {
+    retries.set(key, action)
+    saveErrors.set(key, errorMessage(err, 'Could not save this set'))
+    return false
+  }
+}
+
+function retrySave(entryId: number, setId: number | null) {
+  const action = retries.get(saveKey(entryId, setId))
+  if (action) return saveSet(entryId, setId, action)
+}
+
+async function addSet(entryId: number, values: SetValues) {
+  const saved = await saveSet(entryId, null, () =>
+    apiFetch<SetResponse>(`/api/workouts/entries/${entryId}/sets`, { method: 'POST', body: values }))
+  if (saved) emit('setLogged')
+}
+
+function editSet(entryId: number, setId: number, values: SetValues) {
+  return saveSet(entryId, setId, () => apiFetch<SetResponse>(`/api/workouts/sets/${setId}`, { method: 'PATCH', body: values }))
+}
+
+function toggleDone(entryId: number, setId: number) {
+  const set = props.session.entries.find((entry) => entry.id === entryId)?.sets.find((s) => s.id === setId)
+  if (!set) return
+  return saveSet(entryId, setId, () => apiFetch<SetResponse>(`/api/workouts/sets/${setId}`, { method: 'PATCH', body: { done: !set.done } }))
+}
+</script>
+
+<template>
+  <div class="flex flex-col gap-3">
+    <WorkoutSessionHeader
+      :session="session"
+      @rename="(name) => patchSession({ name }, 'Could not rename this workout')"
+      @comment="(notes) => patchSession({ notes }, 'Could not save this comment')"
+      @change-times="(times) => patchSession(times, 'Could not change the date and time')"
+      @delete="emit('delete')"
+    />
+
+    <WorkoutExerciseCard
+      v-for="(entry, index) in session.entries"
+      :key="entry.id"
+      :entry="entry"
+      :is-first="index === 0"
+      :is-last="index === session.entries.length - 1"
+      :save-errors="entryErrors(entry.id)"
+      @add-set="(values) => addSet(entry.id, values)"
+      @edit-set="(setId, values) => editSet(entry.id, setId, values)"
+      @remove-set="(setId) => removeSet(setId)"
+      @toggle-done="(setId) => toggleDone(entry.id, setId)"
+      @move="(direction) => moveEntry(entry, direction)"
+      @remove="removeEntry(entry.id)"
+      @retry-save="(setId) => retrySave(entry.id, setId)"
+    />
+
+    <p v-if="!session.entries.length" class="text-sm text-dimmed">Add an exercise to start logging sets.</p>
+
+    <UButton
+      label="Add exercise"
+      icon="i-lucide-plus"
+      variant="soft"
+      color="neutral"
+      block
+      class="min-h-10"
+      data-test="entry-add"
+      @click="pickerOpen = true"
+    />
+
+    <WorkoutExercisePicker v-model:open="pickerOpen" @pick="addExercise" />
+  </div>
+</template>

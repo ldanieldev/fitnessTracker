@@ -102,3 +102,21 @@ test.describe('credentials register / login / logout', () => {
     await expect(page).toHaveURL(/\/auth\/login/)
   })
 })
+
+test.describe('user preferences', () => {
+  test('saves a default rest of 30s into the session and rejects one below the floor', async ({ page, goto }) => {
+    await goto('/', { waitUntil: 'hydration' })
+    await registerViaApi(page, makeUser())
+
+    const before = await apiFetch<{ user: { id: number, defaultRestSeconds: number } }>(page, 'GET', '/api/_auth/session')
+    expect(before.json.user.defaultRestSeconds).toBe(60)
+
+    const saved = await apiFetch(page, 'PUT', `/api/users/${before.json.user.id}`, { defaultRestSeconds: 30 })
+    expect(saved.status).toBe(200)
+    const after = await apiFetch<{ user: { defaultRestSeconds: number } }>(page, 'GET', '/api/_auth/session')
+    expect(after.json.user.defaultRestSeconds).toBe(30)
+
+    const rejected = await apiFetch(page, 'PUT', `/api/users/${before.json.user.id}`, { defaultRestSeconds: 5 })
+    expect(rejected.status).toBe(400)
+  })
+})

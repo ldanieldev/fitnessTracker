@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
-import { integer, numeric, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { boolean, date, index, integer, numeric, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import { LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '../../../../shared/types/workout'
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 import { exercises } from './exercise'
@@ -43,14 +44,16 @@ export const workoutSessions = appSchema.table(
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    templateId: integer('template_id')
-      .default(sql`null`)
-      .references(() => workoutTemplates.id, { onDelete: 'set null' }),
     name: varchar('name', { length: 255 }).default(sql`null`),
-    startedAt: timestamp('started_at').notNull(),
-    completedAt: timestamp('completed_at').default(sql`null`),
+    performedOn: date('performed_on').notNull(),
+    startedAt: timestamp('started_at').notNull().defaultNow(),
+    endedAt: timestamp('ended_at').default(sql`null`),
     notes: text('notes').default(sql`null`)
-  }
+  },
+  (table) => [
+    uniqueIndex('workout_session_open').on(table.userId).where(sql`ended_at is null`),
+    index('workout_session_recent').on(table.userId, table.performedOn, table.id)
+  ]
 )
 
 export const workoutEntries = appSchema.table(
@@ -62,15 +65,13 @@ export const workoutEntries = appSchema.table(
       .references(() => workoutSessions.id, { onDelete: 'cascade' }),
     exerciseId: integer('exercise_id')
       .notNull()
-      .references(() => exercises.id, { onDelete: 'cascade' }),
+      .references(() => exercises.id, { onDelete: 'restrict' }),
     sortOrder: integer('sort_order').notNull(),
-    entryType: varchar('entry_type', { enum: ['strength', 'cardio', 'program'] }).notNull(),
-    durationSeconds: integer('duration_seconds').default(sql`null`),
-    distanceMeters: numeric('distance_meters').default(sql`null`),
-    calories: integer('calories').default(sql`null`),
-    avgPace: numeric('avg_pace').default(sql`null`),
+    trackingType: varchar('tracking_type', { enum: TRACKING_TYPE_VALUES }).notNull(),
+    loadStyle: varchar('load_style', { enum: LOAD_STYLE_VALUES }).default(sql`null`),
     notes: text('notes').default(sql`null`)
-  }
+  },
+  (table) => [index('workout_entry_exercise').on(table.exerciseId)]
 )
 
 export const workoutSets = appSchema.table(
@@ -80,9 +81,13 @@ export const workoutSets = appSchema.table(
     entryId: integer('entry_id')
       .notNull()
       .references(() => workoutEntries.id, { onDelete: 'cascade' }),
-    setNumber: integer('set_number').notNull(),
-    weight: numeric('weight').notNull(),
-    reps: integer('reps').notNull(),
-    rpe: integer('rpe').default(sql`null`)
-  }
+    sortOrder: integer('sort_order').notNull(),
+    weight: numeric('weight').default(sql`null`),
+    reps: integer('reps').default(sql`null`),
+    distanceMeters: numeric('distance_meters').default(sql`null`),
+    durationSeconds: integer('duration_seconds').default(sql`null`),
+    done: boolean('done').notNull().default(false),
+    comment: varchar('comment', { length: 500 }).default(sql`null`)
+  },
+  (table) => [index('workout_set_entry').on(table.entryId, table.sortOrder)]
 )

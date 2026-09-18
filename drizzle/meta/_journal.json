@@ -36,6 +36,20 @@
       "when": 1789624705486,
       "tag": "0004_exercise_catalogue",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789703110999,
+      "tag": "0005_workout_logging",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789762411533,
+      "tag": "0006_default_rest_seconds",
+      "breakpoints": true
     }
   ]
 }

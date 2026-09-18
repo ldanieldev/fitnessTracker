@@ -83,3 +83,46 @@ export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>
 export type CategoryPatchInput = z.infer<typeof categoryPatchSchema>
 export type VariationCreateInput = z.infer<typeof variationCreateSchema>
 export type VariationPatchInput = z.infer<typeof variationPatchSchema>
+
+export const sessionStartSchema = z.object({
+  name: z.string().trim().max(255).nullish(),
+  performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  copyFromId: z.number().int().positive().optional()
+})
+
+export const sessionPatchSchema = z.object({
+  name: z.string().trim().max(255).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  startedAt: z.iso.datetime().optional(),
+  endedAt: z.iso.datetime().nullable().optional(),
+  finish: z.boolean().optional()
+})
+
+export const sessionListQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(1000).default(20)
+})
+
+export type SessionStartInput = z.infer<typeof sessionStartSchema>
+export type SessionPatchInput = z.infer<typeof sessionPatchSchema>
+
+export const workoutEntryAddSchema = z.object({ exerciseId: z.number().int().positive() })
+
+export const workoutEntryPatchSchema = z.object({
+  sortOrder: z.number().int().min(0).optional(),
+  notes: z.string().max(2000).nullable().optional()
+})
+
+export type WorkoutEntryAddInput = z.infer<typeof workoutEntryAddSchema>
+export type WorkoutEntryPatchInput = z.infer<typeof workoutEntryPatchSchema>
+
+export const setWriteSchema = z.object({
+  weight: z.number().min(0).max(2000).nullable().optional(),
+  reps: z.number().int().min(0).max(1000).nullable().optional(),
+  distanceMeters: z.number().min(0).max(1000000).nullable().optional(),
+  durationSeconds: z.number().int().min(0).max(86400).nullable().optional(),
+  done: z.boolean().optional(),
+  comment: z.string().max(500).nullable().optional()
+})
+
+export type SetWriteInput = z.infer<typeof setWriteSchema>

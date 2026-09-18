@@ -3,8 +3,9 @@ const open = defineModel<boolean>('open', { default: false })
 
 const restTimer = useRestTimer()
 const toast = useToast()
+const { user } = useUserSession()
 
-const presets = [
+const BASE_PRESETS = [
   { label: '30s', seconds: 30 },
   { label: '60s', seconds: 60 },
   { label: '90s', seconds: 90 },
@@ -12,7 +13,22 @@ const presets = [
   { label: '3m', seconds: 180 }
 ]
 
-const activePreset = ref(60)
+const defaultRest = computed(() => user.value?.defaultRestSeconds ?? 60)
+
+function presetLabel(seconds: number) {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  const rest = seconds % 60
+  return rest ? `${minutes}m${rest}s` : `${minutes}m`
+}
+
+const presets = computed(() => {
+  const seconds = defaultRest.value
+  if (BASE_PRESETS.some((preset) => preset.seconds === seconds)) return BASE_PRESETS
+  return [...BASE_PRESETS, { label: presetLabel(seconds), seconds }].sort((a, b) => a.seconds - b.seconds)
+})
+
+const activePreset = ref(defaultRest.value)
 
 function startWithPreset(seconds: number) {
   activePreset.value = seconds
@@ -54,7 +70,7 @@ const strokeDashoffset = computed(() => {
     <template #default />
 
     <template #content>
-      <div class="flex flex-col items-center gap-6 px-6 pb-8 pt-2">
+      <div class="flex flex-col items-center gap-6 px-6 pb-8 pt-2" data-test="rest-timer">
         <!-- Presets -->
         <div class="flex gap-2">
           <UButton

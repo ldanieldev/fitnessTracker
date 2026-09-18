@@ -13,11 +13,13 @@ export const users = appSchema.table(
     avatarUrl: varchar('avatar_url', { length: 255 }).default(sql`null`),
     isActive: boolean('is_active').default(true),
     password: varchar({ length: 255 }),
-    weekStart: smallint('week_start').notNull().default(1)
+    weekStart: smallint('week_start').notNull().default(1),
+    defaultRestSeconds: smallint('default_rest_seconds').notNull().default(60)
   },
   (table) => [
     unique('users_email_unique').on(table.email),
-    check('users_week_start_check', sql`${table.weekStart} in (0, 1)`)
+    check('users_week_start_check', sql`${table.weekStart} in (0, 1)`),
+    check('users_default_rest_seconds_check', sql`${table.defaultRestSeconds} between 10 and 600`)
   ]
 )
 

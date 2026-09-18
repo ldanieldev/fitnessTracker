@@ -7,6 +7,7 @@ declare module '#auth-utils' {
     age: number
     sex: string | null
     weekStart: 0 | 1
+    defaultRestSeconds: number
   }
 }
 

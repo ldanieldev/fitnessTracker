@@ -1,108 +1,193 @@
 <script setup lang="ts">
-import type { WorkoutSet } from '~/types/workout'
+import type { LoadStyle, SetMeasures, SetRecordKind, TrackingType, WorkoutSet } from '~~/shared/types/workout'
+import { FIELD, LABEL, measuresFor, type SetMeasure } from '~~/shared/utils/setRules'
+import { formatSet } from '~~/shared/utils/setFormat'
 
-const props = defineProps<{
-  set: WorkoutSet
-}>()
+const props = withDefaults(defineProps<{
+  set?: WorkoutSet
+  index: number
+  trackingType: TrackingType
+  loadStyle: LoadStyle | null
+  lastSet: SetMeasures | null
+  prefill: SetMeasures
+  weightIncrement?: number | null
+}>(), {
+  weightIncrement: null
+})
 
 const emit = defineEmits<{
-  delete: []
-  'update:note': [note: string]
-  'update:set': [data: { weight: number; reps: number; rpe: number }]
+  save: [values: SetMeasures & { comment?: string }]
+  remove: []
+  toggleDone: []
 }>()
 
-const showNote = ref(props.set.note.length > 0)
-const editing = ref(false)
-const editWeight = ref(props.set.weight)
-const editReps = ref(props.set.reps)
-const editRpe = ref(props.set.rpe)
-
-function startEdit() {
-  editWeight.value = props.set.weight
-  editReps.value = props.set.reps
-  editRpe.value = props.set.rpe
-  editing.value = true
+const RECORD_LABEL: Record<SetRecordKind, string> = {
+  weight_reps: 'Record: weight × reps',
+  reps: 'Record: reps',
+  distance: 'Record: distance',
+  pace: 'Record: pace'
 }
 
-function saveEdit() {
-  emit('update:set', { weight: editWeight.value, reps: editReps.value, rpe: editRpe.value })
-  editing.value = false
+// The 40 px steppers leave ~52 px per field at 360 px, so the input gives up its side padding to keep three digits visible.
+const INPUT_UI = { base: 'px-1' }
+
+const measures = computed(() => measuresFor(props.trackingType))
+const suffix = computed(() => (props.set ? String(props.set.id) : 'new'))
+
+function seed(): SetMeasures {
+  const source = props.set ?? props.prefill
+  return {
+    weight: source.weight ?? null,
+    reps: source.reps ?? null,
+    distanceMeters: source.distanceMeters ?? null,
+    durationSeconds: source.durationSeconds ?? null
+  }
 }
 
-function cancelEdit() {
-  editing.value = false
+const values = reactive<SetMeasures>(seed())
+let saved = seed()
+
+watch(() => props.set, () => {
+  Object.assign(values, seed())
+  saved = seed()
+})
+
+function onBlur(measure: SetMeasure) {
+  if (!props.set) return
+  const field = FIELD[measure]
+  if (values[field] === saved[field]) return
+  saved = { ...values }
+  emit('save', { ...values })
 }
 
-const menuItems = [
-  [
-    {
-      label: 'Edit',
-      icon: 'i-lucide-pencil',
-      onSelect: () => startEdit()
-    },
-    {
-      label: 'Delete',
-      icon: 'i-lucide-trash-2',
-      color: 'error' as const,
-      onSelect: () => emit('delete')
-    }
-  ]
-]
+function saveNew() {
+  emit('save', { ...values })
+}
+
+const commentOpen = ref(false)
+const commentText = ref('')
+
+function openComment() {
+  commentText.value = props.set?.comment ?? ''
+  commentOpen.value = true
+}
+
+function saveComment() {
+  emit('save', { ...values, comment: commentText.value })
+  commentOpen.value = false
+}
+
+const recordLabel = computed(() =>
+  props.set && props.set.records.length > 0 ? props.set.records.map((record) => RECORD_LABEL[record.kind]).join(', ') : ''
+)
+
+const lastLine = computed(() => (props.lastSet ? formatSet(measures.value, props.lastSet) : ''))
 </script>
 
 <template>
-  <div class="flex flex-col gap-1">
-    <!-- Edit mode -->
-    <div v-if="editing" class="flex flex-col gap-2 py-2 px-3 rounded-lg bg-elevated/50">
-      <div class="flex items-center gap-3 text-sm">
-        <span class="text-dimmed w-12 shrink-0">Set {{ props.set.setNumber }}</span>
-        <div class="flex items-center gap-1">
-          <UInputNumber v-model="editWeight" :min="0" :step="5" size="xs" class="w-24" />
-          <span class="text-xs text-dimmed">lbs</span>
+  <div class="flex w-full flex-col gap-1">
+    <div class="flex w-full items-center gap-1">
+      <span class="w-4 shrink-0 text-sm text-dimmed">{{ index + 1 }}</span>
+
+      <template v-for="measure in measures" :key="measure">
+        <div v-if="measure === 'weight'" class="flex min-w-0 flex-1 flex-col gap-0.5">
+          <AppNumberInput
+            v-model="values.weight"
+            :min="0"
+            :step="weightIncrement ?? 5"
+            :placeholder="LABEL[measure]"
+            :aria-label="LABEL[measure]"
+            :ui="INPUT_UI"
+            :data-test="`set-weight-${suffix}`"
+            @blur="onBlur('weight')"
+          />
+          <span v-if="loadStyle === 'assisted' && values.weight !== null" class="text-xs text-dimmed">{{ `−${values.weight}` }}</span>
         </div>
-        <div class="flex items-center gap-1">
-          <UInputNumber v-model="editReps" :min="1" :step="1" size="xs" class="w-20" />
-          <span class="text-xs text-dimmed">reps</span>
+        <div v-else-if="measure === 'reps'" class="min-w-0 flex-1">
+          <AppNumberInput
+            v-model="values.reps"
+            :min="0"
+            :step="1"
+            :placeholder="LABEL[measure]"
+            :aria-label="LABEL[measure]"
+            :ui="INPUT_UI"
+            :data-test="`set-reps-${suffix}`"
+            @blur="onBlur('reps')"
+          />
         </div>
-        <div class="flex items-center gap-1">
-          <UInputNumber v-model="editRpe" :min="1" :max="10" :step="1" size="xs" class="w-20" />
-          <span class="text-xs text-dimmed">RPE</span>
+        <div v-else-if="measure === 'distance'" class="min-w-0 flex-1">
+          <AppNumberInput
+            v-model="values.distanceMeters"
+            :min="0"
+            :step="100"
+            :placeholder="LABEL[measure]"
+            :aria-label="LABEL[measure]"
+            :ui="INPUT_UI"
+            :data-test="`set-distance-${suffix}`"
+            @blur="onBlur('distance')"
+          />
         </div>
-      </div>
-      <div class="flex justify-end gap-2">
-        <UButton label="Cancel" variant="ghost" color="neutral" size="xs" @click="cancelEdit" />
-        <UButton label="Save" size="xs" @click="saveEdit" />
+        <div v-else class="min-w-0 flex-1">
+          <AppNumberInput
+            v-model="values.durationSeconds"
+            :min="0"
+            :step="30"
+            :placeholder="LABEL[measure]"
+            :aria-label="LABEL[measure]"
+            :ui="INPUT_UI"
+            :data-test="`set-duration-${suffix}`"
+            @blur="onBlur('duration')"
+          />
+        </div>
+      </template>
+    </div>
+
+    <!-- The ± steppers fill the first line at 360 px, so the note and the row's buttons sit on a second one. -->
+    <div class="flex items-center gap-2 pl-5">
+      <span v-if="lastSet" class="min-w-0 flex-1 truncate text-xs text-dimmed" :data-test="`set-last-${suffix}`">last: {{ lastLine }}</span>
+
+      <div class="ml-auto flex shrink-0 items-center gap-2">
+        <UIcon
+          v-if="set && set.records.length > 0"
+          name="i-lucide-trophy"
+          class="size-5 text-warning"
+          :aria-label="recordLabel"
+          :data-test="`set-record-${suffix}`"
+        />
+
+        <UButton
+          v-if="set"
+          icon="i-lucide-message-square"
+          variant="ghost"
+          :color="set.comment ? 'primary' : 'neutral'"
+          class="size-10"
+          aria-label="Set comment"
+          :data-test="`set-comment-${suffix}`"
+          @click="openComment"
+        />
+
+        <UButton
+          v-if="set"
+          icon="i-lucide-trash-2"
+          variant="ghost"
+          color="error"
+          class="size-10"
+          aria-label="Remove set"
+          :data-test="`set-remove-${suffix}`"
+          @click="emit('remove')"
+        />
+
+        <UButton v-else label="Save" class="min-h-10" :data-test="`set-save-${suffix}`" @click="saveNew" />
       </div>
     </div>
 
-    <!-- Display mode -->
-    <div v-else class="flex items-center gap-3 py-2 px-3 rounded-lg bg-elevated/50 text-sm">
-      <span class="text-dimmed w-12 shrink-0">Set {{ props.set.setNumber }}</span>
-      <span class="w-20 font-medium">{{ props.set.weight }} lbs</span>
-      <span class="w-16">{{ props.set.reps }} reps</span>
-      <span class="w-14 text-dimmed">RPE {{ props.set.rpe }}</span>
-      <span class="ml-auto text-dimmed text-right shrink-0">{{ props.set.weight * props.set.reps }} vol</span>
-      <UButton
-        icon="i-lucide-message-square"
-        variant="ghost"
-        :color="set.note ? 'primary' : 'neutral'"
-        size="xs"
-        class="shrink-0"
-        @click="showNote = !showNote"
-      />
-      <UDropdownMenu :items="menuItems">
-        <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" size="xs" class="shrink-0" />
-      </UDropdownMenu>
-    </div>
-    <UTextarea
-      v-if="showNote"
-      :model-value="props.set.note"
-      placeholder="Add a note..."
-      :rows="1"
-      autoresize
-      size="sm"
-      class="mx-3"
-      @update:model-value="emit('update:note', String($event ?? ''))"
-    />
+    <AppSheet v-if="set" v-model:open="commentOpen" title="Comment">
+      <template #body>
+        <UTextarea v-model="commentText" :rows="3" autoresize class="w-full" />
+      </template>
+      <template #footer>
+        <UButton label="Save" class="ml-auto" @click="saveComment" />
+      </template>
+    </AppSheet>
   </div>
 </template>

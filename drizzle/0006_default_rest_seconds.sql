@@ -1,0 +1,2 @@
+ALTER TABLE "app"."users" ADD COLUMN "default_rest_seconds" smallint DEFAULT 60 NOT NULL;--> statement-breakpoint
+ALTER TABLE "app"."users" ADD CONSTRAINT "users_default_rest_seconds_check" CHECK ("app"."users"."default_rest_seconds" between 10 and 600);

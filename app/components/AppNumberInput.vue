@@ -39,8 +39,8 @@ function stepBy(direction: 1 | -1) {
 </script>
 
 <template>
-  <div class="flex w-full items-center gap-1">
-    <UButton v-if="step !== undefined" icon="i-lucide-minus" variant="soft" color="neutral" aria-label="Decrease" :disabled="disabled" @click="stepBy(-1)" />
+  <div class="flex w-full items-center gap-1" data-test="number-input">
+    <UButton v-if="step !== undefined" icon="i-lucide-minus" variant="soft" color="neutral" class="size-10 shrink-0" aria-label="Decrease" :disabled="disabled" @click="stepBy(-1)" />
     <UInput
       :model-value="text"
       type="text"
@@ -54,6 +54,6 @@ function stepBy(direction: 1 | -1) {
       @focus="onFocus"
       @blur="onBlur"
     />
-    <UButton v-if="step !== undefined" icon="i-lucide-plus" variant="soft" color="neutral" aria-label="Increase" :disabled="disabled" @click="stepBy(1)" />
+    <UButton v-if="step !== undefined" icon="i-lucide-plus" variant="soft" color="neutral" class="size-10 shrink-0" aria-label="Increase" :disabled="disabled" @click="stepBy(1)" />
   </div>
 </template>

@@ -9,7 +9,8 @@ const updateProfileSchema = z.object({
   age: z.coerce.number().min(13).max(120).optional(),
   sex: z.enum(['m', 'f']).optional(),
   avatarUrl: z.string().url().optional().or(z.literal('')),
-  weekStart: z.union([z.literal(0), z.literal(1)]).optional()
+  weekStart: z.union([z.literal(0), z.literal(1)]).optional(),
+  defaultRestSeconds: z.number().int().min(10).max(600).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -59,7 +60,8 @@ export default defineEventHandler(async (event) => {
       age: parsed.data.age,
       sex: parsed.data.sex,
       avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl || null : undefined,
-      weekStart: parsed.data.weekStart
+      weekStart: parsed.data.weekStart,
+      defaultRestSeconds: parsed.data.defaultRestSeconds
     })
     .where(eq(users.id, id))
     .returning(userColumns)
@@ -74,7 +76,8 @@ export default defineEventHandler(async (event) => {
       avatar_url: user.avatarUrl,
       age: user.age,
       sex: user.sex,
-      weekStart: user.weekStart as 0 | 1
+      weekStart: user.weekStart as 0 | 1,
+      defaultRestSeconds: user.defaultRestSeconds
     }
   })
 

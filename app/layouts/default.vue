@@ -63,7 +63,7 @@ const links = computed(() => [
         },
         {
           label: 'Workout History',
-          // to: '/workouts/history',
+          to: '/workouts/sessions',
           onSelect: close
         },
         {

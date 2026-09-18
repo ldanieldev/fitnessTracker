@@ -119,3 +119,59 @@ export interface ExerciseListFilters {
   includeHidden?: boolean
   limit?: number
 }
+
+export interface SetMeasures {
+  weight?: number | null
+  reps?: number | null
+  distanceMeters?: number | null
+  durationSeconds?: number | null
+}
+
+export type SetRecordKind = 'weight_reps' | 'reps' | 'distance' | 'pace'
+
+export interface SetRecord {
+  kind: SetRecordKind
+  previous: number | null
+}
+
+export interface WorkoutSet extends SetMeasures {
+  id: number
+  sortOrder: number
+  done: boolean
+  comment: string | null
+  records: SetRecord[]
+}
+
+export interface WorkoutEntry {
+  id: number
+  exerciseId: number
+  exerciseName: string
+  sortOrder: number
+  trackingType: TrackingType
+  loadStyle: LoadStyle | null
+  barWeight: number | null
+  weightIncrement: number | null
+  notes: string | null
+  sets: WorkoutSet[]
+  lastSets: SetMeasures[]
+}
+
+export interface WorkoutSession {
+  id: number
+  name: string | null
+  performedOn: string
+  startedAt: string
+  endedAt: string | null
+  notes: string | null
+  entries: WorkoutEntry[]
+}
+
+export interface WorkoutSessionSummary {
+  id: number
+  name: string | null
+  performedOn: string
+  startedAt: string
+  endedAt: string | null
+  exerciseCount: number
+  setCount: number
+}
