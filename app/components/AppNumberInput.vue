@@ -3,8 +3,9 @@ import { parseAmount } from '~/utils/numberInput'
 
 defineOptions({ inheritAttrs: false })
 
-const props = withDefaults(defineProps<{ min?: number, step?: number, placeholder?: string, disabled?: boolean }>(), {
+const props = withDefaults(defineProps<{ min?: number, max?: number, step?: number, placeholder?: string, disabled?: boolean }>(), {
   min: undefined,
+  max: undefined,
   step: undefined,
   placeholder: '',
   disabled: false
@@ -33,8 +34,10 @@ function onBlur() {
 
 function stepBy(direction: 1 | -1) {
   const step = props.step ?? 1
-  const next = (model.value ?? 0) + direction * step
-  model.value = props.min !== undefined ? Math.max(props.min, next) : next
+  let next = (model.value ?? 0) + direction * step
+  if (props.min !== undefined) next = Math.max(props.min, next)
+  if (props.max !== undefined) next = Math.min(props.max, next)
+  model.value = next
 }
 </script>
 

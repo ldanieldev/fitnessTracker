@@ -29,15 +29,13 @@ const state = reactive<Partial<Schema>>({
 const loading = ref(false)
 
 const preferencesSchema = z.object({
-  weekStart: z.union([z.literal(0), z.literal(1)]),
-  defaultRestSeconds: z.number({ message: 'Default rest is required' }).int().min(10).max(600)
+  weekStart: z.union([z.literal(0), z.literal(1)])
 })
 
 type PreferencesSchema = z.input<typeof preferencesSchema>
 
 const preferencesState = reactive<Partial<PreferencesSchema>>({
-  weekStart: user.value?.weekStart ?? 1,
-  defaultRestSeconds: user.value?.defaultRestSeconds ?? 60
+  weekStart: user.value?.weekStart ?? 1
 })
 
 const preferencesLoading = ref(false)
@@ -157,10 +155,6 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
             ]"
             class="w-full"
           />
-        </UFormField>
-
-        <UFormField label="Default rest" name="defaultRestSeconds" hint="seconds" required>
-          <AppNumberInput v-model="preferencesState.defaultRestSeconds" :min="10" :step="15" data-test="setting-default-rest" />
         </UFormField>
 
         <UButton type="submit" label="Save changes" :loading="preferencesLoading" class="w-fit" />

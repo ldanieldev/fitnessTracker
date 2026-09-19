@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
+import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const loginSchema = z.object({
   email: z.email(),
@@ -42,18 +43,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await setUserSession(event, {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar_url: user.avatarUrl,
-      age: user.age,
-      sex: user.sex,
-      weekStart: user.weekStart as 0 | 1,
-      defaultRestSeconds: user.defaultRestSeconds
-    }
-  })
+  await replaceUserSession(event, { user: toSessionUser(user) })
 
   return { success: true }
 })

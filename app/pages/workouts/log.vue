@@ -2,14 +2,25 @@
 import { format } from 'date-fns'
 import type { WorkoutSession, WorkoutSessionSummary } from '~~/shared/types/workout'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
+import type { ToolsTab } from '~/components/workout/WorkoutToolsSheet.vue'
+import WorkoutToolsSheet from '~/components/workout/WorkoutToolsSheet.vue'
 import { errorMessage } from '~/utils/apiError'
 
 const toast = useToast()
 const wakeLock = useWakeLock()
 const restTimerOpen = ref(false)
-const restTimerRef = ref<{ restart: () => void }>()
 const copyOpen = ref(false)
 const starting = ref(false)
+
+const restTimer = useRestTimer()
+const { defaultRestSeconds } = useWorkoutPrefs()
+const lastLoggedEntryId = ref<number | null>(null)
+
+restTimer.onComplete(() => {
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+  if (!restTimerOpen.value) toast.add({ title: 'Rest complete!', icon: 'i-lucide-timer', color: 'success' })
+  restTimerOpen.value = false
+})
 
 const sessionFetch = useWorkoutFetch<WorkoutSession | null>(
   WORKOUT_KEYS.active,
@@ -44,6 +55,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   wakeLock.disable()
+  restTimer.skip()
 })
 
 function toggleWakeLock() {
@@ -103,9 +115,35 @@ async function deleteSession() {
   }
 }
 
-function onSetLogged() {
-  restTimerOpen.value = true
-  restTimerRef.value?.restart()
+function onSetLogged(entryId: number) {
+  lastLoggedEntryId.value = entryId
+  const entry = session.value?.entries.find((candidate) => candidate.id === entryId)
+  restTimer.start(entry?.restSeconds ?? defaultRestSeconds.value)
+}
+
+const toolsOpen = ref(false)
+const toolsEntryId = ref<number | null>(null)
+const toolsTab = ref<ToolsTab>('plates')
+const toolsTarget = ref<number | null>(null)
+
+function openTools() {
+  toolsEntryId.value = lastLoggedEntryId.value
+  toolsOpen.value = true
+}
+
+function openPlates(entryId: number, weight: number | null) {
+  toolsEntryId.value = entryId
+  toolsTab.value = 'plates'
+  if (weight !== null) toolsTarget.value = weight
+  toolsOpen.value = true
+}
+
+const presetWeights = reactive<Record<number, { weight: number, seq: number }>>({})
+let presetSeq = 0
+
+function useWeight(entryId: number, weight: number) {
+  presetWeights[entryId] = { weight, seq: ++presetSeq }
+  toolsOpen.value = false
 }
 
 function plural(count: number, noun: string) {
@@ -127,7 +165,7 @@ function recentLine(summary: WorkoutSessionSummary) {
         </template>
 
         <template #title>
-          <span class="font-semibold">Workout</span>
+          <span class="font-semibold max-sm:hidden">Current Workout</span>
         </template>
 
         <template #right>
@@ -144,6 +182,29 @@ function recentLine(summary: WorkoutSessionSummary) {
             @click="toggleWakeLock"
           />
           <UButton
+            icon="i-lucide-calculator"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            aria-label="Workout tools"
+            class="min-h-10 min-w-10 justify-center"
+            data-test="tools-open"
+            @click="openTools"
+          />
+          <UButton
+            v-if="restTimer.isRunning.value"
+            icon="i-lucide-timer"
+            :label="restTimer.display.value"
+            variant="soft"
+            color="primary"
+            size="sm"
+            class="min-h-10 font-mono tabular-nums"
+            aria-label="Rest timer running, open it"
+            data-test="rest-timer-pill"
+            @click="restTimerOpen = true"
+          />
+          <UButton
+            v-else
             icon="i-lucide-timer"
             variant="ghost"
             color="neutral"
@@ -155,14 +216,17 @@ function recentLine(summary: WorkoutSessionSummary) {
           />
           <UButton
             v-if="session && !session.endedAt"
-            label="Finish"
+            icon="i-lucide-square"
             variant="soft"
-            color="primary"
+            color="error"
             size="sm"
             class="min-h-10"
             data-test="session-finish"
             @click="finishSession"
-          />
+          >
+            <span class="sm:hidden">End</span>
+            <span class="max-sm:hidden">End Workout</span>
+          </UButton>
         </template>
       </UDashboardNavbar>
     </template>
@@ -201,8 +265,11 @@ function recentLine(summary: WorkoutSessionSummary) {
       <WorkoutSessionEditor
         v-else
         v-model:session="session"
+        plate-button
+        :preset-weights="presetWeights"
         class="mx-auto w-full max-w-2xl pb-4"
         @set-logged="onSetLogged"
+        @open-plates="openPlates"
         @delete="deleteSession"
       />
 
@@ -225,7 +292,16 @@ function recentLine(summary: WorkoutSessionSummary) {
         </template>
       </AppSheet>
 
-      <WorkoutRestTimer ref="restTimerRef" v-model:open="restTimerOpen" />
+      <WorkoutRestTimer v-model:open="restTimerOpen" :timer="restTimer" />
+
+      <WorkoutToolsSheet
+        v-model:open="toolsOpen"
+        v-model:entry-id="toolsEntryId"
+        v-model:tab="toolsTab"
+        v-model:target="toolsTarget"
+        :entries="session?.entries ?? []"
+        @use-weight="useWeight"
+      />
     </template>
   </UDashboardPanel>
 </template>

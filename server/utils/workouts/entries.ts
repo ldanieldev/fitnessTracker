@@ -1,12 +1,13 @@
 import { and, eq } from 'drizzle-orm'
 import type { WorkoutEntry, WorkoutSession, WorkoutSet } from '~~/shared/types/workout'
-import { exercisePrefs, exercises, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
+import { exercisePrefs, exercises, users, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
 import type { WorkoutEntryPatchInput } from '~~/server/utils/workouts/input'
 import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
 import { loadSession } from '~~/server/utils/workouts/sessions'
 import { historyForExercise, lastSetsForExercise } from '~~/server/utils/workouts/history'
 import { recordsForEarlier } from '~~/shared/utils/workoutRecords'
+import { DEFAULT_PLATE_SIZES, effectivePlateSizes } from '~~/shared/utils/plates'
 import { siblingIds, renumberSiblings } from '~~/server/utils/workouts/sortOrder'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Entry not found' } as const
@@ -41,24 +42,30 @@ async function loadSetRows(entryId: number): Promise<WorkoutSet[]> {
 }
 
 export async function loadEntries(userId: number, sessionId: number): Promise<WorkoutEntry[]> {
-  const rows = await db
-    .select({
-      id: workoutEntries.id,
-      exerciseId: workoutEntries.exerciseId,
-      exerciseName: exercises.name,
-      sortOrder: workoutEntries.sortOrder,
-      trackingType: workoutEntries.trackingType,
-      loadStyle: workoutEntries.loadStyle,
-      notes: workoutEntries.notes,
-      exerciseBarWeight: exercises.barWeight,
-      prefBarWeight: exercisePrefs.barWeight,
-      weightIncrement: exercisePrefs.weightIncrement
-    })
-    .from(workoutEntries)
-    .innerJoin(exercises, eq(exercises.id, workoutEntries.exerciseId))
-    .leftJoin(exercisePrefs, and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, workoutEntries.exerciseId)))
-    .where(eq(workoutEntries.sessionId, sessionId))
-    .orderBy(workoutEntries.sortOrder, workoutEntries.id)
+  const [rows, owner] = await Promise.all([
+    db
+      .select({
+        id: workoutEntries.id,
+        exerciseId: workoutEntries.exerciseId,
+        exerciseName: exercises.name,
+        sortOrder: workoutEntries.sortOrder,
+        trackingType: workoutEntries.trackingType,
+        loadStyle: workoutEntries.loadStyle,
+        notes: workoutEntries.notes,
+        exerciseBarWeight: exercises.barWeight,
+        prefBarWeight: exercisePrefs.barWeight,
+        weightIncrement: exercisePrefs.weightIncrement,
+        restSeconds: exercisePrefs.restSeconds,
+        prefPlateSizes: exercisePrefs.plateSizes
+      })
+      .from(workoutEntries)
+      .innerJoin(exercises, eq(exercises.id, workoutEntries.exerciseId))
+      .leftJoin(exercisePrefs, and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, workoutEntries.exerciseId)))
+      .where(eq(workoutEntries.sessionId, sessionId))
+      .orderBy(workoutEntries.sortOrder, workoutEntries.id),
+    db.select({ plateSizes: users.plateSizes }).from(users).where(eq(users.id, userId)).then((r) => r[0])
+  ])
+  const defaultPlates = owner?.plateSizes ?? DEFAULT_PLATE_SIZES.map(String)
 
   return Promise.all(rows.map(async (row) => {
     const barWeightRaw = row.prefBarWeight ?? row.exerciseBarWeight
@@ -80,6 +87,8 @@ export async function loadEntries(userId: number, sessionId: number): Promise<Wo
       loadStyle: row.loadStyle,
       barWeight: row.loadStyle === 'barbell' && barWeightRaw != null ? Number(barWeightRaw) : null,
       weightIncrement: row.weightIncrement != null ? Number(row.weightIncrement) : null,
+      restSeconds: row.restSeconds,
+      plateSizes: effectivePlateSizes(row.loadStyle, row.prefPlateSizes, defaultPlates),
       notes: row.notes,
       sets,
       lastSets

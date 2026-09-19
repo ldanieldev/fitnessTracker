@@ -39,6 +39,7 @@ export interface Exercise {
   barWeight: number | null
   weightIncrement: number | null
   restSeconds: number | null
+  plateSizes: number[] | null
   difficulty: 'beginner' | 'intermediate' | 'advanced' | null
   equipment: string[]
   primaryMuscles: string[]
@@ -75,6 +76,7 @@ export interface ExercisePrefRow {
   categoryId: number | null
   weightIncrement: string | null
   restSeconds: number | null
+  plateSizes: string[] | null
   notes: string | null
   link: string | null
   favorite: boolean
@@ -151,6 +153,8 @@ export interface WorkoutEntry {
   loadStyle: LoadStyle | null
   barWeight: number | null
   weightIncrement: number | null
+  restSeconds: number | null
+  plateSizes: number[] | null
   notes: string | null
   sets: WorkoutSet[]
   lastSets: SetMeasures[]
@@ -174,4 +178,22 @@ export interface WorkoutSessionSummary {
   endedAt: string | null
   exerciseCount: number
   setCount: number
+}
+
+export interface OneRepMaxSource {
+  weight: number
+  reps: number
+  performedOn: string
+}
+
+export interface OneRepMaxResult {
+  estimate: number | null
+  source: OneRepMaxSource | null
+  assisted: boolean
+}
+
+export interface HistoryStamp {
+  sets: number
+  setsAt: string | null
+  sessionsAt: string | null
 }

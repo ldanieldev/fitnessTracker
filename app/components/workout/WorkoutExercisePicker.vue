@@ -44,6 +44,7 @@ function pick(exercise: Exercise) {
       <div class="flex flex-col gap-3">
         <UInput
           v-model="search"
+          autofocus
           icon="i-lucide-search"
           placeholder="Search exercises"
           class="w-full"

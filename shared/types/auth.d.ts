@@ -8,6 +8,7 @@ declare module '#auth-utils' {
     sex: string | null
     weekStart: 0 | 1
     defaultRestSeconds: number
+    plateSizes: number[]
   }
 }
 

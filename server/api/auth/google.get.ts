@@ -1,3 +1,5 @@
+import { toSessionUser } from '~~/server/utils/sessionUser'
+
 const googleHandler = defineOAuthGoogleEventHandler({
   async onSuccess(event, { user: googleUser }) {
     const email: string = googleUser.email || ''
@@ -26,18 +28,7 @@ const googleHandler = defineOAuthGoogleEventHandler({
         session.user?.id
       )
 
-      await setUserSession(event, {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          avatar_url: user.avatarUrl,
-          age: user.age,
-          sex: user.sex,
-          weekStart: user.weekStart as 0 | 1,
-          defaultRestSeconds: user.defaultRestSeconds
-        }
-      })
+      await replaceUserSession(event, { user: toSessionUser(user) })
 
       return oauthSuccessRedirect(event, 'google')
     } catch (error) {

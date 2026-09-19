@@ -11,6 +11,7 @@ const base = {
   barWeight: 45,
   weightIncrement: null,
   restSeconds: null,
+  plateSizes: null,
   difficulty: 'beginner' as const,
   equipment: ['barbell'],
   primaryMuscles: ['chest'],

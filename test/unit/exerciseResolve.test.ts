@@ -118,6 +118,29 @@ describe('resolveExercise', () => {
     expect(out.barWeight).toBe(null)
   })
 
+  it('resolves the plate override for barbell exercises only', () => {
+    const pref = {
+      barWeight: null,
+      trackingType: null,
+      loadStyle: null,
+      categoryId: null,
+      weightIncrement: null,
+      restSeconds: null,
+      notes: null,
+      link: null,
+      favorite: false,
+      hiddenAt: null
+    }
+    const barbell = resolveExercise(
+      { ...row, loadStyle: 'barbell' as const, barWeight: '45' },
+      { ...pref, plateSizes: ['55', '45'] },
+      category
+    )
+    expect(barbell.plateSizes).toEqual([55, 45])
+    const plain = resolveExercise({ ...row, loadStyle: 'plain' as const }, { ...pref, plateSizes: ['55'] }, category)
+    expect(plain.plateSizes).toBeNull()
+  })
+
   it('marks a user-created exercise as not shared', () => {
     expect(resolveExercise({ ...row, createdByUserId: 3 }, null, category).shared).toBe(false)
   })

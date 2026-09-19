@@ -41,27 +41,28 @@ test('phone: paging, search, filter, settings, photos, custom exercise, variatio
   await page.locator('[data-test="filter-apply"]').click()
   await page.locator('[data-test="exercise-list"]').getByRole('link').first().click()
 
-  await page.getByRole('tab', { name: 'Settings' }).click()
+  await page.locator('[data-test="exercise-tab-workout"]').click()
   await page.locator('[data-test="setting-rest-seconds"]').fill('180')
   // Save is a fire-and-forget PUT with no success toast; reloading before it lands races the write on Firefox.
   await Promise.all([
     page.waitForResponse((res) => res.url().includes('/prefs') && res.request().method() === 'PUT'),
-    page.locator('[data-test="settings-save"]').click()
+    page.locator('[data-test="workout-save"]').click()
   ])
   await page.reload()
-  await page.getByRole('tab', { name: 'Settings' }).click()
+  await page.locator('[data-test="exercise-tab-workout"]').click()
   await expect(page.locator('[data-test="setting-rest-seconds"]')).toHaveValue('180')
 
+  await page.locator('[data-test="exercise-tab-settings"]').click()
   await page.locator('[data-test="setting-bar-weight"]').fill('35')
   await Promise.all([
     page.waitForResponse((res) => res.url().includes('/prefs') && res.request().method() === 'PUT'),
     page.locator('[data-test="settings-save"]').click()
   ])
   await page.reload()
-  await page.getByRole('tab', { name: 'Settings' }).click()
+  await page.locator('[data-test="exercise-tab-settings"]').click()
   await expect(page.locator('[data-test="setting-bar-weight"]')).toHaveValue('35')
 
-  await page.getByRole('tab', { name: 'About' }).click()
+  await page.locator('[data-test="exercise-tab-about"]').click()
   await page.locator('[data-test="detail-image-0"]').click()
   await expect(page.locator('[data-test="image-viewer"]')).toBeVisible()
   await expect(page.locator('[data-test="image-viewer-count"]')).toHaveText('1 / 2')

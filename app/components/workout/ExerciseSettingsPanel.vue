@@ -13,17 +13,13 @@ interface LocalSettings {
   trackingType: TrackingType
   loadStyle: LoadStyle | null
   barWeight: number | null
-  weightIncrement: number | null
-  restSeconds: number | null
 }
 
 const local = reactive<LocalSettings>({
   categoryId: props.exercise.category.id,
   trackingType: props.exercise.trackingType,
   loadStyle: props.exercise.loadStyle,
-  barWeight: props.exercise.barWeight,
-  weightIncrement: props.exercise.weightIncrement,
-  restSeconds: props.exercise.restSeconds
+  barWeight: props.exercise.barWeight
 })
 
 watch(() => props.exercise, (exercise) => {
@@ -31,8 +27,6 @@ watch(() => props.exercise, (exercise) => {
   local.trackingType = exercise.trackingType
   local.loadStyle = exercise.loadStyle
   local.barWeight = exercise.barWeight
-  local.weightIncrement = exercise.weightIncrement
-  local.restSeconds = exercise.restSeconds
 })
 
 const categoryOptions = computed(() => props.categories.map((c) => ({ label: c.name, value: c.id })))
@@ -69,8 +63,6 @@ function save() {
   if (local.trackingType !== props.exercise.trackingType) patch.trackingType = local.trackingType
   if (local.loadStyle !== props.exercise.loadStyle) patch.loadStyle = local.loadStyle
   if (local.barWeight !== props.exercise.barWeight) patch.barWeight = local.barWeight
-  if (local.weightIncrement !== props.exercise.weightIncrement) patch.weightIncrement = local.weightIncrement
-  if (local.restSeconds !== props.exercise.restSeconds) patch.restSeconds = local.restSeconds
   if (Object.keys(patch).length === 0) return
   emit('save', patch)
 }
@@ -168,52 +160,6 @@ function save() {
       </div>
     </div>
 
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Weight increment</span>
-      <div class="flex items-center gap-2">
-        <AppNumberInput
-          v-model="local.weightIncrement"
-          :min="0.5"
-          :step="2.5"
-          class="min-w-0 flex-1"
-          data-test="setting-weight-increment"
-        />
-        <UButton
-          v-if="exercise.weightIncrement !== null"
-          label="Reset"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          aria-label="Reset weight increment"
-          data-test="reset-weightIncrement"
-          @click="emit('reset', 'weightIncrement')"
-        />
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Rest (seconds)</span>
-      <div class="flex items-center gap-2">
-        <AppNumberInput
-          v-model="local.restSeconds"
-          :min="5"
-          :step="15"
-          class="min-w-0 flex-1"
-          data-test="setting-rest-seconds"
-        />
-        <UButton
-          v-if="exercise.restSeconds !== null"
-          label="Reset"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          aria-label="Reset rest time"
-          data-test="reset-restSeconds"
-          @click="emit('reset', 'restSeconds')"
-        />
-      </div>
-    </div>
-
-    <UButton label="Save" class="min-h-10" data-test="settings-save" @click="save" />
+    <UButton label="Save" block class="min-h-10" data-test="settings-save" @click="save" />
   </div>
 </template>

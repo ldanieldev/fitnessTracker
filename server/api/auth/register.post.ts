@@ -2,6 +2,7 @@ import { eq, getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { users, authProviders } from '~~/server/db/schema'
 import { seedContainersForUser } from '~~/server/db/seed/nutrition'
+import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const registerSchema = z.object({
   name: z.string().min(1),
@@ -60,18 +61,7 @@ export default defineEventHandler(async (event) => {
         .limit(1)
         .then((r) => r[0]!)
 
-      await setUserSession(event, {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          avatar_url: user.avatarUrl,
-          age: user.age,
-          sex: user.sex,
-          weekStart: user.weekStart as 0 | 1,
-          defaultRestSeconds: user.defaultRestSeconds
-        }
-      })
+      await replaceUserSession(event, { user: toSessionUser(user) })
 
       return { success: true }
     }
@@ -103,18 +93,7 @@ export default defineEventHandler(async (event) => {
     providerAccountId: parsed.data.email
   })
 
-  await setUserSession(event, {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar_url: user.avatarUrl,
-      age: user.age,
-      sex: user.sex,
-      weekStart: user.weekStart as 0 | 1,
-      defaultRestSeconds: user.defaultRestSeconds
-    }
-  })
+  await replaceUserSession(event, { user: toSessionUser(user) })
 
   return { success: true }
 })

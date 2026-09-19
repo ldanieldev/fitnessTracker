@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, integer, numeric, primaryKey, smallint, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, integer, numeric, primaryKey, smallint, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '../../../../shared/types/workout'
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
@@ -22,12 +22,19 @@ export const exercisePrefs = appSchema.table(
     barWeight: numeric('bar_weight').default(sql`null`),
     weightIncrement: numeric('weight_increment').default(sql`null`),
     restSeconds: integer('rest_seconds').default(sql`null`),
+    plateSizes: numeric('plate_sizes').array().default(sql`null`),
     notes: varchar('notes', { length: 2000 }).default(sql`null`),
     link: varchar('link', { length: 500 }).default(sql`null`),
     favorite: boolean('favorite').notNull().default(false),
     hiddenAt: timestamp('hidden_at').default(sql`null`)
   },
-  (table) => [primaryKey({ columns: [table.userId, table.exerciseId] })]
+  (table) => [
+    primaryKey({ columns: [table.userId, table.exerciseId] }),
+    check(
+      'exercise_prefs_plate_sizes_check',
+      sql`${table.plateSizes} is null or (cardinality(${table.plateSizes}) between 1 and 12 and 0 < all(${table.plateSizes}) and 100 >= all(${table.plateSizes}))`
+    )
+  ]
 )
 
 export const exerciseCategoryPrefs = appSchema.table(

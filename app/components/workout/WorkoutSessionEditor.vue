@@ -5,11 +5,16 @@ import { errorMessage } from '~/utils/apiError'
 type SetValues = SetMeasures & { comment?: string }
 type SetResponse = { session: WorkoutSession }
 
-const props = defineProps<{ session: WorkoutSession }>()
+const props = defineProps<{
+  session: WorkoutSession
+  plateButton?: boolean
+  presetWeights?: Record<number, { weight: number, seq: number }>
+}>()
 
 const emit = defineEmits<{
   'update:session': [session: WorkoutSession]
-  'setLogged': []
+  'setLogged': [entryId: number]
+  'openPlates': [entryId: number, weight: number | null]
   'delete': []
 }>()
 
@@ -123,7 +128,7 @@ function retrySave(entryId: number, setId: number | null) {
 async function addSet(entryId: number, values: SetValues) {
   const saved = await saveSet(entryId, null, () =>
     apiFetch<SetResponse>(`/api/workouts/entries/${entryId}/sets`, { method: 'POST', body: values }))
-  if (saved) emit('setLogged')
+  if (saved) emit('setLogged', entryId)
 }
 
 function editSet(entryId: number, setId: number, values: SetValues) {
@@ -153,6 +158,8 @@ function toggleDone(entryId: number, setId: number) {
       :entry="entry"
       :is-first="index === 0"
       :is-last="index === session.entries.length - 1"
+      :plate-button="plateButton"
+      :preset-weight="presetWeights?.[entry.id] ?? null"
       :save-errors="entryErrors(entry.id)"
       @add-set="(values) => addSet(entry.id, values)"
       @edit-set="(setId, values) => editSet(entry.id, setId, values)"
@@ -161,20 +168,20 @@ function toggleDone(entryId: number, setId: number) {
       @move="(direction) => moveEntry(entry, direction)"
       @remove="removeEntry(entry.id)"
       @retry-save="(setId) => retrySave(entry.id, setId)"
+      @plates="(weight) => emit('openPlates', entry.id, weight)"
     />
 
     <p v-if="!session.entries.length" class="text-sm text-dimmed">Add an exercise to start logging sets.</p>
 
-    <UButton
-      label="Add exercise"
-      icon="i-lucide-plus"
-      variant="soft"
-      color="neutral"
-      block
-      class="min-h-10"
+    <button
+      type="button"
+      class="flex min-h-10 w-full items-center gap-2 rounded-lg border border-default bg-default px-3 text-left text-sm text-dimmed hover:bg-elevated"
       data-test="entry-add"
       @click="pickerOpen = true"
-    />
+    >
+      <UIcon name="i-lucide-plus" class="size-4 shrink-0" />
+      <span>Search exercises to add…</span>
+    </button>
 
     <WorkoutExercisePicker v-model:open="pickerOpen" @pick="addExercise" />
   </div>

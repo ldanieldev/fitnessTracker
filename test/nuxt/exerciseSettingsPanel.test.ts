@@ -18,6 +18,7 @@ const exercise = {
   barWeight: 45,
   weightIncrement: null,
   restSeconds: null,
+  plateSizes: null,
   difficulty: 'beginner' as const,
   equipment: ['barbell'],
   primaryMuscles: ['chest'],
@@ -48,9 +49,9 @@ describe('ExerciseSettingsPanel', () => {
 
   it('emits the changed field on save', async () => {
     const wrapper = await mountSuspended(ExerciseSettingsPanel, { props: { exercise } })
-    await wrapper.find('[data-test="setting-rest-seconds"]').setValue('180')
+    await wrapper.find('[data-test="setting-bar-weight"]').setValue('35')
     await wrapper.find('[data-test="settings-save"]').trigger('click')
-    expect(wrapper.emitted('save')![0]![0]).toMatchObject({ restSeconds: 180 })
+    expect(wrapper.emitted('save')![0]![0]).toMatchObject({ barWeight: 35 })
   })
 
   it('hides the bar weight field unless the load style is barbell', async () => {
@@ -105,5 +106,12 @@ describe('ExerciseSettingsPanel', () => {
     const patch = wrapper.emitted('save')![0]![0] as Record<string, unknown>
     expect(patch.loadStyle).toBeNull()
     expect(patch.barWeight).toBeNull()
+  })
+
+  it('no longer carries the workout fields', async () => {
+    const wrapper = await mountSuspended(ExerciseSettingsPanel, { props: { exercise } })
+    expect(wrapper.find('[data-test="setting-plates"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="setting-rest-seconds"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="setting-weight-increment"]').exists()).toBe(false)
   })
 })

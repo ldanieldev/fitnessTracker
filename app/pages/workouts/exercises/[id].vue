@@ -3,6 +3,7 @@ import type { ExerciseCategory, ExerciseDetail } from '~~/shared/types/workout'
 import { CATEGORY_DOT_CLASS } from '~~/shared/utils/categoryColors'
 import { errorMessage } from '~/utils/apiError'
 import ExerciseSettingsPanel from '~/components/workout/ExerciseSettingsPanel.vue'
+import ExerciseWorkoutPanel from '~/components/workout/ExerciseWorkoutPanel.vue'
 import ExerciseVariationPicker from '~/components/workout/ExerciseVariationPicker.vue'
 
 interface ReferenceData { categories: ExerciseCategory[] }
@@ -40,12 +41,13 @@ const { data: variationGroups } = useExerciseFetch<VariationGroup[]>(
 )
 const variationGroup = computed(() => variationGroups.value?.find((g) => g.exerciseIds.includes(id.value)))
 
-type Tab = 'about' | 'settings' | 'variations'
+type Tab = 'about' | 'settings' | 'workout' | 'variations'
 const activeTab = ref<Tab>('about')
 const tabItems = [
-  { label: 'About', value: 'about' },
-  { label: 'Settings', value: 'settings' },
-  { label: 'Variations', value: 'variations' }
+  { label: 'About', value: 'about', test: 'exercise-tab-about' },
+  { label: 'Settings', value: 'settings', test: 'exercise-tab-settings' },
+  { label: 'Workout', value: 'workout', test: 'exercise-tab-workout' },
+  { label: 'Variations', value: 'variations', test: 'exercise-tab-variations' }
 ]
 
 const dotClass = computed(() => CATEGORY_DOT_CLASS[exercise.value?.category.color ?? ''] ?? CATEGORY_DOT_CLASS.fallback)
@@ -250,9 +252,9 @@ async function onLink(payload: { groupId?: number, name?: string, exerciseId: nu
           </div>
         </div>
 
-        <UTabs v-model="activeTab" :items="tabItems" :content="false" class="w-full">
+        <UTabs v-model="activeTab" :items="tabItems" :content="false" :ui="{ trigger: 'min-h-10' }" class="w-full">
           <template #default="{ item }">
-            <span>{{ item.label }}</span>
+            <span :data-test="item.test">{{ item.label }}</span>
           </template>
         </UTabs>
 
@@ -329,6 +331,10 @@ async function onLink(payload: { groupId?: number, name?: string, exerciseId: nu
 
         <div v-show="activeTab === 'settings'">
           <ExerciseSettingsPanel :exercise="exercise" :categories="categories" @save="onSave" @reset="onReset" />
+        </div>
+
+        <div v-show="activeTab === 'workout'">
+          <ExerciseWorkoutPanel :exercise="exercise" @save="onSave" @reset="onReset" />
         </div>
 
         <div v-show="activeTab === 'variations'" class="flex flex-col gap-3">

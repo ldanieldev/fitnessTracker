@@ -18,18 +18,23 @@ function maxRecord(
 ): SetRecord | null {
   if (value == null) return null
   const defined = previousValues.filter((v): v is number => v != null)
-  if (defined.length === 0) return { kind, previous: null }
+  if (defined.length === 0) return null
   const best = Math.max(...defined)
   return value > best ? { kind, previous: best } : null
 }
 
-// LG-R19: a set is a record unless an earlier set dominates it on both weight and reps; an equal set dominates, so ties never win.
+// WT-R16: a record needs an earlier set it beats on both axes (strict on one) and no earlier set that dominates it.
 function weightRepsRecord(set: HistorySet, history: HistorySet[], assisted: boolean): SetRecord | null {
   const { weight, reps } = set
   if (weight == null || reps == null) return null
   const earlier = history.filter((h): h is HistorySet & { weight: number, reps: number } => h.weight != null && h.reps != null)
   const loadWins = (earlierWeight: number) => (assisted ? earlierWeight <= weight : earlierWeight >= weight)
   if (earlier.some((h) => loadWins(h.weight) && h.reps >= reps)) return null
+  const loadBeaten = (earlierWeight: number) => (assisted ? earlierWeight >= weight : earlierWeight <= weight)
+  const beatsEarlier = earlier.some((h) => (
+    loadBeaten(h.weight) && h.reps <= reps && (h.weight !== weight || h.reps < reps)
+  ))
+  if (!beatsEarlier) return null
   const candidates = earlier.filter((h) => h.reps >= reps).map((h) => h.weight)
   if (candidates.length === 0) return { kind: 'weight_reps', previous: null }
   return { kind: 'weight_reps', previous: assisted ? Math.min(...candidates) : Math.max(...candidates) }

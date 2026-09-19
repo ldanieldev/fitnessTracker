@@ -18,7 +18,7 @@ test('workout sets: log, validate, record, edit and delete', async ({ page, goto
     weight: 185, reps: 8
   })
   expect(opener.status).toBe(200)
-  expect(opener.json.set.records).toEqual([{ kind: 'weight_reps', previous: null }])
+  expect(opener.json.set.records).toEqual([])
   expect(opener.json.session.entries[0]!.sets).toHaveLength(1)
 
   const missing = await apiFetch(page, 'POST', `/api/workouts/entries/${entryId}/sets`, { weight: 185 })
@@ -38,7 +38,7 @@ test('workout sets: log, validate, record, edit and delete', async ({ page, goto
     weight: 135
   })
   expect(corrected.json.set.records).toEqual([])
-  expect(corrected.json.session.entries[0]!.sets[0]!.records).toEqual([{ kind: 'weight_reps', previous: null }])
+  expect(corrected.json.session.entries[0]!.sets[0]!.records).toEqual([])
 
   const ticked = await apiFetch<SetResponse>(page, 'PATCH', `/api/workouts/sets/${opener.json.set.id}`, {
     done: true, comment: 'easy'
@@ -76,7 +76,7 @@ test('workout sets: cardio measures round-trip and take the pace record', async 
   expect(opener.status).toBe(200)
   expect(opener.json.set.distanceMeters).toBe(5000)
   expect(opener.json.set.durationSeconds).toBe(1800)
-  expect(opener.json.set.records).toEqual([{ kind: 'distance', previous: null }, { kind: 'pace', previous: null }])
+  expect(opener.json.set.records).toEqual([])
 
   const faster = await apiFetch<SetResponse>(page, 'POST', `/api/workouts/entries/${entryId}/sets`, {
     distanceMeters: 5000, durationSeconds: 1500

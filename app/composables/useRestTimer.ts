@@ -94,3 +94,5 @@ export function useRestTimer() {
     onComplete
   }
 }
+
+export type RestTimer = ReturnType<typeof useRestTimer>

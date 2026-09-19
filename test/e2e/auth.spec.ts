@@ -119,4 +119,20 @@ test.describe('user preferences', () => {
     const rejected = await apiFetch(page, 'PUT', `/api/users/${before.json.user.id}`, { defaultRestSeconds: 5 })
     expect(rejected.status).toBe(400)
   })
+
+  test('plate sizes default on the session and save normalised', async ({ page, goto }) => {
+    await goto('/', { waitUntil: 'hydration' })
+    await registerViaApi(page, makeUser())
+    const before = await apiFetch<{ user: { id: number, plateSizes: number[] } }>(page, 'GET', '/api/_auth/session')
+    expect(before.json.user.plateSizes).toEqual([45, 35, 25, 10, 5, 2.5])
+
+    const saved = await apiFetch(page, 'PUT', `/api/users/${before.json.user.id}`, { plateSizes: [2.5, 55, 45] })
+    expect(saved.status).toBe(200)
+    const after = await apiFetch<{ user: { plateSizes: number[] } }>(page, 'GET', '/api/_auth/session')
+    expect(after.json.user.plateSizes).toEqual([55, 45, 2.5])
+
+    for (const bad of [[], [0], [101], [45, 45], [1.125]]) {
+      expect((await apiFetch(page, 'PUT', `/api/users/${before.json.user.id}`, { plateSizes: bad })).status).toBe(400)
+    }
+  })
 })

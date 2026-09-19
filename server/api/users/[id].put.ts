@@ -2,6 +2,8 @@ import { eq, getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
 import { requireSessionUser } from '~~/server/utils/session'
+import { toSessionUser } from '~~/server/utils/sessionUser'
+import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).optional(),
@@ -10,7 +12,8 @@ const updateProfileSchema = z.object({
   sex: z.enum(['m', 'f']).optional(),
   avatarUrl: z.string().url().optional().or(z.literal('')),
   weekStart: z.union([z.literal(0), z.literal(1)]).optional(),
-  defaultRestSeconds: z.number().int().min(10).max(600).optional()
+  defaultRestSeconds: z.number().int().min(10).max(600).optional(),
+  plateSizes: plateSizesSchema.optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -61,25 +64,15 @@ export default defineEventHandler(async (event) => {
       sex: parsed.data.sex,
       avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl || null : undefined,
       weekStart: parsed.data.weekStart,
-      defaultRestSeconds: parsed.data.defaultRestSeconds
+      defaultRestSeconds: parsed.data.defaultRestSeconds,
+      plateSizes: parsed.data.plateSizes ? normalizePlateSizes(parsed.data.plateSizes).map(String) : undefined
     })
     .where(eq(users.id, id))
     .returning(userColumns)
     .then((r) => r[0]!)
 
   // Update session with new data
-  await setUserSession(event, {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar_url: user.avatarUrl,
-      age: user.age,
-      sex: user.sex,
-      weekStart: user.weekStart as 0 | 1,
-      defaultRestSeconds: user.defaultRestSeconds
-    }
-  })
+  await replaceUserSession(event, { user: toSessionUser(user) })
 
   return user
 })

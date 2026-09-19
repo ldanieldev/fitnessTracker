@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
 import { CATEGORY_COLORS } from '~~/shared/utils/categoryColors'
+import { plateSizesSchema } from '~~/shared/utils/plates'
 
 const csv = z.string().transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean))
 const flag = z.enum(['1', 'true', '0', 'false']).transform((v) => v === '1' || v === 'true')
@@ -40,6 +41,7 @@ export const exercisePrefsSchema = z.object({
   barWeight: z.number().positive().max(500).nullable().optional(),
   weightIncrement: z.number().positive().max(100).nullable().optional(),
   restSeconds: z.number().int().min(5).max(3600).nullable().optional(),
+  plateSizes: plateSizesSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   link: z.string().url().max(500).nullable().optional()
 })
@@ -126,3 +128,11 @@ export const setWriteSchema = z.object({
 })
 
 export type SetWriteInput = z.infer<typeof setWriteSchema>
+
+export const workoutToolsOneRepMaxQuerySchema = z.object({
+  // Regex alone lets 2026-02-30 through, which throws in estimateWindowStart and again in Postgres as an unhandled 500.
+  on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((on) => {
+    const day = new Date(`${on}T00:00:00Z`)
+    return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === on
+  }, 'Invalid date')
+})

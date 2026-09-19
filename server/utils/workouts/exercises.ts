@@ -24,6 +24,7 @@ import { listCategoriesForUser } from '~~/server/utils/workouts/categories'
 import { loadCatalogue, queryExerciseRows, type Catalogue } from '~~/server/utils/workouts/catalogue'
 import { getExerciseSearchProvider, markExerciseSearchUnhealthy } from '~~/server/utils/workouts/searchProvider'
 import { resolveAndFilter } from '~~/shared/utils/exerciseList'
+import { normalizePlateSizes } from '~~/shared/utils/plates'
 
 function ownedBy(userId: number) {
   return and(isNull(exercises.deletedAt), eq(exercises.createdByUserId, userId))
@@ -118,7 +119,7 @@ async function cleanupPrefRowIfEmpty(tx: DbClient, userId: number, exerciseId: n
     .where(and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, exerciseId)))
     .then((r) => r[0])
   if (!row) return
-  const allNull = PREF_COLUMNS.every((col) => row[col] == null)
+  const allNull = PREF_COLUMNS.every((col) => row[col] == null) && row.plateSizes == null
   if (allNull && !row.favorite && row.hiddenAt == null) {
     const where = and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, exerciseId))
     await tx.delete(exercisePrefs).where(where)
@@ -373,6 +374,9 @@ function toPrefPatch(input: ExercisePrefsInput): Partial<typeof exercisePrefs.$i
     const numeric = key === 'barWeight' || key === 'weightIncrement'
     // @ts-expect-error -- key is one of PREF_COLUMNS, value matches the corresponding column type
     patch[key] = numeric && value !== null ? String(value) : value
+  }
+  if (input.plateSizes !== undefined) {
+    patch.plateSizes = input.plateSizes === null ? null : normalizePlateSizes(input.plateSizes).map(String)
   }
   return patch
 }

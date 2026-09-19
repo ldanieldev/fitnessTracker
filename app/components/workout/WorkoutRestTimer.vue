@@ -1,19 +1,11 @@
 <script setup lang="ts">
+import type { RestTimer } from '~/composables/useRestTimer'
+
 const open = defineModel<boolean>('open', { default: false })
+const props = defineProps<{ timer: RestTimer }>()
 
-const restTimer = useRestTimer()
-const toast = useToast()
-const { user } = useUserSession()
-
-const BASE_PRESETS = [
-  { label: '30s', seconds: 30 },
-  { label: '60s', seconds: 60 },
-  { label: '90s', seconds: 90 },
-  { label: '2m', seconds: 120 },
-  { label: '3m', seconds: 180 }
-]
-
-const defaultRest = computed(() => user.value?.defaultRestSeconds ?? 60)
+const { defaultRestSeconds } = useWorkoutPrefs()
+const BASE_PRESETS = [30, 60, 90, 120, 180]
 
 function presetLabel(seconds: number) {
   if (seconds < 60) return `${seconds}s`
@@ -22,41 +14,16 @@ function presetLabel(seconds: number) {
   return rest ? `${minutes}m${rest}s` : `${minutes}m`
 }
 
-const presets = computed(() => {
-  const seconds = defaultRest.value
-  if (BASE_PRESETS.some((preset) => preset.seconds === seconds)) return BASE_PRESETS
-  return [...BASE_PRESETS, { label: presetLabel(seconds), seconds }].sort((a, b) => a.seconds - b.seconds)
-})
-
-const activePreset = ref(defaultRest.value)
-
-function startWithPreset(seconds: number) {
-  activePreset.value = seconds
-  restTimer.start(seconds)
-}
-
-function restart() {
-  restTimer.start(activePreset.value)
-}
-
-defineExpose({ restart })
-
-restTimer.onComplete(() => {
-  if (navigator.vibrate) {
-    navigator.vibrate([200, 100, 200])
-  }
-  if (!open.value) {
-    toast.add({ title: 'Rest complete!', icon: 'i-lucide-timer', color: 'success' })
-  }
-  open.value = false
-})
+const active = computed(() => (props.timer.isRunning.value ? props.timer.totalSeconds.value : defaultRestSeconds.value))
+const presets = computed(() =>
+  [...new Set([...BASE_PRESETS, defaultRestSeconds.value, active.value])]
+    .sort((a, b) => a - b)
+    .map((seconds) => ({ label: presetLabel(seconds), seconds })))
 
 // SVG ring: circumference drains as time elapses
 const radius = 88
 const circumference = 2 * Math.PI * radius
-const strokeDashoffset = computed(() => {
-  return (restTimer.progress.value / 100) * circumference
-})
+const strokeDashoffset = computed(() => (props.timer.progress.value / 100) * circumference)
 </script>
 
 <template>
@@ -72,15 +39,15 @@ const strokeDashoffset = computed(() => {
     <template #content>
       <div class="flex flex-col items-center gap-6 px-6 pb-8 pt-2" data-test="rest-timer">
         <!-- Presets -->
-        <div class="flex gap-2">
+        <div class="flex flex-wrap justify-center gap-2">
           <UButton
             v-for="preset in presets"
             :key="preset.seconds"
             :label="preset.label"
-            :variant="activePreset === preset.seconds ? 'solid' : 'outline'"
-            :color="activePreset === preset.seconds ? 'primary' : 'neutral'"
+            :variant="active === preset.seconds ? 'solid' : 'outline'"
+            :color="active === preset.seconds ? 'primary' : 'neutral'"
             size="sm"
-            @click="startWithPreset(preset.seconds)"
+            @click="timer.start(preset.seconds)"
           />
         </div>
 
@@ -107,7 +74,7 @@ const strokeDashoffset = computed(() => {
               :stroke-dashoffset="strokeDashoffset"
             />
           </svg>
-          <span class="text-4xl font-bold font-mono">{{ restTimer.display.value }}</span>
+          <span class="text-4xl font-bold font-mono">{{ timer.display.value }}</span>
         </div>
 
         <!-- Controls -->
@@ -117,28 +84,28 @@ const strokeDashoffset = computed(() => {
             variant="outline"
             color="neutral"
             size="sm"
-            @click="restTimer.adjustTime(-5)"
+            @click="timer.adjustTime(-5)"
           />
           <UButton
             icon="i-lucide-rotate-ccw"
             label="Reset"
             variant="soft"
             color="neutral"
-            @click="restTimer.reset()"
+            @click="timer.reset()"
           />
           <UButton
             icon="i-lucide-skip-forward"
             label="Skip"
             variant="soft"
             color="primary"
-            @click="restTimer.skip(); open = false"
+            @click="timer.skip(); open = false"
           />
           <UButton
             label="+5s"
             variant="outline"
             color="neutral"
             size="sm"
-            @click="restTimer.adjustTime(5)"
+            @click="timer.adjustTime(5)"
           />
         </div>
       </div>

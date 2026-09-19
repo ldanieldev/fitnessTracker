@@ -5,8 +5,3 @@ export function prefillFor(currentSets: SetMeasures[], lastSets: SetMeasures[]):
   if (!source) return {}
   return { ...source }
 }
-
-export function lastTimeFor(index: number, lastSets: SetMeasures[]): SetMeasures | null {
-  if (lastSets.length === 0) return null
-  return lastSets[Math.min(index, lastSets.length - 1)] ?? null
-}
