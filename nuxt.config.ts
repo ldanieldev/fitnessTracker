@@ -90,7 +90,8 @@ export default defineNuxtConfig({
     public: {
       appName: process.env.APP_NAME || 'My Fitness Journal',
       sentry: {
-        dsn: process.env.SENTRY_DSN
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.SENTRY_ENVIRONMENT ?? ''
       }
     }
   },
