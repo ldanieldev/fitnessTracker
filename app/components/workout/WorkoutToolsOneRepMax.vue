@@ -7,8 +7,9 @@ const props = defineProps<{ result: OneRepMaxResult | null, pending: boolean, fa
 const override = defineModel<{ weight: number | null, reps: number | null }>('override', { required: true })
 const emit = defineEmits<{ retry: [] }>()
 
-const overridden = computed(() => effectiveOneRepMax(null, override.value) !== null)
-const oneRm = computed(() => effectiveOneRepMax(props.result, override.value))
+const { oneRepMaxRepCap } = useWorkoutPrefs()
+const overridden = computed(() => effectiveOneRepMax(null, override.value, oneRepMaxRepCap.value) !== null)
+const oneRm = computed(() => effectiveOneRepMax(props.result, override.value, oneRepMaxRepCap.value))
 const table = computed(() => (oneRm.value === null ? [] : repMaxTable(oneRm.value)))
 const sourceLine = computed(() => {
   if (overridden.value) return 'from your numbers · Brzycki'

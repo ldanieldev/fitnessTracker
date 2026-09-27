@@ -1,3 +1,5 @@
+import type { SeriesPoint } from './series'
+
 export const TRACKING_TYPE_VALUES = [
   'weight_reps',
   'distance_time',
@@ -51,6 +53,7 @@ export interface Exercise {
   hidden: boolean
   shared: boolean
   overridden: { category: boolean, trackingType: boolean, loadStyle: boolean, barWeight: boolean }
+  defaultGraph: GraphMetric | null
 }
 
 export interface ExerciseRow {
@@ -79,6 +82,7 @@ export interface ExercisePrefRow {
   plateSizes: string[] | null
   notes: string | null
   link: string | null
+  defaultGraph: GraphMetric | null
   favorite: boolean
   hiddenAt: Date | null
 }
@@ -196,4 +200,93 @@ export interface HistoryStamp {
   sets: number
   setsAt: string | null
   sessionsAt: string | null
+}
+
+export const GRAPH_METRIC_VALUES = [
+  'e1rm', 'max_weight', 'volume', 'total_reps', 'weight_at_reps', 'distance', 'duration', 'pace'
+] as const
+export type GraphMetric = (typeof GRAPH_METRIC_VALUES)[number]
+
+export interface WorkoutGoal {
+  exerciseId: number
+  metric: GraphMetric
+  targetValue: number
+  targetReps: number | null
+  targetDate: string | null
+  achievedAt: string | null
+}
+
+export interface ExerciseSeries {
+  metric: GraphMetric
+  reps: number | null
+  unit: string
+  precision: number
+  from: string
+  to: string
+  points: SeriesPoint[]
+  goal: WorkoutGoal | null
+}
+
+export interface RepMaxRow {
+  reps: number
+  weight: number | null
+  performedOn: string | null
+  sessionId: number | null
+  estimate: number | null
+}
+
+export type RecordKind = 'max_weight' | 'e1rm' | 'set_volume' | 'session_volume'
+
+export interface RecordHighlight {
+  kind: RecordKind
+  value: number | null
+  reps: number | null
+  performedOn: string | null
+  sessionId: number | null
+}
+
+export interface ExerciseRecords {
+  repCap: number
+  assisted: boolean
+  highlights: RecordHighlight[]
+  repMax: RepMaxRow[]
+}
+
+export interface HistorySessionTotals {
+  sets: number
+  volume: number | null
+  topWeight: number | null
+  topWeightReps: number | null
+}
+
+export interface ExerciseHistorySession {
+  sessionId: number
+  performedOn: string
+  name: string | null
+  trackingType: TrackingType
+  loadStyle: LoadStyle | null
+  sets: WorkoutSet[]
+  totals: HistorySessionTotals
+}
+
+export interface MuscleVolume {
+  key: string
+  name: string
+  volume: number
+  sets: number
+}
+
+export interface ProgressGoal extends WorkoutGoal {
+  exerciseName: string
+  current: number | null
+  lowerIsBetter: boolean
+  reached: boolean
+}
+
+export interface WorkoutProgress {
+  from: string
+  to: string
+  totals: { workouts: number, sets: number, reps: number, volume: number, durationSeconds: number }
+  muscles: MuscleVolume[]
+  goals: ProgressGoal[]
 }

@@ -4,6 +4,9 @@ import { CATEGORY_DOT_CLASS } from '~~/shared/utils/categoryColors'
 import { errorMessage } from '~/utils/apiError'
 import ExerciseSettingsPanel from '~/components/workout/ExerciseSettingsPanel.vue'
 import ExerciseWorkoutPanel from '~/components/workout/ExerciseWorkoutPanel.vue'
+import ExerciseHistoryPanel from '~/components/workout/ExerciseHistoryPanel.vue'
+import ExerciseGraphPanel from '~/components/workout/ExerciseGraphPanel.vue'
+import ExerciseRecordsPanel from '~/components/workout/ExerciseRecordsPanel.vue'
 import ExerciseVariationPicker from '~/components/workout/ExerciseVariationPicker.vue'
 
 interface ReferenceData { categories: ExerciseCategory[] }
@@ -41,14 +44,17 @@ const { data: variationGroups } = useExerciseFetch<VariationGroup[]>(
 )
 const variationGroup = computed(() => variationGroups.value?.find((g) => g.exerciseIds.includes(id.value)))
 
-type Tab = 'about' | 'settings' | 'workout' | 'variations'
-const activeTab = ref<Tab>('about')
+type Tab = 'about' | 'history' | 'graph' | 'records' | 'settings' | 'variations'
 const tabItems = [
   { label: 'About', value: 'about', test: 'exercise-tab-about' },
+  { label: 'History', value: 'history', test: 'exercise-tab-history' },
+  { label: 'Graph', value: 'graph', test: 'exercise-tab-graph' },
+  { label: 'Records', value: 'records', test: 'exercise-tab-records' },
   { label: 'Settings', value: 'settings', test: 'exercise-tab-settings' },
-  { label: 'Workout', value: 'workout', test: 'exercise-tab-workout' },
   { label: 'Variations', value: 'variations', test: 'exercise-tab-variations' }
 ]
+const requestedTab = tabItems.find((item) => item.value === route.query.tab)?.value as Tab | undefined
+const activeTab = ref<Tab>(requestedTab ?? 'about')
 
 const dotClass = computed(() => CATEGORY_DOT_CLASS[exercise.value?.category.color ?? ''] ?? CATEGORY_DOT_CLASS.fallback)
 
@@ -252,7 +258,13 @@ async function onLink(payload: { groupId?: number, name?: string, exerciseId: nu
           </div>
         </div>
 
-        <UTabs v-model="activeTab" :items="tabItems" :content="false" :ui="{ trigger: 'min-h-10' }" class="w-full">
+        <UTabs
+          v-model="activeTab"
+          :items="tabItems"
+          :content="false"
+          class="w-full"
+          :ui="{ list: 'overflow-x-auto scrollbar-none', trigger: 'shrink-0 min-h-10 px-3' }"
+        >
           <template #default="{ item }">
             <span :data-test="item.test">{{ item.label }}</span>
           </template>
@@ -329,11 +341,20 @@ async function onLink(payload: { groupId?: number, name?: string, exerciseId: nu
           </div>
         </div>
 
-        <div v-show="activeTab === 'settings'">
-          <ExerciseSettingsPanel :exercise="exercise" :categories="categories" @save="onSave" @reset="onReset" />
+        <div v-if="activeTab === 'history'">
+          <ExerciseHistoryPanel :exercise-id="id" />
         </div>
 
-        <div v-show="activeTab === 'workout'">
+        <div v-if="activeTab === 'graph'">
+          <ExerciseGraphPanel :exercise="exercise" />
+        </div>
+
+        <div v-if="activeTab === 'records'">
+          <ExerciseRecordsPanel :exercise-id="id" :tracking-type="exercise.trackingType" :load-style="exercise.loadStyle" />
+        </div>
+
+        <div v-show="activeTab === 'settings'" class="flex flex-col gap-6">
+          <ExerciseSettingsPanel :exercise="exercise" :categories="categories" @save="onSave" @reset="onReset" />
           <ExerciseWorkoutPanel :exercise="exercise" @save="onSave" @reset="onReset" />
         </div>
 

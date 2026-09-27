@@ -17,7 +17,9 @@ const close = () => {
 }
 
 const { energyLeft } = useTodaySummary()
-const diaryBadge = computed(() => (loggedIn.value && energyLeft.value !== null ? String(Math.round(energyLeft.value)) : undefined))
+const diaryBadge = computed(() => (
+  loggedIn.value && energyLeft.value !== null ? String(Math.round(energyLeft.value)) : undefined
+))
 
 const links = computed(() => [
   [
@@ -64,6 +66,11 @@ const links = computed(() => [
         {
           label: 'Workout History',
           to: '/workouts/sessions',
+          onSelect: close
+        },
+        {
+          label: 'Progress',
+          to: '/workouts/progress',
           onSelect: close
         },
         {

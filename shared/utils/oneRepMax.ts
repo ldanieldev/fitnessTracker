@@ -28,15 +28,19 @@ export function estimateWindowStart(on: string): string {
   return day.toISOString().slice(0, 10)
 }
 
-function qualifies(weight: number | null, reps: number | null): boolean {
-  return weight != null && reps != null && weight > 0 && reps >= 1 && reps <= MAX_ESTIMATE_REPS
+function qualifies(weight: number | null, reps: number | null, repCap = MAX_ESTIMATE_REPS): boolean {
+  return weight != null && reps != null && weight > 0 && reps >= 1 && reps <= repCap
 }
 
-export function bestEstimate(sets: EstimateSet[], on: string): { estimate: number, source: OneRepMaxSource } | null {
+export function bestEstimate(
+  sets: EstimateSet[],
+  on: string,
+  repCap = MAX_ESTIMATE_REPS
+): { estimate: number, source: OneRepMaxSource } | null {
   const from = estimateWindowStart(on)
   let best: { estimate: number, source: OneRepMaxSource } | null = null
   for (const set of sets) {
-    if (!qualifies(set.weight, set.reps) || set.performedOn < from || set.performedOn > on) continue
+    if (!qualifies(set.weight, set.reps, repCap) || set.performedOn < from || set.performedOn > on) continue
     const estimate = brzycki(set.weight!, set.reps!)
     const newerTie = best && estimate === best.estimate && set.performedOn > best.source.performedOn
     if (!best || estimate > best.estimate || newerTie) {
@@ -47,14 +51,17 @@ export function bestEstimate(sets: EstimateSet[], on: string): { estimate: numbe
 }
 
 export function repMaxTable(oneRm: number): { reps: number, weight: number }[] {
-  return Array.from({ length: REP_MAX_TABLE_REPS }, (_, i) => ({ reps: i + 1, weight: roundTenth(repsToWeight(oneRm, i + 1)) }))
+  return Array.from({ length: REP_MAX_TABLE_REPS }, (_, i) => (
+    { reps: i + 1, weight: roundTenth(repsToWeight(oneRm, i + 1)) }
+  ))
 }
 
 export function effectiveOneRepMax(
   result: OneRepMaxResult | null,
-  override: { weight: number | null, reps: number | null }
+  override: { weight: number | null, reps: number | null },
+  repCap = MAX_ESTIMATE_REPS
 ): number | null {
-  if (qualifies(override.weight, override.reps)) return roundTenth(brzycki(override.weight!, override.reps!))
+  if (qualifies(override.weight, override.reps, repCap)) return roundTenth(brzycki(override.weight!, override.reps!))
   return result?.estimate ?? null
 }
 

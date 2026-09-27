@@ -6,6 +6,7 @@ import { searchRebuild } from '~~/server/utils/inngest/functions/searchRebuild'
 import { searchNightlyRebuild } from '~~/server/utils/inngest/functions/searchNightlyRebuild'
 import { exerciseSearchOutboxDrain } from '~~/server/utils/inngest/functions/exerciseSearchOutboxDrain'
 import { exerciseSearchRebuild } from '~~/server/utils/inngest/functions/exerciseSearchRebuild'
+import { rollupNightlyRebuild } from '~~/server/utils/inngest/functions/rollupNightlyRebuild'
 
 export default defineEventHandler(
   serve({
@@ -16,6 +17,7 @@ export default defineEventHandler(
       searchNightlyRebuild,
       exerciseSearchOutboxDrain,
       exerciseSearchRebuild,
+      rollupNightlyRebuild,
       importMyMacros
     ]
   })

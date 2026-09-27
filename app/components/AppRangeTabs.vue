@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { BodyRange } from '~~/shared/types/body'
+import type { ChartRange } from '~~/shared/types/series'
 
-const model = defineModel<BodyRange>({ default: 'mtd' })
+const model = defineModel<ChartRange>({ default: 'mtd' })
 
 const items = [
   { label: 'MTD', value: 'mtd' },
@@ -15,7 +15,7 @@ const items = [
 const value = computed({
   get: () => model.value as string,
   set: (next: string | number) => {
-    model.value = String(next) as BodyRange
+    model.value = String(next) as ChartRange
   }
 })
 </script>

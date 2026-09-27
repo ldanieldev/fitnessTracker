@@ -5,6 +5,7 @@ export function useWorkoutPrefs() {
   const { user } = useUserSession()
   return {
     defaultRestSeconds: computed(() => user.value?.defaultRestSeconds ?? 60),
-    plateSizes: computed(() => user.value?.plateSizes ?? DEFAULT_PLATE_SIZES)
+    plateSizes: computed(() => user.value?.plateSizes ?? DEFAULT_PLATE_SIZES),
+    oneRepMaxRepCap: computed(() => user.value?.oneRepMaxRepCap ?? 10)
   }
 }

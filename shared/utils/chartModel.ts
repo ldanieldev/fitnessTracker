@@ -1,5 +1,5 @@
-import type { SeriesPoint } from '../types/body'
-import { dayIndex, daysBetween } from './bodyMetrics'
+import type { SeriesPoint } from '../types/series'
+import { dayIndex, daysBetween } from './series'
 import { shiftDate } from './nutritionSummary'
 
 export interface XY {
@@ -124,6 +124,7 @@ export interface ChartInput {
   width: number
   height: number
   gapDays: number
+  zeroBased?: boolean
 }
 
 const PAD = { left: 40, right: 8, top: 8, bottom: 20 }
@@ -134,7 +135,7 @@ export function buildChartModel(input: ChartInput): ChartModel {
   const lo = values.length ? Math.min(...values) : 0
   const hi = values.length ? Math.max(...values) : 1
   const pad = (hi - lo) * 0.05
-  const nice = niceTicks(lo - pad, hi + pad)
+  const nice = niceTicks(input.zeroBased ? 0 : lo - pad, hi + pad)
   const y = scaleLinear([nice.min, nice.max], [plot.bottom, plot.top])
   const x = scaleLinear([dayIndex(input.from), dayIndex(input.to)], [plot.left, plot.right])
   const toDot = (p: SeriesPoint): ChartDot => ({ date: p.date, value: p.value, x: x(dayIndex(p.date)), y: y(p.value) })

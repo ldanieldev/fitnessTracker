@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { users } from '~~/server/db/schema'
 import { requireSessionUser } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
+import { rebuildRollups, repCapFor } from '~~/server/utils/workouts/rollups'
 import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
 
 const updateProfileSchema = z.object({
@@ -13,7 +14,8 @@ const updateProfileSchema = z.object({
   avatarUrl: z.string().url().optional().or(z.literal('')),
   weekStart: z.union([z.literal(0), z.literal(1)]).optional(),
   defaultRestSeconds: z.number().int().min(10).max(600).optional(),
-  plateSizes: plateSizesSchema.optional()
+  plateSizes: plateSizesSchema.optional(),
+  oneRepMaxRepCap: z.number().int().min(1).max(20).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -55,6 +57,9 @@ export default defineEventHandler(async (event) => {
 
   const { password, ...userColumns } = getTableColumns(users)
 
+  // Read before the update, and from the DB rather than the session cookie, which can be stale or predate the column.
+  const currentRepCap = parsed.data.oneRepMaxRepCap !== undefined ? await repCapFor(id) : undefined
+
   const user = await db
     .update(users)
     .set({
@@ -65,11 +70,17 @@ export default defineEventHandler(async (event) => {
       avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl || null : undefined,
       weekStart: parsed.data.weekStart,
       defaultRestSeconds: parsed.data.defaultRestSeconds,
-      plateSizes: parsed.data.plateSizes ? normalizePlateSizes(parsed.data.plateSizes).map(String) : undefined
+      plateSizes: parsed.data.plateSizes ? normalizePlateSizes(parsed.data.plateSizes).map(String) : undefined,
+      oneRepMaxRepCap: parsed.data.oneRepMaxRepCap
     })
     .where(eq(users.id, id))
     .returning(userColumns)
     .then((r) => r[0]!)
+
+  // Rollups store bestE1rm computed with the old cap, so a cap change invalidates every one of this user's rows.
+  if (parsed.data.oneRepMaxRepCap !== undefined && parsed.data.oneRepMaxRepCap !== currentRepCap) {
+    await rebuildRollups(id)
+  }
 
   // Update session with new data
   await replaceUserSession(event, { user: toSessionUser(user) })

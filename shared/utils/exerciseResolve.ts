@@ -49,6 +49,7 @@ export function resolveExercise(row: ExerciseRow, pref: ExercisePrefRow | null, 
     favorite: pref?.favorite ?? false,
     hidden: pref?.hiddenAt != null,
     shared: row.createdByUserId === null,
+    defaultGraph: pref?.defaultGraph ?? null,
     overridden: {
       category: pref?.categoryId != null,
       trackingType: pref?.trackingType != null,

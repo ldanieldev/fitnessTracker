@@ -5,6 +5,7 @@ import { db, type DbClient } from '~~/server/utils/db'
 import type { WorkoutEntryPatchInput } from '~~/server/utils/workouts/input'
 import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
 import { loadSession } from '~~/server/utils/workouts/sessions'
+import { refreshRollup } from '~~/server/utils/workouts/rollups'
 import { historyForExercise, lastSetsForExercise } from '~~/server/utils/workouts/history'
 import { recordsForEarlier } from '~~/shared/utils/workoutRecords'
 import { DEFAULT_PLATE_SIZES, effectivePlateSizes } from '~~/shared/utils/plates'
@@ -60,7 +61,10 @@ export async function loadEntries(userId: number, sessionId: number): Promise<Wo
       })
       .from(workoutEntries)
       .innerJoin(exercises, eq(exercises.id, workoutEntries.exerciseId))
-      .leftJoin(exercisePrefs, and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, workoutEntries.exerciseId)))
+      .leftJoin(exercisePrefs, and(
+        eq(exercisePrefs.userId, userId),
+        eq(exercisePrefs.exerciseId, workoutEntries.exerciseId)
+      ))
       .where(eq(workoutEntries.sessionId, sessionId))
       .orderBy(workoutEntries.sortOrder, workoutEntries.id),
     db.select({ plateSizes: users.plateSizes }).from(users).where(eq(users.id, userId)).then((r) => r[0])
@@ -133,7 +137,11 @@ async function entrySiblingIds(tx: DbClient, sessionId: number): Promise<number[
   )
 }
 
-export async function patchEntry(userId: number, entryId: number, patch: WorkoutEntryPatchInput): Promise<WorkoutSession> {
+export async function patchEntry(
+  userId: number,
+  entryId: number,
+  patch: WorkoutEntryPatchInput
+): Promise<WorkoutSession> {
   const entry = await loadOwnedEntry(userId, entryId)
 
   if (patch.notes !== undefined || patch.sortOrder !== undefined) {
@@ -160,5 +168,6 @@ export async function deleteEntry(userId: number, entryId: number): Promise<Work
     const ids = await entrySiblingIds(tx, entry.sessionId)
     await renumberSiblings(tx, workoutEntries, workoutEntries.id, workoutEntries.sortOrder, ids)
   })
+  await refreshRollup(userId, entry.sessionId, entry.exerciseId)
   return loadSession(userId, entry.sessionId)
 }

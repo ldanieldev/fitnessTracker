@@ -50,7 +50,7 @@ const menu = computed<DropdownMenuItem[][]>(() => [
   [{
     label: 'History',
     icon: 'i-lucide-history',
-    to: `/workouts/exercises/${props.entry.exerciseId}`,
+    to: `/workouts/exercises/${props.entry.exerciseId}?tab=history`,
     class: 'sm:hidden',
     testId: `entry-history-menu-${props.entry.id}`
   }],
@@ -104,7 +104,7 @@ function confirmRemove() {
               color="neutral"
               class="size-10 justify-center max-sm:hidden"
               aria-label="Exercise history"
-              :to="`/workouts/exercises/${entry.exerciseId}`"
+              :to="`/workouts/exercises/${entry.exerciseId}?tab=history`"
               :data-test="`entry-history-${entry.id}`"
             />
             <UDropdownMenu v-model:open="menuOpen" :items="menu">

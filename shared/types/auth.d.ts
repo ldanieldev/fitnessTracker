@@ -9,6 +9,7 @@ declare module '#auth-utils' {
     weekStart: 0 | 1
     defaultRestSeconds: number
     plateSizes: number[]
+    oneRepMaxRepCap: number
   }
 }
 

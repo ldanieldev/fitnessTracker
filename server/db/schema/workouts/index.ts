@@ -1,4 +1,5 @@
 export * from './exercise'
 export * from './exercisePrefs'
+export * from './rollups'
 export * from './workout'
 export * from './workoutProgram'

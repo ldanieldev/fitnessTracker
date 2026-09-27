@@ -6,6 +6,7 @@ import { db, type DbClient } from '~~/server/utils/db'
 import type { SetWriteInput } from '~~/server/utils/workouts/input'
 import { loadOwnedEntry } from '~~/server/utils/workouts/entries'
 import { loadSession } from '~~/server/utils/workouts/sessions'
+import { refreshRollup } from '~~/server/utils/workouts/rollups'
 import { siblingIds, renumberSiblings } from '~~/server/utils/workouts/sortOrder'
 
 const SET_NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Set not found' } as const
@@ -16,6 +17,7 @@ async function loadOwnedSet(userId: number, setId: number) {
       id: workoutSets.id,
       entryId: workoutSets.entryId,
       sessionId: workoutEntries.sessionId,
+      exerciseId: workoutEntries.exerciseId,
       trackingType: workoutEntries.trackingType,
       loadStyle: workoutEntries.loadStyle,
       weight: workoutSets.weight,
@@ -74,6 +76,7 @@ export async function addSet(
     .returning()
     .then((r) => r[0]!)
 
+  await refreshRollup(userId, entry.sessionId, entry.exerciseId)
   const session = await loadSession(userId, entry.sessionId)
   return { session, set: extractSet(session, entryId, row.id) }
 }
@@ -108,6 +111,7 @@ export async function patchSet(
 
   if (Object.keys(values).length > 0) await db.update(workoutSets).set(values).where(eq(workoutSets.id, setId))
 
+  await refreshRollup(userId, existing.sessionId, existing.exerciseId)
   const session = await loadSession(userId, existing.sessionId)
   return { session, set: extractSet(session, existing.entryId, setId) }
 }
@@ -119,5 +123,6 @@ export async function deleteSet(userId: number, setId: number): Promise<WorkoutS
     const ids = await setSiblingIds(tx, existing.entryId)
     await renumberSiblings(tx, workoutSets, workoutSets.id, workoutSets.sortOrder, ids)
   })
+  await refreshRollup(userId, existing.sessionId, existing.exerciseId)
   return loadSession(userId, existing.sessionId)
 }

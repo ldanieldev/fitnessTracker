@@ -67,7 +67,8 @@ describe('ExerciseForm', () => {
       favorite: false,
       hidden: false,
       shared: false,
-      overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false }
+      overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false },
+      defaultGraph: null
     }
     const wrapper = await mountSuspended(ExerciseForm, { attachTo: document.body, props: { ...props, exercise } })
     await flushPromises()
@@ -108,7 +109,8 @@ describe('ExerciseForm', () => {
       favorite: false,
       hidden: false,
       shared: false,
-      overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false }
+      overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false },
+      defaultGraph: null
     }
     const wrapper = await mountSuspended(ExerciseForm, { attachTo: document.body, props: { ...props, exercise } })
     await flushPromises()

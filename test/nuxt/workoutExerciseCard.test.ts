@@ -46,6 +46,7 @@ describe('WorkoutExerciseCard', () => {
     await wrapper.find('[data-test="entry-collapse-9"]').trigger('click')
     expect(wrapper.find('[data-test="set-form"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="entry-history-9"]').classes()).toContain('max-sm:hidden')
+    expect(wrapper.find('[data-test="entry-history-9"]').attributes('href')).toBe('/workouts/exercises/7?tab=history')
   })
 
   it('summarises last time under the name, and omits the line without one', async () => {
@@ -85,7 +86,7 @@ describe('WorkoutExerciseCard', () => {
     await wrapper.find('[data-test="entry-menu-9"]').trigger('click')
     const historyItem = document.body.querySelector('[data-test="entry-history-menu-9"]')!.closest('[role="menuitem"]')!
     expect(historyItem.classList.contains('sm:hidden')).toBe(true)
-    expect(historyItem.getAttribute('href')).toBe('/workouts/exercises/7')
+    expect(historyItem.getAttribute('href')).toBe('/workouts/exercises/7?tab=history')
   })
 
   it('emits addSet from the form and editSet / removeSet from a row', async () => {

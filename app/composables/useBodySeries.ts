@@ -1,6 +1,6 @@
 import type { MaybeRefOrGetter } from 'vue'
 import type { BodyRange, MetricSeries } from '~~/shared/types/body'
-import { buildTrend, rangeStart } from '~~/shared/utils/bodyMetrics'
+import { buildTrend, rangeStart } from '~~/shared/utils/series'
 
 export function useBodySeries(typeId: MaybeRefOrGetter<number>, range: MaybeRefOrGetter<BodyRange>) {
   const to = useTodayOrNow()

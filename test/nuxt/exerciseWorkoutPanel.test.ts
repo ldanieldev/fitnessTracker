@@ -22,7 +22,8 @@ const exercise = {
   favorite: false,
   hidden: false,
   shared: true,
-  overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false }
+  overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false },
+  defaultGraph: null
 }
 
 describe('ExerciseWorkoutPanel', () => {
@@ -62,7 +63,9 @@ describe('ExerciseWorkoutPanel', () => {
   })
 
   it('offers a plates reset only when the exercise has an override', async () => {
-    const wrapper = await mountSuspended(ExerciseWorkoutPanel, { props: { exercise: { ...exercise, plateSizes: [55, 45] } } })
+    const wrapper = await mountSuspended(ExerciseWorkoutPanel, {
+      props: { exercise: { ...exercise, plateSizes: [55, 45] } }
+    })
     await wrapper.find('[data-test="reset-plateSizes"]').trigger('click')
     expect(wrapper.emitted('reset')).toEqual([['plateSizes']])
   })

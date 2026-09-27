@@ -29,7 +29,8 @@ const exercise = {
   favorite: false,
   hidden: false,
   shared: true,
-  overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false }
+  overridden: { category: false, trackingType: false, loadStyle: false, barWeight: false },
+  defaultGraph: null
 }
 
 describe('ExerciseSettingsPanel', () => {

@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import type { MeasurementEntry } from '~~/shared/types/body'
-import { actualPace, dayIndex, effectiveDirection, formatDelta, formatValue, goalProgress, onTrack, requiredPace } from '~~/shared/utils/bodyMetrics'
+import {
+  actualPace,
+  effectiveDirection,
+  formatDelta,
+  formatValue,
+  goalProgress,
+  onTrack,
+  requiredPace
+} from '~~/shared/utils/bodyMetrics'
+import { dayIndex } from '~~/shared/utils/series'
 
 const route = useRoute()
 const typeId = computed(() => Number(route.params.typeId))
@@ -14,7 +23,9 @@ const entriesFetch = useBodyFetch<MeasurementEntry[]>(
   { query: entriesQuery }
 )
 await Promise.all([seriesFetch, entriesFetch])
-if (seriesFetch.error.value) throw createError({ statusCode: 404, statusMessage: 'Measurement type not found', fatal: true })
+if (seriesFetch.error.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Measurement type not found', fatal: true })
+}
 
 const type = computed(() => series.value?.type ?? null)
 const editing = ref<MeasurementEntry | null>(null)
@@ -62,7 +73,7 @@ function openEdit(entry: MeasurementEntry) {
     </template>
     <template #body>
       <div v-if="series && type" class="mx-auto flex w-full max-w-3xl flex-col gap-4">
-        <BodyRangeTabs v-model="range" />
+        <AppRangeTabs v-model="range" />
         <div class="grid grid-cols-3 gap-2">
           <UCard :ui="{ body: 'p-3 sm:p-3' }" data-test="tile-last-week">
             <p class="text-xs uppercase text-muted">Last week</p>

@@ -1,7 +1,13 @@
 import { z } from 'zod'
-import { LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
+import { GRAPH_METRIC_VALUES, LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
 import { CATEGORY_COLORS } from '~~/shared/utils/categoryColors'
 import { plateSizesSchema } from '~~/shared/utils/plates'
+
+// Regex alone lets 2026-02-30 through, which throws downstream and again in Postgres as an unhandled 500.
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((raw) => {
+  const day = new Date(`${raw}T00:00:00Z`)
+  return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === raw
+}, 'Invalid date')
 
 const csv = z.string().transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean))
 const flag = z.enum(['1', 'true', '0', 'false']).transform((v) => v === '1' || v === 'true')
@@ -43,7 +49,8 @@ export const exercisePrefsSchema = z.object({
   restSeconds: z.number().int().min(5).max(3600).nullable().optional(),
   plateSizes: plateSizesSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
-  link: z.string().url().max(500).nullable().optional()
+  link: z.string().url().max(500).nullable().optional(),
+  defaultGraph: z.enum(GRAPH_METRIC_VALUES).nullable().optional()
 })
 
 export type ExerciseCreateInput = z.infer<typeof exerciseCreateSchema>
@@ -129,10 +136,28 @@ export const setWriteSchema = z.object({
 
 export type SetWriteInput = z.infer<typeof setWriteSchema>
 
-export const workoutToolsOneRepMaxQuerySchema = z.object({
-  // Regex alone lets 2026-02-30 through, which throws in estimateWindowStart and again in Postgres as an unhandled 500.
-  on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((on) => {
-    const day = new Date(`${on}T00:00:00Z`)
-    return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === on
-  }, 'Invalid date')
+export const workoutToolsOneRepMaxQuerySchema = z.object({ on: isoDate })
+
+export const workoutGoalPutSchema = z.object({
+  metric: z.enum(GRAPH_METRIC_VALUES),
+  targetValue: z.number().positive().max(1_000_000),
+  targetReps: z.number().int().min(1).max(30).nullish(),
+  targetDate: isoDate.nullish()
 })
+
+export const workoutMetricQuerySchema = z.object({ metric: z.enum(GRAPH_METRIC_VALUES) })
+
+export const workoutSeriesQuerySchema = z.object({
+  metric: z.enum(GRAPH_METRIC_VALUES),
+  reps: z.coerce.number().int().min(1).max(30).optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional()
+})
+
+export const workoutHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(200).default(10)
+})
+
+export const workoutProgressQuerySchema = z.object({ from: isoDate.optional(), to: isoDate.optional() })
+
+export type WorkoutGoalInput = z.infer<typeof workoutGoalPutSchema>

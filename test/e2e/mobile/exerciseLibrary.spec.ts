@@ -41,7 +41,7 @@ test('phone: paging, search, filter, settings, photos, custom exercise, variatio
   await page.locator('[data-test="filter-apply"]').click()
   await page.locator('[data-test="exercise-list"]').getByRole('link').first().click()
 
-  await page.locator('[data-test="exercise-tab-workout"]').click()
+  await page.locator('[data-test="exercise-tab-settings"]').click()
   await page.locator('[data-test="setting-rest-seconds"]').fill('180')
   // Save is a fire-and-forget PUT with no success toast; reloading before it lands races the write on Firefox.
   await Promise.all([
@@ -49,10 +49,9 @@ test('phone: paging, search, filter, settings, photos, custom exercise, variatio
     page.locator('[data-test="workout-save"]').click()
   ])
   await page.reload()
-  await page.locator('[data-test="exercise-tab-workout"]').click()
+  await page.locator('[data-test="exercise-tab-settings"]').click()
   await expect(page.locator('[data-test="setting-rest-seconds"]')).toHaveValue('180')
 
-  await page.locator('[data-test="exercise-tab-settings"]').click()
   await page.locator('[data-test="setting-bar-weight"]').fill('35')
   await Promise.all([
     page.waitForResponse((res) => res.url().includes('/prefs') && res.request().method() === 'PUT'),

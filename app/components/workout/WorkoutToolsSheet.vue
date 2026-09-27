@@ -25,7 +25,7 @@ const entryId = defineModel<number | null>('entryId', { default: null })
 const tab = defineModel<ToolsTab>('tab', { default: 'plates' })
 const target = defineModel<number | null>('target', { default: null })
 
-const { plateSizes } = useWorkoutPrefs()
+const { plateSizes, oneRepMaxRepCap } = useWorkoutPrefs()
 const freeBar = ref<number | null>(DEFAULT_BAR_WEIGHT)
 const DEFAULT_INCREMENT = 5
 
@@ -48,7 +48,13 @@ const selected = computed(() => props.entries.find((entry) => entry.id === entry
 const context = computed<ToolContext>(() => {
   const entry = selected.value
   if (!entry) {
-    return { exerciseId: null, loadStyle: 'barbell', bar: freeBar.value, sizes: plateSizes.value, increment: DEFAULT_INCREMENT }
+    return {
+      exerciseId: null,
+      loadStyle: 'barbell',
+      bar: freeBar.value,
+      sizes: plateSizes.value,
+      increment: DEFAULT_INCREMENT
+    }
   }
   const barbell = entry.loadStyle === 'barbell'
   return {
@@ -63,7 +69,7 @@ const context = computed<ToolContext>(() => {
 const exerciseId = computed(() => selected.value?.exerciseId ?? null)
 const oneRepMax = useOneRepMax(exerciseId)
 const override = ref<{ weight: number | null, reps: number | null }>({ weight: null, reps: null })
-const oneRm = computed(() => effectiveOneRepMax(oneRepMax.result.value, override.value))
+const oneRm = computed(() => effectiveOneRepMax(oneRepMax.result.value, override.value, oneRepMaxRepCap.value))
 
 // Refetched on every visit because the newest logged set may have raised the estimate.
 watch([open, tab, exerciseId], ([isOpen, current]) => {

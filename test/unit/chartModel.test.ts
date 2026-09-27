@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-describe('bodyChart', () => {
+describe('chartModel', () => {
   it('snaps a range to nice ticks and expands outward, never to zero', async () => {
-    const { niceTicks } = await import('../../shared/utils/bodyChart')
+    const { niceTicks } = await import('../../shared/utils/chartModel')
     expect(niceTicks(183, 204)).toEqual({ min: 180, max: 205, ticks: [180, 185, 190, 195, 200, 205] })
     const r = niceTicks(196.3, 203.4)
     expect(r.min).toBeLessThanOrEqual(196.3)
@@ -13,7 +13,7 @@ describe('bodyChart', () => {
   })
 
   it('splits a series at gaps and emits one M per segment', async () => {
-    const { segmentByGap, pathFrom } = await import('../../shared/utils/bodyChart')
+    const { segmentByGap, pathFrom } = await import('../../shared/utils/chartModel')
     const points = [
       { date: '2017-12-10', value: 182.4 },
       { date: '2022-02-03', value: 202 },
@@ -26,13 +26,15 @@ describe('bodyChart', () => {
   })
 
   it('builds a model whose y domain is data-driven and ignores the goal, with date-linear x', async () => {
-    const { buildChartModel } = await import('../../shared/utils/bodyChart')
+    const { buildChartModel } = await import('../../shared/utils/chartModel')
     const points = [
       { date: '2026-03-01', value: 200 },
       { date: '2026-03-02', value: 199 },
       { date: '2026-03-10', value: 198 }
     ]
-    const m = buildChartModel({ points, trend: [], goal: 185, from: '2026-03-01', to: '2026-03-10', width: 320, height: 200, gapDays: 10 })
+    const m = buildChartModel({
+      points, trend: [], goal: 185, from: '2026-03-01', to: '2026-03-10', width: 320, height: 200, gapDays: 10
+    })
     expect(m.y.domain[0]).toBeGreaterThan(185)
     expect(m.y.domain[1]).toBeLessThan(210)
     expect(m.goalY).toBe(m.plot.bottom)
@@ -47,7 +49,7 @@ describe('bodyChart', () => {
   })
 
   it('keeps an in-range goal on its own row and pins an out-of-range goal to the nearest edge', async () => {
-    const { buildChartModel } = await import('../../shared/utils/bodyChart')
+    const { buildChartModel } = await import('../../shared/utils/chartModel')
     const points = [
       { date: '2026-03-01', value: 200 },
       { date: '2026-03-10', value: 198 }
@@ -61,15 +63,25 @@ describe('bodyChart', () => {
   })
 
   it('spreads date ticks from first to last day without duplicates', async () => {
-    const { dateTicks } = await import('../../shared/utils/bodyChart')
+    const { dateTicks } = await import('../../shared/utils/chartModel')
     expect(dateTicks('2026-03-01', '2026-03-31', 3)).toEqual(['2026-03-01', '2026-03-16', '2026-03-31'])
     expect(dateTicks('2026-03-01', '2026-03-01', 3)).toEqual(['2026-03-01'])
   })
 
   it('finds the nearest dot on x', async () => {
-    const { nearestPoint } = await import('../../shared/utils/bodyChart')
+    const { nearestPoint } = await import('../../shared/utils/chartModel')
     const dots = [{ x: 10 }, { x: 50 }, { x: 90 }]
     expect(nearestPoint(dots, 55)).toBe(dots[1])
     expect(nearestPoint([], 5)).toBeNull()
+  })
+
+  it('anchors the y axis at zero when asked', async () => {
+    const { buildChartModel } = await import('../../shared/utils/chartModel')
+    const input = {
+      points: [{ date: '2026-03-01', value: 200 }, { date: '2026-03-02', value: 210 }],
+      trend: [], goal: null, from: '2026-03-01', to: '2026-03-02', width: 320, height: 200, gapDays: 10
+    }
+    expect(buildChartModel(input).y.domain[0]).toBeGreaterThan(0)
+    expect(buildChartModel({ ...input, zeroBased: true }).y.domain[0]).toBe(0)
   })
 })

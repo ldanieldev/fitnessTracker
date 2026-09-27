@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
-import type { SeriesGranularity, SeriesPoint } from '~~/shared/types/body'
-import { buildChartModel, nearestPoint, type ChartDot } from '~~/shared/utils/bodyChart'
+import type { SeriesGranularity, SeriesPoint } from '~~/shared/types/series'
+import { buildChartModel, nearestPoint, type ChartDot } from '~~/shared/utils/chartModel'
 import { formatDelta, formatValue } from '~~/shared/utils/bodyMetrics'
 
 const props = withDefaults(defineProps<{
@@ -56,10 +56,14 @@ const summary = computed(() => {
   const first = props.points[0]
   const last = props.points[props.points.length - 1]
   if (!first || !last) return 'No readings in this range'
-  return `${label(props.from)} to ${label(props.to)}: latest ${formatValue(last.value, props.precision)} ${props.unit}, change ${formatDelta(last.value - first.value, props.precision)} ${props.unit}`
+  const latest = `${formatValue(last.value, props.precision)} ${props.unit}`
+  const change = `${formatDelta(last.value - first.value, props.precision)} ${props.unit}`
+  return `${label(props.from)} to ${label(props.to)}: latest ${latest}, change ${change}`
 })
 
-const tooltipLeft = computed(() => (selected.value ? Math.min(Math.max(selected.value.x - 48, 0), model.value.width - 112) : 0))
+const tooltipLeft = computed(() => (
+  selected.value ? Math.min(Math.max(selected.value.x - 48, 0), model.value.width - 112) : 0
+))
 </script>
 
 <template>

@@ -1,8 +1,40 @@
 import { describe, expect, it } from 'vitest'
-import { durationLabel, fromLocalInput, toLocalInput } from '../../shared/utils/workoutTime'
+import {
+  durationLabel, elapsedLabel, fromLocalInput, toLocalInput, totalTimeLabel
+} from '../../shared/utils/workoutTime'
 
 const start = '2026-09-18T10:00:00.000Z'
 const at = (iso: string) => new Date(iso).getTime()
+
+describe('elapsedLabel', () => {
+  it('formats under an hour as m:ss', () => {
+    expect(elapsedLabel(65)).toBe('1:05')
+    expect(elapsedLabel(9)).toBe('0:09')
+  })
+
+  it('formats an hour and over as h:mm:ss', () => {
+    expect(elapsedLabel(3700)).toBe('1:01:40')
+    expect(elapsedLabel(7200)).toBe('2:00:00')
+  })
+
+  it('formats zero as 0:00', () => {
+    expect(elapsedLabel(0)).toBe('0:00')
+  })
+})
+
+describe('totalTimeLabel', () => {
+  it('is 0m for zero seconds', () => {
+    expect(totalTimeLabel(0)).toBe('0m')
+  })
+
+  it('renders minutes only under an hour', () => {
+    expect(totalTimeLabel(45 * 60)).toBe('45m')
+  })
+
+  it('renders hours and minutes at an hour and over', () => {
+    expect(totalTimeLabel(12 * 3600 + 35 * 60)).toBe('12h 35m')
+  })
+})
 
 describe('durationLabel', () => {
   it('formats under an hour as m:ss', () => {

@@ -3,7 +3,8 @@ import type { users } from '~~/server/db/schema'
 
 type SessionUserRow = Pick<
   typeof users.$inferSelect,
-  'id' | 'email' | 'name' | 'avatarUrl' | 'age' | 'sex' | 'weekStart' | 'defaultRestSeconds' | 'plateSizes'
+  | 'id' | 'email' | 'name' | 'avatarUrl' | 'age' | 'sex' | 'weekStart' | 'defaultRestSeconds' | 'plateSizes'
+  | 'oneRepMaxRepCap'
 >
 
 // Callers must use replaceUserSession: setUserSession defu-merges, which concatenates plateSizes onto the old array.
@@ -17,6 +18,7 @@ export function toSessionUser(user: SessionUserRow): User {
     sex: user.sex,
     weekStart: user.weekStart as 0 | 1,
     defaultRestSeconds: user.defaultRestSeconds,
-    plateSizes: user.plateSizes.map(Number)
+    plateSizes: user.plateSizes.map(Number),
+    oneRepMaxRepCap: user.oneRepMaxRepCap
   }
 }

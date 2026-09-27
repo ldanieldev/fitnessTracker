@@ -35,7 +35,8 @@ const SHARED_EDIT_ERROR = { statusCode: 403, statusMessage: 'Shared exercises ca
 const CATEGORY_NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Category not found' } as const
 const BAD_REFERENCE_ERROR = { statusCode: 400, statusMessage: 'Unknown reference in request' } as const
 const PREF_COLUMNS = [
-  'categoryId', 'trackingType', 'loadStyle', 'barWeight', 'weightIncrement', 'restSeconds', 'notes', 'link'
+  'categoryId', 'trackingType', 'loadStyle', 'barWeight', 'weightIncrement', 'restSeconds', 'notes', 'link',
+  'defaultGraph'
 ] as const
 
 export async function loadExerciseRows(userId: number, catalogue?: Catalogue): Promise<ExerciseRow[]> {

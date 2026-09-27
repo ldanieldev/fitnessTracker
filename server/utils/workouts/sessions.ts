@@ -5,6 +5,7 @@ import { db } from '~~/server/utils/db'
 import type { SessionPatchInput, SessionStartInput } from '~~/server/utils/workouts/input'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { addEntry, loadEntries } from '~~/server/utils/workouts/entries'
+import { refreshSessionDate } from '~~/server/utils/workouts/rollups'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Workout not found' } as const
 
@@ -56,13 +57,17 @@ export async function startSession(userId: number, input: SessionStartInput): Pr
     return loadSession(userId, row.id)
   } catch (err) {
     if (isUniqueViolation(err, 'workout_session_open')) {
-      throw createError({ statusCode: 409, statusMessage: 'A workout is already open', data: { session: await activeSession(userId) } })
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'A workout is already open',
+        data: { session: await activeSession(userId) }
+      })
     }
     throw err
   }
 }
 
-// Drizzle strips table qualification inside a select-field sql fragment; bare "id" is ambiguous across tables sharing commonColumns, so qualify it explicitly.
+// Drizzle strips table qualification in a select-field sql fragment; bare id is ambiguous across commonColumns tables.
 const exerciseCount = sql<number>`(
   select count(*) from ${workoutEntries} where ${workoutEntries.sessionId} = workout_sessions.id
 )`.mapWith(Number)
@@ -121,7 +126,7 @@ export async function patchSession(userId: number, id: number, patch: SessionPat
   if (patch.endedAt !== undefined) values.endedAt = patch.endedAt ? new Date(patch.endedAt) : null
   if (patch.finish !== undefined) values.endedAt = patch.finish ? new Date() : null
 
-  // checked on the written values, not the input, so a finish resolved to "now" is validated against a patched start too.
+  // checked against the written values, not the input, so a finish resolved to now validates against a patched start.
   if (values.startedAt !== undefined || values.endedAt !== undefined) {
     const startedAt = values.startedAt ?? new Date(current.startedAt)
     const endedAt = values.endedAt !== undefined ? values.endedAt : current.endedAt && new Date(current.endedAt)
@@ -135,11 +140,17 @@ export async function patchSession(userId: number, id: number, patch: SessionPat
       await db.update(workoutSessions).set(values).where(eq(workoutSessions.id, id))
     } catch (err) {
       if (isUniqueViolation(err, 'workout_session_open')) {
-        throw createError({ statusCode: 409, statusMessage: 'A workout is already open', data: { session: await activeSession(userId) } })
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'A workout is already open',
+          data: { session: await activeSession(userId) }
+        })
       }
       throw err
     }
   }
+
+  if (values.performedOn !== undefined) await refreshSessionDate(id, values.performedOn)
 
   return loadSession(userId, id)
 }

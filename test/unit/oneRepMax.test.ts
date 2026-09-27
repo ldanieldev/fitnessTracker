@@ -80,6 +80,11 @@ describe('effectiveOneRepMax', () => {
     expect(effectiveOneRepMax(result, { weight: 200, reps: 11 })).toBe(253.1)
     expect(effectiveOneRepMax(null, { weight: null, reps: null })).toBeNull()
   })
+
+  it('honours a raised rep cap for the override, matching the caller-supplied cap', () => {
+    expect(effectiveOneRepMax(result, { weight: 100, reps: 12 }, 12)).toBe(144)
+    expect(effectiveOneRepMax(result, { weight: 100, reps: 12 })).toBe(253.1)
+  })
 })
 
 describe('estimateCacheKey', () => {
