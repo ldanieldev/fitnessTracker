@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import type { WorkoutEntry, WorkoutSession, WorkoutSet } from '~~/shared/types/workout'
 import { exercisePrefs, exercises, users, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
-import { db, type DbClient } from '~~/server/utils/db'
+import { db } from '~~/server/utils/db'
 import type { WorkoutEntryPatchInput } from '~~/server/utils/workouts/input'
 import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
 import { loadSession } from '~~/server/utils/workouts/sessions'
@@ -9,7 +9,9 @@ import { refreshRollup } from '~~/server/utils/workouts/rollups'
 import { historyForExercise, lastSetsForExercise } from '~~/server/utils/workouts/history'
 import { recordsForEarlier } from '~~/shared/utils/workoutRecords'
 import { DEFAULT_PLATE_SIZES, effectivePlateSizes } from '~~/shared/utils/plates'
-import { siblingIds, renumberSiblings } from '~~/server/utils/workouts/sortOrder'
+import { toEntryTarget } from '~~/server/utils/workouts/targets'
+import { regroup, SESSION_ENTRY_GROUPS, groupOrThrow } from '~~/server/utils/workouts/groups'
+import { moveWithGroupsTo, normalizeGroups, ungroupItem } from '~~/shared/utils/supersets'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Entry not found' } as const
 
@@ -53,6 +55,13 @@ export async function loadEntries(userId: number, sessionId: number): Promise<Wo
         trackingType: workoutEntries.trackingType,
         loadStyle: workoutEntries.loadStyle,
         notes: workoutEntries.notes,
+        targetSets: workoutEntries.targetSets,
+        targetLow: workoutEntries.targetLow,
+        targetHigh: workoutEntries.targetHigh,
+        targetWeight: workoutEntries.targetWeight,
+        supersetGroup: workoutEntries.supersetGroup,
+        optional: workoutEntries.optional,
+        restOverrideSeconds: workoutEntries.restSeconds,
         exerciseBarWeight: exercises.barWeight,
         prefBarWeight: exercisePrefs.barWeight,
         weightIncrement: exercisePrefs.weightIncrement,
@@ -94,6 +103,10 @@ export async function loadEntries(userId: number, sessionId: number): Promise<Wo
       restSeconds: row.restSeconds,
       plateSizes: effectivePlateSizes(row.loadStyle, row.prefPlateSizes, defaultPlates),
       notes: row.notes,
+      target: toEntryTarget(row),
+      supersetGroup: row.supersetGroup,
+      optional: row.optional,
+      restOverrideSeconds: row.restOverrideSeconds,
       sets,
       lastSets
     }
@@ -131,12 +144,6 @@ export async function loadOwnedEntry(userId: number, entryId: number) {
   return row
 }
 
-async function entrySiblingIds(tx: DbClient, sessionId: number): Promise<number[]> {
-  return siblingIds(
-    tx, workoutEntries, workoutEntries.id, workoutEntries.sortOrder, workoutEntries.sessionId, sessionId
-  )
-}
-
 export async function patchEntry(
   userId: number,
   entryId: number,
@@ -144,19 +151,19 @@ export async function patchEntry(
 ): Promise<WorkoutSession> {
   const entry = await loadOwnedEntry(userId, entryId)
 
-  if (patch.notes !== undefined || patch.sortOrder !== undefined) {
-    await db.transaction(async (tx) => {
-      if (patch.notes !== undefined) {
-        await tx.update(workoutEntries).set({ notes: patch.notes }).where(eq(workoutEntries.id, entryId))
-      }
-      if (patch.sortOrder !== undefined && patch.sortOrder !== entry.sortOrder) {
-        const ids = (await entrySiblingIds(tx, entry.sessionId)).filter((id) => id !== entryId)
-        const clamped = Math.min(Math.max(patch.sortOrder, 0), ids.length)
-        ids.splice(clamped, 0, entryId)
-        await renumberSiblings(tx, workoutEntries, workoutEntries.id, workoutEntries.sortOrder, ids)
-      }
-    })
-  }
+  await db.transaction(async (tx) => {
+    if (patch.notes !== undefined) {
+      await tx.update(workoutEntries).set({ notes: patch.notes }).where(eq(workoutEntries.id, entryId))
+    }
+    if (patch.supersetGroup === null) {
+      await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, (items) => ungroupItem(items, entryId))
+    }
+    if (patch.sortOrder !== undefined && patch.sortOrder !== entry.sortOrder) {
+      const target = patch.sortOrder
+      await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, (items) =>
+        moveWithGroupsTo(items, entryId, Math.min(target, items.length - 1)))
+    }
+  })
 
   return loadSession(userId, entry.sessionId)
 }
@@ -165,9 +172,20 @@ export async function deleteEntry(userId: number, entryId: number): Promise<Work
   const entry = await loadOwnedEntry(userId, entryId)
   await db.transaction(async (tx) => {
     await tx.delete(workoutEntries).where(eq(workoutEntries.id, entryId))
-    const ids = await entrySiblingIds(tx, entry.sessionId)
-    await renumberSiblings(tx, workoutEntries, workoutEntries.id, workoutEntries.sortOrder, ids)
+    await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, normalizeGroups)
   })
   await refreshRollup(userId, entry.sessionId, entry.exerciseId)
   return loadSession(userId, entry.sessionId)
+}
+
+export async function groupSessionEntries(
+  userId: number,
+  sessionId: number,
+  entryIds: number[]
+): Promise<WorkoutSession> {
+  await loadSession(userId, sessionId)
+  await db.transaction(async (tx) => {
+    await regroup(tx, SESSION_ENTRY_GROUPS, sessionId, (items) => groupOrThrow(items, entryIds))
+  })
+  return loadSession(userId, sessionId)
 }

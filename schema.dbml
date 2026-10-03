@@ -157,13 +157,16 @@ table app.exercise_prefs {
   bar_weight numeric [default: `null`]
   weight_increment numeric [default: `null`]
   rest_seconds integer [default: `null`]
+  plate_sizes numeric[] [default: `null`]
   notes varchar(2000) [default: `null`]
   link varchar(500) [default: `null`]
+  default_graph varchar [default: `null`]
   favorite boolean [not null, default: false]
   hidden_at timestamp [default: `null`]
 
   indexes {
     (user_id, exercise_id) [pk]
+    
   }
 }
 
@@ -510,6 +513,21 @@ table app.recipes {
   deleted_at timestamp [default: `null`]
 }
 
+table app.routines {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  name varchar(255) [not null]
+  notes text [default: `null`]
+  active boolean [not null, default: false]
+  next_day_id integer
+
+  indexes {
+    user_id [name: 'routine_one_active', unique]
+  }
+}
+
 table app.saved_meal_items {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -594,9 +612,13 @@ table app.users {
   password varchar(255)
   week_start smallint [not null, default: 1]
   default_rest_seconds smallint [not null, default: 60]
+  plate_sizes numeric[] [not null, default: `'{45,35,25,10,5,2.5}'::numeric[]`]
+  one_rep_max_rep_cap smallint [not null, default: 10]
 
   indexes {
     email [name: 'users_email_unique', unique]
+    
+    
     
     
   }
@@ -612,9 +634,56 @@ table app.workout_entries {
   tracking_type varchar [not null]
   load_style varchar [default: `null`]
   notes text [default: `null`]
+  target_sets integer [default: `null`]
+  target_low numeric [default: `null`]
+  target_high numeric [default: `null`]
+  target_weight numeric [default: `null`]
+  superset_group smallint [default: `null`]
+  optional boolean [not null, default: false]
+  rest_seconds integer [default: `null`]
 
   indexes {
     exercise_id [name: 'workout_entry_exercise']
+  }
+}
+
+table app.workout_exercise_goals {
+  user_id integer [not null]
+  exercise_id integer [not null]
+  metric varchar [not null]
+  target_value numeric [not null]
+  target_reps integer [default: `null`]
+  target_date date [default: `null`]
+  achieved_at timestamp [default: `null`]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, exercise_id, metric) [pk]
+  }
+}
+
+table app.workout_exercise_rollups {
+  session_id integer [not null]
+  exercise_id integer [not null]
+  user_id integer [not null]
+  performed_on date [not null]
+  tracking_type varchar [not null]
+  load_style varchar [default: `null`]
+  set_count integer [not null]
+  total_reps integer [not null]
+  total_volume numeric [default: `null`]
+  top_weight numeric [default: `null`]
+  top_weight_reps integer [default: `null`]
+  top_set_volume numeric [default: `null`]
+  best_e1rm numeric [default: `null`]
+  weight_by_reps jsonb [not null, default: `'{}'::jsonb`]
+  total_distance_meters numeric [default: `null`]
+  total_duration_seconds integer [default: `null`]
+  best_pace numeric [default: `null`]
+
+  indexes {
+    (session_id, exercise_id) [pk]
+    (user_id, exercise_id, performed_on) [name: 'workout_rollup_series']
   }
 }
 
@@ -628,6 +697,7 @@ table app.workout_sessions {
   started_at timestamp [not null, default: `now()`]
   ended_at timestamp [default: `null`]
   notes text [default: `null`]
+  routine_day_id integer
 
   indexes {
     user_id [name: 'workout_session_open', unique]
@@ -660,12 +730,18 @@ table app.workout_template_entries {
   template_id integer [not null]
   exercise_id integer [not null]
   sort_order integer [not null]
-  entry_type varchar [not null]
   target_sets integer [default: `null`]
-  target_reps integer [default: `null`]
+  target_low numeric [default: `null`]
+  target_high numeric [default: `null`]
   target_weight numeric [default: `null`]
-  target_duration_seconds integer [default: `null`]
-  target_distance_meters numeric [default: `null`]
+  superset_group smallint [default: `null`]
+  optional boolean [not null, default: false]
+  rest_seconds integer [default: `null`]
+  notes varchar(500) [default: `null`]
+
+  indexes {
+    (template_id, sort_order) [name: 'workout_template_entry_template']
+  }
 }
 
 table app.workout_templates {
@@ -673,8 +749,15 @@ table app.workout_templates {
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [default: `now()`]
   user_id integer [not null]
+  routine_id integer [not null]
   name varchar(255) [not null]
   description text [default: `null`]
+  sort_order integer [not null]
+  floating boolean [not null, default: false]
+
+  indexes {
+    (routine_id, sort_order) [name: 'workout_template_routine']
+  }
 }
 
 ref auth_providers_user_id_users_id_fk: app.auth_providers.user_id > app.users.id [delete: cascade, update: no action]
@@ -797,6 +880,10 @@ ref recipe_ingredients_food_serving_id_food_servings_id_fk: app.recipe_ingredien
 
 ref recipes_user_id_users_id_fk: app.recipes.user_id > app.users.id [delete: cascade, update: no action]
 
+ref routines_user_id_users_id_fk: app.routines.user_id > app.users.id [delete: cascade, update: no action]
+
+ref routines_next_day_id_workout_templates_id_fk: app.routines.next_day_id > app.workout_templates.id [delete: set null, update: no action]
+
 ref saved_meal_items_saved_meal_id_saved_meals_id_fk: app.saved_meal_items.saved_meal_id > app.saved_meals.id [delete: cascade, update: no action]
 
 ref saved_meal_items_food_id_foods_id_fk: app.saved_meal_items.food_id > app.foods.id [delete: no action, update: no action]
@@ -823,12 +910,26 @@ ref workout_entries_session_id_workout_sessions_id_fk: app.workout_entries.sessi
 
 ref workout_entries_exercise_id_exercises_id_fk: app.workout_entries.exercise_id > app.exercises.id [delete: restrict, update: no action]
 
+ref workout_exercise_goals_user_id_users_id_fk: app.workout_exercise_goals.user_id > app.users.id [delete: cascade, update: no action]
+
+ref workout_exercise_goals_exercise_id_exercises_id_fk: app.workout_exercise_goals.exercise_id > app.exercises.id [delete: cascade, update: no action]
+
+ref workout_exercise_rollups_session_id_workout_sessions_id_fk: app.workout_exercise_rollups.session_id > app.workout_sessions.id [delete: cascade, update: no action]
+
+ref workout_exercise_rollups_exercise_id_exercises_id_fk: app.workout_exercise_rollups.exercise_id > app.exercises.id [delete: cascade, update: no action]
+
+ref workout_exercise_rollups_user_id_users_id_fk: app.workout_exercise_rollups.user_id > app.users.id [delete: cascade, update: no action]
+
 ref workout_sessions_user_id_users_id_fk: app.workout_sessions.user_id > app.users.id [delete: cascade, update: no action]
+
+ref workout_sessions_routine_day_id_workout_templates_id_fk: app.workout_sessions.routine_day_id > app.workout_templates.id [delete: set null, update: no action]
 
 ref workout_sets_entry_id_workout_entries_id_fk: app.workout_sets.entry_id > app.workout_entries.id [delete: cascade, update: no action]
 
 ref workout_template_entries_template_id_workout_templates_id_fk: app.workout_template_entries.template_id > app.workout_templates.id [delete: cascade, update: no action]
 
-ref workout_template_entries_exercise_id_exercises_id_fk: app.workout_template_entries.exercise_id > app.exercises.id [delete: cascade, update: no action]
+ref workout_template_entries_exercise_id_exercises_id_fk: app.workout_template_entries.exercise_id > app.exercises.id [delete: restrict, update: no action]
 
 ref workout_templates_user_id_users_id_fk: app.workout_templates.user_id > app.users.id [delete: cascade, update: no action]
+
+ref workout_templates_routine_id_routines_id_fk: app.workout_templates.routine_id > app.routines.id [delete: cascade, update: no action]

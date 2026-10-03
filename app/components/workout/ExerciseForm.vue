@@ -24,6 +24,7 @@ const props = defineProps<{
   muscles: MuscleOption[]
   equipment: EquipmentRow[]
   nameError?: string | null
+  initialName?: string
 }>()
 
 const emit = defineEmits<{ submit: [payload: ExerciseFormPayload] }>()
@@ -48,7 +49,7 @@ function buildDefaults(exercise: Exercise | undefined): LocalState {
   const trackingType = exercise?.trackingType ?? 'weight_reps'
   const loadStyle = exercise?.loadStyle ?? (WEIGHT_TRACKING_TYPES.includes(trackingType) ? 'plain' : null)
   return {
-    name: exercise?.name ?? '',
+    name: exercise?.name ?? props.initialName ?? '',
     categoryId: exercise?.category.id ?? props.categories[0]?.id ?? 0,
     trackingType,
     loadStyle,

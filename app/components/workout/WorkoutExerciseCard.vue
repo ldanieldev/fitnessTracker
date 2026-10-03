@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { SetMeasures, WorkoutEntry } from '~~/shared/types/workout'
+import { targetProgressLabel } from '~~/shared/utils/workoutTargets'
 import { prefillFor } from '~~/shared/utils/workoutPrefill'
 import { formatSet } from '~~/shared/utils/setFormat'
 import { measuresFor } from '~~/shared/utils/setRules'
@@ -14,8 +15,14 @@ const props = withDefaults(defineProps<{
   plateButton?: boolean
   presetWeight?: { weight: number, seq: number } | null
   saveErrors?: Record<string, string>
+  supersetLabel?: string | null
+  supersetBorderClass?: string | null
+  canGroup?: boolean
 }>(), {
-  presetWeight: null
+  presetWeight: null,
+  supersetLabel: null,
+  supersetBorderClass: null,
+  canGroup: false
 })
 
 const emit = defineEmits<{
@@ -27,9 +34,11 @@ const emit = defineEmits<{
   remove: []
   retrySave: [setId: number | null]
   plates: [weight: number | null]
+  superset: []
+  ungroup: []
 }>()
 
-const collapsed = ref(false)
+const collapsed = defineModel<boolean>('collapsed', { default: false })
 const confirmRemoveOpen = ref(false)
 const menuOpen = ref(false)
 
@@ -37,6 +46,8 @@ function errorFor(setId: number | null) {
   return props.saveErrors?.[setId === null ? 'new' : String(setId)] ?? null
 }
 
+const targetLabel = computed(() => targetProgressLabel(props.entry.trackingType, props.entry.target, props.entry.sets.length))
+const targetMet = computed(() => props.entry.target?.sets != null && props.entry.sets.length >= props.entry.target.sets)
 const measures = computed(() => measuresFor(props.entry.trackingType))
 const prefill = computed(() => prefillFor(props.entry.sets, props.entry.lastSets))
 const lastSummary = computed(() => props.entry.lastSets.map((set) => formatSet(measures.value, set)))
@@ -58,6 +69,12 @@ const menu = computed<DropdownMenuItem[][]>(() => [
     { label: 'Move up', icon: 'i-lucide-arrow-up', disabled: props.isFirst, testId: `entry-up-${props.entry.id}`, onSelect: () => emit('move', -1) },
     { label: 'Move down', icon: 'i-lucide-arrow-down', disabled: props.isLast, testId: `entry-down-${props.entry.id}`, onSelect: () => emit('move', 1) }
   ],
+  [
+    { label: 'Superset with…', icon: 'i-lucide-link', disabled: !props.canGroup, testId: `entry-superset-add-${props.entry.id}`, onSelect: () => emit('superset') },
+    ...(props.entry.supersetGroup !== null
+      ? [{ label: 'Remove from superset', icon: 'i-lucide-unlink', testId: `entry-superset-remove-${props.entry.id}`, onSelect: () => emit('ungroup') }]
+      : [])
+  ],
   [{ label: 'Remove', icon: 'i-lucide-trash-2', color: 'error', testId: `entry-remove-${props.entry.id}`, onSelect: () => (confirmRemoveOpen.value = true) }]
 ])
 
@@ -68,7 +85,11 @@ function confirmRemove() {
 </script>
 
 <template>
-  <UCard :ui="collapsed ? { root: 'divide-y-0', body: 'hidden' } : undefined" :data-test="`entry-card-${entry.id}`">
+  <UCard
+    :ui="collapsed ? { root: 'divide-y-0', body: 'hidden' } : undefined"
+    :class="supersetBorderClass ? ['border-l-4', supersetBorderClass] : undefined"
+    :data-test="`entry-card-${entry.id}`"
+  >
     <template #header>
       <div class="flex flex-col gap-1">
         <div class="flex items-center gap-2">
@@ -82,6 +103,7 @@ function confirmRemove() {
             :data-test="`entry-collapse-${entry.id}`"
             @click="collapsed = !collapsed"
           />
+          <span v-if="supersetLabel" class="shrink-0 font-mono text-xs font-semibold text-dimmed" :data-test="`entry-superset-${entry.id}`">{{ supersetLabel }}</span>
           <NuxtLink
             :to="`/workouts/exercises/${entry.exerciseId}`"
             class="min-w-0 truncate font-semibold text-highlighted"
@@ -90,7 +112,16 @@ function confirmRemove() {
             {{ entry.exerciseName }}
           </NuxtLink>
           <UBadge
-            v-if="entry.sets.length > 0"
+            v-if="targetLabel"
+            :label="targetLabel"
+            :color="targetMet ? 'success' : 'neutral'"
+            variant="subtle"
+            size="sm"
+            class="shrink-0"
+            :data-test="`entry-target-${entry.id}`"
+          />
+          <UBadge
+            v-else-if="entry.sets.length > 0"
             :label="`${entry.sets.length} ${entry.sets.length === 1 ? 'set' : 'sets'}`"
             variant="subtle"
             size="sm"
@@ -122,10 +153,12 @@ function confirmRemove() {
             </UDropdownMenu>
           </div>
         </div>
+        <p v-if="entry.notes" class="pl-11 text-xs text-dimmed" :data-test="`entry-notes-${entry.id}`">{{ entry.notes }}</p>
         <div
-          v-if="showBar || entry.lastSets.length > 0"
+          v-if="entry.optional || showBar || entry.lastSets.length > 0"
           class="flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-xs leading-snug text-dimmed"
         >
+          <UBadge v-if="entry.optional" label="optional" variant="outline" color="neutral" size="sm" class="shrink-0" :data-test="`entry-optional-${entry.id}`" />
           <span v-if="showBar" class="inline-flex items-center">
             Bar: {{ entry.barWeight }} lb
             <UButton

@@ -69,6 +69,7 @@ test('phone: start a workout, log sets, set a record, edit, collapse, end, copy 
   const row = page.locator('[data-test="session-row"]').filter({ hasText: name })
   await expect(row).toHaveCount(1)
   await row.locator('[data-test^="session-copy-"]').click()
+  await page.locator('[data-test="copy-start"]').click()
   await expect(page.locator('[data-test="set-weight-new"]')).toHaveValue('205')
 
   await page.locator('[data-test="session-finish"]').click()

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { GRAPH_METRIC_VALUES, LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
+import { GRAPH_METRIC_VALUES, LOAD_STYLE_VALUES, POINTER_CHOICE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
 import { CATEGORY_COLORS } from '~~/shared/utils/categoryColors'
 import { plateSizesSchema } from '~~/shared/utils/plates'
 
@@ -96,7 +96,10 @@ export type VariationPatchInput = z.infer<typeof variationPatchSchema>
 export const sessionStartSchema = z.object({
   name: z.string().trim().max(255).nullish(),
   performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  copyFromId: z.number().int().positive().optional()
+  copyFromId: z.number().int().positive().optional(),
+  entryIds: z.array(z.number().int().positive()).min(1).max(100).optional(),
+  routineDayId: z.number().int().positive().optional(),
+  pointer: z.enum(POINTER_CHOICE_VALUES).optional()
 })
 
 export const sessionPatchSchema = z.object({
@@ -119,8 +122,11 @@ export const workoutEntryAddSchema = z.object({ exerciseId: z.number().int().pos
 
 export const workoutEntryPatchSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
-  notes: z.string().max(2000).nullable().optional()
+  notes: z.string().max(2000).nullable().optional(),
+  supersetGroup: z.null().optional()
 })
+
+export const workoutEntryGroupSchema = z.object({ entryIds: z.array(z.number().int().positive()).min(2).max(50) })
 
 export type WorkoutEntryAddInput = z.infer<typeof workoutEntryAddSchema>
 export type WorkoutEntryPatchInput = z.infer<typeof workoutEntryPatchSchema>
@@ -161,3 +167,45 @@ export const workoutHistoryQuerySchema = z.object({
 export const workoutProgressQuerySchema = z.object({ from: isoDate.optional(), to: isoDate.optional() })
 
 export type WorkoutGoalInput = z.infer<typeof workoutGoalPutSchema>
+
+export const routineCreateSchema = z.object({ name: z.string().trim().min(1).max(255) })
+
+export const routinePatchSchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  active: z.boolean().optional(),
+  nextDayId: z.number().int().positive().optional()
+})
+
+export type RoutineCreateInput = z.infer<typeof routineCreateSchema>
+export type RoutinePatchInput = z.infer<typeof routinePatchSchema>
+
+export const routineDayCreateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  floating: z.boolean().optional()
+})
+
+export const routineDayPatchSchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
+  description: z.string().trim().max(255).nullable().optional(),
+  floating: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional()
+})
+
+export const routineEntryAddSchema = z.object({ exerciseId: z.number().int().positive() })
+
+export const routineEntryPatchSchema = z.object({
+  targetSets: z.number().int().min(1).max(50).nullable().optional(),
+  targetLow: z.number().min(0).max(100000).nullable().optional(),
+  targetHigh: z.number().min(0).max(100000).nullable().optional(),
+  targetWeight: z.number().min(0).max(2000).nullable().optional(),
+  optional: z.boolean().optional(),
+  restSeconds: z.number().int().min(0).max(3600).nullable().optional(),
+  notes: z.string().trim().max(500).nullable().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  supersetGroup: z.null().optional()
+})
+
+export type RoutineDayCreateInput = z.infer<typeof routineDayCreateSchema>
+export type RoutineDayPatchInput = z.infer<typeof routineDayPatchSchema>
+export type RoutineEntryPatchInput = z.infer<typeof routineEntryPatchSchema>

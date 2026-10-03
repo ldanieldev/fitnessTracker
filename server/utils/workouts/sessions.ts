@@ -2,9 +2,9 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { WorkoutSession, WorkoutSessionSummary } from '~~/shared/types/workout'
 import { workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
-import type { SessionPatchInput, SessionStartInput } from '~~/server/utils/workouts/input'
+import type { SessionPatchInput } from '~~/server/utils/workouts/input'
 import { isUniqueViolation } from '~~/server/utils/pgError'
-import { addEntry, loadEntries } from '~~/server/utils/workouts/entries'
+import { loadEntries } from '~~/server/utils/workouts/entries'
 import { refreshSessionDate } from '~~/server/utils/workouts/rollups'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Workout not found' } as const
@@ -17,6 +17,7 @@ async function toSession(row: typeof workoutSessions.$inferSelect): Promise<Work
     startedAt: row.startedAt.toISOString(),
     endedAt: row.endedAt ? row.endedAt.toISOString() : null,
     notes: row.notes,
+    routineDayId: row.routineDayId,
     entries: await loadEntries(row.userId, row.id)
   }
 }
@@ -32,39 +33,6 @@ async function openSessionRow(userId: number) {
 export async function activeSession(userId: number): Promise<WorkoutSession | null> {
   const row = await openSessionRow(userId)
   return row ? await toSession(row) : null
-}
-
-export async function startSession(userId: number, input: SessionStartInput): Promise<WorkoutSession> {
-  const performedOn = input.performedOn ?? new Date().toISOString().slice(0, 10)
-  // Load the source before inserting so a foreign/missing copyFromId 404s without leaving a new session behind.
-  const source = input.copyFromId !== undefined ? await loadSession(userId, input.copyFromId) : null
-  try {
-    const row = await db
-      .insert(workoutSessions)
-      .values({ userId, name: input.name ?? null, performedOn })
-      .returning()
-      .then((r) => r[0]!)
-    if (source) {
-      for (const sourceEntry of source.entries) {
-        try {
-          await addEntry(userId, row.id, sourceEntry.exerciseId)
-        } catch (err) {
-          // LG-R9: a soft-deleted source exercise 404s from addEntry — skip it rather than failing the whole copy.
-          if (!(err instanceof Error && 'statusCode' in err && err.statusCode === 404)) throw err
-        }
-      }
-    }
-    return loadSession(userId, row.id)
-  } catch (err) {
-    if (isUniqueViolation(err, 'workout_session_open')) {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'A workout is already open',
-        data: { session: await activeSession(userId) }
-      })
-    }
-    throw err
-  }
 }
 
 // Drizzle strips table qualification in a select-field sql fragment; bare id is ambiguous across commonColumns tables.

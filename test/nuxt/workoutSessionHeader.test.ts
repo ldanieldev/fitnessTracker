@@ -21,6 +21,7 @@ function makeSession(overrides: Record<string, unknown> = {}) {
     startedAt: new Date(NOW.getTime() - 65_000).toISOString(),
     endedAt: null,
     notes: null,
+    routineDayId: null,
     entries: [],
     ...overrides
   }

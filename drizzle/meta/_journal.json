@@ -64,6 +64,13 @@
       "when": 1789800000000,
       "tag": "0008_history_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790998759495,
+      "tag": "0009_workout_structure",
+      "breakpoints": true
     }
   ]
 }

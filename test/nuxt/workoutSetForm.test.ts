@@ -9,7 +9,7 @@ const set = (id: number, weight: number | null, reps: number | null) => ({
 const barbell = {
   id: 9, exerciseId: 7, exerciseName: 'Barbell Squat', sortOrder: 0, trackingType: 'weight_reps' as const,
   loadStyle: 'barbell' as const, barWeight: 45, weightIncrement: null, restSeconds: null,
-  plateSizes: [55, 45, 35, 25, 10, 5, 2.5], notes: null, sets: [set(1, 175, 5)], lastSets: [{ weight: 165, reps: 5 }]
+  plateSizes: [55, 45, 35, 25, 10, 5, 2.5], notes: null, target: null, supersetGroup: null, optional: false, restOverrideSeconds: null, sets: [set(1, 175, 5)], lastSets: [{ weight: 165, reps: 5 }]
 }
 
 const input = (wrapper: Awaited<ReturnType<typeof mountSuspended>>, test: string) =>
@@ -93,5 +93,13 @@ describe('WorkoutSetForm', () => {
     const assisted = { ...barbell, loadStyle: 'assisted' as const, barWeight: null, plateSizes: null, sets: [set(1, 40, 8)] }
     const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: assisted } })
     expect(wrapper.find('[data-test="set-assist-new"]').text()).toBe('−40')
+  })
+
+  it('hints the target range and prefills the target weight on the first set', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: { entry: { ...barbell, sets: [], lastSets: [], target: { sets: 3, low: 5, high: 8, weight: 135 } } }
+    })
+    expect(wrapper.find('[data-test="set-reps-new"]').attributes('placeholder')).toBe('5–8')
+    expect(input(wrapper, 'set-weight-new').value).toBe('135')
   })
 })

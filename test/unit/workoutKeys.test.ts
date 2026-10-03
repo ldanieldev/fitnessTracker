@@ -12,4 +12,9 @@ describe('workout keys', () => {
     expect(WORKOUT_KEYS.session(4)).not.toBe(WORKOUT_KEYS.session(5))
     expect(sessionListKey(20)).not.toBe(sessionListKey(40))
   })
+
+  it('keys routines under the workouts prefix', () => {
+    expect(WORKOUT_KEYS.routines).toBe('workouts:routines')
+    expect(WORKOUT_KEYS.routine(4)).toBe('workouts:routine:4')
+  })
 })

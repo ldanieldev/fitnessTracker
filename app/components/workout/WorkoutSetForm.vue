@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SetMeasures, WorkoutEntry } from '~~/shared/types/workout'
+import { rangePlaceholder, targetMetricFor } from '~~/shared/utils/workoutTargets'
 import { prefillFor } from '~~/shared/utils/workoutPrefill'
 import { LABEL, measuresFor } from '~~/shared/utils/setRules'
 import WorkoutPlateCircles from '~/components/workout/WorkoutPlateCircles.vue'
@@ -14,6 +15,8 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ save: [values: SetMeasures] }>()
 
 const measures = computed(() => measuresFor(props.entry.trackingType))
+const metric = computed(() => targetMetricFor(props.entry.trackingType))
+const rangeHint = computed(() => (props.entry.target ? rangePlaceholder(props.entry.target.low, props.entry.target.high) ?? undefined : undefined))
 const setNumber = computed(() => props.entry.sets.length + 1)
 const circles = computed(() =>
   props.entry.loadStyle === 'barbell' && props.entry.barWeight != null && props.entry.plateSizes != null)
@@ -25,7 +28,7 @@ const showReps = computed(() => measures.value.includes('reps'))
 function seed(): SetMeasures {
   const source = prefillFor(props.entry.sets, props.entry.lastSets)
   return {
-    weight: source.weight ?? null,
+    weight: props.entry.sets.length === 0 && props.entry.target?.weight != null ? props.entry.target.weight : source.weight ?? null,
     reps: source.reps ?? null,
     distanceMeters: source.distanceMeters ?? null,
     durationSeconds: source.durationSeconds ?? null
@@ -89,6 +92,7 @@ function logSet() {
           :min="0"
           :step="STEP.distance"
           :aria-label="LABEL[measure]"
+          :placeholder="metric === 'distance' ? rangeHint : undefined"
           data-test="set-distance-new"
         />
         <AppNumberInput
@@ -97,6 +101,7 @@ function logSet() {
           :min="0"
           :step="STEP.duration"
           :aria-label="LABEL[measure]"
+          :placeholder="metric === 'time' ? rangeHint : undefined"
           data-test="set-duration-new"
         />
         <span
@@ -110,7 +115,7 @@ function logSet() {
     <div v-if="showReps" class="flex flex-col items-center gap-1">
       <span class="text-sm text-dimmed">{{ LABEL.reps }}</span>
       <div class="w-40">
-        <AppNumberInput v-model="values.reps" :min="0" :step="1" aria-label="Reps" :ui="{ base: 'text-center' }" data-test="set-reps-new" />
+        <AppNumberInput v-model="values.reps" :min="0" :step="1" aria-label="Reps" :placeholder="metric === 'reps' ? rangeHint : undefined" :ui="{ base: 'text-center' }" data-test="set-reps-new" />
       </div>
     </div>
 

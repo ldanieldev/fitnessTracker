@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { format } from 'date-fns'
-import type { WorkoutSession, WorkoutSessionSummary } from '~~/shared/types/workout'
-import { todayDate } from '~~/shared/utils/nutritionSummary'
+import type { PointerChoice, WorkoutSession } from '~~/shared/types/workout'
+import type { RoutineSummary } from '~~/shared/types/routine'
+import type { SetFlow } from '~~/shared/utils/supersets'
 import type { ToolsTab } from '~/components/workout/WorkoutToolsSheet.vue'
 import WorkoutToolsSheet from '~/components/workout/WorkoutToolsSheet.vue'
+import WorkoutCopySheet from '~/components/workout/WorkoutCopySheet.vue'
+import WorkoutDayPickerSheet from '~/components/workout/WorkoutDayPickerSheet.vue'
 import { errorMessage } from '~/utils/apiError'
 
 const toast = useToast()
 const wakeLock = useWakeLock()
 const restTimerOpen = ref(false)
 const copyOpen = ref(false)
-const starting = ref(false)
+const dayPickerOpen = ref(false)
+const { start: startWorkout, starting } = useWorkoutStart()
 
 const restTimer = useRestTimer()
 const { defaultRestSeconds } = useWorkoutPrefs()
@@ -38,16 +41,8 @@ watch(error, (value) => {
 
 const loading = computed(() => status.value === 'pending' && !session.value)
 
-const { data: recent, execute: loadRecent } = useWorkoutFetch<WorkoutSessionSummary[]>(
-  sessionListKey(10),
-  '/api/workouts/sessions?limit=10',
-  { immediate: false }
-)
-const recentSessions = computed(() => recent.value ?? [])
-
-watch(copyOpen, (open) => {
-  if (open) loadRecent()
-})
+const { data: routineList, refresh: refreshRoutines } = useWorkoutFetch<RoutineSummary[]>(WORKOUT_KEYS.routines, '/api/workouts/routines', { lazy: true })
+const dueRoutine = computed(() => routineList.value?.find((routine) => routine.active && routine.nextDay) ?? null)
 
 onMounted(() => {
   wakeLock.enable()
@@ -67,27 +62,15 @@ function fail(err: unknown, fallback: string) {
   toast.add({ title: 'Update failed', description: errorMessage(err, fallback), color: 'error' })
 }
 
-function openSessionFrom(err: unknown): WorkoutSession | null {
-  return (err as { data?: { data?: { session?: WorkoutSession | null } } }).data?.data?.session ?? null
+async function start(body: { routineDayId?: number, pointer?: PointerChoice, copyFromId?: number, entryIds?: number[] }) {
+  const started = await startWorkout(body)
+  if (started) session.value = started
+  return started
 }
 
-async function start(body: { copyFromId?: number }) {
-  if (starting.value) return
-  starting.value = true
-  copyOpen.value = false
-  try {
-    // The server default would date the session by UTC, which is tomorrow for an evening workout west of Greenwich.
-    const started = { ...body, performedOn: todayDate() }
-    session.value = await apiFetch<WorkoutSession>('/api/workouts/sessions', { method: 'POST', body: started })
-    await invalidateWorkouts()
-  } catch (err: unknown) {
-    // A 409 means another tab already opened one; adopt it instead of stranding the page on the start screen.
-    const open = openSessionFrom(err)
-    if (open) session.value = open
-    else fail(err, 'Could not start this workout')
-  } finally {
-    starting.value = false
-  }
+async function startNextDay() {
+  const started = await start({ routineDayId: dueRoutine.value!.nextDay!.id })
+  if (!started) await refreshRoutines()
 }
 
 async function finishSession() {
@@ -115,10 +98,11 @@ async function deleteSession() {
   }
 }
 
-function onSetLogged(entryId: number) {
+function onSetLogged(entryId: number, flow: SetFlow) {
   lastLoggedEntryId.value = entryId
-  const entry = session.value?.entries.find((candidate) => candidate.id === entryId)
-  restTimer.start(entry?.restSeconds ?? defaultRestSeconds.value)
+  if (!flow.rest) return
+  const entry = session.value?.entries.find((candidate) => candidate.id === flow.restFromEntryId)
+  restTimer.start(entry?.restOverrideSeconds ?? entry?.restSeconds ?? defaultRestSeconds.value)
 }
 
 const toolsOpen = ref(false)
@@ -144,15 +128,6 @@ let presetSeq = 0
 function useWeight(entryId: number, weight: number) {
   presetWeights[entryId] = { weight, seq: ++presetSeq }
   toolsOpen.value = false
-}
-
-function plural(count: number, noun: string) {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`
-}
-
-function recentLine(summary: WorkoutSessionSummary) {
-  const when = format(new Date(`${summary.performedOn}T00:00:00`), 'EEE, MMM d')
-  return `${when} · ${plural(summary.exerciseCount, 'exercise')} · ${plural(summary.setCount, 'set')}`
 }
 </script>
 
@@ -241,25 +216,22 @@ function recentLine(summary: WorkoutSessionSummary) {
       <div v-else-if="!session" class="mx-auto flex w-full max-w-2xl flex-col gap-3" data-test="session-start">
         <p class="text-sm text-muted">No workout in progress.</p>
         <UButton
-          label="Start empty workout"
-          icon="i-lucide-plus"
+          v-if="dueRoutine"
+          icon="i-lucide-play"
           block
-          class="min-h-10"
+          class="min-h-12"
           :loading="starting"
-          data-test="start-empty"
-          @click="start({})"
-        />
-        <UButton
-          label="Copy a past workout"
-          icon="i-lucide-copy"
-          variant="soft"
-          color="neutral"
-          block
-          class="min-h-10"
-          :disabled="starting"
-          data-test="start-copy"
-          @click="copyOpen = true"
-        />
+          data-test="start-routine-next"
+          @click="startNextDay"
+        >
+          <span class="flex min-w-0 flex-col items-start">
+            <span class="truncate font-semibold" data-test="start-routine-next-name">{{ dueRoutine.nextDay!.name }}</span>
+            <span class="truncate text-xs opacity-80">{{ dueRoutine.name }} · next</span>
+          </span>
+        </UButton>
+        <UButton label="Other routine day…" icon="i-lucide-list" variant="soft" color="neutral" block class="min-h-10" :disabled="starting" data-test="start-routine-other" @click="dayPickerOpen = true" />
+        <UButton label="Copy a past workout…" icon="i-lucide-copy" variant="soft" color="neutral" block class="min-h-10" :disabled="starting" data-test="start-copy" @click="copyOpen = true" />
+        <UButton label="Empty workout" icon="i-lucide-plus" variant="soft" color="neutral" block class="min-h-10" :loading="starting" data-test="start-empty" @click="start({})" />
       </div>
 
       <WorkoutSessionEditor
@@ -273,24 +245,8 @@ function recentLine(summary: WorkoutSessionSummary) {
         @delete="deleteSession"
       />
 
-      <AppSheet v-model:open="copyOpen" title="Copy a past workout">
-        <template #body>
-          <div class="flex flex-col gap-1" data-test="copy-list">
-            <p v-if="!recentSessions.length" class="text-sm text-dimmed">No past workouts yet</p>
-            <button
-              v-for="summary in recentSessions"
-              :key="summary.id"
-              type="button"
-              class="flex min-h-10 flex-col rounded-lg px-2 py-2 text-left hover:bg-elevated"
-              :data-test="`copy-session-${summary.id}`"
-              @click="start({ copyFromId: summary.id })"
-            >
-              <span class="truncate font-medium text-highlighted">{{ summary.name ?? 'Workout' }}</span>
-              <span class="truncate text-xs text-dimmed">{{ recentLine(summary) }}</span>
-            </button>
-          </div>
-        </template>
-      </AppSheet>
+      <WorkoutCopySheet v-model:open="copyOpen" @start="start" />
+      <WorkoutDayPickerSheet v-model:open="dayPickerOpen" @start="start" />
 
       <WorkoutRestTimer v-model:open="restTimerOpen" :timer="restTimer" />
 

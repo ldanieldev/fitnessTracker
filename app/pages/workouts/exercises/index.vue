@@ -136,7 +136,7 @@ const formOpen = ref(false)
 const editingId = ref<number | null>(null)
 // Snapshotted once, not derived from the list, so a refetch dropping the row can't flip an open sheet to create mode.
 const editingExercise = ref<Exercise | undefined>(undefined)
-const nameError = ref<string | null>(null)
+const { nameError, save } = useExerciseSave()
 const toast = useToast()
 
 watch(formOpen, (isOpen) => {
@@ -206,26 +206,7 @@ function onEdit(id: number) {
 }
 
 async function onSubmit(payload: ExerciseFormPayload) {
-  try {
-    if (editingId.value !== null) {
-      await apiFetch(`/api/workouts/exercises/${editingId.value}`, { method: 'PUT', body: payload })
-    } else {
-      await apiFetch('/api/workouts/exercises', { method: 'POST', body: payload })
-    }
-    formOpen.value = false
-    await invalidateExercises()
-    toast.add({ title: 'Saved', color: 'success' })
-  } catch (error: unknown) {
-    if (error instanceof Error && 'statusCode' in error && (error as { statusCode?: number }).statusCode === 409) {
-      nameError.value = errorMessage(error, 'You already have an exercise with that name')
-      return
-    }
-    toast.add({
-      title: 'Save failed',
-      description: errorMessage(error, 'Could not save this exercise'),
-      color: 'error'
-    })
-  }
+  if (await save(payload, editingId.value)) formOpen.value = false
 }
 </script>
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { WorkoutSession, WorkoutSessionSummary } from '~~/shared/types/workout'
-import { todayDate } from '~~/shared/utils/nutritionSummary'
+import type { WorkoutSessionSummary } from '~~/shared/types/workout'
 import { durationLabel } from '~~/shared/utils/workoutTime'
+import WorkoutCopySheet from '~/components/workout/WorkoutCopySheet.vue'
 import { errorMessage } from '~/utils/apiError'
 
 const PAGE_SIZE = 20
@@ -70,30 +70,17 @@ function fail(err: unknown, fallback: string) {
   toast.add({ title: 'Update failed', description: errorMessage(err, fallback), color: 'error' })
 }
 
-function openSessionFrom(err: unknown): WorkoutSession | null {
-  return (err as { data?: { data?: { session?: WorkoutSession | null } } }).data?.data?.session ?? null
+const copySourceId = ref<number | null>(null)
+const copyOpen = ref(false)
+const { start: startWorkout, starting } = useWorkoutStart()
+
+function copySession(id: number) {
+  copySourceId.value = id
+  copyOpen.value = true
 }
 
-const copying = ref(false)
-
-async function copySession(id: number) {
-  if (copying.value) return
-  copying.value = true
-  try {
-    await apiFetch<WorkoutSession>('/api/workouts/sessions', { method: 'POST', body: { copyFromId: id, performedOn: todayDate() } })
-    await invalidateWorkouts()
-    await navigateTo('/workouts/log')
-  } catch (err: unknown) {
-    if (openSessionFrom(err)) {
-      toast.add({ title: 'A workout is already open', description: 'Finish it before copying another.', color: 'warning' })
-      await invalidateWorkouts()
-      await navigateTo('/workouts/log')
-    } else {
-      fail(err, 'Could not copy this workout')
-    }
-  } finally {
-    copying.value = false
-  }
+async function startCopy(body: { copyFromId: number, entryIds: number[] }) {
+  if (await startWorkout(body)) await navigateTo('/workouts/log')
 }
 
 const timesOpen = ref(false)
@@ -199,7 +186,7 @@ function menuFor(summary: WorkoutSessionSummary): DropdownMenuItem[][] {
                 color="neutral"
                 class="min-h-10 min-w-10 justify-center"
                 aria-label="Copy into a new workout"
-                :disabled="copying"
+                :disabled="starting"
                 :data-test="`session-copy-${summary.id}`"
                 @click="copySession(summary.id)"
               />
@@ -233,6 +220,8 @@ function menuFor(summary: WorkoutSessionSummary): DropdownMenuItem[][] {
           </div>
         </div>
       </div>
+
+      <WorkoutCopySheet v-model:open="copyOpen" :source-id="copySourceId" @start="startCopy" />
 
       <WorkoutSessionTimesSheet
         v-if="timesTarget"

@@ -6,7 +6,7 @@ import WorkoutToolsSheet from '../../app/components/workout/WorkoutToolsSheet.vu
 const entry = (id: number, name: string, plateSizes: number[] | null) => ({
   id, exerciseId: id + 100, exerciseName: name, sortOrder: id, trackingType: 'weight_reps' as const,
   loadStyle: plateSizes ? 'barbell' as const : 'plain' as const, barWeight: plateSizes ? 45 : null,
-  weightIncrement: null, restSeconds: null, plateSizes, notes: null, sets: [], lastSets: []
+  weightIncrement: null, restSeconds: null, plateSizes, notes: null, target: null, supersetGroup: null, optional: false, restOverrideSeconds: null, sets: [], lastSets: []
 })
 
 const entries = [entry(1, 'Squat', [55, 45, 25, 10, 5, 2.5]), entry(2, 'Curl', null)]

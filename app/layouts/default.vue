@@ -69,6 +69,11 @@ const links = computed(() => [
           onSelect: close
         },
         {
+          label: 'Routines',
+          to: '/workouts/routines',
+          onSelect: close
+        },
+        {
           label: 'Progress',
           to: '/workouts/progress',
           onSelect: close

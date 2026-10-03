@@ -17,6 +17,18 @@ export type TrackingType = (typeof TRACKING_TYPE_VALUES)[number]
 export const LOAD_STYLE_VALUES = ['plain', 'barbell', 'assisted'] as const
 export type LoadStyle = (typeof LOAD_STYLE_VALUES)[number]
 
+export const POINTER_CHOICE_VALUES = ['skip', 'keep'] as const
+export type PointerChoice = (typeof POINTER_CHOICE_VALUES)[number]
+
+export type TargetMetric = 'reps' | 'time' | 'distance'
+
+export interface EntryTarget {
+  sets: number | null
+  low: number | null
+  high: number | null
+  weight: number | null
+}
+
 export interface ExerciseCategory {
   id: number
   key: string | null
@@ -160,6 +172,10 @@ export interface WorkoutEntry {
   restSeconds: number | null
   plateSizes: number[] | null
   notes: string | null
+  target: EntryTarget | null
+  supersetGroup: number | null
+  optional: boolean
+  restOverrideSeconds: number | null
   sets: WorkoutSet[]
   lastSets: SetMeasures[]
 }
@@ -171,6 +187,7 @@ export interface WorkoutSession {
   startedAt: string
   endedAt: string | null
   notes: string | null
+  routineDayId: number | null
   entries: WorkoutEntry[]
 }
 

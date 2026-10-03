@@ -10,7 +10,7 @@ const set = (id: number, weight: number, reps: number, records: { kind: 'weight_
 const entry = {
   id: 9, exerciseId: 7, exerciseName: 'Barbell Bench Press', sortOrder: 0, trackingType: 'weight_reps' as const,
   loadStyle: 'barbell' as const, barWeight: 45, weightIncrement: 5, restSeconds: null, plateSizes: [45, 35, 25, 10, 5, 2.5],
-  notes: null, sets: [set(1, 185, 8), set(2, 205, 6, [{ kind: 'weight_reps', previous: 185 }])],
+  notes: null, target: null, supersetGroup: null, optional: false, restOverrideSeconds: null, sets: [set(1, 185, 8), set(2, 205, 6, [{ kind: 'weight_reps', previous: 185 }])],
   lastSets: [{ weight: 175, reps: 8 }, { weight: 175, reps: 6 }]
 }
 
@@ -114,5 +114,28 @@ describe('WorkoutExerciseCard', () => {
     expect(wrapper.emitted('plates')).toEqual([[205]])
     const silent = await mount()
     expect(silent.find('[data-test="entry-plates-9"]').exists()).toBe(false)
+  })
+
+  it('shows target progress instead of the set count, plus optional and note', async () => {
+    const wrapper = await mount({
+      entry: { ...entry, target: { sets: 3, low: 5, high: 8, weight: null }, optional: true, notes: 'per side' }
+    })
+    expect(wrapper.find('[data-test="entry-target-9"]').text()).toBe('2 of 3 · 5–8')
+    expect(wrapper.find('[data-test="entry-sets-9"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="entry-optional-9"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="entry-notes-9"]').text()).toBe('per side')
+  })
+
+  it('labels a superset member and bands the card', async () => {
+    const wrapper = await mount({
+      entry: { ...entry, supersetGroup: 1 }, supersetLabel: 'A2', supersetBorderClass: 'border-l-sky-500'
+    })
+    expect(wrapper.find('[data-test="entry-superset-9"]').text()).toBe('A2')
+    expect(wrapper.find('[data-test="entry-card-9"]').classes()).toContain('border-l-sky-500')
+  })
+
+  it('collapses from the parent', async () => {
+    const wrapper = await mount({ collapsed: true })
+    expect(wrapper.find('[data-test="set-form"]').exists()).toBe(false)
   })
 })
