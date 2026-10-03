@@ -111,10 +111,41 @@ export const sessionPatchSchema = z.object({
   finish: z.boolean().optional()
 })
 
-export const sessionListQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(1000).default(20)
-})
+const sessionFilterShape = {
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+  categories: csv
+    .transform((parts) => parts.map((p) => {
+      const n = Number(p)
+      return Number.isInteger(n) && n > 0 ? n : null
+    }))
+    .refine((arr) => arr.every((n) => n !== null), 'Invalid category id')
+    .transform((arr) => arr.filter((n): n is number => n !== null))
+    .refine((arr) => arr.length <= 50)
+    .optional(),
+  match: z.enum(['any', 'all']).default('any'),
+  exerciseId: z.coerce.number().int().positive().optional(),
+  minWeight: z.coerce.number().min(0).max(2000).optional(),
+  minReps: z.coerce.number().int().min(1).max(1000).optional()
+}
 
+function checkSessionFilter(filter: { from?: string, to?: string, exerciseId?: number, minWeight?: number, minReps?: number }, ctx: z.RefinementCtx) {
+  if (filter.from && filter.to && filter.from > filter.to) {
+    ctx.addIssue({ code: 'custom', path: ['from'], message: 'from must not be after to' })
+  }
+  if (filter.exerciseId === undefined && (filter.minWeight !== undefined || filter.minReps !== undefined)) {
+    ctx.addIssue({ code: 'custom', path: ['exerciseId'], message: 'minWeight and minReps need exerciseId' })
+  }
+}
+
+export const sessionFilterQuerySchema = z.object(sessionFilterShape).superRefine(checkSessionFilter)
+
+export const sessionListQuerySchema = z
+  .object({ ...sessionFilterShape, limit: z.coerce.number().int().positive().max(1000).default(20) })
+  .superRefine(checkSessionFilter)
+
+export type SessionFilterQuery = z.infer<typeof sessionFilterQuerySchema>
+export type SessionListQuery = z.infer<typeof sessionListQuerySchema>
 export type SessionStartInput = z.infer<typeof sessionStartSchema>
 export type SessionPatchInput = z.infer<typeof sessionPatchSchema>
 

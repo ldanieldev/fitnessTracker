@@ -62,10 +62,13 @@ const deleteOpen = ref(false)
 
 const commentText = ref('')
 
+const { manualOpen, manualText, shareSession } = useWorkoutShare()
+
 const menu: DropdownMenuItem[][] = [
   [
     { label: 'Comment', icon: 'i-lucide-notebook-pen', onSelect: () => openComment() },
-    { label: 'Change date & time', icon: 'i-lucide-calendar-clock', onSelect: () => { timesOpen.value = true } }
+    { label: 'Change date & time', icon: 'i-lucide-calendar-clock', onSelect: () => { timesOpen.value = true } },
+    { label: 'Share', icon: 'i-lucide-share-2', onSelect: () => { void shareSession(props.session) } }
   ],
   [{ label: 'Delete', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { deleteOpen.value = true } }]
 ]
@@ -130,6 +133,8 @@ function confirmDelete() {
       :ended-at="session.endedAt"
       @save="(times) => emit('changeTimes', times)"
     />
+
+    <WorkoutShareSheet v-model:open="manualOpen" :text="manualText" />
 
     <AppSheet v-model:open="deleteOpen" title="Delete workout">
       <template #body>

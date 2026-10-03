@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WORKOUT_KEYS, sessionListKey } from '../../shared/utils/workoutKeys'
+import { WORKOUT_KEYS, sessionListKey, sessionMonthKey } from '../../shared/utils/workoutKeys'
 
 describe('workout keys', () => {
   it('namespaces every key so one prefix invalidates the module', () => {
@@ -16,5 +16,11 @@ describe('workout keys', () => {
   it('keys routines under the workouts prefix', () => {
     expect(WORKOUT_KEYS.routines).toBe('workouts:routines')
     expect(WORKOUT_KEYS.routine(4)).toBe('workouts:routine:4')
+  })
+
+  it('keys lists and months by filter under the sessions prefix', () => {
+    expect(sessionListKey(20)).toBe('workouts:sessions:20')
+    expect(sessionListKey(20, 'categories=1')).toBe('workouts:sessions:20:categories=1')
+    expect(sessionMonthKey('2026-09-24', '2026-11-07', '')).toBe('workouts:sessions:month:2026-09-24:2026-11-07:')
   })
 })

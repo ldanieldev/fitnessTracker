@@ -191,6 +191,23 @@ export interface WorkoutSession {
   entries: WorkoutEntry[]
 }
 
+export interface SessionCategoryDot {
+  id: number
+  color: string
+}
+
+export type SessionFilterMatch = 'any' | 'all'
+
+export interface SessionFilter {
+  from?: string
+  to?: string
+  categories?: number[]
+  match?: SessionFilterMatch
+  exerciseId?: number
+  minWeight?: number
+  minReps?: number
+}
+
 export interface WorkoutSessionSummary {
   id: number
   name: string | null
@@ -199,6 +216,7 @@ export interface WorkoutSessionSummary {
   endedAt: string | null
   exerciseCount: number
   setCount: number
+  categories: SessionCategoryDot[]
 }
 
 export interface OneRepMaxSource {

@@ -65,7 +65,7 @@ test('phone: start a workout, log sets, set a record, edit, collapse, end, copy 
   await page.locator('[data-test="session-finish"]').click()
   await expect(page.locator('[data-test="start-empty"]')).toBeVisible()
 
-  await goto('/workouts/sessions', { waitUntil: 'hydration' })
+  await goto('/workouts/sessions?view=list', { waitUntil: 'hydration' })
   const row = page.locator('[data-test="session-row"]').filter({ hasText: name })
   await expect(row).toHaveCount(1)
   await row.locator('[data-test^="session-copy-"]').click()
@@ -73,7 +73,7 @@ test('phone: start a workout, log sets, set a record, edit, collapse, end, copy 
   await expect(page.locator('[data-test="set-weight-new"]')).toHaveValue('205')
 
   await page.locator('[data-test="session-finish"]').click()
-  await goto('/workouts/sessions', { waitUntil: 'hydration' })
+  await goto('/workouts/sessions?view=list', { waitUntil: 'hydration' })
   await page.locator('[data-test="session-row"]').filter({ hasText: name }).locator('a').click()
   await expect(page.locator('[data-test="set-row"]')).not.toHaveCount(0)
 })

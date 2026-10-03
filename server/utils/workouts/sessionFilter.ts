@@ -1,0 +1,40 @@
+import { and, eq, gte, lte, sql, type SQL } from 'drizzle-orm'
+import { exercisePrefs, exercises, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
+import type { SessionFilterQuery } from '~~/server/utils/workouts/input'
+
+export function sessionFilterWhere(userId: number, filter: SessionFilterQuery): SQL {
+  const conditions: SQL[] = [eq(workoutSessions.userId, userId)]
+  if (filter.from) conditions.push(gte(workoutSessions.performedOn, filter.from))
+  if (filter.to) conditions.push(lte(workoutSessions.performedOn, filter.to))
+
+  const categoryIds = [...new Set(filter.categories ?? [])]
+  if (categoryIds.length) {
+    const list = sql.join(categoryIds.map((id) => sql`${id}`), sql`, `)
+    const matched = sql`(
+      select count(distinct coalesce(ep.category_id, e.category_id))
+      from ${workoutEntries} we
+      inner join ${exercises} e on e.id = we.exercise_id
+      left join ${exercisePrefs} ep on ep.exercise_id = e.id and ep.user_id = ${userId}
+      where we.session_id = ${workoutSessions.id} and coalesce(ep.category_id, e.category_id) in (${list})
+    )`
+    conditions.push(filter.match === 'all' ? sql`${matched} = ${categoryIds.length}` : sql`${matched} > 0`)
+  }
+
+  if (filter.exerciseId) {
+    const bounds: SQL[] = []
+    if (filter.minReps !== undefined) bounds.push(sql`ws.reps >= ${filter.minReps}`)
+    // Assisted entries store the assist as a positive weight where less is better, so the bound flips.
+    if (filter.minWeight !== undefined) {
+      bounds.push(sql`(case when we.load_style = 'assisted' then ws.weight <= ${filter.minWeight} else ws.weight >= ${filter.minWeight} end)`)
+    }
+    const setMatch = bounds.length
+      ? sql`and exists (select 1 from ${workoutSets} ws where ws.entry_id = we.id and ${sql.join(bounds, sql` and `)})`
+      : sql``
+    conditions.push(sql`exists (
+      select 1 from ${workoutEntries} we
+      where we.session_id = ${workoutSessions.id} and we.exercise_id = ${filter.exerciseId} ${setMatch}
+    )`)
+  }
+
+  return and(...conditions)!
+}

@@ -1,7 +1,7 @@
 import type { UseFetchOptions } from 'nuxt/app'
-import { WORKOUT_KEYS, sessionListKey } from '~~/shared/utils/workoutKeys'
+import { WORKOUT_KEYS, sessionListKey, sessionMonthKey } from '~~/shared/utils/workoutKeys'
 
-export { WORKOUT_KEYS, sessionListKey }
+export { WORKOUT_KEYS, sessionListKey, sessionMonthKey }
 
 // Delegates so workout reads share the nutrition helpers' 401 hook; dedupe 'defer' shares one mount-time fetch.
 export function useWorkoutFetch<T>(

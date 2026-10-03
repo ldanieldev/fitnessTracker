@@ -11,6 +11,10 @@ export const WORKOUT_KEYS = {
   routine: (id: number) => `workouts:routine:${id}`
 } as const
 
-export function sessionListKey(limit: number): string {
-  return `${WORKOUT_KEYS.sessions}${limit}`
+export function sessionListKey(limit: number, filterQuery = ''): string {
+  return `${WORKOUT_KEYS.sessions}${limit}${filterQuery ? `:${filterQuery}` : ''}`
+}
+
+export function sessionMonthKey(from: string, to: string, filterQuery: string): string {
+  return `${WORKOUT_KEYS.sessions}month:${from}:${to}:${filterQuery}`
 }

@@ -5,6 +5,7 @@ import ExerciseForm, { type ExerciseFormPayload } from '~/components/workout/Exe
 
 interface ReferenceData { categories: ExerciseCategory[], muscles: MuscleRow[], equipment: EquipmentRow[] }
 
+const props = withDefaults(defineProps<{ title?: string }>(), { title: 'Add exercise' })
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ pick: [exerciseId: number] }>()
 
@@ -102,7 +103,7 @@ function pick(exercise: Exercise) {
 </script>
 
 <template>
-  <AppSheet v-model:open="open" title="Add exercise">
+  <AppSheet v-model:open="open" :title="props.title">
     <template #body>
       <div class="flex flex-col gap-3">
         <UInput

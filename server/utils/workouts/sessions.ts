@@ -2,9 +2,11 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { WorkoutSession, WorkoutSessionSummary } from '~~/shared/types/workout'
 import { workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
-import type { SessionPatchInput } from '~~/server/utils/workouts/input'
+import type { SessionListQuery, SessionPatchInput } from '~~/server/utils/workouts/input'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { loadEntries } from '~~/server/utils/workouts/entries'
+import { loadEntryCategories, sessionCategoryDots } from '~~/server/utils/workouts/sessionCategories'
+import { sessionFilterWhere } from '~~/server/utils/workouts/sessionFilter'
 import { refreshSessionDate } from '~~/server/utils/workouts/rollups'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Workout not found' } as const
@@ -45,7 +47,7 @@ const setCount = sql<number>`(
   where ${workoutEntries.sessionId} = workout_sessions.id
 )`.mapWith(Number)
 
-export async function listSessions(userId: number, { limit }: { limit: number }): Promise<WorkoutSessionSummary[]> {
+export async function listSessions(userId: number, query: SessionListQuery): Promise<WorkoutSessionSummary[]> {
   const rows = await db
     .select({
       id: workoutSessions.id,
@@ -57,10 +59,11 @@ export async function listSessions(userId: number, { limit }: { limit: number })
       setCount
     })
     .from(workoutSessions)
-    .where(eq(workoutSessions.userId, userId))
+    .where(sessionFilterWhere(userId, query))
     .orderBy(desc(workoutSessions.performedOn), desc(workoutSessions.startedAt), desc(workoutSessions.id))
-    .limit(limit)
+    .limit(query.limit)
 
+  const dots = sessionCategoryDots(await loadEntryCategories(userId, rows.map((row) => row.id)))
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -68,7 +71,8 @@ export async function listSessions(userId: number, { limit }: { limit: number })
     startedAt: row.startedAt.toISOString(),
     endedAt: row.endedAt ? row.endedAt.toISOString() : null,
     exerciseCount: row.exerciseCount,
-    setCount: row.setCount
+    setCount: row.setCount,
+    categories: dots.get(row.id) ?? []
   }))
 }
 
