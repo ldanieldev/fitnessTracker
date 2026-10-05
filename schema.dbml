@@ -460,31 +460,23 @@ table app.program_phases {
   program_id integer [not null]
   name varchar(255) [not null]
   sort_order integer [not null]
-  week_start integer [not null]
-  week_end integer [not null]
-}
+  weeks smallint [not null]
+  routine_id integer
+  deload boolean [not null, default: false]
 
-table app.program_workouts {
-  id integer [pk, not null]
-  created_at timestamp [not null, default: `now()`]
-  updated_at timestamp [default: `now()`]
-  phase_id integer [not null]
-  template_id integer [default: `null`]
-  name varchar(255) [not null]
-  day_of_week integer [default: `null`]
-  week_number integer [not null]
-  sort_order integer [not null]
+  indexes {
+    (program_id, sort_order) [name: 'program_phase_program']
+    
+  }
 }
 
 table app.programs {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [default: `now()`]
+  user_id integer [not null]
   name varchar(255) [not null]
   description text [default: `null`]
-  image_url varchar(255) [default: `null`]
-  total_weeks integer [not null]
-  created_by_user_id integer [default: `null`]
 }
 
 table app.recipe_ingredients {
@@ -570,22 +562,15 @@ table app.user_program_enrollments {
   updated_at timestamp [default: `now()`]
   user_id integer [not null]
   program_id integer [not null]
-  start_date date [not null]
   status varchar [not null]
-}
-
-table app.user_program_workout_completions {
-  id integer [pk, not null]
-  created_at timestamp [not null, default: `now()`]
-  updated_at timestamp [default: `now()`]
-  enrollment_id integer [not null]
-  program_workout_id integer [not null]
-  session_id integer [default: `null`]
-  completion_percent integer [not null, default: 100]
-  completed_at timestamp [not null]
+  anchor_date date [not null]
+  anchor_week smallint [not null]
+  paused_week smallint [default: `null`]
+  current_phase_id integer
+  notice varchar [default: `null`]
 
   indexes {
-    (enrollment_id, program_workout_id) [name: 'enrollment_workout_unique', unique]
+    user_id [name: 'enrollment_one_live', unique]
   }
 }
 
@@ -698,6 +683,9 @@ table app.workout_sessions {
   ended_at timestamp [default: `null`]
   notes text [default: `null`]
   routine_day_id integer
+  enrollment_id integer
+  program_phase_id integer
+  program_week smallint [default: `null`]
 
   indexes {
     user_id [name: 'workout_session_open', unique]
@@ -866,11 +854,9 @@ ref measurements_type_id_measurement_types_id_fk: app.measurements.type_id > app
 
 ref program_phases_program_id_programs_id_fk: app.program_phases.program_id > app.programs.id [delete: cascade, update: no action]
 
-ref program_workouts_phase_id_program_phases_id_fk: app.program_workouts.phase_id > app.program_phases.id [delete: cascade, update: no action]
+ref program_phases_routine_id_routines_id_fk: app.program_phases.routine_id > app.routines.id [delete: set null, update: no action]
 
-ref program_workouts_template_id_workout_templates_id_fk: app.program_workouts.template_id > app.workout_templates.id [delete: set null, update: no action]
-
-ref programs_created_by_user_id_users_id_fk: app.programs.created_by_user_id > app.users.id [delete: cascade, update: no action]
+ref programs_user_id_users_id_fk: app.programs.user_id > app.users.id [delete: cascade, update: no action]
 
 ref recipe_ingredients_recipe_id_recipes_id_fk: app.recipe_ingredients.recipe_id > app.recipes.id [delete: cascade, update: no action]
 
@@ -896,11 +882,7 @@ ref user_program_enrollments_user_id_users_id_fk: app.user_program_enrollments.u
 
 ref user_program_enrollments_program_id_programs_id_fk: app.user_program_enrollments.program_id > app.programs.id [delete: cascade, update: no action]
 
-ref user_program_workout_completions_enrollment_id_user_program_enrollments_id_fk: app.user_program_workout_completions.enrollment_id > app.user_program_enrollments.id [delete: cascade, update: no action]
-
-ref user_program_workout_completions_program_workout_id_program_workouts_id_fk: app.user_program_workout_completions.program_workout_id > app.program_workouts.id [delete: cascade, update: no action]
-
-ref user_program_workout_completions_session_id_workout_sessions_id_fk: app.user_program_workout_completions.session_id > app.workout_sessions.id [delete: set null, update: no action]
+ref user_program_enrollments_current_phase_id_program_phases_id_fk: app.user_program_enrollments.current_phase_id > app.program_phases.id [delete: set null, update: no action]
 
 ref user_tracked_nutrients_user_id_users_id_fk: app.user_tracked_nutrients.user_id > app.users.id [delete: cascade, update: no action]
 
@@ -923,6 +905,10 @@ ref workout_exercise_rollups_user_id_users_id_fk: app.workout_exercise_rollups.u
 ref workout_sessions_user_id_users_id_fk: app.workout_sessions.user_id > app.users.id [delete: cascade, update: no action]
 
 ref workout_sessions_routine_day_id_workout_templates_id_fk: app.workout_sessions.routine_day_id > app.workout_templates.id [delete: set null, update: no action]
+
+ref workout_sessions_enrollment_id_user_program_enrollments_id_fk: app.workout_sessions.enrollment_id > app.user_program_enrollments.id [delete: set null, update: no action]
+
+ref workout_sessions_program_phase_id_program_phases_id_fk: app.workout_sessions.program_phase_id > app.program_phases.id [delete: set null, update: no action]
 
 ref workout_sets_entry_id_workout_entries_id_fk: app.workout_sets.entry_id > app.workout_entries.id [delete: cascade, update: no action]
 

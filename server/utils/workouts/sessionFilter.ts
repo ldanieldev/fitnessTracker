@@ -1,5 +1,5 @@
 import { and, eq, gte, lte, sql, type SQL } from 'drizzle-orm'
-import { exercisePrefs, exercises, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
+import { exercisePrefs, exercises, programPhases, programs, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
 import type { SessionFilterQuery } from '~~/server/utils/workouts/input'
 
 export function sessionFilterWhere(userId: number, filter: SessionFilterQuery): SQL {
@@ -33,6 +33,15 @@ export function sessionFilterWhere(userId: number, filter: SessionFilterQuery): 
     conditions.push(sql`exists (
       select 1 from ${workoutEntries} we
       where we.session_id = ${workoutSessions.id} and we.exercise_id = ${filter.exerciseId} ${setMatch}
+    )`)
+  }
+
+  if (filter.phaseId) conditions.push(eq(workoutSessions.programPhaseId, filter.phaseId))
+  if (filter.programId) {
+    conditions.push(sql`${workoutSessions.programPhaseId} in (
+      select pp.id from ${programPhases} pp
+      inner join ${programs} p on p.id = pp.program_id
+      where pp.program_id = ${filter.programId} and p.user_id = ${userId}
     )`)
   }
 

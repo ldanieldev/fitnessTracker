@@ -1,4 +1,5 @@
 import type { SeriesPoint } from './series'
+import type { SessionProgramTag } from './program'
 
 export const TRACKING_TYPE_VALUES = [
   'weight_reps',
@@ -206,6 +207,8 @@ export interface SessionFilter {
   exerciseId?: number
   minWeight?: number
   minReps?: number
+  programId?: number
+  phaseId?: number
 }
 
 export interface WorkoutSessionSummary {
@@ -217,6 +220,7 @@ export interface WorkoutSessionSummary {
   exerciseCount: number
   setCount: number
   categories: SessionCategoryDot[]
+  program: SessionProgramTag | null
 }
 
 export interface OneRepMaxSource {

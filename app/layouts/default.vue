@@ -74,6 +74,11 @@ const links = computed(() => [
           onSelect: close
         },
         {
+          label: 'Programs',
+          to: '/workouts/programs',
+          onSelect: close
+        },
+        {
           label: 'Progress',
           to: '/workouts/progress',
           onSelect: close
@@ -81,11 +86,6 @@ const links = computed(() => [
         {
           label: 'Exercises',
           to: '/workouts/exercises',
-          onSelect: close
-        },
-        {
-          label: 'Programs',
-          // to: '/programs',
           onSelect: close
         },
         {

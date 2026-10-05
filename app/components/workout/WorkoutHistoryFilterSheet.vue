@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Exercise, ExerciseCategory, SessionFilter, SessionFilterMatch } from '~~/shared/types/workout'
+import type { Program, ProgramSummary } from '~~/shared/types/program'
 import { CATEGORY_DOT_CLASS } from '~~/shared/utils/categoryColors'
 
 const props = defineProps<{ filter: SessionFilter }>()
@@ -7,6 +8,43 @@ const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ apply: [filter: SessionFilter] }>()
 
 const { data: reference } = useExerciseFetch<{ categories: ExerciseCategory[] }>(EXERCISE_KEYS.reference, '/api/workouts/reference')
+
+const ANY = -1
+const { data: programList } = useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs', { lazy: true })
+const programId = ref(ANY)
+const phaseId = ref(ANY)
+const programDetail = ref<Program | null>(null)
+const phasesLoading = ref(false)
+let restoring = false
+const isKnownProgram = (id: number) => id === ANY || !programList.value || programList.value.some((p) => p.id === id)
+
+watch(programList, () => {
+  if (isKnownProgram(programId.value)) return
+  programId.value = ANY
+  phaseId.value = ANY
+})
+
+watch(programId, async (id) => {
+  const restore = restoring
+  restoring = false
+  if (!restore) phaseId.value = ANY
+  programDetail.value = null
+  if (id === ANY) return
+  phasesLoading.value = true
+  try {
+    const detail = await apiFetch<Program>(`/api/workouts/programs/${id}`)
+    if (programId.value === id) programDetail.value = detail
+  } catch {
+    programDetail.value = null
+  } finally {
+    if (programId.value === id) phasesLoading.value = false
+  }
+})
+
+const programItems = computed(() => [{ label: 'Any program', value: ANY }, ...(programList.value ?? []).map((p) => ({ label: p.name, value: p.id }))])
+const phaseItems = computed(() => phasesLoading.value
+  ? [{ label: 'Loading phases…', value: phaseId.value }]
+  : [{ label: 'Any phase', value: ANY }, ...(programDetail.value?.phases ?? []).map((p) => ({ label: p.name, value: p.id }))])
 
 const categories = ref<number[]>([])
 const match = ref<SessionFilterMatch>('any')
@@ -41,6 +79,11 @@ watch(open, (isOpen) => {
   minWeight.value = props.filter.minWeight ?? null
   minReps.value = props.filter.minReps ?? null
   exercise.value = null
+  const requested = props.filter.programId ?? ANY
+  const savedProgram = isKnownProgram(requested) ? requested : ANY
+  restoring = savedProgram !== programId.value
+  programId.value = savedProgram
+  phaseId.value = savedProgram === ANY ? ANY : props.filter.phaseId ?? ANY
   exerciseId.value = props.filter.exerciseId ?? null
   if (props.filter.exerciseId) void loadExercise(props.filter.exerciseId)
 }, { immediate: true })
@@ -66,6 +109,10 @@ function apply() {
     filter.exerciseId = exerciseId.value
     if (minWeight.value !== null) filter.minWeight = minWeight.value
     if (minReps.value !== null) filter.minReps = minReps.value
+  }
+  if (programId.value !== ANY && isKnownProgram(programId.value)) {
+    filter.programId = programId.value
+    if (phaseId.value !== ANY) filter.phaseId = phaseId.value
   }
   emit('apply', filter)
   open.value = false
@@ -133,6 +180,12 @@ function clear() {
               <AppNumberInput v-model="minReps" :min="1" :max="1000" :step="1" :disabled="!exerciseId" data-test="filter-min-reps" />
             </UFormField>
           </div>
+        </section>
+
+        <section v-if="programList?.length" class="flex flex-col gap-2">
+          <h3 class="text-sm font-medium text-highlighted">Program</h3>
+          <USelect v-model="programId" :items="programItems" class="w-full" data-test="filter-program" />
+          <USelect v-if="programId !== ANY" v-model="phaseId" :items="phaseItems" :disabled="phasesLoading" class="w-full" data-test="filter-phase" />
         </section>
 
         <div class="flex gap-2">

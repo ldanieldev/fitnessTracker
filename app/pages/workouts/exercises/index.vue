@@ -220,6 +220,7 @@ async function onSubmit(payload: ExerciseFormPayload) {
         <template #right>
           <UButton
             icon="i-lucide-plus"
+            label="New"
             size="sm"
             aria-label="New exercise"
             data-test="exercise-create"

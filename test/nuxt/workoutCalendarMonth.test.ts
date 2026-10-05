@@ -6,7 +6,7 @@ import WorkoutCalendarMonth from '../../app/components/workout/WorkoutCalendarMo
 
 const summary = (performedOn: string, categories: { id: number, color: string }[]) => ({
   id: Math.random(), name: null, performedOn, startedAt: `${performedOn}T15:00:00.000Z`, endedAt: null,
-  exerciseCount: 1, setCount: 1, categories
+  exerciseCount: 1, setCount: 1, categories, program: null
 })
 
 describe('WorkoutCalendarMonth', () => {
@@ -34,6 +34,18 @@ describe('WorkoutCalendarMonth', () => {
     const dot = wrapper.find('[data-test="calendar-day-2026-10-01"] [data-test="calendar-dot"]')
     expect(dot.attributes('class')).toContain('size-1.5')
     expect(dot.attributes('class')).not.toContain('ring')
+  })
+
+  it('underlines days with a program workout in the phase colour', async () => {
+    const tagged = { ...summary('2026-10-01', [{ id: 1, color: 'rose' }]), program: { phaseId: 4, phaseName: 'Peak', phaseIndex: 1, week: 2 } }
+    const wrapper = await mountSuspended(WorkoutCalendarMonth, {
+      props: { month: '2026-10', day: null, sessions: [tagged, summary('2026-10-02', [{ id: 1, color: 'rose' }])] }
+    })
+    const marked = wrapper.find('[data-test="calendar-day-2026-10-01"] [data-test="calendar-phase"]')
+    expect(marked.exists()).toBe(true)
+    expect(marked.attributes('class')).toContain('bg-')
+    expect(marked.attributes('class')).not.toContain('bg-transparent')
+    expect(wrapper.find('[data-test="calendar-day-2026-10-02"] [data-test="calendar-phase"]').exists()).toBe(false)
   })
 
   it('emits the tapped day', async () => {

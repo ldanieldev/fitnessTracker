@@ -26,6 +26,10 @@ function normalized(filter: SessionFilter): SessionFilter {
     if (filter.minWeight !== undefined) out.minWeight = filter.minWeight
     if (filter.minReps !== undefined) out.minReps = filter.minReps
   }
+  if (filter.programId) {
+    out.programId = filter.programId
+    if (filter.phaseId) out.phaseId = filter.phaseId
+  }
   return out
 }
 
@@ -39,6 +43,8 @@ export function sessionFilterParams(filter: SessionFilter): string {
   if (f.exerciseId) params.set('exerciseId', String(f.exerciseId))
   if (f.minWeight !== undefined) params.set('minWeight', String(f.minWeight))
   if (f.minReps !== undefined) params.set('minReps', String(f.minReps))
+  if (f.programId) params.set('programId', String(f.programId))
+  if (f.phaseId) params.set('phaseId', String(f.phaseId))
   return params.toString()
 }
 
@@ -52,7 +58,9 @@ export function filterFromRoute(query: Record<string, unknown>): SessionFilter {
     match: query.match === 'all' ? 'all' : 'any',
     exerciseId: positiveInt(query.ex),
     minWeight: nonNegative(query.w),
-    minReps
+    minReps,
+    programId: positiveInt(query.prog),
+    phaseId: positiveInt(query.phase)
   })
 }
 
@@ -64,10 +72,12 @@ export function filterToRoute(filter: SessionFilter): Record<string, string> {
   if (f.exerciseId) route.ex = String(f.exerciseId)
   if (f.minWeight !== undefined) route.w = String(f.minWeight)
   if (f.minReps !== undefined) route.r = String(f.minReps)
+  if (f.programId) route.prog = String(f.programId)
+  if (f.phaseId) route.phase = String(f.phaseId)
   return route
 }
 
 export function activeFilterCount(filter: SessionFilter): number {
   const f = normalized(filter)
-  return (f.categories ? 1 : 0) + (f.exerciseId ? 1 : 0)
+  return (f.categories ? 1 : 0) + (f.exerciseId ? 1 : 0) + (f.programId ? 1 : 0)
 }

@@ -16,6 +16,7 @@ import { LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '../../../../shared/type
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 import { exercises } from './exercise'
+import { programPhases, userProgramEnrollments } from './workoutProgram'
 
 export const routines = appSchema.table(
   'routines',
@@ -85,7 +86,10 @@ export const workoutSessions = appSchema.table(
     startedAt: timestamp('started_at').notNull().defaultNow(),
     endedAt: timestamp('ended_at').default(sql`null`),
     notes: text('notes').default(sql`null`),
-    routineDayId: integer('routine_day_id').references(() => workoutTemplates.id, { onDelete: 'set null' })
+    routineDayId: integer('routine_day_id').references(() => workoutTemplates.id, { onDelete: 'set null' }),
+    enrollmentId: integer('enrollment_id').references((): AnyPgColumn => userProgramEnrollments.id, { onDelete: 'set null' }),
+    programPhaseId: integer('program_phase_id').references((): AnyPgColumn => programPhases.id, { onDelete: 'set null' }),
+    programWeek: smallint('program_week').default(sql`null`)
   },
   (table) => [
     uniqueIndex('workout_session_open').on(table.userId).where(sql`ended_at is null`),

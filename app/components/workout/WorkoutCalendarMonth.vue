@@ -2,6 +2,7 @@
 import { CalendarDate, type DateValue } from '@internationalized/date'
 import type { WorkoutSessionSummary } from '~~/shared/types/workout'
 import { CATEGORY_DOT_CLASS } from '~~/shared/utils/categoryColors'
+import { phaseColorClass } from '~~/shared/utils/programs'
 import { calendarDots } from '~~/shared/utils/workoutCalendar'
 
 const props = defineProps<{ sessions: WorkoutSessionSummary[] }>()
@@ -11,6 +12,16 @@ const { user } = useUserSession()
 const weekStart = computed(() => user.value?.weekStart ?? 1)
 
 const dots = computed(() => calendarDots(props.sessions))
+
+const phaseByDay = computed(() => {
+  const map = new Map<string, string>()
+  for (const s of props.sessions) {
+    if (s.program && !map.has(s.performedOn)) {
+      map.set(s.performedOn, phaseColorClass(s.program.phaseIndex))
+    }
+  }
+  return map
+})
 
 function toCalendarDate(iso: string) {
   const [y, m, d] = iso.split('-').map(Number) as [number, number, number]
@@ -55,6 +66,11 @@ const selected = computed({
           />
           <span v-if="dots.get(cell.toString())?.more" class="text-[9px] leading-none" data-test="calendar-dot-more">+</span>
         </span>
+        <span
+          class="h-0.5 w-4 rounded-full"
+          :class="phaseByDay.get(cell.toString()) ?? 'bg-transparent'"
+          :data-test="phaseByDay.has(cell.toString()) ? 'calendar-phase' : undefined"
+        />
       </span>
     </template>
   </UCalendar>

@@ -6,6 +6,7 @@ import type { ToolsTab } from '~/components/workout/WorkoutToolsSheet.vue'
 import WorkoutToolsSheet from '~/components/workout/WorkoutToolsSheet.vue'
 import WorkoutCopySheet from '~/components/workout/WorkoutCopySheet.vue'
 import WorkoutDayPickerSheet from '~/components/workout/WorkoutDayPickerSheet.vue'
+import WorkoutProgramStatus from '~/components/workout/WorkoutProgramStatus.vue'
 import { errorMessage } from '~/utils/apiError'
 
 const toast = useToast()
@@ -43,6 +44,11 @@ const loading = computed(() => status.value === 'pending' && !session.value)
 
 const { data: routineList, refresh: refreshRoutines } = useWorkoutFetch<RoutineSummary[]>(WORKOUT_KEYS.routines, '/api/workouts/routines', { lazy: true })
 const dueRoutine = computed(() => routineList.value?.find((routine) => routine.active && routine.nextDay) ?? null)
+
+const { enrollment } = useEnrollment()
+watch(() => enrollment.value?.phase?.id, (now, before) => {
+  if (now !== before) void refreshRoutines()
+})
 
 onMounted(() => {
   wakeLock.enable()
@@ -215,6 +221,7 @@ function useWeight(entryId: number, weight: number) {
 
       <div v-else-if="!session" class="mx-auto flex w-full max-w-2xl flex-col gap-3" data-test="session-start">
         <p class="text-sm text-muted">No workout in progress.</p>
+        <WorkoutProgramStatus />
         <UButton
           v-if="dueRoutine"
           icon="i-lucide-play"

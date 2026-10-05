@@ -5,6 +5,7 @@ import { db } from '~~/server/utils/db'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import type { SessionStartInput } from '~~/server/utils/workouts/input'
 import { loadCatalogue } from '~~/server/utils/workouts/catalogue'
+import { sessionProgramTag } from '~~/server/utils/workouts/enrollments'
 import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
 import { activeSession, loadSession } from '~~/server/utils/workouts/sessions'
 import { ownedRoutineDay } from '~~/server/utils/workouts/routineDays'
@@ -126,9 +127,16 @@ export async function startSession(userId: number, input: SessionStartInput): Pr
 
   try {
     const id = await db.transaction(async (tx) => {
+      const tag = await sessionProgramTag(tx, userId, performedOn)
       const row = await tx
         .insert(workoutSessions)
-        .values({ userId, name: input.name ?? plan?.name ?? null, performedOn, routineDayId: plan?.routineDayId ?? null })
+        .values({
+          userId,
+          name: input.name ?? plan?.name ?? null,
+          performedOn,
+          routineDayId: plan?.routineDayId ?? null,
+          ...(tag ?? {})
+        })
         .returning({ id: workoutSessions.id })
         .then((r) => r[0]!)
       for (const [index, entry] of (plan?.entries ?? []).entries()) {

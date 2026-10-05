@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Routine, RoutineSummary } from '~~/shared/types/routine'
+import WorkoutPauseProgramPrompt from '~/components/workout/WorkoutPauseProgramPrompt.vue'
 import { errorMessage } from '~/utils/apiError'
 
 const toast = useToast()
@@ -35,10 +36,21 @@ async function create() {
   }
 }
 
+const pausePrompt = usePauseProgramPrompt()
+const { open: pauseOpen, programName: pauseName } = pausePrompt
 async function setActive(routine: RoutineSummary) {
   try {
-    await apiFetch(`/api/workouts/routines/${routine.id}`, { method: 'PATCH', body: { active: true } })
-    await invalidateWorkouts()
+    await pausePrompt.guarded(
+      (extra) => apiFetch(`/api/workouts/routines/${routine.id}`, { method: 'PATCH', body: { active: true, ...extra } }),
+      () => invalidateWorkouts()
+    )
+  } catch (err: unknown) {
+    fail(err, 'Could not make this routine active')
+  }
+}
+async function confirmPause() {
+  try {
+    await pausePrompt.confirm()
   } catch (err: unknown) {
     fail(err, 'Could not make this routine active')
   }
@@ -97,7 +109,7 @@ function dayCountLabel(count: number) {
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UButton label="New routine" icon="i-lucide-plus" size="sm" class="min-h-10" data-test="routine-new" @click="newOpen = true" />
+          <UButton label="New" icon="i-lucide-plus" size="sm" aria-label="New routine" data-test="routine-new" @click="newOpen = true" />
         </template>
       </UDashboardNavbar>
     </template>
@@ -129,6 +141,8 @@ function dayCountLabel(count: number) {
           </UDropdownMenu>
         </div>
       </div>
+
+      <WorkoutPauseProgramPrompt v-model:open="pauseOpen" :program-name="pauseName" @confirm="confirmPause" />
 
       <AppSheet v-model:open="newOpen" title="New routine">
         <template #body>

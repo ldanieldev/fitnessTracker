@@ -9,9 +9,30 @@ registerEndpoint('/api/workouts/reference', () => ({
 registerEndpoint('/api/workouts/exercises/12', () => ({ id: 12, name: 'Assisted Dip', loadStyle: 'assisted' }))
 registerEndpoint('/api/workouts/exercises/13', () => ({ id: 13, name: 'Bench Press', loadStyle: 'barbell' }))
 
+registerEndpoint('/api/workouts/programs', () => [
+  { id: 7, name: 'BLS', phaseCount: 2, totalWeeks: 4, enrolled: true },
+  { id: 8, name: 'Other', phaseCount: 1, totalWeeks: 2, enrolled: false },
+  { id: 9, name: 'Slow', phaseCount: 1, totalWeeks: 1, enrolled: false }
+])
+registerEndpoint('/api/workouts/programs/9', async () => {
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  return { id: 9, name: 'Slow', description: null, totalWeeks: 1, phases: [{ id: 90, name: 'Only', sortOrder: 0, weeks: 1, deload: false, routine: null }] }
+})
+registerEndpoint('/api/workouts/programs/7', () => ({
+  id: 7, name: 'BLS', description: null, totalWeeks: 4,
+  phases: [{ id: 70, name: 'Build', sortOrder: 0, weeks: 2, deload: false, routine: null }, { id: 71, name: 'Peak', sortOrder: 1, weeks: 2, deload: false, routine: null }]
+}))
+registerEndpoint('/api/workouts/programs/8', () => ({ id: 8, name: 'Other', description: null, totalWeeks: 2, phases: [] }))
+
 const mount = (filter = {}) =>
   mountSuspended(WorkoutHistoryFilterSheet, { props: { open: true, filter }, attachTo: document.body })
 const q = (sel: string) => document.querySelector<HTMLElement>(`[data-test="${sel}"]`)
+function pickSelect(testId: string, value: number) {
+  type Instance = { props?: { items?: unknown }, parent: Instance | null, emit: (event: string, value: number) => void }
+  let node = (q(testId) as unknown as { __vueParentComponent: Instance | null }).__vueParentComponent
+  while (node && !node.props?.items) node = node.parent
+  node!.emit('update:modelValue', value)
+}
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe('WorkoutHistoryFilterSheet', () => {
@@ -84,5 +105,59 @@ describe('WorkoutHistoryFilterSheet', () => {
     await flush()
     expect(other.emitted('apply')?.at(-1)).toEqual([{ exerciseId: 12 }])
     other.unmount()
+  })
+
+  it('keeps the saved phase on open and resets it only when the program changes', async () => {
+    const wrapper = await mount({ programId: 7, phaseId: 71 })
+    await flush()
+    await flush()
+    expect(q('filter-phase')).not.toBeNull()
+    q('filter-apply')!.click()
+    await flush()
+    expect(wrapper.emitted('apply')?.at(-1)).toEqual([{ programId: 7, phaseId: 71 }])
+
+    await wrapper.setProps({ open: false })
+    await wrapper.setProps({ open: true })
+    await flush()
+    pickSelect('filter-program', 8)
+    await flush()
+    await flush()
+    q('filter-apply')!.click()
+    await flush()
+    expect(wrapper.emitted('apply')?.at(-1)).toEqual([{ programId: 8 }])
+    wrapper.unmount()
+  })
+
+  it('drops the phase when the program is set back to any', async () => {
+    const wrapper = await mount({ programId: 7, phaseId: 70 })
+    await flush()
+    pickSelect('filter-program', -1)
+    await flush()
+    q('filter-apply')!.click()
+    await flush()
+    expect(wrapper.emitted('apply')?.at(-1)).toEqual([{}])
+    wrapper.unmount()
+  })
+
+  it('ignores a saved program that is no longer in the list', async () => {
+    const wrapper = await mount({ programId: 99, phaseId: 990, categories: [1] })
+    await flush()
+    await flush()
+    expect(q('filter-phase')).toBeNull()
+    q('filter-apply')!.click()
+    await flush()
+    expect(wrapper.emitted('apply')?.at(-1)).toEqual([{ categories: [1] }])
+    wrapper.unmount()
+  })
+
+  it('shows a disabled Loading phases placeholder until the program detail arrives', async () => {
+    const wrapper = await mount({ programId: 9, phaseId: 90 })
+    await flush()
+    expect(q('filter-phase')?.hasAttribute('disabled')).toBe(true)
+    expect(q('filter-phase')?.textContent).toContain('Loading phases…')
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(q('filter-phase')?.hasAttribute('disabled')).toBe(false)
+    expect(q('filter-phase')?.textContent).toContain('Only')
+    wrapper.unmount()
   })
 })

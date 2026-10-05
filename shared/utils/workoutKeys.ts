@@ -8,7 +8,10 @@ export const WORKOUT_KEYS = {
   records: (id: number) => `workouts:records:${id}`,
   progress: (range: string) => `workouts:progress:${range}`,
   routines: 'workouts:routines',
-  routine: (id: number) => `workouts:routine:${id}`
+  routine: (id: number) => `workouts:routine:${id}`,
+  programs: 'workouts:programs',
+  program: (id: number) => `workouts:program:${id}`,
+  enrollment: 'workouts:enrollment'
 } as const
 
 export function sessionListKey(limit: number, filterQuery = ''): string {

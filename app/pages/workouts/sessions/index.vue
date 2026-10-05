@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { ProgramSummary } from '~~/shared/types/program'
 import type { SessionFilter, WorkoutSessionSummary } from '~~/shared/types/workout'
 import WorkoutCopySheet from '~/components/workout/WorkoutCopySheet.vue'
 import { errorMessage } from '~/utils/apiError'
+import { phaseColorClass } from '~~/shared/utils/programs'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
 import { activeFilterCount, filterFromRoute, filterToRoute, sessionFilterParams } from '~~/shared/utils/sessionFilter'
 import { monthRange } from '~~/shared/utils/workoutCalendar'
@@ -18,7 +20,12 @@ const filterOpen = ref(false)
 const exportOpen = ref(false)
 
 const view = computed<'month' | 'list'>(() => (route.query.view === 'list' ? 'list' : 'month'))
-const filter = computed(() => filterFromRoute(route.query))
+const { data: programList } = useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs', { lazy: true })
+const filter = computed(() => {
+  const { programId, phaseId, ...rest } = filterFromRoute(route.query)
+  const stale = programId !== undefined && programList.value !== undefined && !programList.value.some((p) => p.id === programId)
+  return stale ? rest : { ...rest, programId, phaseId }
+})
 const filterQuery = computed(() => sessionFilterParams(filter.value))
 const filterCount = computed(() => activeFilterCount(filter.value))
 const month = computed(() => {
@@ -55,7 +62,7 @@ function changeMonth(value: string) {
 }
 
 function applyFilter(next: SessionFilter) {
-  const cleared = { cat: undefined, match: undefined, ex: undefined, w: undefined, r: undefined }
+  const cleared = { cat: undefined, match: undefined, ex: undefined, w: undefined, r: undefined, prog: undefined, phase: undefined }
   setQuery({ ...cleared, ...filterToRoute(next) })
 }
 
@@ -81,6 +88,21 @@ const { data: monthSessions, status: monthStatus, error: monthError, execute: ex
 // A disabled fetch skips key changes and invalidations, so the view that just appeared refetches to catch up.
 watch(view, (value) => {
   void (value === 'list' ? executeList() : executeMonth())
+})
+
+const phaseLegend = computed(() => {
+  const seen = new Map<number, { phaseId: number, name: string, color: string, index: number }>()
+  for (const s of monthSessions.value ?? []) {
+    if (s.program && !seen.has(s.program.phaseId)) {
+      seen.set(s.program.phaseId, {
+        phaseId: s.program.phaseId,
+        name: s.program.phaseName,
+        index: s.program.phaseIndex,
+        color: phaseColorClass(s.program.phaseIndex)
+      })
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.index - b.index)
 })
 
 const selectedDay = computed(() => {
@@ -246,6 +268,11 @@ async function confirmDelete() {
             @update:month="changeMonth"
             @update:day="(value) => setQuery({ day: value ?? undefined })"
           />
+          <div v-if="phaseLegend.length" class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted" data-test="calendar-phase-legend">
+            <span v-for="item in phaseLegend" :key="item.phaseId" class="flex items-center gap-1">
+              <span class="h-0.5 w-3 rounded-full" :class="item.color" />{{ item.name }}
+            </span>
+          </div>
           <div v-if="selectedDay" class="flex flex-col gap-2" data-test="history-day-rows">
             <WorkoutSessionRow
               v-for="summary in dayRows"

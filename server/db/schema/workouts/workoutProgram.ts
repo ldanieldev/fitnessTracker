@@ -1,22 +1,17 @@
 import { sql } from 'drizzle-orm'
-import { date, integer, text, timestamp, unique, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, date, index, integer, smallint, text, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
-import { workoutTemplates, workoutSessions } from './workout'
+import { routines } from './workout'
 
-export const programs = appSchema.table(
-  'programs',
-  {
-    ...commonColumns,
-    name: varchar('name', { length: 255 }).notNull(),
-    description: text('description').default(sql`null`),
-    imageUrl: varchar('image_url', { length: 255 }).default(sql`null`),
-    totalWeeks: integer('total_weeks').notNull(),
-    createdByUserId: integer('created_by_user_id')
-      .default(sql`null`)
-      .references(() => users.id, { onDelete: 'cascade' })
-  }
-)
+export const programs = appSchema.table('programs', {
+  ...commonColumns,
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description').default(sql`null`)
+})
 
 export const programPhases = appSchema.table(
   'program_phases',
@@ -27,26 +22,15 @@ export const programPhases = appSchema.table(
       .references(() => programs.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
     sortOrder: integer('sort_order').notNull(),
-    weekStart: integer('week_start').notNull(),
-    weekEnd: integer('week_end').notNull()
-  }
-)
-
-export const programWorkouts = appSchema.table(
-  'program_workouts',
-  {
-    ...commonColumns,
-    phaseId: integer('phase_id')
-      .notNull()
-      .references(() => programPhases.id, { onDelete: 'cascade' }),
-    templateId: integer('template_id')
-      .default(sql`null`)
-      .references(() => workoutTemplates.id, { onDelete: 'set null' }),
-    name: varchar('name', { length: 255 }).notNull(),
-    dayOfWeek: integer('day_of_week').default(sql`null`),
-    weekNumber: integer('week_number').notNull(),
-    sortOrder: integer('sort_order').notNull()
-  }
+    weeks: smallint('weeks').notNull(),
+    // set null, not no action: a user delete cascades to routines before phases; in-app deletes of a used routine are refused (409).
+    routineId: integer('routine_id').references(() => routines.id, { onDelete: 'set null' }),
+    deload: boolean('deload').notNull().default(false)
+  },
+  (table) => [
+    index('program_phase_program').on(table.programId, table.sortOrder),
+    check('program_phases_weeks_check', sql`${table.weeks} >= 1`)
+  ]
 )
 
 export const userProgramEnrollments = appSchema.table(
@@ -59,28 +43,14 @@ export const userProgramEnrollments = appSchema.table(
     programId: integer('program_id')
       .notNull()
       .references(() => programs.id, { onDelete: 'cascade' }),
-    startDate: date('start_date').notNull(),
-    status: varchar('status', { enum: ['active', 'paused', 'completed', 'abandoned'] }).notNull()
-  }
-)
-
-export const userProgramWorkoutCompletions = appSchema.table(
-  'user_program_workout_completions',
-  {
-    ...commonColumns,
-    enrollmentId: integer('enrollment_id')
-      .notNull()
-      .references(() => userProgramEnrollments.id, { onDelete: 'cascade' }),
-    programWorkoutId: integer('program_workout_id')
-      .notNull()
-      .references(() => programWorkouts.id, { onDelete: 'cascade' }),
-    sessionId: integer('session_id')
-      .default(sql`null`)
-      .references(() => workoutSessions.id, { onDelete: 'set null' }),
-    completionPercent: integer('completion_percent').notNull().default(100),
-    completedAt: timestamp('completed_at').notNull()
+    status: varchar('status', { enum: ['active', 'paused', 'completed', 'abandoned'] }).notNull(),
+    anchorDate: date('anchor_date').notNull(),
+    anchorWeek: smallint('anchor_week').notNull(),
+    pausedWeek: smallint('paused_week').default(sql`null`),
+    currentPhaseId: integer('current_phase_id').references(() => programPhases.id, { onDelete: 'set null' }),
+    notice: varchar('notice', { enum: ['phase', 'complete'] }).default(sql`null`)
   },
   (table) => [
-    unique('enrollment_workout_unique').on(table.enrollmentId, table.programWorkoutId)
+    uniqueIndex('enrollment_one_live').on(table.userId).where(sql`status in ('active', 'paused')`)
   ]
 )

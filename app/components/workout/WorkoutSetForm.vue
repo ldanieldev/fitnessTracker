@@ -2,7 +2,7 @@
 import type { SetMeasures, WorkoutEntry } from '~~/shared/types/workout'
 import { rangePlaceholder, targetMetricFor } from '~~/shared/utils/workoutTargets'
 import { prefillFor } from '~~/shared/utils/workoutPrefill'
-import { LABEL, measuresFor } from '~~/shared/utils/setRules'
+import { FIELD, LABEL, measuresFor, type SetMeasure } from '~~/shared/utils/setRules'
 import WorkoutPlateCircles from '~/components/workout/WorkoutPlateCircles.vue'
 
 const props = withDefaults(defineProps<{
@@ -44,8 +44,19 @@ watch(() => props.presetWeight?.seq, () => {
   if (props.presetWeight && measures.value.includes('weight')) values.weight = props.presetWeight.weight
 }, { immediate: true })
 
-const STEP = { distance: 100, duration: 30 } as const
 const UNIT: Record<string, string> = { weight: ' (lb)', distance: ' (m)', duration: ' (s)' }
+const cardioFields = computed(() => cardioMeasures.value.map((measure: SetMeasure) => {
+  const weight = measure === 'weight'
+  return {
+    measure,
+    key: FIELD[measure],
+    width: weight ? 'w-48' : 'w-40',
+    base: weight ? 'text-center text-lg font-semibold' : 'text-center',
+    step: weight ? props.entry.weightIncrement ?? 5 : measure === 'distance' ? 100 : 30,
+    placeholder: (measure === 'distance' && metric.value === 'distance') || (measure === 'duration' && metric.value === 'time') ? rangeHint.value : undefined,
+    testId: `set-${weight ? 'weight' : measure}-new`
+  }
+}))
 
 function logSet() {
   emit('save', { ...values })
@@ -75,37 +86,22 @@ function logSet() {
       <WorkoutPlateCircles v-model="values.weight" :bar="entry.barWeight!" :sizes="entry.plateSizes!" />
     </div>
 
-    <div v-if="cardioMeasures.length" class="flex flex-col gap-3 sm:flex-row">
-      <div v-for="measure in cardioMeasures" :key="measure" class="flex min-w-0 flex-1 flex-col gap-1">
-        <span class="text-xs text-dimmed">{{ LABEL[measure] }}{{ UNIT[measure] ?? '' }}</span>
-        <AppNumberInput
-          v-if="measure === 'weight'"
-          v-model="values.weight"
-          :min="0"
-          :step="entry.weightIncrement ?? 5"
-          :aria-label="LABEL[measure]"
-          data-test="set-weight-new"
-        />
-        <AppNumberInput
-          v-else-if="measure === 'distance'"
-          v-model="values.distanceMeters"
-          :min="0"
-          :step="STEP.distance"
-          :aria-label="LABEL[measure]"
-          :placeholder="metric === 'distance' ? rangeHint : undefined"
-          data-test="set-distance-new"
-        />
-        <AppNumberInput
-          v-else
-          v-model="values.durationSeconds"
-          :min="0"
-          :step="STEP.duration"
-          :aria-label="LABEL[measure]"
-          :placeholder="metric === 'time' ? rangeHint : undefined"
-          data-test="set-duration-new"
-        />
+    <div v-if="cardioFields.length" class="flex flex-wrap justify-center gap-4">
+      <div v-for="field in cardioFields" :key="field.measure" class="flex flex-col items-center gap-1">
+        <span class="text-sm text-dimmed">{{ LABEL[field.measure] }}{{ UNIT[field.measure] ?? '' }}</span>
+        <div :class="field.width">
+          <AppNumberInput
+            v-model="values[field.key]"
+            :min="0"
+            :step="field.step"
+            :aria-label="LABEL[field.measure]"
+            :placeholder="field.placeholder"
+            :ui="{ base: field.base }"
+            :data-test="field.testId"
+          />
+        </div>
         <span
-          v-if="measure === 'weight' && entry.loadStyle === 'assisted' && values.weight !== null"
+          v-if="field.measure === 'weight' && entry.loadStyle === 'assisted' && values.weight !== null"
           class="text-xs text-dimmed"
           data-test="set-assist-new"
         >{{ `−${values.weight}` }}</span>

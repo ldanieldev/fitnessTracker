@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { GRAPH_METRIC_VALUES, LOAD_STYLE_VALUES, POINTER_CHOICE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
 import { CATEGORY_COLORS } from '~~/shared/utils/categoryColors'
+import { START_WHEN_VALUES } from '~~/shared/types/program'
 import { plateSizesSchema } from '~~/shared/utils/plates'
 
 // Regex alone lets 2026-02-30 through, which throws downstream and again in Postgres as an unhandled 500.
@@ -125,6 +126,8 @@ const sessionFilterShape = {
     .optional(),
   match: z.enum(['any', 'all']).default('any'),
   exerciseId: z.coerce.number().int().positive().optional(),
+  programId: z.coerce.number().int().positive().optional(),
+  phaseId: z.coerce.number().int().positive().optional(),
   minWeight: z.coerce.number().min(0).max(2000).optional(),
   minReps: z.coerce.number().int().min(1).max(1000).optional()
 }
@@ -205,7 +208,9 @@ export const routinePatchSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   notes: z.string().max(2000).nullable().optional(),
   active: z.boolean().optional(),
-  nextDayId: z.number().int().positive().optional()
+  nextDayId: z.number().int().positive().optional(),
+  pauseProgram: z.boolean().optional(),
+  today: isoDate.optional()
 })
 
 export type RoutineCreateInput = z.infer<typeof routineCreateSchema>
@@ -240,3 +245,48 @@ export const routineEntryPatchSchema = z.object({
 export type RoutineDayCreateInput = z.infer<typeof routineDayCreateSchema>
 export type RoutineDayPatchInput = z.infer<typeof routineDayPatchSchema>
 export type RoutineEntryPatchInput = z.infer<typeof routineEntryPatchSchema>
+
+export const programCreateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  description: z.string().trim().max(2000).nullish()
+})
+
+export const programPatchSchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
+  description: z.string().trim().max(2000).nullable().optional()
+})
+
+export const programPhaseCreateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  weeks: z.number().int().min(1).max(104),
+  routineId: z.number().int().positive().nullish(),
+  deload: z.boolean().optional()
+})
+
+export const programPhasePatchSchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
+  weeks: z.number().int().min(1).max(104).optional(),
+  routineId: z.number().int().positive().nullable().optional(),
+  deload: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional()
+})
+
+export type ProgramCreateInput = z.infer<typeof programCreateSchema>
+export type ProgramPatchInput = z.infer<typeof programPatchSchema>
+export type ProgramPhaseCreateInput = z.infer<typeof programPhaseCreateSchema>
+export type ProgramPhasePatchInput = z.infer<typeof programPhasePatchSchema>
+
+export const enrollmentQuerySchema = z.object({ today: isoDate.optional() })
+
+export const enrollSchema = z.object({
+  when: z.enum(START_WHEN_VALUES),
+  today: isoDate.optional(),
+  replace: z.boolean().optional()
+})
+
+export const enrollmentPauseSchema = z.object({ today: isoDate.optional() })
+
+export const enrollmentResumeSchema = z.object({ when: z.enum(START_WHEN_VALUES), today: isoDate.optional() })
+
+export type EnrollInput = z.infer<typeof enrollSchema>
+export type EnrollmentResumeInput = z.infer<typeof enrollmentResumeSchema>

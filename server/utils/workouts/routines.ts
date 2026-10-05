@@ -1,8 +1,9 @@
 import { and, asc, eq, inArray, ne } from 'drizzle-orm'
 import type { Routine, RoutineDay, RoutineEntry, RoutineSummary } from '~~/shared/types/routine'
-import { exercisePrefs, exercises, routines, workoutTemplateEntries, workoutTemplates } from '~~/server/db/schema'
+import { exercisePrefs, exercises, programs, routines, workoutTemplateEntries, workoutTemplates } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
 import type { RoutineCreateInput, RoutinePatchInput } from '~~/server/utils/workouts/input'
+import { pauseLiveEnrollment, programControllingRoutine, programsUsingRoutine, utcToday } from '~~/server/utils/workouts/enrollments'
 import { targetColumns, toEntryTarget } from '~~/server/utils/workouts/targets'
 import { dueDayId, skipPointer } from '~~/shared/utils/routineCycle'
 
@@ -145,6 +146,22 @@ export async function patchRoutine(userId: number, id: number, patch: RoutinePat
       if (day.floating) throw createError({ statusCode: 400, statusMessage: 'A floating day cannot be next' })
       values.nextDayId = day.id
     }
+    if (patch.active !== undefined) {
+      const today = patch.today ?? utcToday()
+      const live = await programControllingRoutine(tx, userId, today)
+      if (live) {
+        if (!patch.pauseProgram) {
+          const program = await tx.select({ id: programs.id, name: programs.name }).from(programs)
+            .where(eq(programs.id, live.programId)).then((r) => r[0]!)
+          throw createError({
+            statusCode: 409,
+            statusMessage: `${program.name} controls your active routine`,
+            data: { code: 'program_controls_routine', program }
+          })
+        }
+        await pauseLiveEnrollment(tx, userId, today)
+      }
+    }
     if (patch.active === true) {
       if (!days.length)
         throw createError({ statusCode: 400, statusMessage: 'Add a day before making this routine active' })
@@ -158,6 +175,14 @@ export async function patchRoutine(userId: number, id: number, patch: RoutinePat
 
 export async function deleteRoutine(userId: number, id: number): Promise<void> {
   await ownedRoutine(userId, id)
+  const using = await programsUsingRoutine(db, id)
+  if (using.length) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: `Used by ${using.map((p) => p.name).join(', ')} - remove it from those phases first`,
+      data: { code: 'routine_in_program', programs: using }
+    })
+  }
   await db.delete(routines).where(eq(routines.id, id))
 }
 

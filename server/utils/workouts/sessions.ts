@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { WorkoutSession, WorkoutSessionSummary } from '~~/shared/types/workout'
-import { workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
+import { programPhases, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import type { SessionListQuery, SessionPatchInput } from '~~/server/utils/workouts/input'
 import { isUniqueViolation } from '~~/server/utils/pgError'
@@ -56,9 +56,14 @@ export async function listSessions(userId: number, query: SessionListQuery): Pro
       startedAt: workoutSessions.startedAt,
       endedAt: workoutSessions.endedAt,
       exerciseCount,
-      setCount
+      setCount,
+      programPhaseId: workoutSessions.programPhaseId,
+      programWeek: workoutSessions.programWeek,
+      phaseName: programPhases.name,
+      phaseSort: programPhases.sortOrder
     })
     .from(workoutSessions)
+    .leftJoin(programPhases, eq(programPhases.id, workoutSessions.programPhaseId))
     .where(sessionFilterWhere(userId, query))
     .orderBy(desc(workoutSessions.performedOn), desc(workoutSessions.startedAt), desc(workoutSessions.id))
     .limit(query.limit)
@@ -72,7 +77,10 @@ export async function listSessions(userId: number, query: SessionListQuery): Pro
     endedAt: row.endedAt ? row.endedAt.toISOString() : null,
     exerciseCount: row.exerciseCount,
     setCount: row.setCount,
-    categories: dots.get(row.id) ?? []
+    categories: dots.get(row.id) ?? [],
+    program: row.programPhaseId !== null && row.phaseName !== null && row.phaseSort !== null && row.programWeek !== null
+      ? { phaseId: row.programPhaseId, phaseName: row.phaseName, phaseIndex: row.phaseSort, week: row.programWeek }
+      : null
   }))
 }
 

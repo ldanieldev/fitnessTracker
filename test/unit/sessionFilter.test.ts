@@ -32,6 +32,20 @@ describe('route round-trip', () => {
   })
 })
 
+describe('program filter', () => {
+  it('round-trips program and phase through the route and params', () => {
+    const filter = { programId: 4, phaseId: 9 }
+    expect(filterToRoute(filter)).toEqual({ prog: '4', phase: '9' })
+    expect(filterFromRoute({ prog: '4', phase: '9' })).toEqual(filter)
+    expect(sessionFilterParams(filter)).toBe('programId=4&phaseId=9')
+    expect(activeFilterCount(filter)).toBe(1)
+  })
+
+  it('drops a phase without a program', () => {
+    expect(filterFromRoute({ phase: '9' })).toEqual({})
+  })
+})
+
 describe('activeFilterCount', () => {
   it('counts categories and the exercise rule once each', () => {
     expect(activeFilterCount({})).toBe(0)

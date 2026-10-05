@@ -57,7 +57,18 @@ const menu = computed<DropdownMenuItem[][]>(() => [
       class="flex min-h-10 min-w-0 flex-1 flex-col justify-center py-1"
       :data-test="`session-link-${summary.id}`"
     >
-      <span class="truncate font-medium text-highlighted">{{ summary.name ?? 'Workout' }}</span>
+      <span class="flex min-w-0 items-center gap-2">
+        <span class="truncate font-medium text-highlighted">{{ summary.name ?? 'Workout' }}</span>
+        <UBadge
+          v-if="summary.program"
+          :label="`P${summary.program.phaseIndex + 1} · W${summary.program.week}`"
+          size="sm"
+          variant="subtle"
+          color="neutral"
+          class="shrink-0"
+          :data-test="`session-program-${summary.id}`"
+        />
+      </span>
       <span class="truncate text-xs text-dimmed">{{ line }}</span>
     </NuxtLink>
     <UButton

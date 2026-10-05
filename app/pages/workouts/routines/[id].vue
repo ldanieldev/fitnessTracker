@@ -8,6 +8,7 @@ import WorkoutRoutineEntrySheet from '~/components/workout/WorkoutRoutineEntrySh
 import WorkoutSupersetSheet from '~/components/workout/WorkoutSupersetSheet.vue'
 import WorkoutPointerPrompt from '~/components/workout/WorkoutPointerPrompt.vue'
 import WorkoutExercisePicker from '~/components/workout/WorkoutExercisePicker.vue'
+import WorkoutPauseProgramPrompt from '~/components/workout/WorkoutPauseProgramPrompt.vue'
 import { errorMessage } from '~/utils/apiError'
 
 const route = useRoute()
@@ -29,6 +30,30 @@ async function act(action: () => Promise<Routine>, fallback: string) {
       color: 'error',
       actions: [{ label: 'Retry', onClick: () => { act(action, fallback) } }]
     })
+  }
+}
+
+const pausePrompt = usePauseProgramPrompt()
+const { open: pauseOpen, programName: pauseName } = pausePrompt
+async function toggleActive(active: boolean) {
+  try {
+    await pausePrompt.guarded(
+      (extra) => apiFetch<Routine>(`/api/workouts/routines/${id}`, { method: 'PATCH', body: { active, ...extra } }),
+      async (value) => {
+        routine.value = value
+        await invalidateWorkouts()
+      }
+    )
+  } catch (err: unknown) {
+    toast.add({ title: 'Update failed', description: errorMessage(err, 'Could not change the active routine'), color: 'error' })
+  }
+}
+
+async function confirmPause() {
+  try {
+    await pausePrompt.confirm()
+  } catch (err: unknown) {
+    toast.add({ title: 'Update failed', description: errorMessage(err, 'Could not change the active routine'), color: 'error' })
   }
 }
 
@@ -159,7 +184,7 @@ function deleteDay() {
             label="Active"
             :disabled="!routine.days.length"
             data-test="routine-active"
-            @update:model-value="(active: boolean) => act(call('PATCH', `routines/${id}`, { active }), 'Could not change the active routine')"
+            @update:model-value="toggleActive"
           />
         </div>
         <UTextarea
@@ -224,6 +249,7 @@ function deleteDay() {
       />
       <WorkoutSupersetSheet v-model:open="supersetOpen" :options="supersetOptions" @group="groupWith" />
       <WorkoutExercisePicker v-model:open="pickerOpen" @pick="addExercise" />
+      <WorkoutPauseProgramPrompt v-model:open="pauseOpen" :program-name="pauseName" @confirm="confirmPause" />
       <WorkoutPointerPrompt v-model:open="promptOpen" :day-name="pendingDay?.name ?? ''" :due-name="dueName" @choose="choosePointer" />
 
       <UModal v-model:open="confirmDeleteOpen" :title="`Delete ${deletingDay?.name ?? 'day'}?`" description="Its exercises are removed from the routine. Logged workouts stay." :ui="{ footer: 'justify-end' }">
