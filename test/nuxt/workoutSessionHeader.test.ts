@@ -22,6 +22,7 @@ function makeSession(overrides: Record<string, unknown> = {}) {
     endedAt: null,
     notes: null,
     routineDayId: null,
+    deload: false,
     entries: [],
     ...overrides
   }

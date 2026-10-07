@@ -102,4 +102,120 @@ describe('WorkoutSetForm', () => {
     expect(wrapper.find('[data-test="set-reps-new"]').attributes('placeholder')).toBe('5–8')
     expect(input(wrapper, 'set-weight-new').value).toBe('135')
   })
+
+  const ranged = { ...barbell, weightIncrement: 10, target: { sets: 3, low: 4, high: 6, weight: 135 } }
+
+  const text = (wrapper: Awaited<ReturnType<typeof mountSuspended>>, test: string) => wrapper.find(`[data-test="${test}"]`).text()
+  const callout = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => wrapper.find('[data-test="set-progression-callout"]')
+
+  it('shows the add callout and keeps the weight just used until the user chooses', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6)] } } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('185')
+    expect(text(wrapper, 'set-progression-heading')).toBe('Add weight?')
+    expect(text(wrapper, 'set-progression-body')).toBe('You hit 6 reps at 185 lb — the top of 4–6.')
+    expect(text(wrapper, 'set-progression-apply')).toBe('Add 10 lb → 195 lb')
+    expect(text(wrapper, 'set-progression-stay')).toBe('Stay at 185 lb')
+  })
+
+  it('asks the parent for the choice, and applying moves the field to the suggestion', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6)] } } })
+    await wrapper.find('[data-test="set-progression-apply"]').trigger('click')
+    await wrapper.find('[data-test="set-progression-stay"]').trigger('click')
+    expect(wrapper.emitted('choose')).toEqual([['apply'], ['stay']])
+    await wrapper.setProps({ choice: 'apply' })
+    expect(input(wrapper, 'set-weight-new').value).toBe('195')
+    expect(callout(wrapper).exists()).toBe(false)
+  })
+
+  it('stay keeps the weight just used and hides the callout', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6)] } } })
+    await wrapper.setProps({ choice: 'stay' })
+    expect(input(wrapper, 'set-weight-new').value).toBe('185')
+    expect(callout(wrapper).exists()).toBe(false)
+  })
+
+  it('applying keeps the reps the user typed', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6)] } } })
+    await wrapper.find('[data-test="set-reps-new"]').setValue('4')
+    await wrapper.setProps({ choice: 'apply' })
+    expect(input(wrapper, 'set-reps-new').value).toBe('4')
+  })
+
+  it('the choice reset shows the callout again for the next suggestion', async () => {
+    const entry = { ...ranged, sets: [set(1, 185, 6)] }
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry, choice: 'apply' as const } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('195')
+    await wrapper.setProps({ entry: { ...entry, sets: [set(1, 185, 6), set(2, 195, 6)] }, choice: null })
+    expect(input(wrapper, 'set-weight-new').value).toBe('195')
+    expect(text(wrapper, 'set-progression-body')).toBe('You hit 6 reps at 195 lb — the top of 4–6.')
+  })
+
+  it('shows the carried-over suggestion with the last weight and the target weight is not used', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [], lastSets: [{ weight: 185, reps: 6 }] } } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('185')
+    expect(text(wrapper, 'set-progression-heading')).toBe('Add weight?')
+    await wrapper.setProps({ choice: 'apply' })
+    expect(input(wrapper, 'set-weight-new').value).toBe('195')
+  })
+
+  it('shows no callout inside the range and keeps the target weight on set 1', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [], lastSets: [{ weight: 185, reps: 5 }] } } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('135')
+    expect(callout(wrapper).exists()).toBe(false)
+  })
+
+  it('offers the drop after a failed bump', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6), set(2, 195, 3)] } } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('195')
+    expect(text(wrapper, 'set-progression-heading')).toBe('Drop back?')
+    expect(text(wrapper, 'set-progression-body')).toBe('3 reps at 195 lb is below 4–6.')
+    expect(text(wrapper, 'set-progression-apply')).toBe('Drop to 185 lb')
+    await wrapper.setProps({ choice: 'apply' })
+    expect(input(wrapper, 'set-weight-new').value).toBe('185')
+  })
+
+  it('shows no callout in a deload', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6)] }, deload: true } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('185')
+    expect(callout(wrapper).exists()).toBe(false)
+  })
+
+  it('uses assist wording for an assisted exercise', async () => {
+    const assisted = { ...ranged, loadStyle: 'assisted' as const, barWeight: null, plateSizes: null, sets: [set(1, 40, 6)] }
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: assisted } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('40')
+    expect(text(wrapper, 'set-progression-heading')).toBe('Less assist?')
+    expect(text(wrapper, 'set-progression-apply')).toBe('Less assist → 30 lb')
+    await wrapper.setProps({ choice: 'apply' })
+    expect(input(wrapper, 'set-weight-new').value).toBe('30')
+  })
+
+  it('re-seeds when an edit changes the suggestion', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 5)] } } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('185')
+    expect(callout(wrapper).exists()).toBe(false)
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 6)] } })
+    expect(callout(wrapper).exists()).toBe(true)
+  })
+
+  it('reports its current weight to the parent', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6)] } } })
+    expect(wrapper.emitted('weight')![0]).toEqual([185])
+    await wrapper.find('[data-test="set-weight-new"]').setValue('200')
+    expect(wrapper.emitted('weight')!.at(-1)).toEqual([200])
+  })
+
+  it('preset weight beats the suggestion', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: { entry: { ...ranged, sets: [set(1, 185, 6)] }, presetWeight: { weight: 200, seq: 1 } }
+    })
+    expect(input(wrapper, 'set-weight-new').value).toBe('200')
+  })
+
+  it('keeps typed values when an equivalent entry arrives', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: { ...ranged, sets: [set(1, 185, 6)] } } })
+    await wrapper.find('[data-test="set-weight-new"]').setValue('200')
+    await wrapper.setProps({ entry: { ...ranged, sets: [{ ...set(1, 185, 6), done: true }] } })
+    expect(input(wrapper, 'set-weight-new').value).toBe('200')
+  })
 })

@@ -14,7 +14,7 @@ const entry = (over: Partial<WorkoutEntry>): WorkoutEntry => ({
 })
 const session = (over: Partial<WorkoutSession>): WorkoutSession => ({
   id: 1, name: 'Push A', performedOn: '2026-10-03', startedAt: '2026-10-03T15:00:00.000Z',
-  endedAt: '2026-10-03T15:52:00.000Z', notes: null, routineDayId: null, entries: [], ...over
+  endedAt: '2026-10-03T15:52:00.000Z', notes: null, routineDayId: null, deload: false, entries: [], ...over
 })
 
 describe('workoutShareText', () => {

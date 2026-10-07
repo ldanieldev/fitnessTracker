@@ -189,6 +189,7 @@ export interface WorkoutSession {
   endedAt: string | null
   notes: string | null
   routineDayId: number | null
+  deload: boolean
   entries: WorkoutEntry[]
 }
 

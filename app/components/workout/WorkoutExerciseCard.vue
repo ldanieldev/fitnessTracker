@@ -3,10 +3,12 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { SetMeasures, WorkoutEntry } from '~~/shared/types/workout'
 import { targetProgressLabel } from '~~/shared/utils/workoutTargets'
 import { prefillFor } from '~~/shared/utils/workoutPrefill'
+import { progressionCopy, progressionFor } from '~~/shared/utils/workoutProgression'
 import { formatSet } from '~~/shared/utils/setFormat'
 import { measuresFor } from '~~/shared/utils/setRules'
 import WorkoutSetRow from '~/components/workout/WorkoutSetRow.vue'
 import WorkoutSetForm from '~/components/workout/WorkoutSetForm.vue'
+import WorkoutProgressionPrompt from '~/components/workout/WorkoutProgressionPrompt.vue'
 
 const props = withDefaults(defineProps<{
   entry: WorkoutEntry
@@ -14,12 +16,14 @@ const props = withDefaults(defineProps<{
   isLast: boolean
   plateButton?: boolean
   presetWeight?: { weight: number, seq: number } | null
+  deload?: boolean
   saveErrors?: Record<string, string>
   supersetLabel?: string | null
   supersetBorderClass?: string | null
   canGroup?: boolean
 }>(), {
   presetWeight: null,
+  deload: false,
   supersetLabel: null,
   supersetBorderClass: null,
   canGroup: false
@@ -50,6 +54,26 @@ const targetLabel = computed(() => targetProgressLabel(props.entry.trackingType,
 const targetMet = computed(() => props.entry.target?.sets != null && props.entry.sets.length >= props.entry.target.sets)
 const measures = computed(() => measuresFor(props.entry.trackingType))
 const prefill = computed(() => prefillFor(props.entry.sets, props.entry.lastSets))
+const progression = computed(() => progressionFor(props.entry, props.deload))
+const copy = computed(() =>
+  progression.value ? progressionCopy(progression.value, props.entry.loadStyle, props.entry.target) : null)
+const choice = ref<'apply' | 'stay' | null>(null)
+const promptOpen = ref(false)
+const formWeight = ref<number | null>(null)
+const plateWeight = computed(() => (collapsed.value ? null : formWeight.value) ?? prefill.value.weight ?? null)
+
+watch(
+  [() => props.entry.sets.length, () => progression.value?.kind, () => progression.value?.weight],
+  ([length], [previous]) => {
+    choice.value = null
+    promptOpen.value = progression.value !== null && length > previous
+  }
+)
+
+function choose(picked: 'apply' | 'stay') {
+  choice.value = picked
+  promptOpen.value = false
+}
 const lastSummary = computed(() => props.entry.lastSets.map((set) => formatSet(measures.value, set)))
 const showBar = computed(() => props.entry.loadStyle === 'barbell' && props.entry.barWeight != null)
 const totalVolume = computed(() => {
@@ -170,7 +194,7 @@ function confirmRemove() {
               size="xs"
               class="ml-2.5 min-h-10"
               :data-test="`entry-plates-${entry.id}`"
-              @click="emit('plates', prefill.weight ?? null)"
+              @click="emit('plates', plateWeight)"
             />
           </span>
           <span
@@ -219,7 +243,15 @@ function confirmRemove() {
         <USeparator />
       </div>
 
-      <WorkoutSetForm :entry="entry" :preset-weight="presetWeight" @save="(values) => emit('addSet', values)" />
+      <WorkoutSetForm
+        :entry="entry"
+        :preset-weight="presetWeight"
+        :deload="deload"
+        :choice="choice"
+        @save="(values) => emit('addSet', values)"
+        @choose="choose"
+        @weight="(value) => (formWeight = value)"
+      />
       <div v-if="errorFor(null)" class="flex items-center gap-2 pt-1" data-test="set-save-error-new">
         <span class="min-w-0 flex-1 truncate text-xs text-error">{{ errorFor(null) }}</span>
         <UButton
@@ -232,6 +264,8 @@ function confirmRemove() {
         />
       </div>
     </div>
+
+    <WorkoutProgressionPrompt v-model:open="promptOpen" :copy="copy" :kind="progression?.kind ?? 'add'" @choose="choose" />
 
     <UModal
       v-model:open="confirmRemoveOpen"

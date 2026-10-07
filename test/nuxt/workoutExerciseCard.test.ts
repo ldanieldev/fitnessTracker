@@ -116,6 +116,107 @@ describe('WorkoutExerciseCard', () => {
     expect(silent.find('[data-test="entry-plates-9"]').exists()).toBe(false)
   })
 
+  const ranged = { ...entry, target: { sets: 3, low: 4, high: 6, weight: null }, sets: [set(1, 185, 5)] }
+  const bodyText = (test: string) => document.body.querySelector(`[data-test="${test}"]`)?.textContent ?? null
+  const click = async (test: string) => {
+    ;(document.body.querySelector(`[data-test="${test}"]`) as HTMLElement).click()
+    await nextTick()
+    await nextTick()
+  }
+
+  it('opens plates with the weight currently in the form field', async () => {
+    const wrapper = await mount({ entry: { ...ranged, sets: [set(1, 185, 6)] }, plateButton: true })
+    await wrapper.find('[data-test="entry-plates-9"]').trigger('click')
+    expect(wrapper.emitted('plates')).toEqual([[185]])
+    await wrapper.find('[data-test="set-weight-new"]').setValue('200')
+    await wrapper.find('[data-test="entry-plates-9"]').trigger('click')
+    expect(wrapper.emitted('plates')!.at(-1)).toEqual([200])
+  })
+
+  it('falls back to the prefill weight when the form is collapsed', async () => {
+    const wrapper = await mount({ entry: { ...ranged, sets: [set(1, 185, 6)] }, plateButton: true, collapsed: true })
+    await wrapper.find('[data-test="entry-plates-9"]').trigger('click')
+    expect(wrapper.emitted('plates')).toEqual([[185]])
+  })
+
+  it('opens the prompt when a logged set creates a suggestion, not on mount', async () => {
+    const wrapper = await mount({ entry: { ...ranged, sets: [set(1, 185, 5)], lastSets: [{ weight: 185, reps: 6 }] } })
+    expect(bodyText('progression-prompt')).toBeNull()
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 5), set(2, 185, 6)] } })
+    await nextTick()
+    expect(bodyText('progression-prompt')).toContain('Add weight?')
+    expect(bodyText('progression-prompt')).toContain('You hit 6 reps at 185 lb — the top of 4–6.')
+  })
+
+  it('does not open on mount with a carried-over suggestion, and an edit that keeps the count does not open it', async () => {
+    const carried = { ...ranged, sets: [], lastSets: [{ weight: 185, reps: 6 }] }
+    const wrapper = await mount({ entry: carried })
+    expect(bodyText('progression-prompt')).toBeNull()
+    expect(wrapper.find('[data-test="set-progression-callout"]').exists()).toBe(true)
+    const edited = await mount({ entry: { ...ranged, sets: [set(1, 185, 5)] } })
+    await edited.setProps({ entry: { ...ranged, sets: [set(1, 185, 6)] } })
+    await nextTick()
+    expect(bodyText('progression-prompt')).toBeNull()
+    expect(edited.find('[data-test="set-progression-callout"]').exists()).toBe(true)
+  })
+
+  it('apply from the prompt reaches the form weight and closes it', async () => {
+    const wrapper = await mount({ entry: ranged })
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 5), set(2, 185, 6)] } })
+    await nextTick()
+    await click('progression-prompt-apply')
+    expect((wrapper.find('[data-test="set-weight-new"]').element as HTMLInputElement).value).toBe('190')
+    expect(wrapper.find('[data-test="set-progression-callout"]').exists()).toBe(false)
+    expect(bodyText('progression-prompt-apply')).toBeNull()
+  })
+
+  it('stay from the prompt keeps the weight just used', async () => {
+    const wrapper = await mount({ entry: ranged })
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 5), set(2, 185, 6)] } })
+    await nextTick()
+    await click('progression-prompt-stay')
+    expect((wrapper.find('[data-test="set-weight-new"]').element as HTMLInputElement).value).toBe('185')
+    expect(wrapper.find('[data-test="set-progression-callout"]').exists()).toBe(false)
+  })
+
+  it('the prompt survives the card collapsing right after the log', async () => {
+    const wrapper = await mount({ entry: ranged })
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 5), set(2, 185, 6)] }, collapsed: true })
+    await nextTick()
+    expect(bodyText('progression-prompt')).toContain('Add weight?')
+  })
+
+  it('the callout offers the choice again after the prompt is dismissed', async () => {
+    const wrapper = await mount({ entry: ranged })
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 5), set(2, 185, 6)] } })
+    await nextTick()
+    ;(document.body.querySelector('[data-test="progression-prompt"] [aria-label="Close"]') as HTMLElement).click()
+    await nextTick()
+    await nextTick()
+    expect(document.body.querySelector('[data-test="progression-prompt"]')?.getAttribute('data-state') ?? 'closed').toBe('closed')
+    expect(wrapper.find('[data-test="set-progression-callout"]').exists()).toBe(true)
+    await wrapper.find('[data-test="set-progression-apply"]').trigger('click')
+    expect((wrapper.find('[data-test="set-weight-new"]').element as HTMLInputElement).value).toBe('190')
+  })
+
+  it('apply from the prompt while collapsed reaches the form once expanded', async () => {
+    const wrapper = await mount({ entry: ranged, collapsed: true })
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 5), set(2, 185, 6)] } })
+    await nextTick()
+    await click('progression-prompt-apply')
+    await wrapper.setProps({ collapsed: false })
+    await nextTick()
+    expect((wrapper.find('[data-test="set-weight-new"]').element as HTMLInputElement).value).toBe('190')
+  })
+
+  it('stays quiet on deload', async () => {
+    const wrapper = await mount({ entry: ranged, deload: true })
+    await wrapper.setProps({ entry: { ...ranged, sets: [set(1, 185, 5), set(2, 185, 6)] } })
+    await nextTick()
+    expect(bodyText('progression-prompt')).toBeNull()
+    expect(wrapper.find('[data-test="set-progression-callout"]').exists()).toBe(false)
+  })
+
   it('shows target progress instead of the set count, plus optional and note', async () => {
     const wrapper = await mount({
       entry: { ...entry, target: { sets: 3, low: 5, high: 8, weight: null }, optional: true, notes: 'per side' }

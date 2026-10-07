@@ -13,7 +13,7 @@ const entry = (id: number, name: string, sets: number) => ({
 
 registerEndpoint('/api/workouts/sessions/41', () => ({
   id: 41, name: 'Push', performedOn: '2026-09-28', startedAt: '2026-09-28T10:00:00.000Z', endedAt: null, notes: null,
-  routineDayId: null, entries: [entry(1, 'Bench Press', 4), entry(2, 'Dips', 3)]
+  routineDayId: null, deload: false, entries: [entry(1, 'Bench Press', 4), entry(2, 'Dips', 3)]
 }))
 
 afterEach(() => {

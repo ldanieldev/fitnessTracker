@@ -11,6 +11,12 @@ import { refreshSessionDate } from '~~/server/utils/workouts/rollups'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Workout not found' } as const
 
+async function phaseDeload(phaseId: number | null): Promise<boolean> {
+  if (phaseId === null) return false
+  const [row] = await db.select({ deload: programPhases.deload }).from(programPhases).where(eq(programPhases.id, phaseId))
+  return row?.deload ?? false
+}
+
 async function toSession(row: typeof workoutSessions.$inferSelect): Promise<WorkoutSession> {
   return {
     id: row.id,
@@ -20,6 +26,7 @@ async function toSession(row: typeof workoutSessions.$inferSelect): Promise<Work
     endedAt: row.endedAt ? row.endedAt.toISOString() : null,
     notes: row.notes,
     routineDayId: row.routineDayId,
+    deload: await phaseDeload(row.programPhaseId),
     entries: await loadEntries(row.userId, row.id)
   }
 }

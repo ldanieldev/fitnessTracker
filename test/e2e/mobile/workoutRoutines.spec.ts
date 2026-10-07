@@ -106,6 +106,8 @@ test('phone: build a routine with a superset, run the due day, then an off-order
   await expect(page.locator(`[data-test="entry-superset-${a2}"]`)).toHaveText('A2')
 
   await logSet(page, a1, '100', '8')
+  await expect(page.locator('[data-test="progression-prompt"]')).toBeVisible()
+  await page.locator('[data-test="progression-prompt-stay"]').click()
   await page.screenshot({ path: '.superpowers/sdd/Workout Structure Plan/screenshots/log-superset-phone.png', fullPage: true })
   await expect(page.locator(`[data-test="entry-card-${a2}"] [data-test="set-form"]`)).toBeVisible()
   await expect(page.locator(`[data-test="entry-card-${a1}"] [data-test="set-form"]`)).toHaveCount(0)

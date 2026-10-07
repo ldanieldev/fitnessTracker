@@ -205,6 +205,7 @@ function toggleDone(entryId: number, setId: number) {
       :key="entry.id"
       v-model:collapsed="collapsed[entry.id]"
       :entry="entry"
+      :deload="session.deload"
       :is-first="!canMove(entry.id, -1)"
       :is-last="!canMove(entry.id, 1)"
       :plate-button="plateButton"
