@@ -1,5 +1,5 @@
 {
-  "id": "a46d4ad5-099a-4c52-991f-fac3a45590ba",
+  "id": "a35e8833-5bbf-467d-b514-9669abedfd71",
   "prevId": "62658c23-a5a6-42d0-8886-041d30e59cc9",
   "version": "7",
   "dialect": "postgresql",
@@ -176,6 +176,27 @@
           "primaryKey": false,
           "notNull": true,
           "default": 1
+        },
+        "default_rest_seconds": {
+          "name": "default_rest_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 60
+        },
+        "plate_sizes": {
+          "name": "plate_sizes",
+          "type": "numeric[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{45,35,25,10,5,2.5}'::numeric[]"
+        },
+        "one_rep_max_rep_cap": {
+          "name": "one_rep_max_rep_cap",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 10
         }
       },
       "indexes": {},
@@ -195,6 +216,18 @@
         "users_week_start_check": {
           "name": "users_week_start_check",
           "value": "\"app\".\"users\".\"week_start\" in (0, 1)"
+        },
+        "users_default_rest_seconds_check": {
+          "name": "users_default_rest_seconds_check",
+          "value": "\"app\".\"users\".\"default_rest_seconds\" between 10 and 600"
+        },
+        "users_plate_sizes_check": {
+          "name": "users_plate_sizes_check",
+          "value": "cardinality(\"app\".\"users\".\"plate_sizes\") between 1 and 12\n        and 0 < all(\"app\".\"users\".\"plate_sizes\") and 100 >= all(\"app\".\"users\".\"plate_sizes\")"
+        },
+        "users_one_rep_max_rep_cap_check": {
+          "name": "users_one_rep_max_rep_cap_check",
+          "value": "\"app\".\"users\".\"one_rep_max_rep_cap\" between 1 and 20"
         }
       },
       "isRLSEnabled": false
@@ -980,6 +1013,13 @@
           "notNull": false,
           "default": "null"
         },
+        "plate_sizes": {
+          "name": "plate_sizes",
+          "type": "numeric[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
         "notes": {
           "name": "notes",
           "type": "varchar(2000)",
@@ -990,6 +1030,13 @@
         "link": {
           "name": "link",
           "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "default_graph": {
+          "name": "default_graph",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": false,
           "default": "null"
@@ -1065,7 +1112,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "exercise_prefs_plate_sizes_check": {
+          "name": "exercise_prefs_plate_sizes_check",
+          "value": "\"app\".\"exercise_prefs\".\"plate_sizes\" is null or (\n        cardinality(\"app\".\"exercise_prefs\".\"plate_sizes\") between 1 and 12\n        and 0 < all(\"app\".\"exercise_prefs\".\"plate_sizes\") and 100 >= all(\"app\".\"exercise_prefs\".\"plate_sizes\")\n      )"
+        }
+      },
       "isRLSEnabled": false
     },
     "app.exercise_variation_groups": {
@@ -1265,6 +1317,435 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "app.workout_exercise_goals": {
+      "name": "workout_exercise_goals",
+      "schema": "app",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "exercise_id": {
+          "name": "exercise_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric": {
+          "name": "metric",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_value": {
+          "name": "target_value",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_reps": {
+          "name": "target_reps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "target_date": {
+          "name": "target_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "achieved_at": {
+          "name": "achieved_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "workout_exercise_goals_user_id_users_id_fk": {
+          "name": "workout_exercise_goals_user_id_users_id_fk",
+          "tableFrom": "workout_exercise_goals",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workout_exercise_goals_exercise_id_exercises_id_fk": {
+          "name": "workout_exercise_goals_exercise_id_exercises_id_fk",
+          "tableFrom": "workout_exercise_goals",
+          "tableTo": "exercises",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "exercise_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "workout_exercise_goals_user_id_exercise_id_metric_pk": {
+          "name": "workout_exercise_goals_user_id_exercise_id_metric_pk",
+          "columns": [
+            "user_id",
+            "exercise_id",
+            "metric"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "app.workout_exercise_rollups": {
+      "name": "workout_exercise_rollups",
+      "schema": "app",
+      "columns": {
+        "session_id": {
+          "name": "session_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "exercise_id": {
+          "name": "exercise_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "performed_on": {
+          "name": "performed_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tracking_type": {
+          "name": "tracking_type",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "load_style": {
+          "name": "load_style",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "set_count": {
+          "name": "set_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_reps": {
+          "name": "total_reps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_volume": {
+          "name": "total_volume",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "top_weight": {
+          "name": "top_weight",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "top_weight_reps": {
+          "name": "top_weight_reps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "top_set_volume": {
+          "name": "top_set_volume",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "best_e1rm": {
+          "name": "best_e1rm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "weight_by_reps": {
+          "name": "weight_by_reps",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "total_distance_meters": {
+          "name": "total_distance_meters",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "total_duration_seconds": {
+          "name": "total_duration_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "best_pace": {
+          "name": "best_pace",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        }
+      },
+      "indexes": {
+        "workout_rollup_series": {
+          "name": "workout_rollup_series",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "exercise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "performed_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "workout_exercise_rollups_session_id_workout_sessions_id_fk": {
+          "name": "workout_exercise_rollups_session_id_workout_sessions_id_fk",
+          "tableFrom": "workout_exercise_rollups",
+          "tableTo": "workout_sessions",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workout_exercise_rollups_exercise_id_exercises_id_fk": {
+          "name": "workout_exercise_rollups_exercise_id_exercises_id_fk",
+          "tableFrom": "workout_exercise_rollups",
+          "tableTo": "exercises",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "exercise_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workout_exercise_rollups_user_id_users_id_fk": {
+          "name": "workout_exercise_rollups_user_id_users_id_fk",
+          "tableFrom": "workout_exercise_rollups",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "workout_exercise_rollups_session_id_exercise_id_pk": {
+          "name": "workout_exercise_rollups_session_id_exercise_id_pk",
+          "columns": [
+            "session_id",
+            "exercise_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "app.routines": {
+      "name": "routines",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "routines_id_seq",
+            "schema": "app",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "next_day_id": {
+          "name": "next_day_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "routine_one_active": {
+          "name": "routine_one_active",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "active",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "routines_user_id_users_id_fk": {
+          "name": "routines_user_id_users_id_fk",
+          "tableFrom": "routines",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "routines_next_day_id_workout_templates_id_fk": {
+          "name": "routines_next_day_id_workout_templates_id_fk",
+          "tableFrom": "routines",
+          "tableTo": "workout_templates",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "next_day_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "app.workout_entries": {
       "name": "workout_entries",
       "schema": "app",
@@ -1318,36 +1799,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "entry_type": {
-          "name": "entry_type",
+        "tracking_type": {
+          "name": "tracking_type",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
-        "duration_seconds": {
-          "name": "duration_seconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
-        "distance_meters": {
-          "name": "distance_meters",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
-        "calories": {
-          "name": "calories",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
-        "avg_pace": {
-          "name": "avg_pace",
-          "type": "numeric",
+        "load_style": {
+          "name": "load_style",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": false,
           "default": "null"
@@ -1358,9 +1818,74 @@
           "primaryKey": false,
           "notNull": false,
           "default": "null"
+        },
+        "target_sets": {
+          "name": "target_sets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "target_low": {
+          "name": "target_low",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "target_high": {
+          "name": "target_high",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "target_weight": {
+          "name": "target_weight",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "superset_group": {
+          "name": "superset_group",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "optional": {
+          "name": "optional",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "rest_seconds": {
+          "name": "rest_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "workout_entry_exercise": {
+          "name": "workout_entry_exercise",
+          "columns": [
+            {
+              "expression": "exercise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "workout_entries_session_id_workout_sessions_id_fk": {
           "name": "workout_entries_session_id_workout_sessions_id_fk",
@@ -1387,7 +1912,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -1438,13 +1963,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "template_id": {
-          "name": "template_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
         "name": {
           "name": "name",
           "type": "varchar(255)",
@@ -1452,14 +1970,21 @@
           "notNull": false,
           "default": "null"
         },
+        "performed_on": {
+          "name": "performed_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
         "started_at": {
           "name": "started_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
-        "completed_at": {
-          "name": "completed_at",
+        "ended_at": {
+          "name": "ended_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
@@ -1471,9 +1996,78 @@
           "primaryKey": false,
           "notNull": false,
           "default": "null"
+        },
+        "routine_day_id": {
+          "name": "routine_day_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "program_phase_id": {
+          "name": "program_phase_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "program_week": {
+          "name": "program_week",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "workout_session_open": {
+          "name": "workout_session_open",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "ended_at is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "workout_session_recent": {
+          "name": "workout_session_recent",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "performed_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "workout_sessions_user_id_users_id_fk": {
           "name": "workout_sessions_user_id_users_id_fk",
@@ -1489,13 +2083,41 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "workout_sessions_template_id_workout_templates_id_fk": {
-          "name": "workout_sessions_template_id_workout_templates_id_fk",
+        "workout_sessions_routine_day_id_workout_templates_id_fk": {
+          "name": "workout_sessions_routine_day_id_workout_templates_id_fk",
           "tableFrom": "workout_sessions",
           "tableTo": "workout_templates",
           "schemaTo": "app",
           "columnsFrom": [
-            "template_id"
+            "routine_day_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "workout_sessions_enrollment_id_user_program_enrollments_id_fk": {
+          "name": "workout_sessions_enrollment_id_user_program_enrollments_id_fk",
+          "tableFrom": "workout_sessions",
+          "tableTo": "user_program_enrollments",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "workout_sessions_program_phase_id_program_phases_id_fk": {
+          "name": "workout_sessions_program_phase_id_program_phases_id_fk",
+          "tableFrom": "workout_sessions",
+          "tableTo": "program_phases",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "program_phase_id"
           ],
           "columnsTo": [
             "id"
@@ -1551,8 +2173,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "set_number": {
-          "name": "set_number",
+        "sort_order": {
+          "name": "sort_order",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -1561,23 +2183,68 @@
           "name": "weight",
           "type": "numeric",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false,
+          "default": "null"
         },
         "reps": {
           "name": "reps",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false,
+          "default": "null"
         },
-        "rpe": {
-          "name": "rpe",
+        "distance_meters": {
+          "name": "distance_meters",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "done": {
+          "name": "done",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "comment": {
+          "name": "comment",
+          "type": "varchar(500)",
           "primaryKey": false,
           "notNull": false,
           "default": "null"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "workout_set_entry": {
+          "name": "workout_set_entry",
+          "columns": [
+            {
+              "expression": "entry_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "workout_sets_entry_id_workout_entries_id_fk": {
           "name": "workout_sets_entry_id_workout_entries_id_fk",
@@ -1653,12 +2320,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "entry_type": {
-          "name": "entry_type",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        },
         "target_sets": {
           "name": "target_sets",
           "type": "integer",
@@ -1666,9 +2327,16 @@
           "notNull": false,
           "default": "null"
         },
-        "target_reps": {
-          "name": "target_reps",
-          "type": "integer",
+        "target_low": {
+          "name": "target_low",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "target_high": {
+          "name": "target_high",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": false,
           "default": "null"
@@ -1680,22 +2348,58 @@
           "notNull": false,
           "default": "null"
         },
-        "target_duration_seconds": {
-          "name": "target_duration_seconds",
+        "superset_group": {
+          "name": "superset_group",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "optional": {
+          "name": "optional",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "rest_seconds": {
+          "name": "rest_seconds",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "default": "null"
         },
-        "target_distance_meters": {
-          "name": "target_distance_meters",
-          "type": "numeric",
+        "notes": {
+          "name": "notes",
+          "type": "varchar(500)",
           "primaryKey": false,
           "notNull": false,
           "default": "null"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "workout_template_entry_template": {
+          "name": "workout_template_entry_template",
+          "columns": [
+            {
+              "expression": "template_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "workout_template_entries_template_id_workout_templates_id_fk": {
           "name": "workout_template_entries_template_id_workout_templates_id_fk",
@@ -1722,7 +2426,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -1773,6 +2477,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "routine_id": {
+          "name": "routine_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "name": {
           "name": "name",
           "type": "varchar(255)",
@@ -1785,9 +2495,44 @@
           "primaryKey": false,
           "notNull": false,
           "default": "null"
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "floating": {
+          "name": "floating",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "workout_template_routine": {
+          "name": "workout_template_routine",
+          "columns": [
+            {
+              "expression": "routine_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "workout_templates_user_id_users_id_fk": {
           "name": "workout_templates_user_id_users_id_fk",
@@ -1796,6 +2541,20 @@
           "schemaTo": "app",
           "columnsFrom": [
             "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workout_templates_routine_id_routines_id_fk": {
+          "name": "workout_templates_routine_id_routines_id_fk",
+          "tableFrom": "workout_templates",
+          "tableTo": "routines",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "routine_id"
           ],
           "columnsTo": [
             "id"
@@ -1863,20 +2622,49 @@
           "primaryKey": false,
           "notNull": true
         },
-        "week_start": {
-          "name": "week_start",
-          "type": "integer",
+        "weeks": {
+          "name": "weeks",
+          "type": "smallint",
           "primaryKey": false,
           "notNull": true
         },
-        "week_end": {
-          "name": "week_end",
+        "routine_id": {
+          "name": "routine_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "deload": {
+          "name": "deload",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "program_phase_program": {
+          "name": "program_phase_program",
+          "columns": [
+            {
+              "expression": "program_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "program_phases_program_id_programs_id_fk": {
           "name": "program_phases_program_id_programs_id_fk",
@@ -1891,111 +2679,14 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "app.program_workouts": {
-      "name": "program_workouts",
-      "schema": "app",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "program_workouts_id_seq",
-            "schema": "app",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "phase_id": {
-          "name": "phase_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "template_id": {
-          "name": "template_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "day_of_week": {
-          "name": "day_of_week",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
-        "week_number": {
-          "name": "week_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "program_workouts_phase_id_program_phases_id_fk": {
-          "name": "program_workouts_phase_id_program_phases_id_fk",
-          "tableFrom": "program_workouts",
-          "tableTo": "program_phases",
+        "program_phases_routine_id_routines_id_fk": {
+          "name": "program_phases_routine_id_routines_id_fk",
+          "tableFrom": "program_phases",
+          "tableTo": "routines",
           "schemaTo": "app",
           "columnsFrom": [
-            "phase_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "program_workouts_template_id_workout_templates_id_fk": {
-          "name": "program_workouts_template_id_workout_templates_id_fk",
-          "tableFrom": "program_workouts",
-          "tableTo": "workout_templates",
-          "schemaTo": "app",
-          "columnsFrom": [
-            "template_id"
+            "routine_id"
           ],
           "columnsTo": [
             "id"
@@ -2007,7 +2698,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "program_phases_weeks_check": {
+          "name": "program_phases_weeks_check",
+          "value": "\"app\".\"program_phases\".\"weeks\" >= 1"
+        }
+      },
       "isRLSEnabled": false
     },
     "app.programs": {
@@ -2045,6 +2741,12 @@
           "notNull": false,
           "default": "now()"
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "name": {
           "name": "name",
           "type": "varchar(255)",
@@ -2057,37 +2759,33 @@
           "primaryKey": false,
           "notNull": false,
           "default": "null"
-        },
-        "image_url": {
-          "name": "image_url",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
-        "total_weeks": {
-          "name": "total_weeks",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by_user_id": {
-          "name": "created_by_user_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "program_user": {
+          "name": "program_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "programs_created_by_user_id_users_id_fk": {
-          "name": "programs_created_by_user_id_users_id_fk",
+        "programs_user_id_users_id_fk": {
+          "name": "programs_user_id_users_id_fk",
           "tableFrom": "programs",
           "tableTo": "users",
           "schemaTo": "app",
           "columnsFrom": [
-            "created_by_user_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -2149,20 +2847,78 @@
           "primaryKey": false,
           "notNull": true
         },
-        "start_date": {
-          "name": "start_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
         "status": {
           "name": "status",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
+        },
+        "anchor_date": {
+          "name": "anchor_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anchor_week": {
+          "name": "anchor_week",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paused_week": {
+          "name": "paused_week",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
+        },
+        "current_phase_id": {
+          "name": "current_phase_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notice": {
+          "name": "notice",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "null"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "enrollment_one_live": {
+          "name": "enrollment_one_live",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status in ('active', 'paused')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "enrollment_program": {
+          "name": "enrollment_program",
+          "columns": [
+            {
+              "expression": "program_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "user_program_enrollments_user_id_users_id_fk": {
           "name": "user_program_enrollments_user_id_users_id_fk",
@@ -2191,119 +2947,14 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "app.user_program_workout_completions": {
-      "name": "user_program_workout_completions",
-      "schema": "app",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "user_program_workout_completions_id_seq",
-            "schema": "app",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "enrollment_id": {
-          "name": "enrollment_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "program_workout_id": {
-          "name": "program_workout_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "null"
-        },
-        "completion_percent": {
-          "name": "completion_percent",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 100
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_program_workout_completions_enrollment_id_user_program_enrollments_id_fk": {
-          "name": "user_program_workout_completions_enrollment_id_user_program_enrollments_id_fk",
-          "tableFrom": "user_program_workout_completions",
-          "tableTo": "user_program_enrollments",
+        "user_program_enrollments_current_phase_id_program_phases_id_fk": {
+          "name": "user_program_enrollments_current_phase_id_program_phases_id_fk",
+          "tableFrom": "user_program_enrollments",
+          "tableTo": "program_phases",
           "schemaTo": "app",
           "columnsFrom": [
-            "enrollment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "user_program_workout_completions_program_workout_id_program_workouts_id_fk": {
-          "name": "user_program_workout_completions_program_workout_id_program_workouts_id_fk",
-          "tableFrom": "user_program_workout_completions",
-          "tableTo": "program_workouts",
-          "schemaTo": "app",
-          "columnsFrom": [
-            "program_workout_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "user_program_workout_completions_session_id_workout_sessions_id_fk": {
-          "name": "user_program_workout_completions_session_id_workout_sessions_id_fk",
-          "tableFrom": "user_program_workout_completions",
-          "tableTo": "workout_sessions",
-          "schemaTo": "app",
-          "columnsFrom": [
-            "session_id"
+            "current_phase_id"
           ],
           "columnsTo": [
             "id"
@@ -2313,16 +2964,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "enrollment_workout_unique": {
-          "name": "enrollment_workout_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "enrollment_id",
-            "program_workout_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

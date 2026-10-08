@@ -1,10 +1,12 @@
 import 'dotenv/config'
 import { readFileSync } from 'node:fs'
 import { Client } from 'pg'
+import { CATALOGUE_FILE, catalogueBounds } from './catalogueBlock'
 
-const SEED_FILE = 'drizzle/0004_exercise_catalogue.sql'
-
-const statements = readFileSync(SEED_FILE, 'utf8')
+const migration = readFileSync(CATALOGUE_FILE, 'utf8')
+const { start, end } = catalogueBounds(migration)
+const statements = migration
+  .slice(start, end)
   .split('--> statement-breakpoint')
   .map((statement) => statement.trim())
   .filter((statement) => statement.length > 0)
@@ -24,4 +26,4 @@ try {
 } finally {
   await client.end()
 }
-console.log(`re-imported ${SEED_FILE} (${statements.length} statements)`)
+console.log(`re-imported the catalogue from ${CATALOGUE_FILE} (${statements.length} statements)`)

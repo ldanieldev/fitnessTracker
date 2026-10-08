@@ -26,64 +26,8 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1789623161474,
-      "tag": "0003_exercise_library",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1789624705486,
-      "tag": "0004_exercise_catalogue",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1789703110999,
-      "tag": "0005_workout_logging",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1789762411533,
-      "tag": "0006_default_rest_seconds",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1789778196962,
-      "tag": "0007_workout_tools",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1789800000000,
-      "tag": "0008_history_progress",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1790998759495,
-      "tag": "0009_workout_structure",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1791086044192,
-      "tag": "0010_programs",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1791378365178,
-      "tag": "0011_programs_indexes",
+      "when": 1791443732064,
+      "tag": "0003_workouts",
       "breakpoints": true
     }
   ]

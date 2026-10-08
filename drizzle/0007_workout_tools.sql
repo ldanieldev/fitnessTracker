@@ -1,4 +1,0 @@
-ALTER TABLE "app"."users" ADD COLUMN "plate_sizes" numeric[] DEFAULT '{45,35,25,10,5,2.5}'::numeric[] NOT NULL;--> statement-breakpoint
-ALTER TABLE "app"."exercise_prefs" ADD COLUMN "plate_sizes" numeric[] DEFAULT null;--> statement-breakpoint
-ALTER TABLE "app"."users" ADD CONSTRAINT "users_plate_sizes_check" CHECK (cardinality("app"."users"."plate_sizes") between 1 and 12 and 0 < all("app"."users"."plate_sizes") and 100 >= all("app"."users"."plate_sizes"));--> statement-breakpoint
-ALTER TABLE "app"."exercise_prefs" ADD CONSTRAINT "exercise_prefs_plate_sizes_check" CHECK ("app"."exercise_prefs"."plate_sizes" is null or (cardinality("app"."exercise_prefs"."plate_sizes") between 1 and 12 and 0 < all("app"."exercise_prefs"."plate_sizes") and 100 >= all("app"."exercise_prefs"."plate_sizes")));
