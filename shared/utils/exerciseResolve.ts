@@ -1,15 +1,18 @@
 import type {
+  CatalogueExerciseRow,
   CategoryPrefRow,
   CategoryRow,
   Exercise,
   ExerciseCategory,
   ExercisePrefRow,
-  ExerciseRow
+  ExerciseRow,
+  LoadStyle
 } from '../types/workout'
 import { WEIGHT_TRACKING_TYPES } from './exerciseLabels'
 
 function num(value: string | null): number | null {
-  return value === null ? null : Number(value)
+  const parsed = value === null ? Number.NaN : Number(value)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export function resolveCategory(row: CategoryRow, pref: CategoryPrefRow | null): ExerciseCategory {
@@ -24,10 +27,22 @@ export function resolveCategory(row: CategoryRow, pref: CategoryPrefRow | null):
   }
 }
 
-export function resolveExercise(row: ExerciseRow, pref: ExercisePrefRow | null, category: ExerciseCategory): Exercise {
+export function effectiveLoadStyle(
+  row: Pick<ExerciseRow, 'trackingType' | 'loadStyle'>,
+  pref: Pick<ExercisePrefRow, 'trackingType' | 'loadStyle'> | null
+): LoadStyle | null {
   const trackingType = pref?.trackingType ?? row.trackingType
   // EL-R29: null means inherit, so a non-weight tracking type could never clear an inherited load style on its own.
-  const loadStyle = WEIGHT_TRACKING_TYPES.includes(trackingType) ? (pref?.loadStyle ?? row.loadStyle) : null
+  return WEIGHT_TRACKING_TYPES.includes(trackingType) ? (pref?.loadStyle ?? row.loadStyle) : null
+}
+
+export function resolveExercise(
+  row: CatalogueExerciseRow,
+  pref: ExercisePrefRow | null,
+  category: ExerciseCategory
+): Exercise {
+  const trackingType = pref?.trackingType ?? row.trackingType
+  const loadStyle = effectiveLoadStyle(row, pref)
   const barWeightRaw = pref?.barWeight ?? row.barWeight
   return {
     id: row.id,

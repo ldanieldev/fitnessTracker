@@ -24,6 +24,21 @@ describe('sessionFilterQuerySchema', () => {
     expect(sessionFilterQuerySchema.safeParse(query).success).toBe(false)
   })
 
+  it('names a bad category id in the error', () => {
+    for (const categories of ['3,x', '0', '3.5', '-1']) {
+      const issues = sessionFilterQuerySchema.safeParse({ categories }).error?.issues ?? []
+      expect(issues.map((issue) => issue.message), categories).toEqual(['Invalid category id'])
+    }
+  })
+
+  it('parses categories as positive integers, trimming blanks, up to fifty', () => {
+    expect(sessionFilterQuerySchema.parse({ categories: ' 4 , 2,,' }).categories).toEqual([4, 2])
+    expect(sessionFilterQuerySchema.parse({ categories: Array.from({ length: 50 }, (_, i) => i + 1).join(',') }).categories).toHaveLength(50)
+    for (const categories of ['0', '3.5', '-1', Array.from({ length: 51 }, (_, i) => i + 1).join(',')]) {
+      expect(sessionFilterQuerySchema.safeParse({ categories }).success).toBe(false)
+    }
+  })
+
   it('list schema keeps the limit and the same rules', () => {
     expect(sessionListQuerySchema.parse({ limit: '40', categories: '1' })).toMatchObject({ limit: 40, categories: [1] })
     expect(sessionListQuerySchema.safeParse({ minReps: '5' }).success).toBe(false)

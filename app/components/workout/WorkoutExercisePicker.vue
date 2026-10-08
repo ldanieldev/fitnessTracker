@@ -5,7 +5,7 @@ import ExerciseForm, { type ExerciseFormPayload } from '~/components/workout/Exe
 
 interface ReferenceData { categories: ExerciseCategory[], muscles: MuscleRow[], equipment: EquipmentRow[] }
 
-const props = withDefaults(defineProps<{ title?: string }>(), { title: 'Add exercise' })
+const props = withDefaults(defineProps<{ title?: string, busy?: boolean }>(), { title: 'Add exercise', busy: false })
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ pick: [exerciseId: number] }>()
 
@@ -20,11 +20,31 @@ watch(search, (value) => {
   }, 200)
 })
 
-const { data: exercises, execute } = useExerciseFetch<Exercise[]>(
-  () => exerciseListKey({ q: q.value, limit: 20 }),
-  () => `/api/workouts/exercises?${exerciseListQuery({ q: q.value, limit: 20 })}`,
-  { immediate: false }
-)
+const exercises = ref<Exercise[]>([])
+// One request per distinct search while the sheet is open; reopening starts fresh so new or edited exercises show.
+const results = new Map<string, Promise<Exercise[]>>()
+let latestKey = ''
+
+async function load() {
+  const filters = { q: q.value, limit: 20 }
+  const key = exerciseListKey(filters)
+  latestKey = key
+  let request = results.get(key)
+  if (!request) {
+    request = apiFetch<Exercise[]>(`/api/workouts/exercises?${exerciseListQuery(filters)}`)
+    results.set(key, request)
+  }
+  // A request from before a reopen can land late; only the one still stored for this key may write.
+  const stored = () => results.get(key) === request
+  try {
+    const rows = await request
+    if (latestKey === key && stored()) exercises.value = rows
+  } catch {
+    if (!stored()) return
+    results.delete(key)
+    if (latestKey === key) exercises.value = []
+  }
+}
 
 let keepSearch = false
 watch(open, (isOpen) => {
@@ -35,10 +55,12 @@ watch(open, (isOpen) => {
     q.value = ''
   }
   keepSearch = false
-})
+  results.clear()
+  void load()
+}, { immediate: true })
 
-watch([open, q], ([isOpen]) => {
-  if (isOpen) execute()
+watch(q, () => {
+  if (open.value) void load()
 })
 
 const { data: reference, execute: loadReference } = useExerciseFetch<ReferenceData>(
@@ -90,7 +112,7 @@ async function onSubmit(payload: ExerciseFormPayload) {
   }
 }
 
-const list = computed(() => exercises.value ?? [])
+const list = computed(() => exercises.value)
 
 function dotClass(exercise: Exercise) {
   return CATEGORY_DOT_CLASS[exercise.category.color] ?? CATEGORY_DOT_CLASS.fallback
@@ -120,6 +142,7 @@ function pick(exercise: Exercise) {
           variant="soft"
           color="neutral"
           class="min-h-10 self-start"
+          :disabled="props.busy"
           data-test="exercise-new"
           @click="openForm(undefined)"
         />
@@ -128,6 +151,7 @@ function pick(exercise: Exercise) {
             <button
               type="button"
               class="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-elevated"
+              :disabled="props.busy"
               data-test="exercise-row"
               @click="pick(exercise)"
             >
@@ -157,6 +181,7 @@ function pick(exercise: Exercise) {
     :muscles
     :equipment
     :name-error="nameError"
+    :busy="props.busy"
     @submit="onSubmit"
   />
 </template>

@@ -1,4 +1,4 @@
-import { setFavorite } from '~~/server/utils/workouts/exercises'
+import { setFavorite } from '~~/server/utils/workouts/exerciseWrites'
 import { exerciseIdParamSchema } from '~~/server/utils/workouts/input'
 import { requireUserId } from '~~/server/utils/session'
 

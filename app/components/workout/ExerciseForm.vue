@@ -2,6 +2,7 @@
 import type { EquipmentRow, Exercise, ExerciseCategory, LoadStyle, TrackingType } from '~~/shared/types/workout'
 import { LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
 import { LOAD_STYLE_LABELS, TRACKING_TYPE_LABELS, WEIGHT_TRACKING_TYPES } from '~~/shared/utils/exerciseLabels'
+import ExerciseChipGroup from './ExerciseChipGroup.vue'
 
 // Narrower than MuscleRow (drops categoryKey/bodyMapGroups) since the form only renders key + name chips.
 interface MuscleOption { key: string, name: string }
@@ -25,6 +26,7 @@ const props = defineProps<{
   equipment: EquipmentRow[]
   nameError?: string | null
   initialName?: string
+  busy?: boolean
 }>()
 
 const emit = defineEmits<{ submit: [payload: ExerciseFormPayload] }>()
@@ -32,6 +34,7 @@ const open = defineModel<boolean>('open', { default: false })
 
 const EQUIPMENT_LIMIT = 4
 const MUSCLE_LIMIT = 6
+const LABEL_UI = { label: 'text-dimmed' }
 
 interface LocalState {
   name: string
@@ -92,44 +95,42 @@ const trackingTypeModel = computed({
   }
 })
 
-function selectLoadStyle(style: LoadStyle) {
+const loadStyleItems = LOAD_STYLE_VALUES.map((value) => ({ key: value, name: LOAD_STYLE_LABELS[value] }))
+
+function selectLoadStyle(key: string) {
+  const style = LOAD_STYLE_VALUES.find((value) => value === key)
+  if (!style) return
   local.loadStyle = style
   local.barWeight = style === 'barbell' ? (local.barWeight ?? 45) : null
 }
 
+function toggleKey(list: string[], key: string, limit: number): string[] {
+  if (list.includes(key)) return list.filter((k) => k !== key)
+  return list.length >= limit ? list : [...list, key]
+}
+
+function atLimit(list: string[], key: string, limit: number): boolean {
+  return !list.includes(key) && list.length >= limit
+}
+
 function toggleEquipment(key: string) {
-  if (local.equipment.includes(key)) {
-    local.equipment = local.equipment.filter((k) => k !== key)
-    return
-  }
-  if (local.equipment.length >= EQUIPMENT_LIMIT) return
-  local.equipment = [...local.equipment, key]
+  local.equipment = toggleKey(local.equipment, key, EQUIPMENT_LIMIT)
 }
 
 function togglePrimary(key: string) {
-  if (local.primaryMuscles.includes(key)) {
-    local.primaryMuscles = local.primaryMuscles.filter((k) => k !== key)
-    return
-  }
-  if (local.primaryMuscles.length >= MUSCLE_LIMIT) return
-  local.primaryMuscles = [...local.primaryMuscles, key]
-  local.secondaryMuscles = local.secondaryMuscles.filter((k) => k !== key)
-}
-
-function secondaryDisabled(key: string): boolean {
-  if (local.primaryMuscles.includes(key)) return true
-  return !local.secondaryMuscles.includes(key) && local.secondaryMuscles.length >= MUSCLE_LIMIT
+  local.primaryMuscles = toggleKey(local.primaryMuscles, key, MUSCLE_LIMIT)
+  if (local.primaryMuscles.includes(key)) local.secondaryMuscles = local.secondaryMuscles.filter((k) => k !== key)
 }
 
 function toggleSecondary(key: string) {
   if (local.primaryMuscles.includes(key)) return
-  if (local.secondaryMuscles.includes(key)) {
-    local.secondaryMuscles = local.secondaryMuscles.filter((k) => k !== key)
-    return
-  }
-  if (local.secondaryMuscles.length >= MUSCLE_LIMIT) return
-  local.secondaryMuscles = [...local.secondaryMuscles, key]
+  local.secondaryMuscles = toggleKey(local.secondaryMuscles, key, MUSCLE_LIMIT)
 }
+
+const equipmentDisabled = (key: string) => atLimit(local.equipment, key, EQUIPMENT_LIMIT)
+const primaryDisabled = (key: string) => atLimit(local.primaryMuscles, key, MUSCLE_LIMIT)
+const secondaryDisabled = (key: string) =>
+  local.primaryMuscles.includes(key) || atLimit(local.secondaryMuscles, key, MUSCLE_LIMIT)
 
 const clientError = ref<string | null>(null)
 const serverError = ref<string | null>(props.nameError ?? null)
@@ -169,14 +170,11 @@ function submit() {
   <AppSheet v-model:open="open" :title="title">
     <template #body>
       <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Name</span>
+        <UFormField label="Name" :error="nameFieldError ?? undefined" :ui="LABEL_UI">
           <UInput v-model="local.name" placeholder="Exercise name" class="w-full" data-test="exercise-name" />
-          <p v-if="nameFieldError" class="text-sm text-error">{{ nameFieldError }}</p>
-        </div>
+        </UFormField>
 
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Category</span>
+        <UFormField label="Category" :ui="LABEL_UI">
           <USelect
             v-model="local.categoryId"
             :items="categoryOptions"
@@ -184,105 +182,67 @@ function submit() {
             class="w-full"
             data-test="exercise-category"
           />
-        </div>
+        </UFormField>
 
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Tracking type</span>
+        <UFormField label="Tracking type" :ui="LABEL_UI">
           <USelect
             v-model="trackingTypeModel"
             :items="trackingTypeOptions"
             class="w-full"
             data-test="exercise-tracking-type"
           />
-        </div>
+        </UFormField>
 
-        <div v-if="showLoadStyle" class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Load style</span>
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-for="style in LOAD_STYLE_VALUES"
-              :key="style"
-              :label="LOAD_STYLE_LABELS[style]"
-              class="min-h-10"
-              :color="local.loadStyle === style ? 'primary' : 'neutral'"
-              :variant="local.loadStyle === style ? 'solid' : 'soft'"
-              :aria-pressed="local.loadStyle === style"
-              :data-test="`exercise-load-${style}`"
-              @click="selectLoadStyle(style)"
-            />
-          </div>
-        </div>
+        <ExerciseChipGroup
+          v-if="showLoadStyle"
+          legend="Load style"
+          :items="loadStyleItems"
+          :selected="local.loadStyle ? [local.loadStyle] : []"
+          test-prefix="exercise-load"
+          @toggle="selectLoadStyle"
+        />
 
-        <div v-if="showBarWeight" class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Bar weight</span>
+        <UFormField v-if="showBarWeight" label="Bar weight" :ui="LABEL_UI">
           <AppNumberInput v-model="local.barWeight" :min="1" :step="5" class="w-full" data-test="exercise-bar-weight" />
-        </div>
+        </UFormField>
 
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Equipment</span>
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-for="item in equipment"
-              :key="item.key"
-              :label="item.name"
-              class="min-h-10"
-              :color="local.equipment.includes(item.key) ? 'primary' : 'neutral'"
-              :variant="local.equipment.includes(item.key) ? 'solid' : 'soft'"
-              :aria-pressed="local.equipment.includes(item.key)"
-              :disabled="!local.equipment.includes(item.key) && local.equipment.length >= EQUIPMENT_LIMIT"
-              :data-test="`exercise-equipment-${item.key}`"
-              @click="toggleEquipment(item.key)"
-            />
-          </div>
-        </div>
+        <ExerciseChipGroup
+          legend="Equipment"
+          :items="equipment"
+          :selected="local.equipment"
+          :is-disabled="equipmentDisabled"
+          test-prefix="exercise-equipment"
+          @toggle="toggleEquipment"
+        />
 
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Primary muscles</span>
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-for="item in muscles"
-              :key="item.key"
-              :label="item.name"
-              class="min-h-10"
-              :color="local.primaryMuscles.includes(item.key) ? 'primary' : 'neutral'"
-              :variant="local.primaryMuscles.includes(item.key) ? 'solid' : 'soft'"
-              :aria-pressed="local.primaryMuscles.includes(item.key)"
-              :disabled="!local.primaryMuscles.includes(item.key) && local.primaryMuscles.length >= MUSCLE_LIMIT"
-              :data-test="`exercise-muscle-${item.key}`"
-              @click="togglePrimary(item.key)"
-            />
-          </div>
-        </div>
+        <ExerciseChipGroup
+          legend="Primary muscles"
+          :items="muscles"
+          :selected="local.primaryMuscles"
+          :is-disabled="primaryDisabled"
+          test-prefix="exercise-muscle"
+          @toggle="togglePrimary"
+        />
 
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Secondary muscles</span>
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-for="item in muscles"
-              :key="item.key"
-              :label="item.name"
-              class="min-h-10"
-              :color="local.secondaryMuscles.includes(item.key) ? 'primary' : 'neutral'"
-              :variant="local.secondaryMuscles.includes(item.key) ? 'solid' : 'soft'"
-              :aria-pressed="local.secondaryMuscles.includes(item.key)"
-              :disabled="secondaryDisabled(item.key)"
-              :data-test="`exercise-secondary-${item.key}`"
-              @click="toggleSecondary(item.key)"
-            />
-          </div>
-        </div>
+        <ExerciseChipGroup
+          legend="Secondary muscles"
+          :items="muscles"
+          :selected="local.secondaryMuscles"
+          :is-disabled="secondaryDisabled"
+          test-prefix="exercise-secondary"
+          @toggle="toggleSecondary"
+        />
 
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-dimmed">Notes</span>
+        <UFormField label="Notes" :ui="LABEL_UI">
           <UTextarea v-model="local.notes" :rows="3" class="w-full" data-test="exercise-notes" />
-        </div>
+        </UFormField>
       </div>
     </template>
     <template #footer>
       <UButton
         label="Save"
         class="min-h-10 w-full"
-        :disabled="categories.length === 0"
+        :disabled="categories.length === 0 || busy"
         data-test="exercise-submit"
         @click="submit"
       />

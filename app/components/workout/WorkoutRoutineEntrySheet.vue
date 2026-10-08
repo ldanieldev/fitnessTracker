@@ -4,11 +4,11 @@ import type { TargetMetric } from '~~/shared/types/workout'
 import { measuresFor } from '~~/shared/utils/setRules'
 import { targetMetricFor } from '~~/shared/utils/workoutTargets'
 
-const props = defineProps<{ entry: RoutineEntry | null }>()
+const props = defineProps<{ entry: RoutineEntry | null, busy?: boolean }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ save: [patch: RoutineEntryPatch], remove: [] }>()
 
-const RANGE_UNIT: Record<TargetMetric, string> = { reps: 'reps', time: 'sec', distance: 'm' }
+const RANGE_UNIT: Record<TargetMetric, string> = { reps: 'reps', time: 'm:ss', distance: 'mi' }
 
 const form = reactive({
   targetSets: null as number | null,
@@ -71,11 +71,15 @@ function remove() {
           <span class="text-xs text-dimmed">Range ({{ RANGE_UNIT[metric] }})</span>
           <div class="flex items-center gap-2">
             <div class="min-w-0 flex-1">
-              <AppNumberInput v-model="form.targetLow" :min="0" :step="1" aria-label="Range low" data-test="routine-entry-low" />
+              <AppDurationInput v-if="metric === 'time'" v-model="form.targetLow" :step="15" aria-label="Range low" data-test="routine-entry-low" />
+              <AppMilesInput v-else-if="metric === 'distance'" v-model="form.targetLow" :step="0.1" aria-label="Range low" data-test="routine-entry-low" />
+              <AppNumberInput v-else v-model="form.targetLow" :min="0" :step="1" aria-label="Range low" data-test="routine-entry-low" />
             </div>
             <span class="text-dimmed">–</span>
             <div class="min-w-0 flex-1">
-              <AppNumberInput v-model="form.targetHigh" :min="0" :step="1" aria-label="Range high" data-test="routine-entry-high" />
+              <AppDurationInput v-if="metric === 'time'" v-model="form.targetHigh" :step="15" aria-label="Range high" data-test="routine-entry-high" />
+              <AppMilesInput v-else-if="metric === 'distance'" v-model="form.targetHigh" :step="0.1" aria-label="Range high" data-test="routine-entry-high" />
+              <AppNumberInput v-else v-model="form.targetHigh" :min="0" :step="1" aria-label="Range high" data-test="routine-entry-high" />
             </div>
           </div>
         </div>
@@ -94,8 +98,8 @@ function remove() {
     </template>
     <template #footer>
       <div class="flex w-full flex-col gap-2">
-        <UButton label="Save" block class="min-h-10" data-test="routine-entry-save" @click="save" />
-        <UButton label="Remove from day" color="error" variant="ghost" block class="min-h-10" data-test="routine-entry-remove" @click="remove" />
+        <UButton label="Save" block class="min-h-10" :disabled="busy" data-test="routine-entry-save" @click="save" />
+        <UButton label="Remove from day" color="error" variant="ghost" block class="min-h-10" :disabled="busy" data-test="routine-entry-remove" @click="remove" />
       </div>
     </template>
   </AppSheet>

@@ -40,7 +40,7 @@ describe('workoutShareText', () => {
       'A2 Curl',
       '  30 lb × 10',
       'Plank',
-      '  60 s'
+      '  1:00'
     ].join('\n'))
   })
 })

@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { CategoryPrefRow, ExerciseCategory } from '~~/shared/types/workout'
 import { exerciseCategories, exerciseCategoryPrefs, exercisePrefs, exercises } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
@@ -6,38 +6,66 @@ import type { CategoryCreateInput, CategoryPatchInput } from '~~/server/utils/wo
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { loadCatalogue, type Catalogue } from '~~/server/utils/workouts/catalogue'
 import { resolveCategory } from '~~/shared/utils/exerciseResolve'
+import { writeSparsePref } from '~~/server/utils/workouts/sparsePrefs'
 
 const NAME_CONFLICT_ERROR = { statusCode: 409, statusMessage: 'You already have a category with that name' } as const
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Category not found' } as const
 
-async function loadCategoryPrefs(userId: number): Promise<Map<number, CategoryPrefRow>> {
-  const rows = await db.select().from(exerciseCategoryPrefs).where(eq(exerciseCategoryPrefs.userId, userId))
+async function loadCategoryPrefs(userId: number, client: DbClient): Promise<Map<number, CategoryPrefRow>> {
+  const rows = await client.select().from(exerciseCategoryPrefs).where(eq(exerciseCategoryPrefs.userId, userId))
   return new Map(rows.map((r) => [r.categoryId, r]))
 }
 
-function loadOwnCategories(userId: number) {
-  return db
-    .select({
-      id: exerciseCategories.id,
-      userId: exerciseCategories.userId,
-      key: exerciseCategories.key,
-      name: exerciseCategories.name,
-      color: exerciseCategories.color,
-      sortOrder: exerciseCategories.sortOrder
-    })
+const CATEGORY_COLUMNS = {
+  id: exerciseCategories.id,
+  userId: exerciseCategories.userId,
+  key: exerciseCategories.key,
+  name: exerciseCategories.name,
+  color: exerciseCategories.color,
+  sortOrder: exerciseCategories.sortOrder
+}
+
+function loadOwnCategories(userId: number, client: DbClient) {
+  return client
+    .select(CATEGORY_COLUMNS)
     .from(exerciseCategories)
     .where(and(isNull(exerciseCategories.deletedAt), eq(exerciseCategories.userId, userId)))
+}
+
+// Hidden categories included: a hidden category still owns its exercises.
+export async function loadCategoriesByIds(
+  userId: number,
+  ids: number[],
+  client: DbClient = db
+): Promise<Map<number, ExerciseCategory>> {
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return new Map()
+  // Sequential: the client may be a transaction, which must not run two queries at once.
+  const rows = await client
+    .select(CATEGORY_COLUMNS)
+    .from(exerciseCategories)
+    .where(and(
+      inArray(exerciseCategories.id, unique),
+      isNull(exerciseCategories.deletedAt),
+      or(isNull(exerciseCategories.userId), eq(exerciseCategories.userId, userId))
+    ))
+  const prefs = await client
+    .select()
+    .from(exerciseCategoryPrefs)
+    .where(and(eq(exerciseCategoryPrefs.userId, userId), inArray(exerciseCategoryPrefs.categoryId, unique)))
+  const prefsById = new Map(prefs.map((pref) => [pref.categoryId, pref]))
+  return new Map(rows.map((row) => [row.id, resolveCategory(row, prefsById.get(row.id) ?? null)]))
 }
 
 // Callers that already hold the catalogue pass it in: it is a ~900 KB cache read, so a request must not do it twice.
 export async function listCategoriesForUser(
   userId: number,
-  { includeHidden = false, catalogue }: { includeHidden?: boolean, catalogue?: Catalogue } = {}
+  { includeHidden = false, catalogue, client = db }: { includeHidden?: boolean, catalogue?: Catalogue, client?: DbClient } = {}
 ): Promise<ExerciseCategory[]> {
-  const [shared, own, prefs] = await Promise.all([
+  // The two client reads stay sequential (the client may be a transaction); the catalogue read uses its own connection.
+  const [shared, [own, prefs]] = await Promise.all([
     catalogue ?? loadCatalogue(),
-    loadOwnCategories(userId),
-    loadCategoryPrefs(userId)
+    loadOwnCategories(userId, client).then(async (own) => [own, await loadCategoryPrefs(userId, client)] as const)
   ])
 
   return [...shared.categories, ...own]
@@ -52,43 +80,39 @@ export async function listReference(userId: number) {
   return { categories, muscles: catalogue.muscles, equipment: catalogue.equipment }
 }
 
-async function loadResolvedCategory(userId: number, id: number): Promise<ExerciseCategory> {
-  const categories = await listCategoriesForUser(userId, { includeHidden: true })
+async function loadResolvedCategory(userId: number, id: number, client: DbClient = db): Promise<ExerciseCategory> {
+  const categories = await listCategoriesForUser(userId, { includeHidden: true, client })
   const category = categories.find((c) => c.id === id)
   if (!category) throw createError(NOT_FOUND_ERROR)
   return category
 }
 
-async function cleanupCategoryPrefIfEmpty(tx: DbClient, userId: number, categoryId: number): Promise<void> {
-  const where = and(eq(exerciseCategoryPrefs.userId, userId), eq(exerciseCategoryPrefs.categoryId, categoryId))
-  const row = await tx.select().from(exerciseCategoryPrefs).where(where).then((r) => r[0])
-  if (!row) return
-  if (row.name == null && row.color == null && row.sortOrder == null && row.hiddenAt == null) {
-    await tx.delete(exerciseCategoryPrefs).where(where)
+function categoryPrefRow(userId: number, categoryId: number) {
+  return {
+    table: exerciseCategoryPrefs,
+    key: { userId, categoryId },
+    target: [exerciseCategoryPrefs.userId, exerciseCategoryPrefs.categoryId],
+    where: and(eq(exerciseCategoryPrefs.userId, userId), eq(exerciseCategoryPrefs.categoryId, categoryId)),
+    empty: and(
+      isNull(exerciseCategoryPrefs.name),
+      isNull(exerciseCategoryPrefs.color),
+      isNull(exerciseCategoryPrefs.sortOrder),
+      isNull(exerciseCategoryPrefs.hiddenAt)
+    )
   }
 }
 
-async function writeCategoryPrefPatch(
-  tx: DbClient,
+export async function createCategory(
   userId: number,
-  categoryId: number,
-  patch: Partial<typeof exerciseCategoryPrefs.$inferInsert>
-): Promise<void> {
-  if (Object.keys(patch).length === 0) return
-  await tx
-    .insert(exerciseCategoryPrefs)
-    .values({ userId, categoryId, ...patch })
-    .onConflictDoUpdate({ target: [exerciseCategoryPrefs.userId, exerciseCategoryPrefs.categoryId], set: patch })
-  await cleanupCategoryPrefIfEmpty(tx, userId, categoryId)
-}
-
-export async function createCategory(userId: number, input: CategoryCreateInput): Promise<ExerciseCategory> {
-  const existing = await listCategoriesForUser(userId)
+  input: CategoryCreateInput,
+  client: DbClient = db
+): Promise<ExerciseCategory> {
+  const existing = await listCategoriesForUser(userId, { client })
   const sortOrder = existing.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1
 
   let created: { id: number }
   try {
-    created = await db
+    created = await client
       .insert(exerciseCategories)
       .values({ userId, name: input.name, color: input.color, sortOrder })
       .returning({ id: exerciseCategories.id })
@@ -98,7 +122,7 @@ export async function createCategory(userId: number, input: CategoryCreateInput)
     throw err
   }
 
-  return loadResolvedCategory(userId, created.id)
+  return loadResolvedCategory(userId, created.id, client)
 }
 
 export async function patchCategory(userId: number, id: number, patch: CategoryPatchInput): Promise<ExerciseCategory> {
@@ -115,7 +139,7 @@ export async function patchCategory(userId: number, id: number, patch: CategoryP
     if (patch.color !== undefined) prefsPatch.color = patch.color
     if (patch.sortOrder !== undefined) prefsPatch.sortOrder = patch.sortOrder
     if (patch.hidden !== undefined) prefsPatch.hiddenAt = patch.hidden ? new Date() : null
-    await db.transaction((tx) => writeCategoryPrefPatch(tx, userId, id, prefsPatch))
+    await db.transaction((tx) => writeSparsePref(tx, categoryPrefRow(userId, id), prefsPatch))
   } else {
     if (patch.hidden !== undefined) {
       throw createError({ statusCode: 400, statusMessage: 'Own categories cannot be hidden; delete them instead' })

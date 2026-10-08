@@ -78,6 +78,13 @@
       "when": 1791086044192,
       "tag": "0010_programs",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791378365178,
+      "tag": "0011_programs_indexes",
+      "breakpoints": true
     }
   ]
 }

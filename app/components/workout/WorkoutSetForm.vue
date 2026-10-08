@@ -2,18 +2,18 @@
 import type { SetMeasures, WorkoutEntry } from '~~/shared/types/workout'
 import { rangePlaceholder, targetMetricFor } from '~~/shared/utils/workoutTargets'
 import { prefillFor } from '~~/shared/utils/workoutPrefill'
-import { progressionCopy, progressionFor } from '~~/shared/utils/workoutProgression'
+import { progressionCopy, type Progression } from '~~/shared/utils/workoutProgression'
 import { FIELD, LABEL, measuresFor, type SetMeasure } from '~~/shared/utils/setRules'
 import WorkoutPlateCircles from '~/components/workout/WorkoutPlateCircles.vue'
 
 const props = withDefaults(defineProps<{
   entry: WorkoutEntry
   presetWeight?: { weight: number, seq: number } | null
-  deload?: boolean
+  progression?: Progression | null
   choice?: 'apply' | 'stay' | null
 }>(), {
   presetWeight: null,
-  deload: false,
+  progression: null,
   choice: null
 })
 
@@ -25,7 +25,7 @@ const emit = defineEmits<{
 
 const measures = computed(() => measuresFor(props.entry.trackingType))
 const metric = computed(() => targetMetricFor(props.entry.trackingType))
-const rangeHint = computed(() => (props.entry.target ? rangePlaceholder(props.entry.target.low, props.entry.target.high) ?? undefined : undefined))
+const rangeHint = computed(() => (props.entry.target && metric.value ? rangePlaceholder(props.entry.target.low, props.entry.target.high, metric.value) ?? undefined : undefined))
 const setNumber = computed(() => props.entry.sets.length + 1)
 const circles = computed(() =>
   props.entry.loadStyle === 'barbell' && props.entry.barWeight != null && props.entry.plateSizes != null)
@@ -34,9 +34,8 @@ const cardioMeasures = computed(() =>
 const showWeightHero = computed(() => measures.value.includes('weight') && circles.value)
 const showReps = computed(() => measures.value.includes('reps'))
 
-const progression = computed(() => progressionFor(props.entry, props.deload))
 const copy = computed(() =>
-  progression.value ? progressionCopy(progression.value, props.entry.loadStyle, props.entry.target) : null)
+  props.progression ? progressionCopy(props.progression, props.entry.loadStyle, props.entry.target) : null)
 const pending = computed(() => (props.choice === null ? copy.value : null))
 const CALLOUT = {
   add: {
@@ -46,10 +45,10 @@ const CALLOUT = {
     box: 'border-warning/30 bg-warning/10', icon: 'i-lucide-trending-down', text: 'text-warning', button: 'warning'
   }
 } as const
-const tone = computed(() => CALLOUT[progression.value?.kind ?? 'add'])
+const tone = computed(() => CALLOUT[props.progression?.kind ?? 'add'])
 
 function suggestedWeight(choice: 'apply' | 'stay' | null) {
-  const p = progression.value
+  const p = props.progression
   if (!p) return null
   return choice === 'apply' ? p.weight : p.fromWeight
 }
@@ -65,14 +64,19 @@ function seed(): SetMeasures {
   }
 }
 
-const values = reactive<SetMeasures>(seed())
+let seeded = seed()
+const values = reactive<SetMeasures>({ ...seeded })
+const untouched = () => (Object.keys(seeded) as (keyof SetMeasures)[]).every((key) => values[key] === seeded[key])
 
-watch([() => props.entry.sets.length, () => progression.value?.kind, () => progression.value?.weight], () => {
-  Object.assign(values, seed())
+// A delete keeps what the user typed; a new set or a changed suggestion always re-seeds.
+watch([() => props.entry.sets.length, () => props.progression?.kind, () => props.progression?.weight], ([length], [previous]) => {
+  if (length < previous && !untouched()) return
+  seeded = seed()
+  Object.assign(values, seeded)
 })
 
 watch(() => props.choice, (choice) => {
-  if (progression.value && choice) values.weight = suggestedWeight(choice)
+  if (props.progression && choice) values.weight = suggestedWeight(choice)
 })
 
 watch(() => values.weight, (weight) => emit('weight', weight ?? null), { immediate: true })
@@ -82,15 +86,16 @@ watch(() => props.presetWeight?.seq, () => {
   if (props.presetWeight && measures.value.includes('weight')) values.weight = props.presetWeight.weight
 }, { immediate: true })
 
-const UNIT: Record<string, string> = { weight: ' (lb)', distance: ' (m)', duration: ' (s)' }
+const UNIT: Record<string, string> = { weight: ' (lb)', distance: ' (mi)', duration: ' (m:ss)' }
 const cardioFields = computed(() => cardioMeasures.value.map((measure: SetMeasure) => {
   const weight = measure === 'weight'
   return {
     measure,
     key: FIELD[measure],
-    width: weight ? 'w-48' : 'w-40',
+    box: weight ? '' : 'w-full max-w-72 sm:w-auto',
+    width: weight ? 'w-48' : 'w-full sm:w-48',
     base: weight ? 'text-center text-lg font-semibold' : 'text-center',
-    step: weight ? props.entry.weightIncrement ?? 5 : measure === 'distance' ? 100 : 30,
+    step: weight ? props.entry.weightIncrement ?? 5 : measure === 'distance' ? 0.1 : 30,
     placeholder: (measure === 'distance' && metric.value === 'distance') || (measure === 'duration' && metric.value === 'time') ? rangeHint.value : undefined,
     testId: `set-${weight ? 'weight' : measure}-new`
   }
@@ -165,10 +170,29 @@ function logSet() {
     </div>
 
     <div v-if="cardioFields.length" class="flex flex-wrap justify-center gap-4">
-      <div v-for="field in cardioFields" :key="field.measure" class="flex flex-col items-center gap-1">
+      <div v-for="field in cardioFields" :key="field.measure" class="flex flex-col items-center gap-1" :class="field.box">
         <span class="text-sm text-dimmed">{{ LABEL[field.measure] }}{{ UNIT[field.measure] ?? '' }}</span>
         <div :class="field.width">
+          <AppMilesInput
+            v-if="field.measure === 'distance'"
+            v-model="values[field.key]"
+            :step="field.step"
+            :aria-label="LABEL[field.measure]"
+            :placeholder="field.placeholder"
+            :ui="{ base: field.base }"
+            :data-test="field.testId"
+          />
+          <AppDurationInput
+            v-else-if="field.measure === 'duration'"
+            v-model="values[field.key]"
+            :step="field.step"
+            :aria-label="LABEL[field.measure]"
+            :placeholder="field.placeholder"
+            :ui="{ base: field.base }"
+            :data-test="field.testId"
+          />
           <AppNumberInput
+            v-else
             v-model="values[field.key]"
             :min="0"
             :step="field.step"
@@ -179,7 +203,7 @@ function logSet() {
           />
         </div>
         <span
-          v-if="field.measure === 'weight' && entry.loadStyle === 'assisted' && values.weight !== null"
+          v-if="field.measure === 'weight' && entry.loadStyle === 'assisted' && (values.weight ?? 0) > 0"
           class="text-xs text-dimmed"
           data-test="set-assist-new"
         >{{ `−${values.weight}` }}</span>

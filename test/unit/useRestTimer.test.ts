@@ -174,4 +174,63 @@ describe('useRestTimer', () => {
     vi.advanceTimersByTime(60000)
     expect(timer.display.value).toBe('01:05')
   })
+
+  it('moves the run length with ±5 s so the highlighted preset follows the countdown', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+
+    timer.start(60)
+    timer.adjustTime(5)
+    expect(timer.totalSeconds.value).toBe(65)
+    expect(timer.progress.value).toBe(0)
+    timer.adjustTime(-10)
+    expect(timer.totalSeconds.value).toBe(55)
+  })
+
+  it('ignores ±5 s while idle', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+
+    timer.adjustTime(5)
+    expect(timer.totalSeconds.value).toBe(60)
+    expect(timer.remainingSeconds.value).toBe(0)
+    expect(timer.isRunning.value).toBe(false)
+  })
+
+  it('fires its completion handler once per finished rest, never on skip or reset', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+    const onComplete = vi.fn()
+    timer.onComplete(onComplete)
+
+    timer.start(2)
+    timer.skip()
+    vi.advanceTimersByTime(3000)
+    expect(onComplete).not.toHaveBeenCalled()
+
+    timer.start(2)
+    vi.advanceTimersByTime(1000)
+    timer.reset()
+    vi.advanceTimersByTime(1000)
+    expect(onComplete).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1000)
+    expect(onComplete).toHaveBeenCalledOnce()
+
+    vi.advanceTimersByTime(5000)
+    expect(onComplete).toHaveBeenCalledOnce()
+  })
+
+  it('stops ticking when its owning scope is disposed', async () => {
+    const { effectScope } = await import('vue')
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const scope = effectScope()
+    const timer = scope.run(() => useRestTimer())!
+    const onComplete = vi.fn()
+    timer.onComplete(onComplete)
+
+    timer.start(3)
+    scope.stop()
+    vi.advanceTimersByTime(5000)
+    expect(onComplete).not.toHaveBeenCalled()
+  })
 })

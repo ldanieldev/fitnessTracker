@@ -40,7 +40,7 @@ export interface ProgramPhase {
   sortOrder: number
   weeks: number
   deload: boolean
-  routine: { id: number; name: string; dayCount: number } | null
+  routine: { id: number, name: string, dayCount: number } | null
 }
 
 export interface Program {
@@ -53,7 +53,7 @@ export interface Program {
 
 export interface Enrollment {
   id: number
-  program: { id: number; name: string }
+  program: { id: number, name: string }
   status: EnrollmentStatus
   state: 'between' | 'current' | 'paused' | 'finished'
   week: number
@@ -64,12 +64,12 @@ export interface Enrollment {
   phases: ProgramPhase[]
   anchorDate: string
   notice: EnrollmentNotice | null
-  nextDay: { id: number; name: string } | null
+  nextDay: { id: number, name: string } | null
 }
 
 export interface ProgramImportResult {
   programId: number
-  exercises: { matched: number; created: string[] }
+  exercises: { matched: number, created: string[] }
 }
 
 export interface SessionProgramTag {

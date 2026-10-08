@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { WorkoutSession } from '~~/shared/types/workout'
-import { errorMessage } from '~/utils/apiError'
 
 const route = useRoute()
 const id = computed(() => Number(route.params.id))
 const toast = useToast()
+const fail = useFailToast()
 
 const sessionFetch = useWorkoutFetch<WorkoutSession>(
   () => WORKOUT_KEYS.session(id.value),
@@ -29,7 +29,7 @@ async function deleteSession() {
     await invalidateWorkouts(WORKOUT_KEYS.sessions, WORKOUT_KEYS.active)
     await navigateTo('/workouts/sessions')
   } catch (err: unknown) {
-    toast.add({ title: 'Update failed', description: errorMessage(err, 'Could not delete this workout'), color: 'error' })
+    fail('Couldn\'t delete workout', err, 'Could not delete this workout')
   }
 }
 </script>

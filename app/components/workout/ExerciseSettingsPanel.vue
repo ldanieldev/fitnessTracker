@@ -7,6 +7,7 @@ const props = withDefaults(defineProps<{ exercise: Exercise, categories?: Exerci
   categories: () => []
 })
 const emit = defineEmits<{ save: [patch: Record<string, unknown>], reset: [field: string] }>()
+const LABEL_UI = { label: 'text-dimmed' }
 
 interface LocalSettings {
   categoryId: number
@@ -70,8 +71,7 @@ function save() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Category</span>
+    <UFormField label="Category" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
         <USelect
           v-model="local.categoryId"
@@ -91,10 +91,9 @@ function save() {
           @click="emit('reset', 'categoryId')"
         />
       </div>
-    </div>
+    </UFormField>
 
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Tracking type</span>
+    <UFormField label="Tracking type" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
         <USelect
           v-model="trackingTypeModel"
@@ -113,10 +112,9 @@ function save() {
           @click="emit('reset', 'trackingType')"
         />
       </div>
-    </div>
+    </UFormField>
 
-    <div v-if="showLoadStyle" class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Load style</span>
+    <UFormField v-if="showLoadStyle" label="Load style" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
         <USelect
           v-model="loadStyleModel"
@@ -135,12 +133,13 @@ function save() {
           @click="emit('reset', 'loadStyle')"
         />
       </div>
-    </div>
+    </UFormField>
 
-    <div v-if="showBarWeight" class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Bar weight</span>
+    <UFormField v-if="showBarWeight" label="Bar weight" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
+        <!-- Explicit id: useId differs between SSR and client in the prod build, leaving the label's for stale. -->
         <AppNumberInput
+          id="setting-bar-weight"
           v-model="local.barWeight"
           :min="1"
           :step="5"
@@ -158,7 +157,7 @@ function save() {
           @click="emit('reset', 'barWeight')"
         />
       </div>
-    </div>
+    </UFormField>
 
     <UButton label="Save" block class="min-h-10" data-test="settings-save" @click="save" />
   </div>

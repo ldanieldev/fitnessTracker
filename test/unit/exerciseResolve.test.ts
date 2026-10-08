@@ -141,6 +141,11 @@ describe('resolveExercise', () => {
     expect(plain.plateSizes).toBeNull()
   })
 
+  it('reads a non-numeric stored number as unknown, never NaN', () => {
+    const out = resolveExercise({ ...row, barWeight: 'abc' }, null, category)
+    expect(out.barWeight).toBeNull()
+  })
+
   it('marks a user-created exercise as not shared', () => {
     expect(resolveExercise({ ...row, createdByUserId: 3 }, null, category).shared).toBe(false)
   })

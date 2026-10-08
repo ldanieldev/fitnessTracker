@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { enrollmentBadge, enrollmentLine } from '~/utils/enrollmentLine'
-import { errorMessage } from '~/utils/apiError'
 
-const toast = useToast()
+const fail = useFailToast()
 const { enrollment, dismiss } = useEnrollment()
 
 const banner = computed(() => {
@@ -18,7 +17,7 @@ async function onDismiss() {
   try {
     await dismiss()
   } catch (err: unknown) {
-    toast.add({ title: 'Update failed', description: errorMessage(err, 'Could not dismiss this'), color: 'error' })
+    fail('Couldn\'t dismiss notice', err, 'Could not dismiss this')
   }
 }
 </script>

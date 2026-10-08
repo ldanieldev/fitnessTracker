@@ -1,4 +1,4 @@
-import { setExercisePrefs } from '~~/server/utils/workouts/exercises'
+import { setExercisePrefs } from '~~/server/utils/workouts/exerciseWrites'
 import { exerciseIdParamSchema, exercisePrefsSchema } from '~~/server/utils/workouts/input'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'

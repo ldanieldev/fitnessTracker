@@ -3,6 +3,8 @@ import type { Exercise } from '~~/shared/types/workout'
 import { normalizePlateSizes } from '~~/shared/utils/plates'
 import WorkoutPlateSizesPicker from '~/components/workout/WorkoutPlateSizesPicker.vue'
 
+const LABEL_UI = { label: 'text-dimmed' }
+
 const props = defineProps<{ exercise: Exercise }>()
 const emit = defineEmits<{ save: [patch: Record<string, unknown>], reset: [field: string] }>()
 
@@ -38,16 +40,22 @@ function save() {
   if (Object.keys(patch).length === 0) return
   emit('save', patch)
 }
+
+function resetPlates() {
+  if (props.exercise.plateSizes === null) local.plateSizes = null
+  else emit('reset', 'plateSizes')
+}
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
     <p class="text-sm text-dimmed" data-test="workout-help">These apply to this exercise only and override your defaults in <NuxtLink to="/settings/workout" class="underline">Settings → Workout</NuxtLink>. Leave a field empty to use the default.</p>
 
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Weight increment</span>
+    <UFormField label="Weight increment" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
+        <!-- Explicit ids here and on rest: useId differs between SSR and client in the prod build, leaving the label's for stale. -->
         <AppNumberInput
+          id="setting-weight-increment"
           v-model="local.weightIncrement"
           :min="0.5"
           :step="2.5"
@@ -65,12 +73,12 @@ function save() {
           @click="emit('reset', 'weightIncrement')"
         />
       </div>
-    </div>
+    </UFormField>
 
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-dimmed">Rest (seconds)</span>
+    <UFormField label="Rest (seconds)" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
         <AppNumberInput
+          id="setting-rest-seconds"
           v-model="local.restSeconds"
           :min="5"
           :step="15"
@@ -88,10 +96,10 @@ function save() {
           @click="emit('reset', 'restSeconds')"
         />
       </div>
-    </div>
+    </UFormField>
 
-    <div v-if="exercise.loadStyle === 'barbell'" class="flex flex-col gap-1" data-test="setting-plates">
-      <span class="text-sm font-medium text-dimmed">Plates</span>
+    <fieldset v-if="exercise.loadStyle === 'barbell'" class="flex min-w-0 flex-col gap-1" data-test="setting-plates">
+      <legend class="mb-1 text-sm font-medium text-dimmed">Plates</legend>
       <div v-if="local.plateSizes === null" class="flex items-center gap-2">
         <span class="min-w-0 flex-1 text-sm">Default ({{ defaultPlates.join(' · ') }})</span>
         <UButton
@@ -111,18 +119,16 @@ function save() {
           @update:model-value="(sizes) => local.plateSizes = normalizePlateSizes(sizes)"
         />
         <UButton
-          v-if="exercise.plateSizes !== null"
           label="Use default plates"
           size="sm"
           variant="ghost"
           color="neutral"
           class="min-h-10 self-start"
-          aria-label="Reset plates"
           data-test="reset-plateSizes"
-          @click="emit('reset', 'plateSizes')"
+          @click="resetPlates"
         />
       </template>
-    </div>
+    </fieldset>
 
     <UButton label="Save" block class="min-h-10" data-test="workout-save" @click="save" />
   </div>

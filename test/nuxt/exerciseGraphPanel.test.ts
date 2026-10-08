@@ -3,6 +3,7 @@ import { flushPromises } from '@vue/test-utils'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { USelect } from '#components'
 import ExerciseGraphPanel from '../../app/components/workout/ExerciseGraphPanel.vue'
+import WorkoutMetricChart from '../../app/components/workout/WorkoutMetricChart.vue'
 
 interface SelectProbe {
   props: (key: string) => unknown
@@ -36,5 +37,31 @@ describe('ExerciseGraphPanel', () => {
     })
     await flushPromises()
     expect(wrapper.find('[data-test="graph-reps"]').exists()).toBe(true)
+  })
+
+  it('plots distance in miles and states the goal in miles', async () => {
+    registerEndpoint('/api/workouts/exercises/3/series', () => ({
+      metric: 'distance', reps: null, unit: 'm', precision: 0, from: '2026-03-01', to: '2026-03-31',
+      points: [{ date: '2026-03-01', value: 5000 }, { date: '2026-03-08', value: 8046.72 }],
+      goal: { exerciseId: 3, metric: 'distance', targetValue: 16093.44, targetReps: null, targetDate: null, achievedAt: null }
+    }))
+    const run = { ...exercise, name: 'Run', trackingType: 'distance_time', loadStyle: null, defaultGraph: 'distance' }
+    const wrapper = await mountSuspended(ExerciseGraphPanel, { props: { exercise: run as never } })
+    await flushPromises()
+    expect(wrapper.find('svg').attributes('aria-label')).toContain('latest 5 mi on')
+    expect(wrapper.find('[data-test="graph-goal-summary"]').text()).toContain('Goal 10 mi')
+  })
+  it('drops a zero pace from an older rollup instead of plotting an infinite min/mi', async () => {
+    registerEndpoint('/api/workouts/exercises/3/series', () => ({
+      metric: 'pace', reps: null, unit: 'm/s', precision: 2, from: '2026-03-01', to: '2026-03-31',
+      points: [{ date: '2026-03-01', value: 0 }, { date: '2026-03-08', value: 2.68224 }],
+      goal: null
+    }))
+    const run = { ...exercise, name: 'Run', trackingType: 'distance_time', loadStyle: null, defaultGraph: 'pace' }
+    const wrapper = await mountSuspended(ExerciseGraphPanel, { props: { exercise: run as never } })
+    await flushPromises()
+    const points = wrapper.findComponent(WorkoutMetricChart).props('points') as { date: string, value: number }[]
+    expect(points.map((point) => point.date)).toEqual(['2026-03-08'])
+    expect(points[0]!.value).toBeCloseTo(10, 5)
   })
 })

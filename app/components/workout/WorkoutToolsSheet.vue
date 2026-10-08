@@ -76,7 +76,7 @@ watch([open, tab, exerciseId], ([isOpen, current]) => {
   if (isOpen && current !== 'plates') oneRepMax.load()
 }, { immediate: true })
 
-watch(exerciseId, () => {
+watch([exerciseId, open], () => {
   override.value = { weight: null, reps: null }
 })
 

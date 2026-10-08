@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { GraphMetric, WorkoutGoal } from '~~/shared/types/workout'
 import { metricsFor } from '~~/shared/utils/workoutMetrics'
 import { exercises, workoutExerciseGoals } from '~~/server/db/schema'
@@ -42,7 +42,7 @@ export async function loadWorkoutGoals(userId: number): Promise<Array<WorkoutGoa
     .select({ goal: workoutExerciseGoals, exerciseName: exercises.name })
     .from(workoutExerciseGoals)
     .innerJoin(exercises, eq(exercises.id, workoutExerciseGoals.exerciseId))
-    .where(eq(workoutExerciseGoals.userId, userId))
+    .where(and(eq(workoutExerciseGoals.userId, userId), isNull(exercises.deletedAt)))
     .orderBy(exercises.name)
   return rows.map(({ goal, exerciseName }) => ({ ...toGoal(goal), exerciseName }))
 }

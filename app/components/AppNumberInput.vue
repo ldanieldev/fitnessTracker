@@ -27,17 +27,23 @@ function onFocus() {
   focused.value = true
 }
 
+function clamp(value: number) {
+  let next = value
+  if (props.min !== undefined) next = Math.max(props.min, next)
+  if (props.max !== undefined) next = Math.min(props.max, next)
+  return next
+}
+
+// Clamping waits for blur so typing 15 into a min-10 field can pass through 1.
 function onBlur() {
   focused.value = false
-  text.value = model.value === null ? '' : String(model.value)
+  const value = model.value === null ? null : clamp(model.value)
+  if (value !== model.value) model.value = value
+  text.value = value === null ? '' : String(value)
 }
 
 function stepBy(direction: 1 | -1) {
-  const step = props.step ?? 1
-  let next = (model.value ?? 0) + direction * step
-  if (props.min !== undefined) next = Math.max(props.min, next)
-  if (props.max !== undefined) next = Math.min(props.max, next)
-  model.value = next
+  model.value = clamp((model.value ?? 0) + direction * (props.step ?? 1))
 }
 </script>
 

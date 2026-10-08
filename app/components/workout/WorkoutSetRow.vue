@@ -2,6 +2,7 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { LoadStyle, SetMeasures, SetRecordKind, TrackingType, WorkoutSet } from '~~/shared/types/workout'
 import { FIELD, LABEL, measuresFor, type SetMeasure } from '~~/shared/utils/setRules'
+import { measureText } from '~~/shared/utils/setFormat'
 
 const props = withDefaults(defineProps<{
   set: WorkoutSet
@@ -9,14 +10,15 @@ const props = withDefaults(defineProps<{
   trackingType: TrackingType
   loadStyle: LoadStyle | null
   weightIncrement?: number | null
+  error?: string | null
 }>(), {
-  weightIncrement: null
+  weightIncrement: null,
+  error: null
 })
 
 const emit = defineEmits<{
   save: [values: SetMeasures & { comment?: string }]
   remove: []
-  toggleDone: []
 }>()
 
 const RECORD_LABEL: Record<SetRecordKind, string> = {
@@ -26,8 +28,8 @@ const RECORD_LABEL: Record<SetRecordKind, string> = {
   pace: 'Record: pace'
 }
 
-const UNIT: Record<SetMeasure, string> = { weight: ' lb', reps: ' reps', distance: ' m', duration: ' s' }
-const STEP: Record<SetMeasure, number> = { weight: 5, reps: 1, distance: 100, duration: 30 }
+const EDIT_UNIT: Record<SetMeasure, string> = { weight: 'lb', reps: 'reps', distance: 'mi', duration: 'm:ss' }
+const STEP: Record<SetMeasure, number> = { weight: 5, reps: 1, distance: 0.1, duration: 30 }
 
 // The 40 px steppers leave little room at 360 px, so the input gives up its side padding.
 const INPUT_UI = { base: 'px-1' }
@@ -38,24 +40,41 @@ const noteOpen = ref(Boolean(props.set.comment))
 const noteText = ref(props.set.comment ?? '')
 const noteFocused = ref(false)
 const menuOpen = ref(false)
+const pendingSave = ref<SetMeasures | null>(null)
+const saving = ref(false)
 
 function measuresOf(set: WorkoutSet): SetMeasures {
   return { weight: set.weight, reps: set.reps, distanceMeters: set.distanceMeters, durationSeconds: set.durationSeconds }
 }
 
+function sameMeasures(a: SetMeasures, b: SetMeasures) {
+  return a.weight === b.weight && a.reps === b.reps && a.distanceMeters === b.distanceMeters && a.durationSeconds === b.durationSeconds
+}
+
 const draft = reactive<SetMeasures>(measuresOf(props.set))
 
 watch(() => props.set, (set) => {
+  if (pendingSave.value && sameMeasures(measuresOf(set), pendingSave.value)) {
+    // A Retry of an older payload can land after the user changed the draft; keep the form so the newer edits survive.
+    if (sameMeasures(draft, pendingSave.value)) editing.value = false
+    pendingSave.value = null
+    saving.value = false
+  }
   if (!editing.value) Object.assign(draft, measuresOf(set))
   if (!noteFocused.value) noteText.value = set.comment ?? ''
   if (set.comment) noteOpen.value = true
 })
 
+watch(() => props.error, (error) => {
+  if (error) saving.value = false
+})
+
 function display(measure: SetMeasure) {
   const value = props.set[FIELD[measure]]
   if (value === null || value === undefined) return ''
+  if (measure === 'reps') return `${value} reps`
   const sign = measure === 'weight' && props.loadStyle === 'assisted' ? '−' : ''
-  return `${sign}${value}${UNIT[measure]}`
+  return `${sign}${measureText(measure, value)}`
 }
 
 const volume = computed(() => {
@@ -84,12 +103,16 @@ function startEdit() {
 }
 
 function cancelEdit() {
+  pendingSave.value = null
+  saving.value = false
   editing.value = false
 }
 
+// Edit mode ends when the saved values come back (also via the card's Retry), so a failed save keeps what was typed.
 function saveEdit() {
+  pendingSave.value = { ...draft }
+  saving.value = true
   emit('save', { ...draft })
-  editing.value = false
 }
 
 function draftValue(measure: SetMeasure): number | null {
@@ -114,22 +137,44 @@ function saveNote() {
         <span class="w-12 shrink-0 text-sm text-dimmed">Set {{ index + 1 }}</span>
         <div v-for="measure in measures" :key="measure" class="flex min-w-0 basis-full items-center gap-1 sm:basis-auto sm:flex-1">
           <div class="min-w-0 flex-1">
+            <AppMilesInput
+              v-if="measure === 'distance'"
+              :model-value="draftValue(measure)"
+              :step="stepFor(measure)"
+              :aria-label="LABEL[measure]"
+              :ui="INPUT_UI"
+              :disabled="saving"
+              :data-test="`set-${measure}-${set.id}`"
+              @update:model-value="(value) => (draft[FIELD[measure]] = value)"
+            />
+            <AppDurationInput
+              v-else-if="measure === 'duration'"
+              :model-value="draftValue(measure)"
+              :step="stepFor(measure)"
+              :aria-label="LABEL[measure]"
+              :ui="INPUT_UI"
+              :disabled="saving"
+              :data-test="`set-${measure}-${set.id}`"
+              @update:model-value="(value) => (draft[FIELD[measure]] = value)"
+            />
             <AppNumberInput
+              v-else
               :model-value="draftValue(measure)"
               :min="0"
               :step="stepFor(measure)"
               :aria-label="LABEL[measure]"
               :ui="INPUT_UI"
+              :disabled="saving"
               :data-test="`set-${measure}-${set.id}`"
               @update:model-value="(value) => (draft[FIELD[measure]] = value)"
             />
           </div>
-          <span class="text-xs text-dimmed">{{ UNIT[measure].trim() }}</span>
+          <span class="text-xs text-dimmed">{{ EDIT_UNIT[measure] }}</span>
         </div>
       </div>
       <div class="flex justify-end gap-2">
         <UButton label="Cancel" variant="ghost" color="neutral" class="min-h-10" :data-test="`set-cancel-${set.id}`" @click="cancelEdit" />
-        <UButton label="Save" class="min-h-10" :data-test="`set-save-${set.id}`" @click="saveEdit" />
+        <UButton label="Save" class="min-h-10" :loading="saving" :data-test="`set-save-${set.id}`" @click="saveEdit" />
       </div>
     </div>
 

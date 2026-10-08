@@ -1,9 +1,10 @@
-import { and, between, count, eq, isNull, ne, or, sql } from 'drizzle-orm'
+import { and, between, count, eq, gt, isNull, ne, or, sql } from 'drizzle-orm'
 import type { HistoryStamp, OneRepMaxResult } from '~~/shared/types/workout'
-import { bestEstimate, estimateCacheKey, estimateWindowStart } from '~~/shared/utils/oneRepMax'
+import { bestEstimate, estimateCacheKey, estimateWindowStart, historyStampKey } from '~~/shared/utils/oneRepMax'
 import { workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
+import { readStamped, type StampedEntry } from '~~/server/utils/cache/stampedCache'
 import { db } from '~~/server/utils/db'
-import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
+import { loadExerciseSettings } from '~~/server/utils/workouts/exercises'
 import { repCapFor } from '~~/server/utils/workouts/rollups'
 
 const MAX_AGE = 60 * 60 * 24
@@ -18,14 +19,15 @@ async function historyStamp(userId: number, exerciseId: number): Promise<History
     .select({
       sets: count(workoutSets.id),
       setsAt: sql<string | null>`extract(epoch from max(workout_sets.updated_at))::text`,
-      sessionsAt: sql<string | null>`extract(epoch from max(workout_sessions.updated_at))::text`
+      sessionsAt: sql<string | null>`extract(epoch from max(workout_sessions.updated_at))::text`,
+      entriesAt: sql<string | null>`extract(epoch from max(workout_entries.updated_at))::text`
     })
     .from(workoutSets)
     .innerJoin(workoutEntries, eq(workoutEntries.id, workoutSets.entryId))
     .innerJoin(workoutSessions, eq(workoutSessions.id, workoutEntries.sessionId))
     .where(ownSetsOf(userId, exerciseId))
     .then((r) => r[0])
-  return { sets: row?.sets ?? 0, setsAt: row?.setsAt ?? null, sessionsAt: row?.sessionsAt ?? null }
+  return { sets: row?.sets ?? 0, setsAt: row?.setsAt ?? null, sessionsAt: row?.sessionsAt ?? null, entriesAt: row?.entriesAt ?? null }
 }
 
 async function computeEstimate(
@@ -42,6 +44,8 @@ async function computeEstimate(
     .where(and(
       ownSetsOf(userId, exerciseId),
       between(workoutSessions.performedOn, estimateWindowStart(on), on),
+      gt(workoutSets.weight, '0'),
+      between(workoutSets.reps, 1, repCap),
       or(isNull(workoutEntries.loadStyle), ne(workoutEntries.loadStyle, 'assisted'))
     ))
   const best = bestEstimate(
@@ -54,24 +58,20 @@ async function computeEstimate(
   return { estimate: best?.estimate ?? null, source: best?.source ?? null, assisted: false }
 }
 
-// Built lazily so importing this file never requires Nitro's defineCachedFunction to exist.
-type CachedEstimate = (
-  userId: number, exerciseId: number, on: string, cap: number, stamp: HistoryStamp
-) => Promise<OneRepMaxResult>
-let cachedEstimate: CachedEstimate | undefined
-
 export async function oneRepMaxFor(userId: number, exerciseId: number, on: string): Promise<OneRepMaxResult> {
-  const exercise = await loadExerciseForUser(userId, exerciseId)
+  const exercise = await loadExerciseSettings(userId, exerciseId)
   if (exercise.loadStyle === 'assisted') return { estimate: null, source: null, assisted: true }
   const repCap = await repCapFor(userId)
-  cachedEstimate ??= defineCachedFunction(
-    (user: number, id: number, day: string, cap: number, _stamp: HistoryStamp) => computeEstimate(user, id, day, cap),
+  const stamp = historyStampKey(await historyStamp(userId, exerciseId))
+  const storage = useStorage('cache')
+  return readStamped<OneRepMaxResult>(
     {
-      name: 'one-rep-max',
-      maxAge: MAX_AGE,
-      swr: false,
-      getKey: (user, id, day, cap, stamp) => `${estimateCacheKey(user, id, day, stamp)}:${cap}`
-    }
+      get: (key) => storage.getItem<StampedEntry<OneRepMaxResult>>(key),
+      set: (key, entry, ttl) => storage.setItem(key, entry, { ttl })
+    },
+    estimateCacheKey(userId, exerciseId, on, repCap),
+    stamp,
+    MAX_AGE,
+    () => computeEstimate(userId, exerciseId, on, repCap)
   )
-  return cachedEstimate(userId, exerciseId, on, repCap, await historyStamp(userId, exerciseId))
 }

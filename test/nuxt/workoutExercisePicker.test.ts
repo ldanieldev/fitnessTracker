@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { DOMWrapper, flushPromises } from '@vue/test-utils'
+import { getQuery } from 'h3'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import WorkoutExercisePicker from '../../app/components/workout/WorkoutExercisePicker.vue'
 
@@ -46,6 +47,60 @@ afterEach(() => {
 })
 
 describe('WorkoutExercisePicker', () => {
+  it('asks the server once per search while open, and again after reopening', async () => {
+    const seen: string[] = []
+    registerEndpoint('/api/workouts/exercises', {
+      method: 'GET',
+      handler: (event) => {
+        seen.push(String(getQuery(event).q ?? ''))
+        return [exercise(1, 'Bench Press', true)]
+      }
+    })
+    const typeAndWait = async (value: string) => {
+      await type(value)
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      await settle()
+    }
+    const wrapper = await mountSuspended(WorkoutExercisePicker, { attachTo: document.body, props: { open: true } })
+    await settle()
+    await typeAndWait('curl')
+    await typeAndWait('cur')
+    await typeAndWait('curl')
+    expect(seen).toEqual(['', 'curl', 'cur'])
+    expect(document.querySelectorAll('[data-test="exercise-row"]')).toHaveLength(1)
+    await wrapper.setProps({ open: false })
+    await settle()
+    await wrapper.setProps({ open: true })
+    await settle()
+    expect(seen).toEqual(['', 'curl', 'cur', ''])
+    wrapper.unmount()
+  })
+
+  it('keeps the reopened list when a request from the previous open lands late', async () => {
+    let calls = 0
+    registerEndpoint('/api/workouts/exercises', {
+      method: 'GET',
+      handler: async () => {
+        const call = ++calls
+        if (call === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 80))
+          return [exercise(1, 'Old Row', true)]
+        }
+        return [exercise(2, 'New Row', true)]
+      }
+    })
+    const wrapper = await mountSuspended(WorkoutExercisePicker, { attachTo: document.body, props: { open: true } })
+    await wrapper.setProps({ open: false })
+    await wrapper.setProps({ open: true })
+    await settle()
+    await new Promise((resolve) => setTimeout(resolve, 120))
+    await flushPromises()
+    const names = [...document.querySelectorAll('[data-test="exercise-row"]')].map((row) => row.textContent?.trim())
+    expect(calls).toBe(2)
+    expect(names).toEqual(['New Row'])
+    wrapper.unmount()
+  })
+
   it('starts empty each time the parent opens it', async () => {
     stub()
     const wrapper = await mountSuspended(WorkoutExercisePicker, { attachTo: document.body, props: { open: true } })

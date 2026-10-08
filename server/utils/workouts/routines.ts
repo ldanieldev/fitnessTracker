@@ -3,20 +3,36 @@ import type { Routine, RoutineDay, RoutineEntry, RoutineSummary } from '~~/share
 import { exercisePrefs, exercises, programs, routines, workoutTemplateEntries, workoutTemplates } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
 import type { RoutineCreateInput, RoutinePatchInput } from '~~/server/utils/workouts/input'
-import { pauseLiveEnrollment, programControllingRoutine, programsUsingRoutine, utcToday } from '~~/server/utils/workouts/enrollments'
+import { pauseLiveEnrollment, programControllingRoutine, programsUsingRoutine, syncEnrollment, utcToday } from '~~/server/utils/workouts/enrollments'
 import { targetColumns, toEntryTarget } from '~~/server/utils/workouts/targets'
 import { dueDayId, skipPointer } from '~~/shared/utils/routineCycle'
 
 const ROUTINE_NOT_FOUND = { statusCode: 404, statusMessage: 'Routine not found' } as const
 
-export async function ownedRoutine(userId: number, id: number, client: DbClient = db) {
-  const row = await client
+export async function ownedRoutine(userId: number, id: number) {
+  const row = await db
     .select()
     .from(routines)
     .where(and(eq(routines.id, id), eq(routines.userId, userId)))
     .then((r) => r[0])
   if (!row) throw createError(ROUTINE_NOT_FOUND)
   return row
+}
+
+export async function lockRoutine(tx: DbClient, userId: number, id: number) {
+  const row = await tx
+    .select()
+    .from(routines)
+    .where(and(eq(routines.id, id), eq(routines.userId, userId)))
+    .for('update')
+    .then((r) => r[0])
+  if (!row) throw createError(ROUTINE_NOT_FOUND)
+  return row
+}
+
+// Sibling active-flag writes take every routine in id order first; NO KEY UPDATE so phase inserts' FK KEY SHARE locks never join a cycle.
+export async function lockUserRoutines(tx: DbClient, userId: number) {
+  await tx.select({ id: routines.id }).from(routines).where(eq(routines.userId, userId)).orderBy(asc(routines.id)).for('no key update')
 }
 
 export async function cycleDays(routineId: number, client: DbClient = db) {
@@ -135,7 +151,14 @@ export async function createRoutine(userId: number, input: RoutineCreateInput): 
 
 export async function patchRoutine(userId: number, id: number, patch: RoutinePatchInput): Promise<Routine> {
   await db.transaction(async (tx) => {
-    await ownedRoutine(userId, id, tx)
+    const today = patch.today ?? utcToday()
+    if (patch.active !== undefined) await lockUserRoutines(tx, userId)
+    let row = await lockRoutine(tx, userId, id)
+    if (patch.active !== undefined) {
+      // The guard compares against the synced flag, so a rollover that already switched to this routine is not refused.
+      await syncEnrollment(tx, userId, today)
+      row = await lockRoutine(tx, userId, id)
+    }
     const days = await cycleDays(id, tx)
     const values: Partial<typeof routines.$inferInsert> = {}
     if (patch.name !== undefined) values.name = patch.name
@@ -146,8 +169,7 @@ export async function patchRoutine(userId: number, id: number, patch: RoutinePat
       if (day.floating) throw createError({ statusCode: 400, statusMessage: 'A floating day cannot be next' })
       values.nextDayId = day.id
     }
-    if (patch.active !== undefined) {
-      const today = patch.today ?? utcToday()
+    if (patch.active !== undefined && patch.active !== row.active) {
       const live = await programControllingRoutine(tx, userId, today)
       if (live) {
         if (!patch.pauseProgram) {
@@ -174,22 +196,26 @@ export async function patchRoutine(userId: number, id: number, patch: RoutinePat
 }
 
 export async function deleteRoutine(userId: number, id: number): Promise<void> {
-  await ownedRoutine(userId, id)
-  const using = await programsUsingRoutine(db, id)
-  if (using.length) {
-    throw createError({
-      statusCode: 409,
-      statusMessage: `Used by ${using.map((p) => p.name).join(', ')} - remove it from those phases first`,
-      data: { code: 'routine_in_program', programs: using }
-    })
-  }
-  await db.delete(routines).where(eq(routines.id, id))
+  await db.transaction(async (tx) => {
+    await lockRoutine(tx, userId, id)
+    const using = await programsUsingRoutine(tx, id)
+    if (using.length) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: `Used by ${using.map((p) => p.name).join(', ')} - remove it from those phases first`,
+        data: { code: 'routine_in_program', programs: using }
+      })
+    }
+    await tx.delete(routines).where(eq(routines.id, id))
+  })
 }
 
 export async function skipRoutineDay(userId: number, id: number): Promise<Routine> {
-  const row = await ownedRoutine(userId, id)
-  const days = await cycleDays(id)
-  await db.update(routines).set({ nextDayId: skipPointer(days, row.nextDayId) }).where(eq(routines.id, id))
+  await db.transaction(async (tx) => {
+    const row = await lockRoutine(tx, userId, id)
+    const days = await cycleDays(id, tx)
+    await tx.update(routines).set({ nextDayId: skipPointer(days, row.nextDayId) }).where(eq(routines.id, id))
+  })
   return loadRoutine(userId, id)
 }
 

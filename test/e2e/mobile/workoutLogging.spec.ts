@@ -58,9 +58,9 @@ test('phone: start a workout, log sets, set a record, edit, collapse, end, copy 
 
   const cardId = (await page.locator('[data-test^="entry-card-"]').first().getAttribute('data-test'))!.replace('entry-card-', '')
   await page.locator(`[data-test="entry-collapse-${cardId}"]`).click()
-  await expect(page.locator('[data-test="set-form"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="set-form"]')).toBeHidden()
   await page.locator(`[data-test="entry-collapse-${cardId}"]`).click()
-  await expect(page.locator('[data-test="set-form"]')).toHaveCount(1)
+  await expect(page.locator('[data-test="set-form"]')).toBeVisible()
 
   await page.locator('[data-test="session-finish"]').click()
   await expect(page.locator('[data-test="start-empty"]')).toBeVisible()

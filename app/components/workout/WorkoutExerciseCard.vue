@@ -6,6 +6,7 @@ import { prefillFor } from '~~/shared/utils/workoutPrefill'
 import { progressionCopy, progressionFor } from '~~/shared/utils/workoutProgression'
 import { formatSet } from '~~/shared/utils/setFormat'
 import { measuresFor } from '~~/shared/utils/setRules'
+import { plural } from '~/utils/plural'
 import WorkoutSetRow from '~/components/workout/WorkoutSetRow.vue'
 import WorkoutSetForm from '~/components/workout/WorkoutSetForm.vue'
 import WorkoutProgressionPrompt from '~/components/workout/WorkoutProgressionPrompt.vue'
@@ -33,7 +34,6 @@ const emit = defineEmits<{
   addSet: [values: SetMeasures & { comment?: string }]
   editSet: [id: number, values: SetMeasures & { comment?: string }]
   removeSet: [id: number]
-  toggleDone: [id: number]
   move: [direction: -1 | 1]
   remove: []
   retrySave: [setId: number | null]
@@ -44,7 +44,6 @@ const emit = defineEmits<{
 
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 const confirmRemoveOpen = ref(false)
-const menuOpen = ref(false)
 
 function errorFor(setId: number | null) {
   return props.saveErrors?.[setId === null ? 'new' : String(setId)] ?? null
@@ -60,7 +59,7 @@ const copy = computed(() =>
 const choice = ref<'apply' | 'stay' | null>(null)
 const promptOpen = ref(false)
 const formWeight = ref<number | null>(null)
-const plateWeight = computed(() => (collapsed.value ? null : formWeight.value) ?? prefill.value.weight ?? null)
+const plateWeight = computed(() => formWeight.value ?? prefill.value.weight ?? null)
 
 watch(
   [() => props.entry.sets.length, () => progression.value?.kind, () => progression.value?.weight],
@@ -124,6 +123,7 @@ function confirmRemove() {
             class="size-10 shrink-0 justify-center"
             :aria-label="collapsed ? 'Expand' : 'Collapse'"
             :aria-expanded="!collapsed"
+            :aria-controls="`entry-body-${entry.id}`"
             :data-test="`entry-collapse-${entry.id}`"
             @click="collapsed = !collapsed"
           />
@@ -146,7 +146,7 @@ function confirmRemove() {
           />
           <UBadge
             v-else-if="entry.sets.length > 0"
-            :label="`${entry.sets.length} ${entry.sets.length === 1 ? 'set' : 'sets'}`"
+            :label="plural(entry.sets.length, 'set')"
             variant="subtle"
             size="sm"
             class="shrink-0"
@@ -162,7 +162,7 @@ function confirmRemove() {
               :to="`/workouts/exercises/${entry.exerciseId}?tab=history`"
               :data-test="`entry-history-${entry.id}`"
             />
-            <UDropdownMenu v-model:open="menuOpen" :items="menu">
+            <UDropdownMenu :items="menu">
               <UButton
                 icon="i-lucide-ellipsis-vertical"
                 variant="ghost"
@@ -212,7 +212,7 @@ function confirmRemove() {
       </div>
     </template>
 
-    <div v-if="!collapsed" class="flex flex-col gap-4">
+    <div v-show="!collapsed" :id="`entry-body-${entry.id}`" class="flex flex-col gap-4" :data-test="`entry-body-${entry.id}`">
       <div v-if="entry.sets.length > 0" class="flex flex-col gap-2 max-sm:gap-1">
         <div v-for="(set, index) in entry.sets" :key="set.id" data-test="set-row">
           <WorkoutSetRow
@@ -221,9 +221,9 @@ function confirmRemove() {
             :tracking-type="entry.trackingType"
             :load-style="entry.loadStyle"
             :weight-increment="entry.weightIncrement"
+            :error="errorFor(set.id)"
             @save="(values) => emit('editSet', set.id, values)"
             @remove="emit('removeSet', set.id)"
-            @toggle-done="emit('toggleDone', set.id)"
           />
           <div v-if="errorFor(set.id)" class="flex items-center gap-2 px-3 pt-1" :data-test="`set-save-error-${set.id}`">
             <span class="min-w-0 flex-1 truncate text-xs text-error">{{ errorFor(set.id) }}</span>
@@ -246,7 +246,7 @@ function confirmRemove() {
       <WorkoutSetForm
         :entry="entry"
         :preset-weight="presetWeight"
-        :deload="deload"
+        :progression="progression"
         :choice="choice"
         @save="(values) => emit('addSet', values)"
         @choose="choose"

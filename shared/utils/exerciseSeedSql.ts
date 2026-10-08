@@ -16,6 +16,11 @@ function lit(value: string | null): string {
   return `'${value.replaceAll('\'', '\'\'')}'`
 }
 
+// SQL null, not the JSON value null that `'null'::jsonb` would store.
+function jsonbOrNull(value: string[] | null): string {
+  return value === null ? 'null' : `${lit(JSON.stringify(value))}::jsonb`
+}
+
 function titleCase(key: string): string {
   return key.replace(/(^|[\s-])([a-z])/g, (_match, sep: string, ch: string) => sep + ch.toUpperCase())
 }
@@ -59,8 +64,7 @@ function exerciseSql(entry: SeedEntry): string {
     + 'images, external_id'
   const values = `${lit(entry.name)}, c.id, ${lit(trackingType)}, ${lit(loadStyle)}, `
     + `${barWeight === null ? 'null' : barWeight}, ${lit(difficulty)}, `
-    + `${lit(JSON.stringify(entry.instructions))}::jsonb, `
-    + `${lit(JSON.stringify(entry.images))}::jsonb, ${lit(entry.id)}`
+    + `${jsonbOrNull(entry.instructions)}, ${jsonbOrNull(entry.images ?? [])}, ${lit(entry.id)}`
   return `insert into app.exercises (${columns})
 select ${values}
 from app.exercise_categories c where c.key = ${lit(categoryKey)} and c.user_id is null
@@ -74,6 +78,15 @@ on conflict (external_id) where created_by_user_id is null do update set
   instructions = excluded.instructions,
   images = excluded.images,
   updated_at = now();`
+}
+
+// Links are replaced, not merged: `on conflict do nothing` alone keeps a muscle or equipment dropped upstream.
+function clearLinksSql(table: 'exercise_muscles' | 'exercise_equipment', entries: SeedEntry[]): string {
+  if (entries.length === 0) return ''
+  return `delete from app.${table} l
+using app.exercises e
+where l.exercise_id = e.id and e.created_by_user_id is null
+  and e.external_id in (${entries.map((entry) => lit(entry.id)).join(', ')});`
 }
 
 function muscleLinksSql(entries: SeedEntry[]): string {
@@ -114,7 +127,9 @@ export function buildSeedSql(entries: SeedEntry[]): string {
     musclesSql(),
     equipmentSql(),
     ...entries.map(exerciseSql),
+    clearLinksSql('exercise_muscles', entries),
     muscleLinksSql(entries),
+    clearLinksSql('exercise_equipment', entries),
     equipmentLinksSql(entries)
   ].filter((statement) => statement.length > 0)
   return statements.join('\n--> statement-breakpoint\n')

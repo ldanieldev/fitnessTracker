@@ -66,3 +66,79 @@ test('bad import files are rejected', async ({ page, goto }) => {
     }] }] }]
   })).status).toBe(400)
 })
+
+const entry = (exercise: object) => ({
+  exercise, targetSets: null, targetLow: null, targetHigh: null, targetWeight: null,
+  supersetGroup: null, optional: false, restSeconds: null, notes: null
+})
+const importFile = (entries: object[]) => ({
+  format: 'mfj-program',
+  version: 1,
+  program: { name: uniquePrefix('Imp P '), description: null, phases: [{ name: 'Main', weeks: 1, deload: false, routine: 0 }] },
+  routines: [{ name: uniquePrefix('Imp R '), notes: null, days: [{ name: 'Day', description: null, floating: false, entries }] }]
+})
+const customExercise = (name: string, category: { name: string, color: string }) =>
+  ({ name, trackingType: 'weight_reps', loadStyle: 'plain', barWeight: null, category })
+
+test('an import with an unknown catalogue exercise creates nothing', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const name = uniquePrefix('Preflight Curl ')
+  const curl = entry(customExercise(name, { name: 'Arms', color: 'sky' }))
+  const bad = await apiFetch(page, 'POST', '/api/workouts/programs/import', importFile([curl, entry({ externalId: 'Does_Not_Exist_Anywhere' })]))
+  expect(bad.status).toBe(400)
+  const ok = await apiFetch<ProgramImportResult>(page, 'POST', '/api/workouts/programs/import', importFile([curl]))
+  expect(ok.json.exercises).toEqual({ matched: 0, created: [name] })
+})
+
+test('import matches categories by name, hidden ones included, and creates missing ones', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const shared = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')).json.categories
+  const chest = shared.find((c) => c.key === 'chest')!
+  const hidden = shared.find((c) => c.shared && c.key !== 'chest')!
+  expect((await apiFetch(page, 'PATCH', `/api/workouts/categories/${hidden.id}`, { hidden: true })).status).toBe(200)
+  const fresh = uniquePrefix('Neck ')
+  const names = [uniquePrefix('Cat Fly '), uniquePrefix('Cat Hidden '), uniquePrefix('Cat Neck ')]
+  const result = (await apiFetch<ProgramImportResult>(page, 'POST', '/api/workouts/programs/import', importFile([
+    entry(customExercise(names[0]!, { name: 'CHEST', color: 'teal' })),
+    entry(customExercise(names[1]!, { name: hidden.name.toUpperCase(), color: 'rose' })),
+    entry(customExercise(names[2]!, { name: fresh, color: 'violet' }))
+  ]))).json
+  expect(result.exercises).toEqual({ matched: 0, created: names })
+  const imported = (await apiFetch<Program>(page, 'GET', `/api/workouts/programs/${result.programId}`)).json
+  const r = (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${imported.phases[0]!.routine!.id}`)).json
+  const categories = await Promise.all(r.days[0]!.entries.map(async (e) =>
+    (await apiFetch<Exercise>(page, 'GET', `/api/workouts/exercises/${e.exerciseId}`)).json.category))
+  expect(categories[0]!.id).toBe(chest.id)
+  expect(categories[1]!.id).toBe(hidden.id)
+  expect(categories[2]).toMatchObject({ name: fresh, color: 'violet', shared: false })
+  const all = (await apiFetch<ExerciseCategory[]>(page, 'GET', '/api/workouts/categories?includeHidden=true')).json
+  expect(all.filter((c) => c.name.toLowerCase() === 'chest')).toHaveLength(1)
+  expect(all.filter((c) => c.name.toLowerCase() === hidden.name.toLowerCase())).toHaveLength(1)
+})
+
+test('an import that fails part-way leaves no category, exercise, routine or program behind', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const chest = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')).json.categories
+    .find((c) => c.key === 'chest')!
+  const taken = uniquePrefix('Taken Row ')
+  for (const [name, trackingType] of [[taken, 'weight_reps'], [`${taken} (imported)`, 'weight_distance']]) {
+    const res = await apiFetch(page, 'POST', '/api/workouts/exercises', { name, categoryId: chest.id, trackingType, loadStyle: 'plain' })
+    expect(res.status).toBe(200)
+  }
+  const fresh = uniquePrefix('Rollback Cat ')
+  const first = uniquePrefix('Rollback Fly ')
+  const res = await apiFetch(page, 'POST', '/api/workouts/programs/import', importFile([
+    entry(customExercise(first, { name: fresh, color: 'violet' })),
+    entry({ name: taken, trackingType: 'distance_time', loadStyle: null, barWeight: null, category: { name: fresh, color: 'violet' } })
+  ]))
+  expect([res.status, (res.json as { statusMessage?: string }).statusMessage]).toEqual([409, 'You already have an exercise with that name'])
+  const categories = (await apiFetch<ExerciseCategory[]>(page, 'GET', '/api/workouts/categories?includeHidden=true')).json
+  expect(categories.filter((c) => c.name === fresh)).toEqual([])
+  const own = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises')).json.filter((e) => !e.shared)
+  expect(own.map((e) => e.name).sort()).toEqual([taken, `${taken} (imported)`].sort())
+  expect((await apiFetch<unknown[]>(page, 'GET', '/api/workouts/routines')).json).toEqual([])
+  expect((await apiFetch<unknown[]>(page, 'GET', '/api/workouts/programs')).json).toEqual([])
+})

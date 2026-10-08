@@ -85,6 +85,8 @@ export interface ExerciseRow {
   secondaryMuscles: string[]
 }
 
+export type CatalogueExerciseRow = Omit<ExerciseRow, 'instructions'>
+
 export interface ExercisePrefRow {
   barWeight: string | null
   trackingType: TrackingType | null
@@ -240,6 +242,7 @@ export interface HistoryStamp {
   sets: number
   setsAt: string | null
   sessionsAt: string | null
+  entriesAt: string | null
 }
 
 export const GRAPH_METRIC_VALUES = [

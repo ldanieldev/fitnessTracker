@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import type { ChartRange } from '~~/shared/types/series'
-import type { WorkoutProgress } from '~~/shared/types/workout'
+import type { GraphMetric, WorkoutProgress } from '~~/shared/types/workout'
+import { cardioMetricDisplay } from '~~/shared/utils/cardioUnits'
 import { rangeStart } from '~~/shared/utils/series'
 import { metricLabel, metricUnit } from '~~/shared/utils/workoutMetrics'
 import { workoutGoalProgress } from '~~/shared/utils/workoutGoals'
@@ -57,6 +58,16 @@ function goalDate(date: string) {
 
 function formatNumber(value: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+}
+
+function goalAmount(metric: GraphMetric, value: number | null) {
+  if (value == null) return '—'
+  const cardio = cardioMetricDisplay(metric)
+  return cardio ? cardio.format(cardio.toDisplay(value)) : formatNumber(value)
+}
+
+function goalUnit(metric: GraphMetric) {
+  return cardioMetricDisplay(metric)?.unit ?? metricUnit(metric)
 }
 </script>
 
@@ -164,9 +175,8 @@ function formatNumber(value: number) {
                     <UBadge v-if="goal.reached" label="Reached" color="success" variant="subtle" size="sm" />
                   </div>
                   <p class="text-sm text-dimmed">{{ metricLabel(goal.metric, goal.lowerIsBetter ? 'assisted' : null) }}</p>
-                  <p class="text-sm tabular-nums">
-                    {{ goal.current != null ? formatNumber(goal.current) : '—' }}
-                    / {{ formatNumber(goal.targetValue) }} {{ metricUnit(goal.metric) }}
+                  <p class="text-sm tabular-nums" data-test="progress-goal-values">
+                    {{ goalAmount(goal.metric, goal.current) }} / {{ goalAmount(goal.metric, goal.targetValue) }} {{ goalUnit(goal.metric) }}
                   </p>
                   <div class="h-2 w-full overflow-hidden rounded-full bg-elevated">
                     <div

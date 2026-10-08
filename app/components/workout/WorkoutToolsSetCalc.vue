@@ -10,7 +10,10 @@ const QUICK = [65, 75, 85, 90, 95]
 const percent = ref<number | null>(85)
 
 const barbell = computed(() => props.context.bar !== null && props.context.sizes !== null)
-const raw = computed(() => (props.oneRm === null || percent.value === null ? null : roundTenth((props.oneRm * percent.value) / 100)))
+const raw = computed(() => {
+  if (props.oneRm === null || percent.value === null || percent.value <= 0) return null
+  return roundTenth((props.oneRm * percent.value) / 100)
+})
 const loadable = computed(() => {
   if (raw.value === null) return null
   return barbell.value

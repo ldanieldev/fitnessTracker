@@ -8,6 +8,8 @@ interface OutboxRow {
   op: 'upsert' | 'delete'
 }
 
+export type OutboxEntity = 'food' | 'exercise'
+
 export interface OutboxDrainResult {
   processed: number
   failed: number
@@ -32,7 +34,7 @@ export function coalesceOutboxRows(rows: OutboxRow[]): Array<{ entityId: number,
 }
 
 export async function drainOutbox(
-  entity: string,
+  entity: OutboxEntity,
   provider: DrainTarget,
   hooks: { isEmpty?: () => Promise<boolean> },
   limit = 500

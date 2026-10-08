@@ -65,6 +65,10 @@ export function effectiveOneRepMax(
   return result?.estimate ?? null
 }
 
-export function estimateCacheKey(userId: number, exerciseId: number, on: string, stamp: HistoryStamp): string {
-  return [userId, exerciseId, on, stamp.sets, stamp.setsAt ?? '0', stamp.sessionsAt ?? '0'].join(':')
+export function estimateCacheKey(userId: number, exerciseId: number, on: string, repCap: number): string {
+  return `one-rep-max:${userId}:${exerciseId}:${on}:${repCap}`
+}
+
+export function historyStampKey(stamp: HistoryStamp): string {
+  return [stamp.sets, stamp.setsAt ?? '0', stamp.sessionsAt ?? '0', stamp.entriesAt ?? '0'].join(':')
 }

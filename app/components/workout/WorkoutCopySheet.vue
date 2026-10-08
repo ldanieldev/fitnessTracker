@@ -1,27 +1,23 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import type { WorkoutSession, WorkoutSessionSummary } from '~~/shared/types/workout'
-import { errorMessage } from '~/utils/apiError'
+import { plural } from '~/utils/plural'
 
 const props = defineProps<{ sourceId?: number | null }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ start: [body: { copyFromId: number, entryIds: number[] }] }>()
-const toast = useToast()
+const fail = useFailToast()
 
 const recent = ref<WorkoutSessionSummary[]>([])
 const source = ref<WorkoutSession | null>(null)
 const picked = ref<number[]>([])
-
-function fail(err: unknown, fallback: string) {
-  toast.add({ title: 'Load failed', description: errorMessage(err, fallback), color: 'error' })
-}
 
 async function pickSource(id: number) {
   try {
     source.value = await apiFetch<WorkoutSession>(`/api/workouts/sessions/${id}`)
     picked.value = source.value.entries.map((entry) => entry.id)
   } catch (err: unknown) {
-    fail(err, 'Could not load this workout')
+    fail('Couldn\'t load workout', err, 'Could not load this workout')
   }
 }
 
@@ -32,7 +28,7 @@ watch(open, async (isOpen) => {
   try {
     recent.value = await apiFetch<WorkoutSessionSummary[]>('/api/workouts/sessions?limit=10')
   } catch (err: unknown) {
-    fail(err, 'Could not load past workouts')
+    fail('Couldn\'t load past workouts', err, 'Could not load past workouts')
   }
 }, { immediate: true })
 
@@ -44,10 +40,6 @@ function startCopy() {
   if (!source.value || !picked.value.length) return
   open.value = false
   emit('start', { copyFromId: source.value.id, entryIds: source.value.entries.map((e) => e.id).filter((id) => picked.value.includes(id)) })
-}
-
-function plural(count: number, noun: string) {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
 
 function recentLine(summary: WorkoutSessionSummary) {
@@ -74,6 +66,7 @@ function recentLine(summary: WorkoutSessionSummary) {
         </button>
       </div>
       <div v-else class="flex flex-col gap-1">
+        <UButton v-if="!sourceId" label="Past workouts" icon="i-lucide-arrow-left" variant="ghost" color="neutral" class="min-h-10 self-start" data-test="copy-back" @click="source = null" />
         <button
           v-for="entry in source.entries"
           :key="entry.id"

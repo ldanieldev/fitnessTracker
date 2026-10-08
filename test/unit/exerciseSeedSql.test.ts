@@ -58,6 +58,28 @@ describe('buildSeedSql', () => {
     expect(statements.find((s) => s.includes('insert into app.muscles'))).toContain('name = excluded.name')
   })
 
+  it('stores SQL null for missing instructions and an empty array for missing images', () => {
+    const sql = buildSeedSql([{ ...bench, instructions: null, images: null }])
+    expect(sql).not.toContain('\'null\'::jsonb')
+    expect(sql).toContain('\'beginner\', null, \'[]\'::jsonb, \'Barbell_Bench_Press\'')
+  })
+
+  it('clears the catalogue links of every seeded exercise before re-linking it', () => {
+    const statements = buildSeedSql([bench, { ...bench, id: 'No_Kit', name: 'No Kit', equipment: null }])
+      .split('--> statement-breakpoint')
+    const at = (needle: string) => statements.findIndex((s) => s.includes(needle))
+    for (const table of ['exercise_muscles', 'exercise_equipment']) {
+      const clear = statements[at(`delete from app.${table}`)]!
+      expect(clear).toContain('e.created_by_user_id is null')
+      expect(clear).toContain('e.external_id in (\'Barbell_Bench_Press\', \'No_Kit\')')
+      expect(at(`delete from app.${table}`)).toBeLessThan(at(`insert into app.${table}`))
+    }
+  })
+
+  it('clears no links when there are no entries', () => {
+    expect(buildSeedSql([])).not.toContain('delete from')
+  })
+
   it('is deterministic for the same input', () => {
     expect(buildSeedSql([bench])).toBe(buildSeedSql([bench]))
   })

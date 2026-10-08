@@ -67,4 +67,27 @@ describe('WorkoutPlateCircles', () => {
     const wrapper = await mountSuspended(WorkoutPlateCircles, { props: { modelValue: null, bar: 45, sizes: rack } })
     expect(wrapper.find('[data-test="plates-caption"]').text()).toContain('Bar: 45 lb')
   })
+
+  it('makes the count badge its own button, not one nested in the plate', async () => {
+    const wrapper = await mountSuspended(WorkoutPlateCircles, { props: { modelValue: 135, bar: 45, sizes: [45, 25] } })
+    const badge = wrapper.find('[data-test="plate-count-45"]')
+    expect(badge.element.tagName).toBe('BUTTON')
+    expect(badge.element.parentElement!.closest('button')).toBeNull()
+    await badge.trigger('click')
+    expect(lastModel(wrapper)).toBe(45)
+  })
+
+  it('grows the count badge\'s hit area only up and right, away from the plate face', async () => {
+    const wrapper = await mountSuspended(WorkoutPlateCircles, { props: { modelValue: 135, bar: 45, sizes: [45, 25] } })
+    const classes = wrapper.find('[data-test="plate-count-45"]').classes()
+    expect(classes).toEqual(expect.arrayContaining(['before:absolute', 'before:left-1/2', 'before:bottom-1/2', 'before:-top-0.5', 'before:-right-2.5']))
+    expect(classes.filter((c) => /^before:-(inset|left|bottom)/.test(c))).toEqual([])
+  })
+
+  it('centres the small plates\' badge on the tap box corner so it covers little of the plate', async () => {
+    const wrapper = await mountSuspended(WorkoutPlateCircles, { props: { modelValue: 60, bar: 45, sizes: [45, 5, 2.5] } })
+    for (const size of [5, 2.5]) {
+      expect(wrapper.find(`[data-test="plate-count-${size}"]`).classes()).toEqual(expect.arrayContaining(['-right-2.5', '-top-2.5']))
+    }
+  })
 })

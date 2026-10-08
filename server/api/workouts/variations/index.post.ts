@@ -6,5 +6,5 @@ import { requireUserId } from '~~/server/utils/session'
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const body = await parseBody(event, variationCreateSchema)
-  return createVariationGroup(userId, body.name, body.exerciseIds)
+  return createVariationGroup(userId, body)
 })

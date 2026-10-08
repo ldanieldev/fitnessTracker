@@ -1,5 +1,6 @@
 import type { EntryTarget, SetMeasures, TargetMetric, TrackingType } from '../types/workout'
 import { measuresFor } from './setRules'
+import { clockLabel, metersToMiles } from './cardioUnits'
 
 const METRIC_FIELD: Record<TargetMetric, keyof SetMeasures> = {
   reps: 'reps',
@@ -19,10 +20,16 @@ export function targetValueOf(metric: TargetMetric, set: SetMeasures): number | 
   return set[METRIC_FIELD[metric]] ?? null
 }
 
-export function copyTargetsFrom(trackingType: TrackingType, sets: SetMeasures[], source: EntryTarget | null): EntryTarget | null {
+export function copyTargetsFrom(
+  trackingType: TrackingType,
+  sets: SetMeasures[],
+  source: EntryTarget | null,
+  sourceTrackingType: TrackingType = trackingType
+): EntryTarget | null {
   const metric = targetMetricFor(trackingType)
-  let low = source?.low ?? null
-  let high = source?.high ?? null
+  const sameMetric = metric === targetMetricFor(sourceTrackingType)
+  let low = sameMetric ? source?.low ?? null : null
+  let high = sameMetric ? source?.high ?? null : null
   if (low === null && high === null && metric) {
     const values = sets.map((set) => targetValueOf(metric, set)).filter((value): value is number => value !== null)
     if (values.length) {
@@ -41,18 +48,21 @@ function span(low: number | null, high: number | null): [number, number] | [numb
   return [low, high]
 }
 
-export function rangePlaceholder(low: number | null, high: number | null): string | null {
+function rangeValue(metric: TargetMetric, value: number): string {
+  if (metric === 'distance') return String(metersToMiles(value))
+  if (metric === 'time') return clockLabel(value)
+  return String(value)
+}
+
+export function rangePlaceholder(low: number | null, high: number | null, metric: TargetMetric = 'reps'): string | null {
   const values = span(low, high)
-  return values.length ? values.join('–') : null
+  return values.length ? values.map((value) => rangeValue(metric, value)).join('–') : null
 }
 
 export function formatTargetRange(metric: TargetMetric, low: number | null, high: number | null): string {
-  const values = span(low, high)
-  if (!values.length) return ''
-  if (metric === 'reps') return values.join('–')
-  if (metric === 'distance') return `${values.join('–')} m`
-  if (values.every((value) => value >= 60 && value % 60 === 0)) return `${values.map((value) => value / 60).join('–')} min`
-  return `${values.join('–')} s`
+  const text = rangePlaceholder(low, high, metric)
+  if (text === null) return ''
+  return metric === 'distance' ? `${text} mi` : text
 }
 
 function rangeFor(trackingType: TrackingType, target: EntryTarget): string {

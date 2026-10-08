@@ -29,8 +29,8 @@ watch(programId, async (id) => {
   restoring = false
   if (!restore) phaseId.value = ANY
   programDetail.value = null
+  phasesLoading.value = id !== ANY
   if (id === ANY) return
-  phasesLoading.value = true
   try {
     const detail = await apiFetch<Program>(`/api/workouts/programs/${id}`)
     if (programId.value === id) programDetail.value = detail
@@ -56,9 +56,10 @@ const exerciseId = ref<number | null>(null)
 
 async function loadExercise(id: number) {
   try {
-    exercise.value = await apiFetch<Exercise>(`/api/workouts/exercises/${id}`)
+    const found = await apiFetch<Exercise>(`/api/workouts/exercises/${id}`)
+    if (exerciseId.value === id) exercise.value = found
   } catch {
-    exercise.value = null
+    if (exerciseId.value === id) exercise.value = null
   }
 }
 
@@ -92,6 +93,13 @@ function toggle(id: number) {
   categories.value = categories.value.includes(id) ? categories.value.filter((c) => c !== id) : [...categories.value, id]
 }
 
+const chips = computed<Array<Pick<ExerciseCategory, 'id' | 'name' | 'color'>>>(() => {
+  if (!reference.value) return []
+  const known = new Set(reference.value.categories.map((c) => c.id))
+  const unknown = categories.value.filter((id) => !known.has(id)).map((id) => ({ id, name: 'Unknown category', color: 'fallback' }))
+  return [...reference.value.categories, ...unknown]
+})
+
 function clearExercise() {
   exerciseId.value = null
   exercise.value = null
@@ -99,7 +107,10 @@ function clearExercise() {
   minReps.value = null
 }
 
-const weightLabel = computed(() => (exercise.value?.loadStyle === 'assisted' ? 'Max assist (lb)' : 'Min weight (lb)'))
+const weightLabel = computed(() => {
+  if (exerciseId.value && !exercise.value) return 'Weight (lb)'
+  return exercise.value?.loadStyle === 'assisted' ? 'Max assist (lb)' : 'Min weight (lb)'
+})
 
 function apply() {
   const filter: SessionFilter = {}
@@ -132,7 +143,7 @@ function clear() {
           <h3 class="text-sm font-medium text-highlighted">Categories</h3>
           <div class="flex flex-wrap gap-2">
             <UButton
-              v-for="category in reference?.categories ?? []"
+              v-for="category in chips"
               :key="category.id"
               :variant="categories.includes(category.id) ? 'soft' : 'outline'"
               :color="categories.includes(category.id) ? 'primary' : 'neutral'"

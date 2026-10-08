@@ -115,4 +115,32 @@ describe('ExerciseSettingsPanel', () => {
     expect(wrapper.find('[data-test="setting-rest-seconds"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="setting-weight-increment"]').exists()).toBe(false)
   })
+
+  it('binds each field label to its control and keeps the dimmed label colour', async () => {
+    const wrapper = await mountSuspended(ExerciseSettingsPanel, {
+      props: { exercise, categories: [exercise.category] }
+    })
+    const labelFor = (text: string) => wrapper.findAll('label').find((el) => el.text() === text)!
+    const controlFor = (text: string) => wrapper.element.querySelector(`[id="${labelFor(text).attributes('for')}"]`)
+    expect(controlFor('Category')).toBe(wrapper.find('[data-test="setting-category"]').element)
+    expect(controlFor('Tracking type')).toBe(wrapper.find('[data-test="setting-tracking-type"]').element)
+    expect(controlFor('Load style')).toBe(wrapper.find('[data-test="setting-load-style"]').element)
+    expect(controlFor('Bar weight')).toBe(wrapper.find('[data-test="setting-bar-weight"]').element)
+    expect(labelFor('Category').classes()).toContain('text-dimmed')
+    expect(labelFor('Category').classes()).not.toContain('text-default')
+  })
+
+  it('leaves barWeight out of the patch when it was and stays null', async () => {
+    const back = { ...exercise.category, id: 2, key: 'back', name: 'Back' }
+    const wrapper = await mountSuspended(ExerciseSettingsPanel, {
+      props: { exercise: { ...exercise, loadStyle: 'plain' as const, barWeight: null }, categories: [exercise.category, back] }
+    })
+    // data-test lands on USelect's inner trigger, not the wrapper root VTU sees, so match by item count.
+    const selects = wrapper.findAllComponents(USelect) as unknown as SelectProbe[]
+    const categorySelect = selects.find((c) => (c.props('items') as unknown[]).length === 2)!
+    categorySelect.vm.$emit('update:modelValue', 2)
+    await nextTick()
+    await wrapper.find('[data-test="settings-save"]').trigger('click')
+    expect(wrapper.emitted('save')![0]![0]).toEqual({ categoryId: 2 })
+  })
 })

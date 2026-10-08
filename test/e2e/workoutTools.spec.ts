@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, OneRepMaxResult, WorkoutSession } from '../../shared/types/workout'
 
 async function barbellPair(page: Parameters<typeof apiFetch>[0]) {
@@ -27,7 +28,7 @@ test('plate override and rest time reach the workout entry', async ({ page, goto
   expect(prefs.json.plateSizes).toEqual([55, 45, 25, 10, 5, 2.5])
   expect((await apiFetch(page, 'PUT', `/api/workouts/exercises/${rack.id}/prefs`, { plateSizes: [] })).status).toBe(400)
 
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {})).json
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
   await apiFetch(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, { exerciseId: rack.id })
   const withBoth = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
     exerciseId: other.id
@@ -46,7 +47,7 @@ test('1RM estimate comes from recent sets and follows edits', async ({ page, got
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const [lift] = await barbellPair(page)
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayDate()
   const url = `/api/workouts/exercises/${lift.id}/one-rep-max?on=${today}`
 
   expect((await apiFetch<OneRepMaxResult>(page, 'GET', url)).json).toEqual({ estimate: null, source: null, assisted: false })
@@ -80,7 +81,7 @@ test('tools sheet loads the rack exercise with its own plates', async ({ page, g
   await registerViaApi(page, makeUser())
   const [rack, other] = await barbellPair(page)
   await apiFetch(page, 'PUT', `/api/workouts/exercises/${rack.id}/prefs`, { plateSizes: [55, 45, 25, 10, 5, 2.5] })
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {})).json
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
   await apiFetch(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, { exerciseId: rack.id })
   const entries = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
     exerciseId: other.id
@@ -109,4 +110,49 @@ test('tools sheet loads the rack exercise with its own plates', async ({ page, g
   await expect(page.locator('[data-test="one-rep-max-estimate"]')).toContainText('253.1')
   await page.locator('[data-test="tools-tab-set-calc"]').click()
   await expect(page.locator('[data-test="set-calc-loadable"]')).toBeVisible()
+})
+
+test('1RM ignores weightless and over-cap sets', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const [lift] = await barbellPair(page)
+  const today = todayDate()
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: today })).json
+  const addEntry = async () => (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+    exerciseId: lift.id
+  })).json.entries.at(-1)!.id
+
+  const weighted = await addEntry()
+  await apiFetch(page, 'POST', `/api/workouts/entries/${weighted}/sets`, { weight: 200, reps: 5 })
+  await apiFetch(page, 'POST', `/api/workouts/entries/${weighted}/sets`, { weight: 315, reps: 12 })
+  await apiFetch(page, 'PUT', `/api/workouts/exercises/${lift.id}/prefs`, { trackingType: 'reps' })
+  const repsOnly = await addEntry()
+  expect((await apiFetch(page, 'POST', `/api/workouts/entries/${repsOnly}/sets`, { reps: 3 })).status).toBe(200)
+  await apiFetch(page, 'PUT', `/api/workouts/exercises/${lift.id}/prefs`, { trackingType: null })
+
+  const url = `/api/workouts/exercises/${lift.id}/one-rep-max?on=${today}`
+  expect((await apiFetch<OneRepMaxResult>(page, 'GET', url)).json)
+    .toEqual({ estimate: 225, source: { weight: 200, reps: 5, performedOn: today }, assisted: false })
+})
+
+test('a plates override is refused unless the exercise loads as a barbell', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const [bar] = await barbellPair(page)
+  const plain = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=dumbbell')).json
+    .find((exercise) => exercise.loadStyle === 'plain' && exercise.trackingType === 'weight_reps')
+  expect(plain).toBeDefined()
+  const prefs = (id: number, body: object) => apiFetch<Exercise>(page, 'PUT', `/api/workouts/exercises/${id}/prefs`, body)
+
+  expect((await prefs(plain!.id, { plateSizes: [45, 25] })).status).toBe(400)
+  expect((await prefs(plain!.id, { plateSizes: null })).status).toBe(200)
+
+  const switched = await prefs(plain!.id, { loadStyle: 'barbell', plateSizes: [45, 25] })
+  expect(switched.status).toBe(200)
+  expect(switched.json.plateSizes).toEqual([45, 25])
+
+  expect((await prefs(bar.id, { loadStyle: 'plain', plateSizes: [45, 25] })).status).toBe(400)
+  const unchanged = (await apiFetch<Exercise>(page, 'GET', `/api/workouts/exercises/${bar.id}`)).json
+  expect(unchanged.loadStyle).toBe('barbell')
+  expect(unchanged.plateSizes).toBeNull()
 })

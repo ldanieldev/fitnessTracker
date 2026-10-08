@@ -25,7 +25,7 @@ describe('chartModel', () => {
     expect(path.match(/M/g)).toHaveLength(2)
   })
 
-  it('builds a model whose y domain is data-driven and ignores the goal, with date-linear x', async () => {
+  it('builds a model whose y domain is data-driven and ignores a far goal, with date-linear x', async () => {
     const { buildChartModel } = await import('../../shared/utils/chartModel')
     const points = [
       { date: '2026-03-01', value: 200 },
@@ -33,11 +33,12 @@ describe('chartModel', () => {
       { date: '2026-03-10', value: 198 }
     ]
     const m = buildChartModel({
-      points, trend: [], goal: 185, from: '2026-03-01', to: '2026-03-10', width: 320, height: 200, gapDays: 10
+      points, trend: [], goal: 100, from: '2026-03-01', to: '2026-03-10', width: 320, height: 200, gapDays: 10
     })
-    expect(m.y.domain[0]).toBeGreaterThan(185)
+    expect(m.y.domain[0]).toBeGreaterThan(100)
     expect(m.y.domain[1]).toBeLessThan(210)
-    expect(m.goalY).toBe(m.plot.bottom)
+    expect(m.goalY).toBeNull()
+    expect(m.goalEdge).toBe('below')
     expect(m.dots).toHaveLength(3)
     // 1 day apart vs 8 days apart on a linear date axis
     const gap1 = m.dots[1]!.x - m.dots[0]!.x
@@ -48,7 +49,7 @@ describe('chartModel', () => {
     expect(m.areaPath.endsWith('Z')).toBe(true)
   })
 
-  it('keeps an in-range goal on its own row and pins an out-of-range goal to the nearest edge', async () => {
+  it('widens the axis for a nearby goal and marks a far one at the edge instead of drawing it there', async () => {
     const { buildChartModel } = await import('../../shared/utils/chartModel')
     const points = [
       { date: '2026-03-01', value: 200 },
@@ -57,9 +58,21 @@ describe('chartModel', () => {
     const base = { points, trend: [], from: '2026-03-01', to: '2026-03-10', width: 320, height: 200, gapDays: 10 }
     const inside = buildChartModel({ ...base, goal: 199 })
     expect(inside.goalY).toBe(inside.y(199))
+    expect(inside.goalEdge).toBeNull()
+    const near = buildChartModel({ ...base, goal: 185 })
+    expect(near.y.domain[0]).toBeLessThanOrEqual(185)
+    expect(near.goalY).toBe(near.y(185))
     const above = buildChartModel({ ...base, goal: 260 })
-    expect(above.goalY).toBe(above.plot.top)
+    expect(above.goalY).toBeNull()
+    expect(above.goalEdge).toBe('above')
     expect(above.y.domain[1]).toBeLessThan(260)
+    const empty = buildChartModel({ ...base, points: [], goal: 150 })
+    expect(empty.goalY).toBe(empty.y(150))
+    expect(empty.goalEdge).toBeNull()
+    const lowZero = buildChartModel({ ...base, goal: 50, zeroBased: true })
+    expect(lowZero.goalY).toBe(lowZero.y(50))
+    expect(lowZero.goalEdge).toBeNull()
+    expect(buildChartModel({ ...base, goal: 50 }).goalEdge).toBe('below')
   })
 
   it('spreads date ticks from first to last day without duplicates', async () => {

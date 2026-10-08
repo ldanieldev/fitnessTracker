@@ -1,6 +1,5 @@
 import type { PointerChoice, WorkoutSession } from '~~/shared/types/workout'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
-import { errorMessage } from '~/utils/apiError'
 
 export interface WorkoutStartBody {
   routineDayId?: number
@@ -11,6 +10,7 @@ export interface WorkoutStartBody {
 
 export function useWorkoutStart() {
   const toast = useToast()
+  const fail = useFailToast()
   const starting = ref(false)
 
   async function start(body: WorkoutStartBody): Promise<WorkoutSession | null> {
@@ -30,7 +30,7 @@ export function useWorkoutStart() {
         await invalidateWorkouts()
         return open
       }
-      toast.add({ title: 'Update failed', description: errorMessage(err, 'Could not start this workout'), color: 'error' })
+      fail('Couldn\'t start workout', err, 'Could not start this workout')
       return null
     } finally {
       starting.value = false

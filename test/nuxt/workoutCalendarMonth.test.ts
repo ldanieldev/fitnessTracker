@@ -63,4 +63,16 @@ describe('WorkoutCalendarMonth', () => {
     const emitted = wrapper.emitted('update:day') ?? []
     expect(emitted.every((args) => args[0] !== undefined && args[0] !== null)).toBe(true)
   })
+
+  it('splits the underline when a day holds workouts from two phases', async () => {
+    const tag = (phaseId: number, phaseIndex: number) => ({ phaseId, phaseName: `P${phaseIndex}`, phaseIndex, week: 1 })
+    const day = (phaseId: number, phaseIndex: number) => ({ ...summary('2026-10-05', [{ id: 1, color: 'rose' }]), program: tag(phaseId, phaseIndex) })
+    const wrapper = await mountSuspended(WorkoutCalendarMonth, {
+      props: { month: '2026-10', day: null, sessions: [day(8, 1), day(7, 0), day(7, 0)] }
+    })
+    const marks = wrapper.findAll('[data-test="calendar-day-2026-10-05"] [data-test="calendar-phase"]')
+    expect(marks).toHaveLength(2)
+    expect(marks[0]!.attributes('class')).toContain('bg-sky-500')
+    expect(marks[1]!.attributes('class')).toContain('bg-amber-500')
+  })
 })

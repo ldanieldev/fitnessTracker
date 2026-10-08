@@ -1,8 +1,9 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, ExerciseSeries, WorkoutSession } from '../../shared/types/workout'
 
-const today = new Date().toISOString().slice(0, 10)
+const today = todayDate()
 
 test('workout series: metrics, validation and incremental rollups matching a rebuild', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })

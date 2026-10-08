@@ -20,8 +20,8 @@ watch([open, () => props.phase], ([isOpen, phase]) => {
   touched.value = false
 }, { immediate: true })
 
-watch(() => props.routines.length, () => {
-  if (open.value && !props.phase && !touched.value) form.routine = props.routines[0]?.id ?? REST
+watch(() => props.routines[0]?.id, (first) => {
+  if (open.value && !props.phase && !touched.value) form.routine = first ?? REST
 })
 
 const items = computed(() => [

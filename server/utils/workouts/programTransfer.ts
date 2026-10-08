@@ -3,16 +3,23 @@ import type { ProgramImportResult } from '~~/shared/types/program'
 import type { TrackingType } from '~~/shared/types/workout'
 import { matchImportExercise, type ExportExercise, type ProgramExport } from '~~/shared/utils/programExport'
 import { exerciseCategories, exercises, programPhases, programs, routines, workoutTemplateEntries, workoutTemplates } from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
+import { db, type DbTransaction } from '~~/server/utils/db'
 import { loadProgram } from '~~/server/utils/workouts/programs'
 import { loadRoutine } from '~~/server/utils/workouts/routines'
-import { createExercise } from '~~/server/utils/workouts/exercises'
+import { insertExercise } from '~~/server/utils/workouts/exerciseWrites'
 import { createCategory, listCategoriesForUser } from '~~/server/utils/workouts/categories'
 import { targetColumns } from '~~/server/utils/workouts/targets'
 import type { CategoryColor } from '~~/shared/utils/categoryColors'
 
 function slug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'program'
+}
+
+async function catalogueIdsByExternalId(externalIds: string[]): Promise<Map<string, number>> {
+  if (!externalIds.length) return new Map()
+  const rows = await db.select({ id: exercises.id, externalId: exercises.externalId }).from(exercises)
+    .where(and(inArray(exercises.externalId, externalIds), isNull(exercises.createdByUserId), isNull(exercises.deletedAt)))
+  return new Map(rows.flatMap((row) => (row.externalId ? [[row.externalId, row.id] as const] : [])))
 }
 
 export async function exportProgram(userId: number, id: number): Promise<{ filename: string, body: ProgramExport }> {
@@ -86,23 +93,19 @@ export async function exportProgram(userId: number, id: number): Promise<{ filen
 }
 
 async function resolveExercise(
+  tx: DbTransaction,
   userId: number,
   wanted: ExportExercise,
+  catalogue: Map<string, number>,
   result: ProgramImportResult['exercises']
 ): Promise<number> {
-  if (wanted.externalId) {
-    const hit = await db.select({ id: exercises.id }).from(exercises)
-      .where(and(eq(exercises.externalId, wanted.externalId), isNull(exercises.createdByUserId), isNull(exercises.deletedAt)))
-      .then((r) => r[0])
-    if (hit) {
-      result.matched++
-      return hit.id
-    }
+  const hit = wanted.externalId ? catalogue.get(wanted.externalId) : undefined
+  // importProgram has already rejected unknown catalogue ids, so an entry without custom fields always hits.
+  if (hit !== undefined || !('name' in wanted)) {
+    result.matched++
+    return hit!
   }
-  if (!('name' in wanted)) {
-    throw createError({ statusCode: 400, statusMessage: `Unknown catalogue exercise ${wanted.externalId}` })
-  }
-  const own = await db.select({ id: exercises.id, name: exercises.name, trackingType: exercises.trackingType }).from(exercises)
+  const own = await tx.select({ id: exercises.id, name: exercises.name, trackingType: exercises.trackingType }).from(exercises)
     .where(and(
       eq(exercises.createdByUserId, userId),
       isNull(exercises.deletedAt),
@@ -113,10 +116,10 @@ async function resolveExercise(
     result.matched++
     return decision.id
   }
-  const categories = await listCategoriesForUser(userId, { includeHidden: true })
+  const categories = await listCategoriesForUser(userId, { includeHidden: true, client: tx })
   const category = categories.find((c) => c.name.toLowerCase() === wanted.category.name.toLowerCase())
-    ?? await createCategory(userId, { name: wanted.category.name, color: wanted.category.color })
-  const created = await createExercise(userId, {
+    ?? await createCategory(userId, { name: wanted.category.name, color: wanted.category.color }, tx)
+  const id = await insertExercise(tx, userId, {
     name: decision.name,
     categoryId: category.id,
     trackingType: wanted.trackingType,
@@ -127,32 +130,38 @@ async function resolveExercise(
     secondaryMuscles: []
   })
   result.created.push(decision.name)
-  return created.id
+  return id
 }
 
 export async function importProgram(userId: number, data: ProgramExport): Promise<ProgramImportResult> {
   const result: ProgramImportResult['exercises'] = { matched: 0, created: [] }
-  const cache = new Map<string, number>()
-  const exerciseIds: number[][][] = []
-  for (const routine of data.routines) {
-    const days: number[][] = []
-    for (const day of routine.days) {
-      const ids: number[] = []
-      for (const entry of day.entries) {
-        const key = JSON.stringify(entry.exercise)
-        let id = cache.get(key)
-        if (id === undefined) {
-          id = await resolveExercise(userId, entry.exercise, result)
-          cache.set(key, id)
-        }
-        ids.push(id)
-      }
-      days.push(ids)
-    }
-    exerciseIds.push(days)
-  }
+  const wanted = data.routines.flatMap((routine) => routine.days.flatMap((day) => day.entries.map((entry) => entry.exercise)))
+  const catalogue = await catalogueIdsByExternalId([...new Set(wanted.flatMap((w) => (w.externalId ? [w.externalId] : [])))])
+  // Checked before the transaction opens, so a file naming an unknown catalogue id 400s without writing anything.
+  const unknown = wanted.find((w) => !('name' in w) && !catalogue.has(w.externalId))
+  if (unknown) throw createError({ statusCode: 400, statusMessage: `Unknown catalogue exercise ${unknown.externalId}` })
 
   const programId = await db.transaction(async (tx) => {
+    const cache = new Map<string, number>()
+    const exerciseIds: number[][][] = []
+    for (const routine of data.routines) {
+      const days: number[][] = []
+      for (const day of routine.days) {
+        const ids: number[] = []
+        for (const entry of day.entries) {
+          const key = JSON.stringify(entry.exercise)
+          let id = cache.get(key)
+          if (id === undefined) {
+            id = await resolveExercise(tx, userId, entry.exercise, catalogue, result)
+            cache.set(key, id)
+          }
+          ids.push(id)
+        }
+        days.push(ids)
+      }
+      exerciseIds.push(days)
+    }
+
     const routineIds: number[] = []
     for (const [r, routine] of data.routines.entries()) {
       const row = await tx.insert(routines).values({ userId, name: routine.name, notes: routine.notes })

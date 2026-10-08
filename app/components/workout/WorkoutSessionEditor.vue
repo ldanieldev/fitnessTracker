@@ -21,31 +21,34 @@ const emit = defineEmits<{
   'delete': []
 }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const pickerOpen = ref(false)
 
-function fail(err: unknown, fallback: string) {
-  toast.add({ title: 'Update failed', description: errorMessage(err, fallback), color: 'error' })
-}
-
-async function applySession(action: () => Promise<WorkoutSession>, fallback: string) {
+async function applySession(action: () => Promise<WorkoutSession>, title: string, fallback: string) {
   try {
     emit('update:session', await action())
   } catch (err: unknown) {
-    fail(err, fallback)
+    fail(title, err, fallback)
   }
 }
 
-function patchSession(body: Record<string, unknown>, fallback: string) {
+function patchSession(body: Record<string, unknown>, title: string, fallback: string) {
   return applySession(
     () => apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}`, { method: 'PATCH', body }),
+    title,
     fallback
   )
 }
 
+const rename = (name: string | null) => patchSession({ name }, 'Couldn\'t rename workout', 'Could not rename this workout')
+const comment = (notes: string | null) => patchSession({ notes }, 'Couldn\'t save comment', 'Could not save this comment')
+const changeTimes = (times: { startedAt: string, endedAt: string | null, performedOn: string }) =>
+  patchSession(times, 'Couldn\'t change date and time', 'Could not change the date and time')
+
 function addExercise(exerciseId: number) {
   return applySession(
     () => apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}/entries`, { method: 'POST', body: { exerciseId } }),
+    'Couldn\'t add exercise',
     'Could not add this exercise'
   )
 }
@@ -56,6 +59,7 @@ function moveEntry(entry: WorkoutEntry, direction: -1 | 1) {
       method: 'PATCH',
       body: { sortOrder: entry.sortOrder + direction }
     }),
+    'Couldn\'t reorder exercise',
     'Could not reorder this exercise'
   )
 }
@@ -80,6 +84,7 @@ function groupWith(ids: number[]) {
   if (!anchor) return
   return applySession(
     () => apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}/group`, { method: 'POST', body: { entryIds: [anchor.id, ...ids] } }),
+    'Couldn\'t make superset',
     'Could not make this superset'
   )
 }
@@ -87,6 +92,7 @@ function groupWith(ids: number[]) {
 function ungroup(entryId: number) {
   return applySession(
     () => apiFetch<WorkoutSession>(`/api/workouts/entries/${entryId}`, { method: 'PATCH', body: { supersetGroup: null } }),
+    'Couldn\'t remove from superset',
     'Could not remove this exercise from the superset'
   )
 }
@@ -94,6 +100,7 @@ function ungroup(entryId: number) {
 function removeEntry(entryId: number) {
   return applySession(
     () => apiFetch<WorkoutSession>(`/api/workouts/entries/${entryId}`, { method: 'DELETE' }),
+    'Couldn\'t remove exercise',
     'Could not remove this exercise'
   )
 }
@@ -101,6 +108,7 @@ function removeEntry(entryId: number) {
 function removeSet(setId: number) {
   return applySession(
     () => apiFetch<WorkoutSession>(`/api/workouts/sets/${setId}`, { method: 'DELETE' }),
+    'Couldn\'t remove set',
     'Could not remove this set'
   )
 }
@@ -143,6 +151,7 @@ watch(() => props.session, (value) => {
 
 async function saveSet(entryId: number, setId: number | null, action: () => Promise<SetResponse>): Promise<WorkoutSession | null> {
   const key = saveKey(entryId, setId)
+  saveErrors.delete(key)
   try {
     const { session } = await action()
     emit('update:session', session)
@@ -182,21 +191,15 @@ async function addSet(entryId: number, values: SetValues) {
 function editSet(entryId: number, setId: number, values: SetValues) {
   return saveSet(entryId, setId, () => apiFetch<SetResponse>(`/api/workouts/sets/${setId}`, { method: 'PATCH', body: values }))
 }
-
-function toggleDone(entryId: number, setId: number) {
-  const set = props.session.entries.find((entry) => entry.id === entryId)?.sets.find((s) => s.id === setId)
-  if (!set) return
-  return saveSet(entryId, setId, () => apiFetch<SetResponse>(`/api/workouts/sets/${setId}`, { method: 'PATCH', body: { done: !set.done } }))
-}
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
     <WorkoutSessionHeader
       :session="session"
-      @rename="(name) => patchSession({ name }, 'Could not rename this workout')"
-      @comment="(notes) => patchSession({ notes }, 'Could not save this comment')"
-      @change-times="(times) => patchSession(times, 'Could not change the date and time')"
+      @rename="rename"
+      @comment="comment"
+      @change-times="changeTimes"
       @delete="emit('delete')"
     />
 
@@ -219,7 +222,6 @@ function toggleDone(entryId: number, setId: number) {
       @add-set="(values) => addSet(entry.id, values)"
       @edit-set="(setId, values) => editSet(entry.id, setId, values)"
       @remove-set="(setId) => removeSet(setId)"
-      @toggle-done="(setId) => toggleDone(entry.id, setId)"
       @move="(direction) => moveEntry(entry, direction)"
       @remove="removeEntry(entry.id)"
       @retry-save="(setId) => retrySave(entry.id, setId)"

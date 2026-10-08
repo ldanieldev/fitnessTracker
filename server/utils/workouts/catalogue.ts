@@ -1,5 +1,11 @@
 import { and, count, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm'
-import type { CategoryRow, EquipmentRow, ExerciseRow, MuscleRow } from '~~/shared/types/workout'
+import type {
+  CatalogueExerciseRow,
+  CategoryRow,
+  EquipmentRow,
+  ExerciseRow,
+  MuscleRow
+} from '~~/shared/types/workout'
 import {
   equipment,
   exerciseCategories,
@@ -11,13 +17,16 @@ import {
 import { db } from '~~/server/utils/db'
 
 export interface Catalogue {
-  exercises: ExerciseRow[]
+  exercises: CatalogueExerciseRow[]
   categories: CategoryRow[]
   muscles: MuscleRow[]
   equipment: EquipmentRow[]
 }
 
 const MAX_AGE = 60 * 60 * 24
+
+// Part of the cache key: the data stamps alone would keep serving a cached old shape until it expires.
+const SHAPE_VERSION = 2
 
 export async function queryExerciseRows(where: SQL | undefined): Promise<ExerciseRow[]> {
   const rows = await db
@@ -75,6 +84,11 @@ export async function queryExerciseRows(where: SQL | undefined): Promise<Exercis
   }))
 }
 
+// Instructions are ~590 KB of the ~900 KB payload and only the single-exercise read uses them.
+function withoutInstructions({ instructions: _instructions, ...row }: ExerciseRow): CatalogueExerciseRow {
+  return row
+}
+
 async function loadSharedCatalogue(): Promise<Catalogue> {
   const [exerciseRows, categoryRows, muscleRows, equipmentRows] = await Promise.all([
     queryExerciseRows(and(isNull(exercises.deletedAt), isNull(exercises.createdByUserId))),
@@ -100,7 +114,12 @@ async function loadSharedCatalogue(): Promise<Catalogue> {
       .orderBy(muscles.key),
     db.select({ key: equipment.key, name: equipment.name }).from(equipment).orderBy(equipment.key)
   ])
-  return { exercises: exerciseRows, categories: categoryRows, muscles: muscleRows, equipment: equipmentRows }
+  return {
+    exercises: exerciseRows.map(withoutInstructions),
+    categories: categoryRows,
+    muscles: muscleRows,
+    equipment: equipmentRows
+  }
 }
 
 // Built lazily so importing this file never requires Nitro's defineCachedFunction to exist.
@@ -128,5 +147,5 @@ export async function loadCatalogue(): Promise<Catalogue> {
     .where(and(isNull(exercises.createdByUserId), isNull(exercises.deletedAt)))
     .then((r) => r[0])
   const stamps = [head?.exercises, head?.categories, head?.muscles, head?.equipment].map((v) => v ?? '0')
-  return cachedCatalogue([head?.rows ?? 0, ...stamps].join(':'))
+  return cachedCatalogue([SHAPE_VERSION, head?.rows ?? 0, ...stamps].join(':'))
 }

@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../shared/types/workout'
 
 interface SetResponse { session: WorkoutSession, set: WorkoutSet }
@@ -9,7 +10,7 @@ test('workout sets: log, validate, record, edit and delete', async ({ page, goto
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const first = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {})).json
+  const first = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
   const entryId = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${first.id}/entries`, {
     exerciseId: bench.id
   })).json.entries[0]!.id
@@ -48,7 +49,7 @@ test('workout sets: log, validate, record, edit and delete', async ({ page, goto
 
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${first.id}`, { finish: true })
 
-  const second = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {})).json
+  const second = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
   const secondEntry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${second.id}/entries`, {
     exerciseId: bench.id
   })).json.entries[0]!
@@ -65,7 +66,7 @@ test('workout sets: cardio measures round-trip and take the pace record', async 
 
   const exercises = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=running')).json
   const cardio = exercises.find((exercise) => exercise.trackingType === 'distance_time')!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {})).json
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
   const entryId = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
     exerciseId: cardio.id
   })).json.entries[0]!.id

@@ -32,7 +32,7 @@ describe('toWorkoutCsv', () => {
       row({ exercise: 'Row', weight: null, reps: null, distanceMeters: 2000, durationSeconds: 480 })
     ]).split('\n')
     expect(weighted).toBe('2026-10-01,Push A,Bench Press,Chest,1,185,lb,8,,,,,,')
-    expect(cardio).toBe('2026-10-01,Push A,Row,Chest,1,,,,2000,m,480,,,')
+    expect(cardio).toBe('2026-10-01,Push A,Row,Chest,1,,,,1.24,mi,480,,,')
   })
 
   it('keeps negative assisted weights, superset labels and escapes hostile text', () => {

@@ -38,15 +38,30 @@ describe('WorkoutExerciseCard', () => {
     expect(empty.find('[data-test="entry-volume-9"]').exists()).toBe(false)
   })
 
-  it('collapses and expands the body', async () => {
+  it('collapses and expands the body without unmounting it', async () => {
     const wrapper = await mount()
+    const body = () => wrapper.find('[data-test="entry-body-9"]').element as HTMLElement
     await wrapper.find('[data-test="entry-collapse-9"]').trigger('click')
-    expect(wrapper.find('[data-test="set-form"]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-test="set-row"]')).toHaveLength(0)
-    await wrapper.find('[data-test="entry-collapse-9"]').trigger('click')
+    expect(body().style.display).toBe('none')
     expect(wrapper.find('[data-test="set-form"]').exists()).toBe(true)
+    await wrapper.find('[data-test="entry-collapse-9"]').trigger('click')
+    expect(body().style.display).toBe('')
     expect(wrapper.find('[data-test="entry-history-9"]').classes()).toContain('max-sm:hidden')
     expect(wrapper.find('[data-test="entry-history-9"]').attributes('href')).toBe('/workouts/exercises/7?tab=history')
+  })
+
+  it('keeps a typed weight across a collapse', async () => {
+    const wrapper = await mount()
+    await wrapper.find('[data-test="set-weight-new"]').setValue('215')
+    await wrapper.setProps({ collapsed: true })
+    await wrapper.setProps({ collapsed: false })
+    expect((wrapper.find('[data-test="set-weight-new"]').element as HTMLInputElement).value).toBe('215')
+  })
+
+  it('points the collapse button at the body it controls', async () => {
+    const wrapper = await mount({ collapsed: true })
+    expect(wrapper.find('[data-test="entry-collapse-9"]').attributes('aria-controls')).toBe('entry-body-9')
+    expect(wrapper.find('#entry-body-9').exists()).toBe(true)
   })
 
   it('summarises last time under the name, and omits the line without one', async () => {
@@ -237,6 +252,26 @@ describe('WorkoutExerciseCard', () => {
 
   it('collapses from the parent', async () => {
     const wrapper = await mount({ collapsed: true })
-    expect(wrapper.find('[data-test="set-form"]').exists()).toBe(false)
+    expect((wrapper.find('[data-test="entry-body-9"]').element as HTMLElement).style.display).toBe('none')
+  })
+
+  it('offers Superset with… only when another exercise exists, and emits it', async () => {
+    const lone = await mount()
+    await lone.find('[data-test="entry-menu-9"]').trigger('click')
+    expect(document.body.querySelector('[data-test="entry-superset-add-9"]')!.closest('[role="menuitem"]')!.getAttribute('aria-disabled')).toBe('true')
+    expect(document.body.querySelector('[data-test="entry-superset-remove-9"]')).toBeNull()
+    document.body.innerHTML = ''
+    const paired = await mount({ canGroup: true })
+    await paired.find('[data-test="entry-menu-9"]').trigger('click')
+    await document.body.querySelector<HTMLElement>('[data-test="entry-superset-add-9"]')!.click()
+    expect(paired.emitted('superset')).toHaveLength(1)
+  })
+
+  it('offers Remove from superset to a member and emits ungroup', async () => {
+    const member = await mount({ entry: { ...entry, supersetGroup: 1 }, canGroup: true })
+    await member.find('[data-test="entry-menu-9"]').trigger('click')
+    await document.body.querySelector<HTMLElement>('[data-test="entry-superset-remove-9"]')!.click()
+    expect(member.emitted('ungroup')).toHaveLength(1)
+    expect(member.emitted('superset')).toBeUndefined()
   })
 })

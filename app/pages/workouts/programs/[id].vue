@@ -6,11 +6,11 @@ import { phaseColorClass } from '~~/shared/utils/programs'
 import WorkoutProgramPhaseSheet, { type PhaseValues } from '~/components/workout/WorkoutProgramPhaseSheet.vue'
 import WorkoutProgramReplacePrompt from '~/components/workout/WorkoutProgramReplacePrompt.vue'
 import WorkoutProgramWhenSheet from '~/components/workout/WorkoutProgramWhenSheet.vue'
-import { errorCode, errorMessage } from '~/utils/apiError'
+import { errorCode } from '~/utils/apiError'
 
 const route = useRoute()
 const id = Number(route.params.id)
-const toast = useToast()
+const fail = useFailToast()
 
 const { data: program, error } = await useWorkoutFetch<Program>(WORKOUT_KEYS.program(id), `/api/workouts/programs/${id}`)
 if (error.value) throw createError({ statusCode: 404, statusMessage: 'Program not found', fatal: true })
@@ -24,7 +24,7 @@ async function act(action: () => Promise<Program>, title: string, fallback: stri
     await invalidateWorkouts(WORKOUT_KEYS.programs, WORKOUT_KEYS.enrollment)
     return true
   } catch (err: unknown) {
-    toast.add({ title, description: errorMessage(err, fallback), color: 'error' })
+    fail(title, err, fallback)
     return false
   }
 }
@@ -89,7 +89,7 @@ async function start(when: StartWhen, replace = false) {
       replaceOpen.value = true
       return
     }
-    toast.add({ title: 'Couldn\'t start program', description: errorMessage(err, 'Could not start this program'), color: 'error' })
+    fail('Couldn\'t start program', err, 'Could not start this program')
   }
 }
 function confirmReplace() {

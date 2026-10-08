@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  latestLoadStyle,
   metricLowerIsBetter,
   metricValue,
   metricsFor,
@@ -49,6 +50,11 @@ describe('rollupFrom', () => {
     expect(rollup.bestPace).toBeCloseTo(5, 3)
     expect(rollup.totalVolume).toBeNull()
     expect(rollup.topWeight).toBeNull()
+  })
+
+  it('leaves pace unset when every timed set covered no distance', () => {
+    const rollup = rollupFrom([{ weight: null, reps: null, distanceMeters: 0, durationSeconds: 600 }], null, 10)
+    expect(rollup.bestPace).toBeNull()
   })
 
   it('returns an empty rollup for no sets', () => {
@@ -128,5 +134,19 @@ describe('metricLowerIsBetter', () => {
     expect(metricLowerIsBetter('weight_at_reps', 'barbell')).toBe(false)
     expect(metricLowerIsBetter('e1rm', 'assisted')).toBe(false)
     expect(metricLowerIsBetter('volume', 'assisted')).toBe(false)
+  })
+})
+
+describe('latestLoadStyle', () => {
+  it('reads the most recent session, breaking same-day ties by session id', () => {
+    expect(latestLoadStyle([
+      { performedOn: '2026-03-09', sessionId: 4, loadStyle: 'plain' },
+      { performedOn: '2026-03-10', sessionId: 2, loadStyle: 'assisted' },
+      { performedOn: '2026-03-10', sessionId: 1, loadStyle: 'plain' }
+    ])).toBe('assisted')
+  })
+
+  it('is null without rows', () => {
+    expect(latestLoadStyle([])).toBeNull()
   })
 })

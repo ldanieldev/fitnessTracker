@@ -2,7 +2,6 @@
 import type { ProgramSummary } from '~~/shared/types/program'
 import type { SessionFilter, WorkoutSessionSummary } from '~~/shared/types/workout'
 import WorkoutCopySheet from '~/components/workout/WorkoutCopySheet.vue'
-import { errorMessage } from '~/utils/apiError'
 import { phaseColorClass } from '~~/shared/utils/programs'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
 import { activeFilterCount, filterFromRoute, filterToRoute, sessionFilterParams } from '~~/shared/utils/sessionFilter'
@@ -20,12 +19,16 @@ const filterOpen = ref(false)
 const exportOpen = ref(false)
 
 const view = computed<'month' | 'list'>(() => (route.query.view === 'list' ? 'list' : 'month'))
-const { data: programList } = useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs', { lazy: true })
+const { data: programList, status: programsStatus } = useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs', { lazy: true })
 const filter = computed(() => {
   const { programId, phaseId, ...rest } = filterFromRoute(route.query)
   const stale = programId !== undefined && programList.value !== undefined && !programList.value.some((p) => p.id === programId)
   return stale ? rest : { ...rest, programId, phaseId }
 })
+// A prog id can only be judged stale once the program list settles, so history fetches wait for it.
+const filterReady = computed(() => (
+  filterFromRoute(route.query).programId === undefined || programsStatus.value === 'success' || programsStatus.value === 'error'
+))
 const filterQuery = computed(() => sessionFilterParams(filter.value))
 const filterCount = computed(() => activeFilterCount(filter.value))
 const month = computed(() => {
@@ -66,28 +69,32 @@ function applyFilter(next: SessionFilter) {
   setQuery({ ...cleared, ...filterToRoute(next) })
 }
 
-const pages = ref(1)
+// Also runs on a URL change and at setup: the list may already be loaded, so it never changes to trigger this.
+watch([programList, () => filterFromRoute(route.query).programId], ([list, programId]) => {
+  if (list && programId !== undefined && !list.some((p) => p.id === programId)) setQuery({ prog: undefined, phase: undefined })
+}, { immediate: true })
+
+// Pages count only under the filter they were loaded for, so a filter change asks for one page in the same tick.
+const paging = ref({ filter: '', pages: 1 })
+const pages = computed(() => (paging.value.filter === filterQuery.value ? paging.value.pages : 1))
 const limit = computed(() => Math.min(pages.value * PAGE_SIZE, MAX_LIMIT))
 
 const { data: sessions, status, error: listError, execute: executeList } = useWorkoutFetch<WorkoutSessionSummary[]>(
   () => sessionListKey(limit.value, filterQuery.value),
   () => `/api/workouts/sessions?limit=${limit.value}${filterQuery.value ? `&${filterQuery.value}` : ''}`,
-  { enabled: () => view.value === 'list' }
+  { enabled: () => view.value === 'list' && filterReady.value }
 )
-watch(filterQuery, () => {
-  pages.value = 1
-})
 
 const range = computed(() => monthRange(month.value))
 const { data: monthSessions, status: monthStatus, error: monthError, execute: executeMonth } = useWorkoutFetch<WorkoutSessionSummary[]>(
   () => sessionMonthKey(range.value.from, range.value.to, filterQuery.value),
   () => `/api/workouts/sessions?limit=1000&from=${range.value.from}&to=${range.value.to}${filterQuery.value ? `&${filterQuery.value}` : ''}`,
-  { enabled: () => view.value === 'month' }
+  { enabled: () => view.value === 'month' && filterReady.value }
 )
 
-// A disabled fetch skips key changes and invalidations, so the view that just appeared refetches to catch up.
-watch(view, (value) => {
-  void (value === 'list' ? executeList() : executeMonth())
+// A disabled fetch skips key changes and invalidations, so a view that appears or a filter that becomes ready refetches.
+watch([view, filterReady], ([value, ready]) => {
+  if (ready) void (value === 'list' ? executeList() : executeMonth())
 })
 
 const phaseLegend = computed(() => {
@@ -124,7 +131,7 @@ const refreshing = computed(() => loading.value && !loadingMore.value && Boolean
 const hasMore = computed(() => (sessions.value?.length ?? 0) === shownLimit.value && shownLimit.value < MAX_LIMIT)
 
 function loadMore() {
-  if (hasMore.value && !loading.value) pages.value++
+  if (hasMore.value && !loading.value) paging.value = { filter: filterQuery.value, pages: pages.value + 1 }
 }
 
 const sentinel = ref<HTMLElement | null>(null)
@@ -148,15 +155,13 @@ watch([sentinelVisible, loading], () => {
   if (sentinelVisible.value) loadMore()
 })
 
-function fail(err: unknown, fallback: string) {
-  toast.add({ title: 'Update failed', description: errorMessage(err, fallback), color: 'error' })
-}
+const fail = useFailToast()
 
 watch(listError, (err) => {
-  if (err) fail(err, 'Could not load workouts')
+  if (err) fail('Couldn\'t load workouts', err, 'Could not load workouts')
 })
 watch(monthError, (err) => {
-  if (err) fail(err, 'Could not load workouts')
+  if (err) fail('Couldn\'t load workouts', err, 'Could not load workouts')
 })
 
 const copySourceId = ref<number | null>(null)
@@ -195,7 +200,7 @@ async function saveTimes(times: { startedAt: string, endedAt: string | null, per
     await apiFetch(`/api/workouts/sessions/${id}`, { method: 'PATCH', body: times })
     await invalidateWorkouts()
   } catch (err: unknown) {
-    fail(err, 'Could not change the date and time')
+    fail('Couldn\'t change date and time', err, 'Could not change the date and time')
   }
 }
 
@@ -209,7 +214,7 @@ async function confirmDelete() {
     // Naming the keys skips the deleted session's own key, which would 404 now that the row is gone.
     await invalidateWorkouts(WORKOUT_KEYS.sessions, WORKOUT_KEYS.active)
   } catch (err: unknown) {
-    fail(err, 'Could not delete this workout')
+    fail('Couldn\'t delete workout', err, 'Could not delete this workout')
   }
 }
 </script>
@@ -342,9 +347,9 @@ async function confirmDelete() {
 
       <AppSheet v-model:open="deleteOpen" title="Delete workout">
         <template #body>
-          <div class="flex flex-col gap-3" data-test="session-delete">
+          <div class="flex flex-col gap-3" data-test="history-delete">
             <p class="text-sm text-muted">This removes the workout and every set logged in it.</p>
-            <UButton label="Delete" color="error" block class="min-h-10" data-test="session-delete-confirm" @click="confirmDelete" />
+            <UButton label="Delete" color="error" block class="min-h-10" data-test="history-delete-confirm" @click="confirmDelete" />
           </div>
         </template>
       </AppSheet>

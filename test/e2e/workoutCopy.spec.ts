@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
+import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, ExerciseCategory, WorkoutSession } from '../../shared/types/workout'
 
 test('copying a workout brings exercises without sets, and deleting an account with logged sets works',
@@ -14,14 +15,14 @@ test('copying a workout brings exercises without sets, and deleting an account w
       name: uniquePrefix('Copy Test '), categoryId: core.id, trackingType: 'reps'
     })).json
 
-    const source = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {})).json
+    const source = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
     const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${source.id}/entries`, {
       exerciseId: mine.id
     })).json.entries[0]!
     await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { reps: 12 })
     await apiFetch(page, 'PATCH', `/api/workouts/sessions/${source.id}`, { finish: true })
 
-    const copy = await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { copyFromId: source.id })
+    const copy = await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate(), copyFromId: source.id })
     expect(copy.status).toBe(200)
     expect(copy.json.entries.map((e) => e.exerciseId)).toEqual([mine.id])
     expect(copy.json.entries[0]!.sets).toEqual([])

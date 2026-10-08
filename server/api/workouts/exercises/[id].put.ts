@@ -1,4 +1,4 @@
-import { updateExercise } from '~~/server/utils/workouts/exercises'
+import { updateExercise } from '~~/server/utils/workouts/exerciseWrites'
 import { exerciseIdParamSchema, exerciseUpdateSchema } from '~~/server/utils/workouts/input'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'

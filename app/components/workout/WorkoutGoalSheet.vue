@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { GraphMetric, WorkoutGoal } from '~~/shared/types/workout'
-import { errorMessage } from '~/utils/apiError'
+import { cardioMetricDisplay, paceFromSecondsPerMile, secondsPerMile } from '~~/shared/utils/cardioUnits'
 
 const props = defineProps<{
   exerciseId: number
@@ -11,11 +11,18 @@ const props = defineProps<{
 }>()
 const open = defineModel<boolean>('open', { default: false })
 
-const toast = useToast()
+const failToast = useFailToast()
 const target = ref<number | null>(null)
 const date = ref('')
 const saving = ref(false)
 const validationError = ref('')
+const label = computed(() => cardioMetricDisplay(props.metric)?.label ?? props.unit)
+const paceSeconds = computed({
+  get: () => (target.value === null ? null : Math.round(secondsPerMile(target.value))),
+  set: (value: number | null) => {
+    target.value = value === null || value <= 0 ? null : paceFromSecondsPerMile(value)
+  }
+})
 
 watch(open, (isOpen) => {
   if (!isOpen) return
@@ -38,11 +45,7 @@ async function save() {
     })
     await invalidateWorkouts()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Could not save goal',
-      description: errorMessage(error, 'Could not save this goal'),
-      color: 'error'
-    })
+    failToast('Couldn\'t save goal', error, 'Could not save this goal')
     return
   } finally {
     saving.value = false
@@ -57,11 +60,7 @@ async function remove() {
     await apiFetch(`/api/workouts/exercises/${props.exerciseId}/goal?metric=${props.metric}`, { method: 'DELETE' })
     await invalidateWorkouts()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Could not save goal',
-      description: errorMessage(error, 'Could not remove this goal'),
-      color: 'error'
-    })
+    failToast('Couldn\'t remove goal', error, 'Could not remove this goal')
     return
   } finally {
     saving.value = false
@@ -74,8 +73,11 @@ async function remove() {
   <AppSheet v-model:open="open" title="Goal">
     <template #body>
       <div class="flex flex-col gap-3">
-        <UFormField :label="`Target (${unit})`">
-          <AppNumberInput v-model="target" :min="0" class="w-full" data-test="goal-target" />
+        <UFormField :label="`Target (${label})`">
+          <AppMilesInput v-if="metric === 'distance'" v-model="target" class="w-full" data-test="goal-target" />
+          <AppDurationInput v-else-if="metric === 'duration'" v-model="target" data-test="goal-target" />
+          <AppDurationInput v-else-if="metric === 'pace'" v-model="paceSeconds" data-test="goal-target" />
+          <AppNumberInput v-else v-model="target" :min="0" class="w-full" data-test="goal-target" />
         </UFormField>
         <UFormField label="By (optional)">
           <UInput v-model="date" type="date" class="w-full" data-test="goal-date" />

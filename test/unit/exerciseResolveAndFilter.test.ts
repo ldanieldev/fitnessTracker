@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveAndFilter } from '../../shared/utils/exerciseList'
+import { effectiveLoadStyle } from '../../shared/utils/exerciseResolve'
 import type { ExerciseCategory, ExercisePrefRow, ExerciseRow } from '../../shared/types/workout'
 
 const catalogueCategory: ExerciseCategory = {
@@ -44,8 +45,10 @@ const prefWithCategory: ExercisePrefRow = {
   categoryId: 2,
   weightIncrement: null,
   restSeconds: null,
+  plateSizes: null,
   notes: null,
   link: null,
+  defaultGraph: null,
   favorite: false,
   hiddenAt: null
 }
@@ -70,5 +73,30 @@ describe('resolveAndFilter category resolution', () => {
   it('throws when even the catalogue category is missing', () => {
     const categoriesById = new Map<number, ExerciseCategory>()
     expect(() => resolveAndFilter([row], new Map(), categoriesById, {})).toThrow()
+  })
+})
+
+const pref = (over: Partial<ExercisePrefRow> = {}): ExercisePrefRow => ({ ...prefWithCategory, categoryId: null, ...over })
+
+describe('effectiveLoadStyle', () => {
+  it('inherits the catalogue load style and lets the pref override it', () => {
+    expect(effectiveLoadStyle(row, null)).toBe('barbell')
+    expect(effectiveLoadStyle(row, pref({ loadStyle: 'plain' }))).toBe('plain')
+  })
+
+  it('is null under a non-weight tracking type', () => {
+    expect(effectiveLoadStyle(row, pref({ trackingType: 'reps' }))).toBeNull()
+  })
+})
+
+describe('resolveAndFilter plate sizes', () => {
+  it('returns a plates override for a barbell exercise and hides it otherwise', () => {
+    const categoriesById = new Map([[catalogueCategory.id, catalogueCategory]])
+    const barbell = resolveAndFilter([row], new Map([[row.id, pref({ plateSizes: ['55', '45'] })]]), categoriesById, {})
+    expect(barbell[0]!.plateSizes).toEqual([55, 45])
+    const plain = resolveAndFilter(
+      [row], new Map([[row.id, pref({ loadStyle: 'plain', plateSizes: ['55', '45'] })]]), categoriesById, {}
+    )
+    expect(plain[0]!.plateSizes).toBeNull()
   })
 })

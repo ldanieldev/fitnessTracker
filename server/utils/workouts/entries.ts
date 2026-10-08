@@ -1,23 +1,30 @@
-import { and, eq } from 'drizzle-orm'
+import { and, count, eq, inArray } from 'drizzle-orm'
 import type { WorkoutEntry, WorkoutSession, WorkoutSet } from '~~/shared/types/workout'
 import { exercisePrefs, exercises, users, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import type { WorkoutEntryPatchInput } from '~~/server/utils/workouts/input'
-import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
-import { loadSession } from '~~/server/utils/workouts/sessions'
+import { loadExerciseSettings } from '~~/server/utils/workouts/exercises'
+import { assertOwnSession, loadSession } from '~~/server/utils/workouts/sessions'
 import { refreshRollup } from '~~/server/utils/workouts/rollups'
-import { historyForExercise, lastSetsForExercise } from '~~/server/utils/workouts/history'
-import { recordsForEarlier } from '~~/shared/utils/workoutRecords'
+import {
+  earlierSetValues,
+  lastSetsByExercise,
+  withNumericMeasures,
+  type SessionAnchor
+} from '~~/server/utils/workouts/history'
+import { recordsForEarlier, type HistorySet } from '~~/shared/utils/workoutRecords'
 import { DEFAULT_PLATE_SIZES, effectivePlateSizes } from '~~/shared/utils/plates'
 import { toEntryTarget } from '~~/server/utils/workouts/targets'
-import { regroup, SESSION_ENTRY_GROUPS, groupOrThrow } from '~~/server/utils/workouts/groups'
+import { lockGroupRows, regroup, SESSION_ENTRY_GROUPS, groupOrThrow } from '~~/server/utils/workouts/groups'
 import { moveWithGroupsTo, normalizeGroups, ungroupItem } from '~~/shared/utils/supersets'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Entry not found' } as const
 
-async function loadSetRows(entryId: number): Promise<WorkoutSet[]> {
+async function loadSetRows(entryIds: number[]): Promise<{ entryId: number, set: WorkoutSet }[]> {
+  if (!entryIds.length) return []
   const rows = await db
     .select({
+      entryId: workoutSets.entryId,
       id: workoutSets.id,
       sortOrder: workoutSets.sortOrder,
       weight: workoutSets.weight,
@@ -28,23 +35,13 @@ async function loadSetRows(entryId: number): Promise<WorkoutSet[]> {
       comment: workoutSets.comment
     })
     .from(workoutSets)
-    .where(eq(workoutSets.entryId, entryId))
+    .where(inArray(workoutSets.entryId, entryIds))
     .orderBy(workoutSets.sortOrder, workoutSets.id)
 
-  return rows.map((row) => ({
-    id: row.id,
-    sortOrder: row.sortOrder,
-    weight: row.weight != null ? Number(row.weight) : null,
-    reps: row.reps,
-    distanceMeters: row.distanceMeters != null ? Number(row.distanceMeters) : null,
-    durationSeconds: row.durationSeconds,
-    done: row.done,
-    comment: row.comment,
-    records: []
-  }))
+  return rows.map(({ entryId, ...set }) => ({ entryId, set: { ...withNumericMeasures(set), records: [] } }))
 }
 
-export async function loadEntries(userId: number, sessionId: number): Promise<WorkoutEntry[]> {
+export async function loadEntries(userId: number, session: SessionAnchor): Promise<WorkoutEntry[]> {
   const [rows, owner] = await Promise.all([
     db
       .select({
@@ -74,23 +71,34 @@ export async function loadEntries(userId: number, sessionId: number): Promise<Wo
         eq(exercisePrefs.userId, userId),
         eq(exercisePrefs.exerciseId, workoutEntries.exerciseId)
       ))
-      .where(eq(workoutEntries.sessionId, sessionId))
+      .where(eq(workoutEntries.sessionId, session.id))
       .orderBy(workoutEntries.sortOrder, workoutEntries.id),
     db.select({ plateSizes: users.plateSizes }).from(users).where(eq(users.id, userId)).then((r) => r[0])
   ])
   const defaultPlates = owner?.plateSizes ?? DEFAULT_PLATE_SIZES.map(String)
 
-  return Promise.all(rows.map(async (row) => {
+  const exerciseIds = [...new Set(rows.map((row) => row.exerciseId))]
+  const [setRows, earlier, lastSets] = await Promise.all([
+    loadSetRows(rows.map((row) => row.id)),
+    earlierSetValues(userId, session, exerciseIds),
+    lastSetsByExercise(userId, session, exerciseIds)
+  ])
+
+  const exerciseOfEntry = new Map(rows.map((row) => [row.id, row.exerciseId]))
+  const history = new Map<number, HistorySet[]>(exerciseIds.map((id) => [id, earlier.get(id) ?? []]))
+  // This session's sets follow every earlier session in set-id order, the order historyForExercise read them in.
+  for (const { entryId, set } of [...setRows].sort((x, y) => x.set.id - y.set.id)) {
+    history.get(exerciseOfEntry.get(entryId)!)!.push(set)
+  }
+
+  return rows.map((row) => {
     const barWeightRaw = row.prefBarWeight ?? row.exerciseBarWeight
-    const [setRows, history, lastSets] = await Promise.all([
-      loadSetRows(row.id),
-      historyForExercise(userId, row.exerciseId),
-      lastSetsForExercise(userId, row.exerciseId, sessionId)
-    ])
-    const sets = setRows.map((set) => ({
-      ...set,
-      records: recordsForEarlier(history, set.id, row.trackingType, row.loadStyle)
-    }))
+    const sets = setRows
+      .filter((candidate) => candidate.entryId === row.id)
+      .map(({ set }) => ({
+        ...set,
+        records: recordsForEarlier(history.get(row.exerciseId)!, set.id, row.trackingType, row.loadStyle)
+      }))
     return {
       id: row.id,
       exerciseId: row.exerciseId,
@@ -108,20 +116,28 @@ export async function loadEntries(userId: number, sessionId: number): Promise<Wo
       optional: row.optional,
       restOverrideSeconds: row.restOverrideSeconds,
       sets,
-      lastSets
+      lastSets: lastSets.get(row.exerciseId) ?? []
     }
-  }))
+  })
 }
 
 export async function addEntry(userId: number, sessionId: number, exerciseId: number): Promise<WorkoutSession> {
-  const session = await loadSession(userId, sessionId)
-  const exercise = await loadExerciseForUser(userId, exerciseId)
-  await db.insert(workoutEntries).values({
-    sessionId,
-    exerciseId,
-    sortOrder: session.entries.length,
-    trackingType: exercise.trackingType,
-    loadStyle: exercise.loadStyle
+  await db.transaction(async (tx) => {
+    // Session row first: it queues behind a session delete and other adds even when the workout has no entries yet.
+    const owned = await tx.select({ id: workoutSessions.id }).from(workoutSessions)
+      .where(and(eq(workoutSessions.id, sessionId), eq(workoutSessions.userId, userId))).for('no key update')
+    if (!owned.length) throw createError({ statusCode: 404, statusMessage: 'Workout not found' })
+    await lockGroupRows(tx, SESSION_ENTRY_GROUPS, sessionId)
+    const exercise = await loadExerciseSettings(userId, exerciseId)
+    const entries = await tx.select({ n: count() }).from(workoutEntries).where(eq(workoutEntries.sessionId, sessionId))
+      .then((r) => r[0]!.n)
+    await tx.insert(workoutEntries).values({
+      sessionId,
+      exerciseId,
+      sortOrder: entries,
+      trackingType: exercise.trackingType,
+      loadStyle: exercise.loadStyle
+    })
   })
   return loadSession(userId, sessionId)
 }
@@ -152,13 +168,19 @@ export async function patchEntry(
   const entry = await loadOwnedEntry(userId, entryId)
 
   await db.transaction(async (tx) => {
+    // A regroup locks in id order; the notes write must not take this row out of that order first.
+    const locked = patch.supersetGroup === null || patch.sortOrder !== undefined
+      ? await lockGroupRows(tx, SESSION_ENTRY_GROUPS, entry.sessionId)
+      : null
+    const current = locked?.find((row) => row.id === entryId)
+    if (locked && !current) throw createError(NOT_FOUND_ERROR)
     if (patch.notes !== undefined) {
       await tx.update(workoutEntries).set({ notes: patch.notes }).where(eq(workoutEntries.id, entryId))
     }
     if (patch.supersetGroup === null) {
       await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, (items) => ungroupItem(items, entryId))
     }
-    if (patch.sortOrder !== undefined && patch.sortOrder !== entry.sortOrder) {
+    if (patch.sortOrder !== undefined && patch.sortOrder !== current!.sortOrder) {
       const target = patch.sortOrder
       await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, (items) =>
         moveWithGroupsTo(items, entryId, Math.min(target, items.length - 1)))
@@ -171,6 +193,7 @@ export async function patchEntry(
 export async function deleteEntry(userId: number, entryId: number): Promise<WorkoutSession> {
   const entry = await loadOwnedEntry(userId, entryId)
   await db.transaction(async (tx) => {
+    await lockGroupRows(tx, SESSION_ENTRY_GROUPS, entry.sessionId)
     await tx.delete(workoutEntries).where(eq(workoutEntries.id, entryId))
     await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, normalizeGroups)
   })
@@ -183,7 +206,7 @@ export async function groupSessionEntries(
   sessionId: number,
   entryIds: number[]
 ): Promise<WorkoutSession> {
-  await loadSession(userId, sessionId)
+  await assertOwnSession(userId, sessionId)
   await db.transaction(async (tx) => {
     await regroup(tx, SESSION_ENTRY_GROUPS, sessionId, (items) => groupOrThrow(items, entryIds))
   })

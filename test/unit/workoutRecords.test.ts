@@ -150,4 +150,15 @@ describe('paceOf', () => {
     expect(paceOf({ distanceMeters: 1000 })).toBe(null)
     expect(paceOf({ durationSeconds: 250 })).toBe(null)
   })
+
+  it('is null for a zero distance or a zero duration', () => {
+    expect(paceOf({ distanceMeters: 1000, durationSeconds: 0 })).toBe(null)
+    expect(paceOf({ distanceMeters: 0, durationSeconds: 250 })).toBe(null)
+  })
+
+  it('never flags a pace record for a zero-duration set', () => {
+    const history = [set(1, { distanceMeters: 5000, durationSeconds: 1800 })]
+    const records = recordsFor(set(2, { distanceMeters: 5000, durationSeconds: 0 }), history, 'distance_time', null)
+    expect(records.filter((r) => r.kind === 'pace')).toEqual([])
+  })
 })

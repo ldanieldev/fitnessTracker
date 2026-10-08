@@ -14,6 +14,14 @@ describe('WorkoutToolsOneRepMax', () => {
     expect(wrapper.find('[data-test="one-rep-max-estimate"]').exists()).toBe(false)
   })
 
+  it('shows only the skeleton while a Retry is loading, not the error row with it', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsOneRepMax, {
+      props: { result: null, pending: true, failed: true, hasExercise: true, override: blank }
+    })
+    expect(wrapper.find('[data-test="one-rep-max-skeleton"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="one-rep-max-error"]').exists()).toBe(false)
+  })
+
   it('shows the estimate, its source and the rep-max table', async () => {
     const wrapper = await mountSuspended(WorkoutToolsOneRepMax, {
       props: { result: found, pending: false, failed: false, hasExercise: true, override: blank }
@@ -47,5 +55,52 @@ describe('WorkoutToolsOneRepMax', () => {
     })
     await failed.find('[data-test="one-rep-max-retry"]').trigger('click')
     expect(failed.emitted('retry')).toHaveLength(1)
+  })
+
+  it('tells "no exercise" apart from "no recent sets"', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsOneRepMax, {
+      props: { result: null, pending: false, failed: false, hasExercise: false, override: blank }
+    })
+    expect(wrapper.find('[data-test="one-rep-max-no-exercise"]').text()).toBe('Enter a set to estimate your 1RM.')
+    expect(wrapper.find('[data-test="one-rep-max-empty"]').exists()).toBe(false)
+  })
+
+  it('keeps both override fields when weight and reps change before the parent re-renders', async () => {
+    const updates: unknown[] = []
+    const wrapper = await mountSuspended(WorkoutToolsOneRepMax, {
+      props: {
+        result: found, pending: false, failed: false, hasExercise: true, override: blank,
+        'onUpdate:override': (value: unknown) => updates.push(value)
+      }
+    })
+    const [weight, reps] = wrapper.findAllComponents({ name: 'AppNumberInput' })
+    weight!.vm.$emit('update:modelValue', 200)
+    reps!.vm.$emit('update:modelValue', 3)
+    expect(updates.at(-1)).toEqual({ weight: 200, reps: 3 })
+  })
+
+  it('keeps Retry reachable while an override shows an estimate', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsOneRepMax, {
+      props: { result: null, pending: false, failed: true, hasExercise: true, override: { weight: 200, reps: 3 } }
+    })
+    expect(wrapper.find('[data-test="one-rep-max-estimate"]').text()).toContain('211.8')
+    await wrapper.find('[data-test="one-rep-max-retry"]').trigger('click')
+    expect(wrapper.emitted('retry')).toHaveLength(1)
+  })
+
+  it('shows a failed load without an empty-history line', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsOneRepMax, {
+      props: { result: null, pending: false, failed: true, hasExercise: true, override: blank }
+    })
+    expect(wrapper.find('[data-test="one-rep-max-error"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="one-rep-max-empty"]').exists()).toBe(false)
+  })
+
+  it('keeps the last estimate on screen while it refreshes', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsOneRepMax, {
+      props: { result: found, pending: true, failed: false, hasExercise: true, override: blank }
+    })
+    expect(wrapper.find('[data-test="one-rep-max-skeleton"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="one-rep-max-estimate"]').text()).toContain('253.1')
   })
 })

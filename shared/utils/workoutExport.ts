@@ -1,4 +1,5 @@
 import { csvCell } from './csv'
+import { metersToMiles } from './cardioUnits'
 
 export interface WorkoutCsvRow {
   date: string
@@ -30,8 +31,8 @@ export function toWorkoutCsv(rows: WorkoutCsvRow[]): string {
     row.weight,
     row.weight === null ? null : 'lb',
     row.reps,
-    row.distanceMeters,
-    row.distanceMeters === null ? null : 'm',
+    row.distanceMeters === null ? null : metersToMiles(row.distanceMeters),
+    row.distanceMeters === null ? null : 'mi',
     row.durationSeconds,
     row.superset,
     row.comment,

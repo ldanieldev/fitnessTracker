@@ -96,7 +96,7 @@ export type VariationPatchInput = z.infer<typeof variationPatchSchema>
 
 export const sessionStartSchema = z.object({
   name: z.string().trim().max(255).nullish(),
-  performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   copyFromId: z.number().int().positive().optional(),
   entryIds: z.array(z.number().int().positive()).min(1).max(100).optional(),
   routineDayId: z.number().int().positive().optional(),
@@ -112,18 +112,13 @@ export const sessionPatchSchema = z.object({
   finish: z.boolean().optional()
 })
 
+const CATEGORY_ID_ERROR = 'Invalid category id'
+const categoryIdNumber = z.number(CATEGORY_ID_ERROR).int(CATEGORY_ID_ERROR).positive(CATEGORY_ID_ERROR)
+
 const sessionFilterShape = {
   from: isoDate.optional(),
   to: isoDate.optional(),
-  categories: csv
-    .transform((parts) => parts.map((p) => {
-      const n = Number(p)
-      return Number.isInteger(n) && n > 0 ? n : null
-    }))
-    .refine((arr) => arr.every((n) => n !== null), 'Invalid category id')
-    .transform((arr) => arr.filter((n): n is number => n !== null))
-    .refine((arr) => arr.length <= 50)
-    .optional(),
+  categories: csv.pipe(z.array(z.string().transform(Number).pipe(categoryIdNumber)).max(50)).optional(),
   match: z.enum(['any', 'all']).default('any'),
   exerciseId: z.coerce.number().int().positive().optional(),
   programId: z.coerce.number().int().positive().optional(),

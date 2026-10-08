@@ -5,7 +5,7 @@ import { moveWithGroups, supersetIndex, supersetLabel } from '~~/shared/utils/su
 import { elapsedLabel } from '~~/shared/utils/workoutTime'
 import { targetSummary } from '~~/shared/utils/workoutTargets'
 
-const props = defineProps<{ day: RoutineDay, isDue: boolean, canMoveUp: boolean, canMoveDown: boolean }>()
+const props = defineProps<{ day: RoutineDay, isDue: boolean, canMoveUp: boolean, canMoveDown: boolean, busy?: boolean }>()
 const emit = defineEmits<{
   edit: []
   makeNext: []
@@ -76,10 +76,10 @@ function meta(entry: RoutineEntry) {
           </p>
           <p v-if="day.description" class="truncate text-xs text-dimmed">{{ day.description }}</p>
         </div>
-        <UButton v-if="isDue" label="Skip" variant="ghost" color="neutral" size="sm" class="min-h-10" data-test="routine-skip" @click="emit('skip')" />
+        <UButton v-if="isDue" label="Skip" variant="ghost" color="neutral" size="sm" class="min-h-10" :disabled="busy" data-test="routine-skip" @click="emit('skip')" />
         <UButton label="Start" icon="i-lucide-play" size="sm" class="min-h-10" :data-test="`routine-day-start-${day.id}`" @click="emit('start')" />
         <UDropdownMenu :items="dayMenu">
-          <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" class="size-10 justify-center" aria-label="Day actions" :data-test="`routine-day-menu-${day.id}`" />
+          <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" class="size-10 justify-center" aria-label="Day actions" :disabled="busy" :data-test="`routine-day-menu-${day.id}`" />
           <template #item-label="{ item }">
             <span :data-test="item.testId">{{ item.label }}</span>
           </template>
@@ -101,6 +101,7 @@ function meta(entry: RoutineEntry) {
         <button
           type="button"
           class="group flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg px-1.5 sm:gap-3 sm:px-2 py-1.5 text-left transition-colors hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary active:bg-elevated"
+          :disabled="busy"
           :data-test="`routine-entry-open-${entry.id}`"
           @click="emit('editEntry', entry)"
         >
@@ -115,7 +116,7 @@ function meta(entry: RoutineEntry) {
           >{{ prescription(entry) ?? 'Set targets' }}</span>
         </button>
         <UDropdownMenu :items="entryMenu(entry)">
-          <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" class="size-10 justify-center" aria-label="Exercise actions" :data-test="`routine-entry-menu-${entry.id}`" />
+          <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" class="size-10 justify-center" aria-label="Exercise actions" :disabled="busy" :data-test="`routine-entry-menu-${entry.id}`" />
           <template #item-label="{ item }">
             <span :data-test="item.testId">{{ item.label }}</span>
           </template>
@@ -124,6 +125,7 @@ function meta(entry: RoutineEntry) {
       <button
         type="button"
         class="flex min-h-10 items-center gap-2 rounded-lg px-2 text-left text-sm text-dimmed hover:bg-elevated"
+        :disabled="busy"
         :data-test="`routine-day-add-exercise-${day.id}`"
         @click="emit('addExercise')"
       >

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ options: { id: number, name: string }[] }>()
+defineProps<{ options: { id: number, name: string }[], busy?: boolean }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ group: [ids: number[]] }>()
 const picked = ref<number[]>([])
@@ -38,7 +38,7 @@ function confirm() {
       </div>
     </template>
     <template #footer>
-      <UButton label="Superset" block class="min-h-10" :disabled="!picked.length" data-test="superset-confirm" @click="confirm" />
+      <UButton label="Superset" block class="min-h-10" :disabled="busy || !picked.length" data-test="superset-confirm" @click="confirm" />
     </template>
   </AppSheet>
 </template>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { EquipmentRow, Exercise, ExerciseCategory, ExerciseListFilters, MuscleRow } from '~~/shared/types/workout'
-import { errorMessage } from '~/utils/apiError'
 import ExerciseFilterSheet from '~/components/workout/ExerciseFilterSheet.vue'
 import ExerciseForm, { type ExerciseFormPayload } from '~/components/workout/ExerciseForm.vue'
 import ExerciseListRow from '~/components/workout/ExerciseListRow.vue'
@@ -111,6 +110,8 @@ const filterCount = computed(() => {
 
 const filtersOpen = ref(false)
 
+const facetScope = computed(() => ({ q: filters.q, categoryId: filters.categoryId, favorites: filters.favorites }))
+
 const sheetFilters = computed(() => ({
   muscles: filters.muscles ?? [],
   equipment: filters.equipment ?? [],
@@ -137,7 +138,7 @@ const editingId = ref<number | null>(null)
 // Snapshotted once, not derived from the list, so a refetch dropping the row can't flip an open sheet to create mode.
 const editingExercise = ref<Exercise | undefined>(undefined)
 const { nameError, save } = useExerciseSave()
-const toast = useToast()
+const fail = useFailToast()
 
 watch(formOpen, (isOpen) => {
   if (!isOpen) editingExercise.value = undefined
@@ -161,11 +162,7 @@ async function onFavorite(id: number) {
     await apiFetch(`/api/workouts/exercises/${id}/favorite`, { method: exercise.favorite ? 'DELETE' : 'PUT' })
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(error, 'Could not update this exercise'),
-      color: 'error'
-    })
+    fail('Couldn\'t update favorite', error, 'Could not update this exercise')
   }
 }
 
@@ -177,11 +174,7 @@ async function onHide(id: number) {
     await apiFetch(`/api/workouts/exercises/${id}/hidden`, { method: hiding ? 'PUT' : 'DELETE' })
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({
-      title: hiding ? 'Hide failed' : 'Unhide failed',
-      description: errorMessage(error, 'Could not update this exercise'),
-      color: 'error'
-    })
+    fail(hiding ? 'Couldn\'t hide exercise' : 'Couldn\'t unhide exercise', error, 'Could not update this exercise')
   }
 }
 
@@ -190,11 +183,7 @@ async function onFork(id: number) {
     await apiFetch(`/api/workouts/exercises/${id}/fork`, { method: 'POST' })
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Copy failed',
-      description: errorMessage(error, 'Could not copy this exercise'),
-      color: 'error'
-    })
+    fail('Couldn\'t copy exercise', error, 'Could not copy this exercise')
   }
 }
 
@@ -339,6 +328,7 @@ async function onSubmit(payload: ExerciseFormPayload) {
         :muscles
         :equipment
         :filters="sheetFilters"
+        :scope="facetScope"
         @apply="applyFilters"
       />
       <ExerciseForm

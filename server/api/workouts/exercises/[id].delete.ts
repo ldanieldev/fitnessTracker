@@ -1,4 +1,4 @@
-import { softDeleteExercise } from '~~/server/utils/workouts/exercises'
+import { softDeleteExercise } from '~~/server/utils/workouts/exerciseWrites'
 import { exerciseIdParamSchema } from '~~/server/utils/workouts/input'
 import { requireUserId } from '~~/server/utils/session'
 

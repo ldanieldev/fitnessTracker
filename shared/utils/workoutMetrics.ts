@@ -58,7 +58,7 @@ export function rollupFrom(sets: RollupSet[], loadStyle: LoadStyle | null, repCa
         .filter((s) => s.weight != null && s.weight > 0 && s.reps != null && s.reps >= 1 && s.reps <= repCap)
         .map((s) => brzycki(s.weight!, s.reps!))
   const paces = sets
-    .filter((s) => s.distanceMeters != null && s.durationSeconds != null && s.durationSeconds > 0)
+    .filter((s) => s.distanceMeters != null && s.distanceMeters > 0 && s.durationSeconds != null && s.durationSeconds > 0)
     .map((s) => s.distanceMeters! / s.durationSeconds!)
 
   return {
@@ -163,4 +163,16 @@ export function workoutTrend(points: SeriesPoint[], from: string, to: string): S
     if (window.length === 0) return []
     return [{ date, value: window.reduce((a, b) => a + b, 0) / window.length }]
   })
+}
+
+export function latestLoadStyle(
+  rows: Array<{ performedOn: string, sessionId: number, loadStyle: LoadStyle | null }>
+): LoadStyle | null {
+  let latest: (typeof rows)[number] | null = null
+  for (const row of rows) {
+    const newer = !latest || row.performedOn > latest.performedOn
+      || (row.performedOn === latest.performedOn && row.sessionId > latest.sessionId)
+    if (newer) latest = row
+  }
+  return latest?.loadStyle ?? null
 }

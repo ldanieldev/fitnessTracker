@@ -1,15 +1,13 @@
 import { asc, eq } from 'drizzle-orm'
 import type { EntryTarget, LoadStyle, PointerChoice, TrackingType, WorkoutSession } from '~~/shared/types/workout'
 import { routines, workoutEntries, workoutSessions, workoutTemplateEntries } from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
-import { isUniqueViolation } from '~~/server/utils/pgError'
+import { db, type DbClient } from '~~/server/utils/db'
 import type { SessionStartInput } from '~~/server/utils/workouts/input'
-import { loadCatalogue } from '~~/server/utils/workouts/catalogue'
 import { sessionProgramTag } from '~~/server/utils/workouts/enrollments'
-import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
-import { activeSession, loadSession } from '~~/server/utils/workouts/sessions'
-import { ownedRoutineDay } from '~~/server/utils/workouts/routineDays'
-import { cycleDays } from '~~/server/utils/workouts/routines'
+import { loadExerciseSettings } from '~~/server/utils/workouts/exercises'
+import { loadSession, rethrowOpenSessionConflict } from '~~/server/utils/workouts/sessions'
+import { DAY_NOT_FOUND, ownedRoutineDay } from '~~/server/utils/workouts/routineDays'
+import { cycleDays, lockRoutine } from '~~/server/utils/workouts/routines'
 import { targetColumns, toEntryTarget } from '~~/server/utils/workouts/targets'
 import { advancePointer, needsPointerChoice } from '~~/shared/utils/routineCycle'
 import { normalizeGroups } from '~~/shared/utils/supersets'
@@ -27,19 +25,11 @@ interface PlannedEntry {
   restSeconds: number | null
 }
 
-interface StartPlan {
-  name: string | null
-  routineDayId: number | null
-  entries: PlannedEntry[]
-  pointer: { routineId: number, nextDayId: number | null } | null
-}
-
 async function resolveExercises<T extends { exerciseId: number }>(userId: number, rows: T[]) {
-  const catalogue = await loadCatalogue()
   const resolved: (T & { trackingType: TrackingType, loadStyle: LoadStyle | null })[] = []
   for (const row of rows) {
     try {
-      const exercise = await loadExerciseForUser(userId, row.exerciseId, catalogue)
+      const exercise = await loadExerciseSettings(userId, row.exerciseId)
       resolved.push({ ...row, trackingType: exercise.trackingType, loadStyle: exercise.loadStyle })
     } catch (err) {
       if (!(err instanceof Error && 'statusCode' in err && err.statusCode === 404)) throw err
@@ -48,36 +38,49 @@ async function resolveExercises<T extends { exerciseId: number }>(userId: number
   return resolved
 }
 
-async function planFromRoutineDay(userId: number, dayId: number, choice: PointerChoice | undefined): Promise<StartPlan> {
-  const day = await ownedRoutineDay(userId, dayId)
-  const routine = await db.select({ id: routines.id, nextDayId: routines.nextDayId }).from(routines)
-    .where(eq(routines.id, day.routineId)).then((r) => r[0]!)
-  const days = await cycleDays(day.routineId)
+interface DayClaim {
+  dayId: number
+  name: string
+  routineId: number
+  nextDayId: number | null
+}
+
+async function claimRoutineDay(tx: DbClient, userId: number, dayId: number, choice: PointerChoice | undefined): Promise<DayClaim> {
+  const { routineId } = await ownedRoutineDay(userId, dayId, tx)
+  // Routine row before any day row, everywhere: every day writer holds it, so no day can vanish while the start runs.
+  const routine = await lockRoutine(tx, userId, routineId)
+  const day = await ownedRoutineDay(userId, dayId, tx)
+  if (day.routineId !== routine.id) throw createError(DAY_NOT_FOUND)
+  const days = await cycleDays(day.routineId, tx)
   if (needsPointerChoice(days, routine.nextDayId, day.id) && !choice) {
     throw createError({ statusCode: 400, statusMessage: 'Choose whether to skip or keep the day that is next' })
   }
-  const rows = await db.select().from(workoutTemplateEntries).where(eq(workoutTemplateEntries.templateId, day.id))
-    .orderBy(asc(workoutTemplateEntries.sortOrder), asc(workoutTemplateEntries.id))
-  const resolved = await resolveExercises(userId, rows)
   return {
+    dayId: day.id,
     name: day.name,
-    routineDayId: day.id,
-    entries: normalizeGroups(resolved.map((row) => ({
-      id: row.id,
-      exerciseId: row.exerciseId,
-      trackingType: row.trackingType,
-      loadStyle: row.loadStyle,
-      notes: row.notes,
-      target: toEntryTarget(row),
-      supersetGroup: row.supersetGroup,
-      optional: row.optional,
-      restSeconds: row.restSeconds
-    }))),
-    pointer: { routineId: routine.id, nextDayId: advancePointer(days, routine.nextDayId, day.id, choice) }
+    routineId: day.routineId,
+    nextDayId: advancePointer(days, routine.nextDayId, day.id, choice)
   }
 }
 
-async function planFromCopy(userId: number, copyFromId: number, entryIds: number[] | undefined): Promise<StartPlan> {
+async function routineDayEntries(tx: DbClient, userId: number, dayId: number): Promise<PlannedEntry[]> {
+  const rows = await tx.select().from(workoutTemplateEntries).where(eq(workoutTemplateEntries.templateId, dayId))
+    .orderBy(asc(workoutTemplateEntries.sortOrder), asc(workoutTemplateEntries.id))
+  const resolved = await resolveExercises(userId, rows)
+  return normalizeGroups(resolved.map((row) => ({
+    id: row.id,
+    exerciseId: row.exerciseId,
+    trackingType: row.trackingType,
+    loadStyle: row.loadStyle,
+    notes: row.notes,
+    target: toEntryTarget(row),
+    supersetGroup: row.supersetGroup,
+    optional: row.optional,
+    restSeconds: row.restSeconds
+  })))
+}
+
+async function copiedEntries(userId: number, copyFromId: number, entryIds: number[] | undefined): Promise<PlannedEntry[]> {
   const source = await loadSession(userId, copyFromId)
   if (entryIds?.some((id) => !source.entries.some((entry) => entry.id === id))) {
     throw createError({ statusCode: 400, statusMessage: 'Those exercises are not in that workout' })
@@ -93,22 +96,17 @@ async function planFromCopy(userId: number, copyFromId: number, entryIds: number
     optional: entry.optional,
     restSeconds: entry.restOverrideSeconds
   })))
-  return {
-    name: null,
-    routineDayId: null,
-    entries: normalizeGroups(resolved.map((row) => ({
-      id: row.id,
-      exerciseId: row.exerciseId,
-      trackingType: row.trackingType,
-      loadStyle: row.loadStyle,
-      notes: null,
-      target: copyTargetsFrom(row.sourceTrackingType, row.sets, row.sourceTarget),
-      supersetGroup: row.supersetGroup,
-      optional: row.optional,
-      restSeconds: row.restSeconds
-    }))),
-    pointer: null
-  }
+  return normalizeGroups(resolved.map((row) => ({
+    id: row.id,
+    exerciseId: row.exerciseId,
+    trackingType: row.trackingType,
+    loadStyle: row.loadStyle,
+    notes: null,
+    target: copyTargetsFrom(row.trackingType, row.sets, row.sourceTarget, row.sourceTrackingType),
+    supersetGroup: row.supersetGroup,
+    optional: row.optional,
+    restSeconds: row.restSeconds
+  })))
 }
 
 export async function startSession(userId: number, input: SessionStartInput): Promise<WorkoutSession> {
@@ -118,28 +116,34 @@ export async function startSession(userId: number, input: SessionStartInput): Pr
   if (input.entryIds !== undefined && input.copyFromId === undefined) {
     throw createError({ statusCode: 400, statusMessage: 'Pick a workout to copy from' })
   }
-  const performedOn = input.performedOn ?? new Date().toISOString().slice(0, 10)
-  const plan = input.routineDayId !== undefined
-    ? await planFromRoutineDay(userId, input.routineDayId, input.pointer)
-    : input.copyFromId !== undefined
-      ? await planFromCopy(userId, input.copyFromId, input.entryIds)
-      : null
+  if (input.pointer !== undefined && input.routineDayId === undefined) {
+    throw createError({ statusCode: 400, statusMessage: 'Pick a routine day for that choice' })
+  }
 
   try {
     const id = await db.transaction(async (tx) => {
-      const tag = await sessionProgramTag(tx, userId, performedOn)
+      const claim = input.routineDayId !== undefined
+        ? await claimRoutineDay(tx, userId, input.routineDayId, input.pointer)
+        : null
+      const tag = await sessionProgramTag(tx, userId, input.performedOn)
+      // Insert before reading entries so the open-workout index refuses a second start before the expensive reads.
       const row = await tx
         .insert(workoutSessions)
         .values({
           userId,
-          name: input.name ?? plan?.name ?? null,
-          performedOn,
-          routineDayId: plan?.routineDayId ?? null,
+          name: input.name ?? claim?.name ?? null,
+          performedOn: input.performedOn,
+          routineDayId: claim?.dayId ?? null,
           ...(tag ?? {})
         })
         .returning({ id: workoutSessions.id })
         .then((r) => r[0]!)
-      for (const [index, entry] of (plan?.entries ?? []).entries()) {
+      const entries = claim
+        ? await routineDayEntries(tx, userId, claim.dayId)
+        : input.copyFromId !== undefined
+          ? await copiedEntries(userId, input.copyFromId, input.entryIds)
+          : []
+      for (const [index, entry] of entries.entries()) {
         await tx.insert(workoutEntries).values({
           sessionId: row.id,
           exerciseId: entry.exerciseId,
@@ -153,20 +157,11 @@ export async function startSession(userId: number, input: SessionStartInput): Pr
           restSeconds: entry.restSeconds
         })
       }
-      if (plan?.pointer) {
-        await tx.update(routines).set({ nextDayId: plan.pointer.nextDayId }).where(eq(routines.id, plan.pointer.routineId))
-      }
+      if (claim) await tx.update(routines).set({ nextDayId: claim.nextDayId }).where(eq(routines.id, claim.routineId))
       return row.id
     })
     return loadSession(userId, id)
   } catch (err) {
-    if (isUniqueViolation(err, 'workout_session_open')) {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'A workout is already open',
-        data: { session: await activeSession(userId) }
-      })
-    }
-    throw err
+    return rethrowOpenSessionConflict(userId, err)
   }
 }

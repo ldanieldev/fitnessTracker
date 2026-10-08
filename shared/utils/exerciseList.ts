@@ -1,16 +1,15 @@
-import { createError } from 'h3'
 import type {
+  CatalogueExerciseRow,
   Exercise,
   ExerciseCategory,
   ExerciseListFilters,
-  ExercisePrefRow,
-  ExerciseRow
+  ExercisePrefRow
 } from '../types/workout'
 import { resolveExercise } from './exerciseResolve'
 import { matchesTerms, rankExercise } from './exerciseSearch'
 
 function resolveCategoryFor(
-  row: ExerciseRow,
+  row: CatalogueExerciseRow,
   pref: ExercisePrefRow | null,
   categoriesById: Map<number, ExerciseCategory>
 ): { category: ExerciseCategory, pref: ExercisePrefRow | null } {
@@ -18,23 +17,28 @@ function resolveCategoryFor(
   if (prefCategory) return { category: prefCategory, pref }
 
   const catalogueCategory = categoriesById.get(row.categoryId)
-  if (!catalogueCategory) throw createError({ statusCode: 500, statusMessage: 'Exercise category missing' })
+  if (!catalogueCategory) throw new Error(`Exercise ${row.id} has no visible category ${row.categoryId}`)
   // Pref points at a category the user can no longer see (soft-deleted) — fall back instead of 500ing the request.
   return { category: catalogueCategory, pref: pref ? { ...pref, categoryId: null } : null }
 }
 
+export function resolveExerciseRow(
+  row: CatalogueExerciseRow,
+  pref: ExercisePrefRow | null,
+  categoriesById: Map<number, ExerciseCategory>
+): Exercise {
+  const { category, pref: effectivePref } = resolveCategoryFor(row, pref, categoriesById)
+  return resolveExercise(row, effectivePref, category)
+}
+
 // 876 catalogue rows is small enough that filtering after resolution is honest and keeps one code path.
 export function resolveAndFilter(
-  rows: ExerciseRow[],
+  rows: CatalogueExerciseRow[],
   prefs: Map<number, ExercisePrefRow>,
   categoriesById: Map<number, ExerciseCategory>,
   filters: ExerciseListFilters
 ): Exercise[] {
-  const resolved = rows.map((row) => {
-    const pref = prefs.get(row.id) ?? null
-    const { category, pref: effectivePref } = resolveCategoryFor(row, pref, categoriesById)
-    return resolveExercise(row, effectivePref, category)
-  })
+  const resolved = rows.map((row) => resolveExerciseRow(row, prefs.get(row.id) ?? null, categoriesById))
 
   const filtered = resolved.filter((ex) => {
     if (filters.q && !matchesTerms(ex.name, filters.q)) return false
@@ -51,7 +55,8 @@ export function resolveAndFilter(
   })
 
   const q = filters.q ?? ''
-  return filtered.sort((a, b) => {
-    return rankExercise(a.name, q, a.favorite) - rankExercise(b.name, q, b.favorite) || a.name.localeCompare(b.name)
-  })
+  return filtered
+    .map((exercise) => ({ exercise, rank: rankExercise(exercise.name, q, exercise.favorite) }))
+    .sort((a, b) => a.rank - b.rank || a.exercise.name.localeCompare(b.exercise.name))
+    .map(({ exercise }) => exercise)
 }

@@ -39,6 +39,31 @@ describe('programExportSchema', () => {
     const bad = { ...valid, program: { ...valid.program, phases: [{ name: 'P', weeks: 0, deload: false, routine: null }] } }
     expect(programExportSchema.safeParse(bad).success).toBe(false)
   })
+
+  const fly = valid.routines[0]!.days[0]!.entries[1]!.exercise
+  const withExercise = (exercise: object) => ({
+    ...valid,
+    routines: [{
+      ...valid.routines[0]!,
+      days: [{ ...valid.routines[0]!.days[0]!, entries: [{ ...valid.routines[0]!.days[0]!.entries[1]!, exercise }] }]
+    }]
+  })
+
+  it.each([
+    ['an unknown tracking type', { trackingType: 'laps' }],
+    ['an unknown load style', { loadStyle: 'kettle' }],
+    ['a zero bar weight', { barWeight: 0 }],
+    ['a blank name', { name: '  ' }],
+    ['a colour outside the palette', { category: { name: 'Chest', color: 'red' } }],
+    ['a blank category name', { category: { name: '', color: 'rose' } }],
+    ['no category', { category: undefined }]
+  ])('rejects a custom exercise with %s', (_label, patch) => {
+    expect(programExportSchema.safeParse(withExercise({ ...fly, ...patch })).success).toBe(false)
+  })
+
+  it('accepts a custom exercise with no load style or bar weight', () => {
+    expect(programExportSchema.safeParse(withExercise({ ...fly, loadStyle: null, barWeight: null })).success).toBe(true)
+  })
 })
 
 describe('matchImportExercise', () => {

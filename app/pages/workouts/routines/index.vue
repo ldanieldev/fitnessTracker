@@ -2,9 +2,7 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Routine, RoutineSummary } from '~~/shared/types/routine'
 import WorkoutPauseProgramPrompt from '~/components/workout/WorkoutPauseProgramPrompt.vue'
-import { errorMessage } from '~/utils/apiError'
 
-const toast = useToast()
 const { data } = await useWorkoutFetch<RoutineSummary[]>(WORKOUT_KEYS.routines, '/api/workouts/routines')
 const routines = computed(() => data.value ?? [])
 
@@ -13,14 +11,7 @@ const newName = ref('')
 const deleting = ref<RoutineSummary | null>(null)
 const deleteOpen = ref(false)
 
-function fail(err: unknown, fallback: string, retry?: () => unknown) {
-  toast.add({
-    title: 'Update failed',
-    description: errorMessage(err, fallback),
-    color: 'error',
-    actions: retry ? [{ label: 'Retry', onClick: () => { retry() } }] : undefined
-  })
-}
+const fail = useFailToast()
 
 async function create() {
   const name = newName.value.trim()
@@ -32,7 +23,7 @@ async function create() {
     await invalidateWorkouts()
     await navigateTo(`/workouts/routines/${routine.id}`)
   } catch (err: unknown) {
-    fail(err, 'Could not create this routine', create)
+    fail('Couldn\'t create routine', err, 'Could not create this routine', create)
   }
 }
 
@@ -45,14 +36,14 @@ async function setActive(routine: RoutineSummary) {
       () => invalidateWorkouts()
     )
   } catch (err: unknown) {
-    fail(err, 'Could not make this routine active')
+    fail('Couldn\'t change active routine', err, 'Could not change the active routine')
   }
 }
 async function confirmPause() {
   try {
     await pausePrompt.confirm()
   } catch (err: unknown) {
-    fail(err, 'Could not make this routine active')
+    fail('Couldn\'t change active routine', err, 'Could not change the active routine')
   }
 }
 
@@ -62,7 +53,7 @@ async function duplicate(routine: RoutineSummary) {
     await invalidateWorkouts()
     await navigateTo(`/workouts/routines/${copy.id}`)
   } catch (err: unknown) {
-    fail(err, 'Could not duplicate this routine', () => duplicate(routine))
+    fail('Couldn\'t duplicate routine', err, 'Could not duplicate this routine', () => duplicate(routine))
   }
 }
 
@@ -74,7 +65,7 @@ async function confirmDelete() {
     await apiFetch(`/api/workouts/routines/${routine.id}`, { method: 'DELETE' })
     await invalidateWorkouts()
   } catch (err: unknown) {
-    fail(err, 'Could not delete this routine')
+    fail('Couldn\'t delete routine', err, 'Could not delete this routine')
   }
 }
 

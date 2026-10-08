@@ -7,42 +7,34 @@ import WorkoutToolsSheet from '~/components/workout/WorkoutToolsSheet.vue'
 import WorkoutCopySheet from '~/components/workout/WorkoutCopySheet.vue'
 import WorkoutDayPickerSheet from '~/components/workout/WorkoutDayPickerSheet.vue'
 import WorkoutProgramStatus from '~/components/workout/WorkoutProgramStatus.vue'
-import { errorMessage } from '~/utils/apiError'
 
 const toast = useToast()
+const fail = useFailToast()
 const wakeLock = useWakeLock()
 const restTimerOpen = ref(false)
 const copyOpen = ref(false)
 const dayPickerOpen = ref(false)
 const { start: startWorkout, starting } = useWorkoutStart()
 
-const restTimer = useRestTimer()
+const restTimer = useNuxtApp().$restTimer
 const { defaultRestSeconds } = useWorkoutPrefs()
 const lastLoggedEntryId = ref<number | null>(null)
 
-restTimer.onComplete(() => {
-  if (navigator.vibrate) navigator.vibrate([200, 100, 200])
-  if (!restTimerOpen.value) toast.add({ title: 'Rest complete!', icon: 'i-lucide-timer', color: 'success' })
-  restTimerOpen.value = false
+// Completion's vibrate + toast live in the restTimer plugin so they also fire off this page.
+watch(() => restTimer.isRunning.value, (running) => {
+  if (!running) restTimerOpen.value = false
 })
 
-const sessionFetch = useWorkoutFetch<WorkoutSession | null>(
-  WORKOUT_KEYS.active,
-  '/api/workouts/sessions/active',
-  // No open session answers 204, which reaches useFetch as undefined; null keeps it in the payload so the client doesn't refetch.
-  { lazy: true, transform: (session: WorkoutSession | null) => session ?? null }
-)
-const { data: session, status, error } = sessionFetch
-// Awaiting only on the server keeps client navigation instant while SSR paints the same markup hydration expects.
-if (import.meta.server) await sessionFetch
+const { session, status, error } = await useActiveSession()
 
 watch(error, (value) => {
-  if (value) toast.add({ title: 'Load failed', description: errorMessage(value, 'Could not load your workout'), color: 'error' })
+  if (value) fail('Couldn\'t load workout', value, 'Could not load your workout')
 })
 
 const loading = computed(() => status.value === 'pending' && !session.value)
 
-const { data: routineList, refresh: refreshRoutines } = useWorkoutFetch<RoutineSummary[]>(WORKOUT_KEYS.routines, '/api/workouts/routines', { lazy: true })
+const { data: routineList, status: routineStatus, refresh: refreshRoutines } = useWorkoutFetch<RoutineSummary[]>(WORKOUT_KEYS.routines, '/api/workouts/routines', { lazy: true })
+const routinesLoading = computed(() => routineStatus.value === 'pending' && !routineList.value)
 const dueRoutine = computed(() => routineList.value?.find((routine) => routine.active && routine.nextDay) ?? null)
 
 const { enrollment } = useEnrollment()
@@ -56,16 +48,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   wakeLock.disable()
-  restTimer.skip()
 })
 
 function toggleWakeLock() {
   if (wakeLock.active.value) wakeLock.disable()
   else wakeLock.enable()
-}
-
-function fail(err: unknown, fallback: string) {
-  toast.add({ title: 'Update failed', description: errorMessage(err, fallback), color: 'error' })
 }
 
 async function start(body: { routineDayId?: number, pointer?: PointerChoice, copyFromId?: number, entryIds?: number[] }) {
@@ -84,10 +71,12 @@ async function finishSession() {
   if (!id) return
   try {
     session.value = await apiFetch<WorkoutSession>(`/api/workouts/sessions/${id}`, { method: 'PATCH', body: { finish: true } })
+    // The plugin's "Rest complete!" toast would otherwise still fire after the workout has ended.
+    restTimer.skip()
     toast.add({ title: 'Workout finished', color: 'success' })
     await invalidateWorkouts()
   } catch (err: unknown) {
-    fail(err, 'Could not finish this workout')
+    fail('Couldn\'t finish workout', err, 'Could not finish this workout')
   }
 }
 
@@ -97,10 +86,11 @@ async function deleteSession() {
   try {
     await apiFetch(`/api/workouts/sessions/${id}`, { method: 'DELETE' })
     session.value = null
+    restTimer.skip()
     toast.add({ title: 'Workout deleted', color: 'success' })
     await invalidateWorkouts()
   } catch (err: unknown) {
-    fail(err, 'Could not delete this workout')
+    fail('Couldn\'t delete workout', err, 'Could not delete this workout')
   }
 }
 
@@ -180,7 +170,7 @@ function useWeight(entryId: number, weight: number) {
             color="primary"
             size="sm"
             class="min-h-10 font-mono tabular-nums"
-            aria-label="Rest timer running, open it"
+            :aria-label="`Rest timer, ${restTimer.display.value} left, open it`"
             data-test="rest-timer-pill"
             @click="restTimerOpen = true"
           />
@@ -213,7 +203,7 @@ function useWeight(entryId: number, weight: number) {
     </template>
 
     <template #body>
-      <div v-if="loading" class="mx-auto flex w-full max-w-2xl flex-col gap-3" data-test="log-skeleton" aria-busy="true">
+      <div v-if="loading || (!session && routinesLoading)" class="mx-auto flex w-full max-w-2xl flex-col gap-3" data-test="log-skeleton" aria-busy="true">
         <USkeleton class="h-10 w-full rounded-lg" />
         <USkeleton class="h-28 w-full rounded-xl" />
         <USkeleton class="h-28 w-full rounded-xl" />

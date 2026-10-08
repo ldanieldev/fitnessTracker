@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { assetPlan } from '../../shared/utils/exerciseAssets'
+import { downloadAsset } from './downloadAsset'
 
 const PINNED_COMMIT = 'a859101d633a01c4a1a920d6a8ce41dabba0705f'
 const SOURCE_URL = `https://raw.githubusercontent.com/yuhonas/free-exercise-db/${PINNED_COMMIT}/dist/exercises.json`
@@ -8,7 +9,7 @@ const OUT_DIR = 'public/exercises'
 const CONCURRENCY = 8
 
 interface SeedEntry {
-  images: string[]
+  images: string[] | null
 }
 
 function walkExisting(dir: string, base = dir): Set<string> {
@@ -25,7 +26,7 @@ function walkExisting(dir: string, base = dir): Set<string> {
 const response = await fetch(SOURCE_URL)
 if (!response.ok) throw new Error(`fetch failed: ${response.status} ${response.statusText}`)
 const entries = (await response.json()) as SeedEntry[]
-const images = entries.flatMap((entry) => entry.images)
+const images = entries.flatMap((entry) => entry.images ?? [])
 const distinctCount = new Set(images).size
 
 const existing = walkExisting(OUT_DIR)
@@ -34,16 +35,10 @@ const plan = assetPlan(images, existing)
 const failures: string[] = []
 let fetched = 0
 
-async function downloadOne({ path, url }: { path: string, url: string }) {
-  const res = await fetch(url)
-  if (!res.ok) {
-    failures.push(`${path}: ${res.status} ${res.statusText}`)
-    return
-  }
-  const outPath = join(OUT_DIR, path)
-  mkdirSync(dirname(outPath), { recursive: true })
-  writeFileSync(outPath, Buffer.from(await res.arrayBuffer()))
-  fetched++
+async function downloadOne(item: { path: string, url: string }) {
+  const failure = await downloadAsset(item, OUT_DIR)
+  if (failure) failures.push(failure)
+  else fetched++
 }
 
 async function runPool(items: typeof plan, concurrency: number) {

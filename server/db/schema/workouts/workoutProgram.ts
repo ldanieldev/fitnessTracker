@@ -4,14 +4,18 @@ import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 import { routines } from './workout'
 
-export const programs = appSchema.table('programs', {
-  ...commonColumns,
-  userId: integer('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 255 }).notNull(),
-  description: text('description').default(sql`null`)
-})
+export const programs = appSchema.table(
+  'programs',
+  {
+    ...commonColumns,
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description').default(sql`null`)
+  },
+  (table) => [index('program_user').on(table.userId)]
+)
 
 export const programPhases = appSchema.table(
   'program_phases',
@@ -51,6 +55,7 @@ export const userProgramEnrollments = appSchema.table(
     notice: varchar('notice', { enum: ['phase', 'complete'] }).default(sql`null`)
   },
   (table) => [
-    uniqueIndex('enrollment_one_live').on(table.userId).where(sql`status in ('active', 'paused')`)
+    uniqueIndex('enrollment_one_live').on(table.userId).where(sql`status in ('active', 'paused')`),
+    index('enrollment_program').on(table.programId)
   ]
 )

@@ -49,8 +49,8 @@ describe('WorkoutSetRow', () => {
   it('reads cardio measures and shows no volume', async () => {
     const cardio = { ...logged, weight: null, reps: null, distanceMeters: 5000, durationSeconds: 1800 }
     const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: cardio, trackingType: 'distance_time' } })
-    expect(wrapper.find('[data-test="set-measure-3-distance"]').text()).toBe('5000 m')
-    expect(wrapper.find('[data-test="set-measure-3-duration"]').text()).toBe('1800 s')
+    expect(wrapper.find('[data-test="set-measure-3-distance"]').text()).toBe('3.11 mi')
+    expect(wrapper.find('[data-test="set-measure-3-duration"]').text()).toBe('30:00')
     expect(wrapper.find('[data-test="set-volume-3"]').exists()).toBe(false)
   })
 
@@ -74,7 +74,59 @@ describe('WorkoutSetRow', () => {
     await wrapper.find('[data-test="set-weight-3"]').setValue('195')
     await wrapper.find('[data-test="set-save-3"]').trigger('click')
     expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: 195, reps: 8, distanceMeters: null, durationSeconds: null })
-    expect(wrapper.find('[data-test="set-weight-3"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="set-weight-3"]').exists()).toBe(true)
+  })
+
+  it('stays in edit mode until the saved values come back', async () => {
+    const wrapper = await mountSuspended(WorkoutSetRow, { props: base })
+    await startEdit(wrapper)
+    await wrapper.find('[data-test="set-weight-3"]').setValue('195')
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    expect(wrapper.find('[data-test="set-edit-form-3"]').exists()).toBe(true)
+    await wrapper.setProps({ set: { ...logged, reps: 9 } })
+    expect(wrapper.find('[data-test="set-edit-form-3"]').exists()).toBe(true)
+    await wrapper.setProps({ set: { ...logged, weight: 195 } })
+    expect(wrapper.find('[data-test="set-edit-form-3"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="set-measure-3-weight"]').text()).toBe('195 lb')
+  })
+
+  it('keeps the typed values after a failed save and can save again', async () => {
+    const wrapper = await mountSuspended(WorkoutSetRow, { props: base })
+    await startEdit(wrapper)
+    await wrapper.find('[data-test="set-weight-3"]').setValue('195')
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    await wrapper.setProps({ error: 'Nope' })
+    expect((wrapper.find('[data-test="set-weight-3"]').element as HTMLInputElement).value).toBe('195')
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    expect(wrapper.emitted('save')).toHaveLength(2)
+  })
+
+  it('closes the form when a retried save lands after a failure', async () => {
+    const wrapper = await mountSuspended(WorkoutSetRow, { props: base })
+    await startEdit(wrapper)
+    await wrapper.find('[data-test="set-weight-3"]').setValue('195')
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    await wrapper.setProps({ error: 'Nope' })
+    expect(wrapper.find('[data-test="set-edit-form-3"]').exists()).toBe(true)
+    await wrapper.setProps({ error: null, set: { ...logged, weight: 195 } })
+    expect(wrapper.find('[data-test="set-edit-form-3"]').exists()).toBe(false)
+  })
+
+  it('keeps the form and newer edits open when a retry of the older payload lands', async () => {
+    const wrapper = await mountSuspended(WorkoutSetRow, { props: base })
+    await startEdit(wrapper)
+    await wrapper.find('[data-test="set-weight-3"]').setValue('195')
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    await wrapper.setProps({ error: 'Nope' })
+    await wrapper.find('[data-test="set-weight-3"]').setValue('200')
+    await wrapper.setProps({ error: null, set: { ...logged, weight: 195 } })
+    expect(wrapper.find('[data-test="set-edit-form-3"]').exists()).toBe(true)
+    expect((wrapper.find('[data-test="set-weight-3"]').element as HTMLInputElement).value).toBe('200')
+    expect(wrapper.find('[data-test="set-save-3"]').attributes('disabled')).toBeUndefined()
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    expect(wrapper.emitted('save')!.at(-1)![0]).toMatchObject({ weight: 200, reps: 8 })
+    await wrapper.setProps({ set: { ...logged, weight: 200 } })
+    expect(wrapper.find('[data-test="set-edit-form-3"]').exists()).toBe(false)
   })
 
   it('cancels an edit without emitting', async () => {
@@ -133,5 +185,29 @@ describe('WorkoutSetRow', () => {
   it('opens with the note visible when the set already has a comment', async () => {
     const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: { ...logged, comment: 'felt heavy' } } })
     expect((wrapper.find('[data-test="set-note-3"]').element as HTMLTextAreaElement).value).toBe('felt heavy')
+  })
+
+  it('edits cardio in miles and m:ss and saves metres and seconds', async () => {
+    const cardio = { ...logged, weight: null, reps: null, distanceMeters: 5000, durationSeconds: 1800 }
+    const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: cardio, trackingType: 'distance_time' } })
+    await startEdit(wrapper)
+    expect((wrapper.find('[data-test="set-distance-3"]').element as HTMLInputElement).value).toBe('3.11')
+    expect((wrapper.find('[data-test="set-duration-3"]').element as HTMLInputElement).value).toBe('30:00')
+    const units = wrapper.findAll('[data-test="set-edit-form-3"] span').map((span) => span.text())
+    expect(units).toContain('mi')
+    expect(units).toContain('m:ss')
+    await wrapper.find('[data-test="set-distance-3"]').setValue('5')
+    await wrapper.find('[data-test="set-duration-3"]').setValue('28:15')
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: null, reps: null, distanceMeters: 8046.72, durationSeconds: 1695 })
+  })
+
+  it('saves the stored distance exactly when only the time was edited', async () => {
+    const sprint = { ...logged, weight: null, reps: null, distanceMeters: 100, durationSeconds: 20 }
+    const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: sprint, trackingType: 'distance_time' } })
+    await startEdit(wrapper)
+    await wrapper.find('[data-test="set-duration-3"]').setValue('18')
+    await wrapper.find('[data-test="set-save-3"]').trigger('click')
+    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: null, reps: null, distanceMeters: 100, durationSeconds: 18 })
   })
 })

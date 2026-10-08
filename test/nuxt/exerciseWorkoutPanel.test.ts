@@ -62,7 +62,7 @@ describe('ExerciseWorkoutPanel', () => {
     expect(wrapper.emitted('save')![0]![0]).toMatchObject({ plateSizes: [45, 25, 10, 5, 2.5] })
   })
 
-  it('offers a plates reset only when the exercise has an override', async () => {
+  it('resets a saved plates override on the server', async () => {
     const wrapper = await mountSuspended(ExerciseWorkoutPanel, {
       props: { exercise: { ...exercise, plateSizes: [55, 45] } }
     })
@@ -76,5 +76,37 @@ describe('ExerciseWorkoutPanel', () => {
     })
     expect(wrapper.find('[data-test="setting-plates"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="setting-rest-seconds"]').exists()).toBe(true)
+  })
+
+  it('backs out of an unsaved customisation without a reset round trip', async () => {
+    const wrapper = await mountSuspended(ExerciseWorkoutPanel, { props: { exercise } })
+    await wrapper.find('[data-test="plates-customise"]').trigger('click')
+    await wrapper.find('[data-test="reset-plateSizes"]').trigger('click')
+    expect(wrapper.find('[data-test="plates-customise"]').exists()).toBe(true)
+    expect(wrapper.emitted('reset')).toBeUndefined()
+    await wrapper.find('[data-test="workout-save"]').trigger('click')
+    expect(wrapper.emitted('save')).toBeUndefined()
+  })
+
+  it('binds the increment and rest labels to their inputs', async () => {
+    const wrapper = await mountSuspended(ExerciseWorkoutPanel, { props: { exercise } })
+    const labelFor = (text: string) => wrapper.findAll('label').find((el) => el.text() === text)!
+    const controlFor = (text: string) => wrapper.element.querySelector(`[id="${labelFor(text).attributes('for')}"]`)
+    expect(controlFor('Weight increment')).toBe(wrapper.find('[data-test="setting-weight-increment"]').element)
+    expect(controlFor('Rest (seconds)')).toBe(wrapper.find('[data-test="setting-rest-seconds"]').element)
+    expect(labelFor('Rest (seconds)').classes()).toContain('text-dimmed')
+  })
+
+  it('groups the plates under a legend and names the reset by its visible text', async () => {
+    const wrapper = await mountSuspended(ExerciseWorkoutPanel, {
+      props: { exercise: { ...exercise, plateSizes: [55, 45] } }
+    })
+    const plates = wrapper.find('[data-test="setting-plates"]')
+    expect(plates.element.tagName).toBe('FIELDSET')
+    expect(plates.find('legend').text()).toBe('Plates')
+    const reset = wrapper.find('[data-test="reset-plateSizes"]')
+    expect(reset.attributes('aria-label')).toBeUndefined()
+    expect(reset.attributes('aria-labelledby')).toBeUndefined()
+    expect(reset.text()).toBe('Use default plates')
   })
 })

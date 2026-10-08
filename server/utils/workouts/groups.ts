@@ -28,23 +28,35 @@ export const SESSION_ENTRY_GROUPS: GroupedTable = {
   parent: workoutEntries.sessionId
 }
 
+// Id order keeps every locker in one order; NO KEY UPDATE still lets set inserts take their FK KEY SHARE meanwhile.
+export async function lockGroupRows(tx: DbClient, groups: GroupedTable, parentId: number) {
+  const result = await tx.execute<{ id: number, sort_order: number, superset_group: number | null }>(sql`
+    select ${groups.id} as id, ${groups.sortOrder} as sort_order, ${groups.supersetGroup} as superset_group
+    from ${groups.table} where ${groups.parent} = ${parentId} order by ${groups.id} for no key update
+  `)
+  return result.rows
+    .map((row) => ({
+      id: Number(row.id),
+      sortOrder: Number(row.sort_order),
+      supersetGroup: row.superset_group === null ? null : Number(row.superset_group)
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+}
+
 export async function regroup(
   tx: DbClient,
   groups: GroupedTable,
   parentId: number,
   change: (items: GroupItem[]) => GroupItem[]
 ): Promise<void> {
-  const result = await tx.execute<{ id: number, superset_group: number | null }>(sql`
-    select ${groups.id} as id, ${groups.supersetGroup} as superset_group from ${groups.table}
-    where ${groups.parent} = ${parentId} order by ${groups.sortOrder}, ${groups.id}
-  `)
-  const items = result.rows.map((row) => ({
-    id: Number(row.id),
-    supersetGroup: row.superset_group === null ? null : Number(row.superset_group)
-  }))
+  const rows = await lockGroupRows(tx, groups, parentId)
+  const stored = new Map(rows.map((row) => [row.id, row]))
+  const items = rows.map((row) => ({ id: row.id, supersetGroup: row.supersetGroup }))
   const sortOrderName = sql.identifier(groups.sortOrder.name)
   const groupName = sql.identifier(groups.supersetGroup.name)
   for (const [index, item] of change(items).entries()) {
+    const was = stored.get(item.id)
+    if (was && was.sortOrder === index && was.supersetGroup === item.supersetGroup) continue
     await tx.execute(sql`update ${groups.table} set ${sortOrderName} = ${index}, ${groupName} = ${item.supersetGroup} where ${groups.id} = ${item.id}`)
   }
 }

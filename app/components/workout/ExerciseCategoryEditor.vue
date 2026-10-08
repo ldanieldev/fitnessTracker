@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import type { ExerciseCategory } from '~~/shared/types/workout'
 import { CATEGORY_COLORS, CATEGORY_DOT_CLASS } from '~~/shared/utils/categoryColors'
-import { errorMessage } from '~/utils/apiError'
 
 const open = defineModel<boolean>('open', { default: false })
-const toast = useToast()
+const fail = useFailToast()
 
 const { data: categories } = useExerciseFetch<ExerciseCategory[]>(
   EXERCISE_KEYS.categoriesAll,
@@ -25,7 +24,7 @@ async function renameCategory(category: ExerciseCategory) {
     await apiFetch(`/api/workouts/categories/${category.id}`, { method: 'PATCH', body: { name } })
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({ title: 'Rename failed', description: errorMessage(error, 'Could not rename category'), color: 'error' })
+    fail('Couldn\'t rename category', error, 'Could not rename category')
   }
 }
 
@@ -35,11 +34,7 @@ async function setColor(category: ExerciseCategory, color: string) {
     await apiFetch(`/api/workouts/categories/${category.id}`, { method: 'PATCH', body: { color } })
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(error, 'Could not update category colour'),
-      color: 'error'
-    })
+    fail('Couldn\'t update category colour', error, 'Could not update category colour')
   }
 }
 
@@ -48,7 +43,7 @@ async function toggleHidden(category: ExerciseCategory) {
     await apiFetch(`/api/workouts/categories/${category.id}`, { method: 'PATCH', body: { hidden: !category.hidden } })
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({ title: 'Update failed', description: errorMessage(error, 'Could not update category'), color: 'error' })
+    fail('Couldn\'t update category', error, 'Could not update category')
   }
 }
 
@@ -68,11 +63,7 @@ async function moveCategory(category: ExerciseCategory, direction: -1 | 1) {
       body: { sortOrder: neighbor.sortOrder }
     })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Reorder failed',
-      description: errorMessage(error, 'Could not reorder categories'),
-      color: 'error'
-    })
+    fail('Couldn\'t reorder categories', error, 'Could not reorder categories')
   } finally {
     await invalidateExercises(EXERCISE_KEYS.categoriesAll, EXERCISE_KEYS.categories, EXERCISE_KEYS.reference)
   }
@@ -104,7 +95,7 @@ async function confirmDelete() {
     await apiFetch(`/api/workouts/categories/${deleteTarget.value.id}?moveTo=${moveTo.value}`, { method: 'DELETE' })
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete category'), color: 'error' })
+    fail('Couldn\'t delete category', error, 'Could not delete category')
   } finally {
     deleting.value = false
     deleteTarget.value = null
@@ -126,7 +117,7 @@ async function createCategory() {
     newColor.value = CATEGORY_COLORS[0]
     await invalidateExercises()
   } catch (error: unknown) {
-    toast.add({ title: 'Add failed', description: errorMessage(error, 'Could not add category'), color: 'error' })
+    fail('Couldn\'t add category', error, 'Could not add category')
   } finally {
     creating.value = false
   }

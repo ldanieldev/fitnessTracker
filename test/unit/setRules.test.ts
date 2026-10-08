@@ -9,6 +9,11 @@ describe('measuresFor', () => {
     expect(measuresFor('weight_distance')).toEqual(['weight', 'distance'])
   })
 
+  it('covers the remaining compound types', () => {
+    expect(measuresFor('weight_time')).toEqual(['weight', 'duration'])
+    expect(measuresFor('reps_distance')).toEqual(['reps', 'distance'])
+  })
+
   it('gives single-measure types one measure', () => {
     expect(measuresFor('reps')).toEqual(['reps'])
     expect(measuresFor('time')).toEqual(['duration'])

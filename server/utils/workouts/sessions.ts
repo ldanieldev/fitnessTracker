@@ -7,7 +7,7 @@ import { isUniqueViolation } from '~~/server/utils/pgError'
 import { loadEntries } from '~~/server/utils/workouts/entries'
 import { loadEntryCategories, sessionCategoryDots } from '~~/server/utils/workouts/sessionCategories'
 import { sessionFilterWhere } from '~~/server/utils/workouts/sessionFilter'
-import { refreshSessionDate } from '~~/server/utils/workouts/rollups'
+import { refreshSessionDate, stampGoals } from '~~/server/utils/workouts/rollups'
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Workout not found' } as const
 
@@ -27,7 +27,7 @@ async function toSession(row: typeof workoutSessions.$inferSelect): Promise<Work
     notes: row.notes,
     routineDayId: row.routineDayId,
     deload: await phaseDeload(row.programPhaseId),
-    entries: await loadEntries(row.userId, row.id)
+    entries: await loadEntries(row.userId, row)
   }
 }
 
@@ -42,6 +42,17 @@ async function openSessionRow(userId: number) {
 export async function activeSession(userId: number): Promise<WorkoutSession | null> {
   const row = await openSessionRow(userId)
   return row ? await toSession(row) : null
+}
+
+export async function rethrowOpenSessionConflict(userId: number, err: unknown): Promise<never> {
+  if (isUniqueViolation(err, 'workout_session_open')) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'A workout is already open',
+      data: { session: await activeSession(userId) }
+    })
+  }
+  throw err
 }
 
 // Drizzle strips table qualification in a select-field sql fragment; bare id is ambiguous across commonColumns tables.
@@ -101,6 +112,15 @@ export async function loadSession(userId: number, id: number): Promise<WorkoutSe
   return toSession(row)
 }
 
+export async function assertOwnSession(userId: number, id: number): Promise<void> {
+  const row = await db
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(and(eq(workoutSessions.id, id), eq(workoutSessions.userId, userId)))
+    .then((r) => r[0])
+  if (!row) throw createError(NOT_FOUND_ERROR)
+}
+
 export async function patchSession(userId: number, id: number, patch: SessionPatchInput): Promise<WorkoutSession> {
   const current = await loadSession(userId, id)
 
@@ -126,14 +146,7 @@ export async function patchSession(userId: number, id: number, patch: SessionPat
     try {
       await db.update(workoutSessions).set(values).where(eq(workoutSessions.id, id))
     } catch (err) {
-      if (isUniqueViolation(err, 'workout_session_open')) {
-        throw createError({
-          statusCode: 409,
-          statusMessage: 'A workout is already open',
-          data: { session: await activeSession(userId) }
-        })
-      }
-      throw err
+      await rethrowOpenSessionConflict(userId, err)
     }
   }
 
@@ -143,6 +156,12 @@ export async function patchSession(userId: number, id: number, patch: SessionPat
 }
 
 export async function deleteSession(userId: number, id: number): Promise<void> {
-  await loadSession(userId, id)
+  await assertOwnSession(userId, id)
+  const touched = await db
+    .selectDistinct({ exerciseId: workoutEntries.exerciseId })
+    .from(workoutEntries)
+    .where(eq(workoutEntries.sessionId, id))
   await db.delete(workoutSessions).where(and(eq(workoutSessions.id, id), eq(workoutSessions.userId, userId)))
+  // The cascade drops this session's rollups, so goals it earned are re-checked against what is left.
+  for (const { exerciseId } of touched) await stampGoals(userId, exerciseId)
 }

@@ -34,4 +34,13 @@ describe('WorkoutToolsSetCalc', () => {
     const none = await mountSuspended(WorkoutToolsSetCalc, { props: { oneRm: null, pending: false, context: barbell } })
     expect(none.find('[data-test="set-calc-empty"]').exists()).toBe(true)
   })
+
+  it('treats 0 % as no input instead of the bare bar', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsSetCalc, { props: { oneRm: 262, pending: false, context: barbell } })
+    await wrapper.find('[data-test="set-calc-percent"]').setValue('0')
+    expect(wrapper.find('[data-test="set-calc-raw"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="set-calc-loadable"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="set-calc-plates"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="set-calc-use"]').exists()).toBe(false)
+  })
 })

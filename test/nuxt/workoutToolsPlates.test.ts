@@ -48,4 +48,10 @@ describe('WorkoutToolsPlates', () => {
     const free = await mountSuspended(WorkoutToolsPlates, { props: { target: 135, bar: 45, sizes, barEditable: true } })
     expect(free.find('[data-test="tools-bar"]').exists()).toBe(true)
   })
+
+  it('asks for the bar weight when the free bar is cleared', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsPlates, { props: { target: 135, bar: null, sizes, barEditable: true } })
+    expect(wrapper.find('[data-test="plates-no-bar"]').text()).toBe('Enter the bar weight.')
+    expect(wrapper.find('[data-test="plates-not-barbell"]').exists()).toBe(false)
+  })
 })

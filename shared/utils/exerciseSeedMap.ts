@@ -8,8 +8,8 @@ export interface SeedEntry {
   level?: string
   primaryMuscles: string[]
   secondaryMuscles: string[]
-  instructions: string[]
-  images: string[]
+  instructions: string[] | null
+  images: string[] | null
 }
 
 export const CATEGORY_SEEDS = [

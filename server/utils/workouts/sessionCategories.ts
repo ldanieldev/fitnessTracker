@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { SessionCategoryDot } from '~~/shared/types/workout'
 import { exerciseCategories, exerciseCategoryPrefs, exercisePrefs, exercises, workoutEntries } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
+import { effectiveCategoryId } from '~~/server/utils/workouts/sessionFilter'
 
 export interface EntryCategory {
   sessionId: number
@@ -25,7 +26,7 @@ export async function loadEntryCategories(userId: number, sessionIds: number[]):
     .from(workoutEntries)
     .innerJoin(exercises, eq(exercises.id, workoutEntries.exerciseId))
     .leftJoin(exercisePrefs, and(eq(exercisePrefs.exerciseId, exercises.id), eq(exercisePrefs.userId, userId)))
-    .innerJoin(exerciseCategories, eq(exerciseCategories.id, sql`coalesce(${exercisePrefs.categoryId}, ${exercises.categoryId})`))
+    .innerJoin(exerciseCategories, eq(exerciseCategories.id, effectiveCategoryId))
     .leftJoin(
       exerciseCategoryPrefs,
       and(eq(exerciseCategoryPrefs.categoryId, exerciseCategories.id), eq(exerciseCategoryPrefs.userId, userId))

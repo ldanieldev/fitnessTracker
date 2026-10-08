@@ -1,5 +1,4 @@
 import type { MaybeRefOrGetter } from 'vue'
-import { errorMessage } from '~/utils/apiError'
 import type { EntryType, TargetDirection } from '~~/shared/types/nutrition'
 
 export interface DiaryTarget {
@@ -80,17 +79,13 @@ export interface DiaryEntryPatch {
 }
 
 export function useDiaryDay(date: MaybeRefOrGetter<string>, opts: { immediate?: boolean } = {}) {
-  const toast = useToast()
+  const fail = useFailToast()
   const fetch = useNutritionFetch<DiaryDay>(
     () => NUTRITION_KEYS.day(toValue(date)),
     () => `/api/nutrition/diary/${toValue(date)}`,
     { watch: [() => toValue(date)], immediate: opts.immediate ?? true }
   )
   const { data: day, refresh, status, error } = fetch
-
-  function fail(title: string, err: unknown, fallback: string) {
-    toast.add({ title, description: errorMessage(err, fallback), color: 'error' })
-  }
 
   async function logEntries(inputs: DiaryEntryInput[]): Promise<{ ids: number[] } | null> {
     try {

@@ -1,4 +1,4 @@
-import { ref, computed, readonly } from 'vue'
+import { ref, computed, readonly, getCurrentScope, onScopeDispose } from 'vue'
 
 export function useRestTimer() {
   const isRunning = ref(false)
@@ -64,9 +64,11 @@ export function useRestTimer() {
   }
 
   function adjustTime(delta: number) {
+    if (!isRunning.value) return
     endsAt += delta * 1000
+    totalSeconds.value = Math.max(0, totalSeconds.value + delta)
     remainingSeconds.value = secondsLeft()
-    if (remainingSeconds.value === 0 && isRunning.value) {
+    if (remainingSeconds.value === 0) {
       clearTimer()
       isRunning.value = false
     }
@@ -79,6 +81,8 @@ export function useRestTimer() {
   function onComplete(cb: () => void) {
     completeCallback = cb
   }
+
+  if (getCurrentScope()) onScopeDispose(clearTimer)
 
   return {
     isRunning: readonly(isRunning),

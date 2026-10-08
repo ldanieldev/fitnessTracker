@@ -5,6 +5,7 @@ import {
   effectiveOneRepMax,
   estimateCacheKey,
   estimateWindowStart,
+  historyStampKey,
   repMaxTable,
   repsToWeight
 } from '../../shared/utils/oneRepMax'
@@ -88,12 +89,21 @@ describe('effectiveOneRepMax', () => {
 })
 
 describe('estimateCacheKey', () => {
-  it('changes whenever the history stamp changes', () => {
-    const stamp = { sets: 3, setsAt: '1790000000.1', sessionsAt: '1790000000.2' }
-    const key = estimateCacheKey(1, 7, '2026-09-18', stamp)
-    expect(estimateCacheKey(1, 7, '2026-09-18', { ...stamp, sets: 4 })).not.toBe(key)
-    expect(estimateCacheKey(1, 7, '2026-09-18', { ...stamp, setsAt: '1790000001.0' })).not.toBe(key)
-    expect(estimateCacheKey(1, 7, '2026-09-18', { ...stamp, sessionsAt: null })).not.toBe(key)
-    expect(estimateCacheKey(1, 7, '2026-09-19', stamp)).not.toBe(key)
+  it('names one entry per user, exercise, day and rep cap', () => {
+    const key = estimateCacheKey(1, 7, '2026-09-18', 10)
+    expect(key).toBe('one-rep-max:1:7:2026-09-18:10')
+    expect(estimateCacheKey(1, 7, '2026-09-19', 10)).not.toBe(key)
+    expect(estimateCacheKey(1, 7, '2026-09-18', 12)).not.toBe(key)
+  })
+})
+
+describe('historyStampKey', () => {
+  it('changes whenever any part of the history stamp changes', () => {
+    const stamp = { sets: 3, setsAt: '1790000000.1', sessionsAt: '1790000000.2', entriesAt: '1790000000.3' }
+    const key = historyStampKey(stamp)
+    expect(historyStampKey({ ...stamp, sets: 4 })).not.toBe(key)
+    expect(historyStampKey({ ...stamp, setsAt: '1790000001.0' })).not.toBe(key)
+    expect(historyStampKey({ ...stamp, sessionsAt: null })).not.toBe(key)
+    expect(historyStampKey({ ...stamp, entriesAt: '1790000001.0' })).not.toBe(key)
   })
 })

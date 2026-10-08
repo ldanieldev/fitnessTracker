@@ -7,7 +7,7 @@ export interface HistorySet extends SetMeasures {
 
 export function paceOf(measures: SetMeasures): number | null {
   const { distanceMeters, durationSeconds } = measures
-  if (distanceMeters == null || durationSeconds == null) return null
+  if (distanceMeters == null || distanceMeters <= 0 || durationSeconds == null || durationSeconds <= 0) return null
   return distanceMeters / durationSeconds
 }
 

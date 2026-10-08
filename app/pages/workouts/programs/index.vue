@@ -4,16 +4,13 @@ import type { Program, ProgramImportResult, ProgramSummary, StartWhen } from '~~
 import WorkoutEnrollmentCard from '~/components/workout/WorkoutEnrollmentCard.vue'
 import WorkoutProgramReplacePrompt from '~/components/workout/WorkoutProgramReplacePrompt.vue'
 import WorkoutProgramWhenSheet from '~/components/workout/WorkoutProgramWhenSheet.vue'
-import { errorCode, errorMessage } from '~/utils/apiError'
+import { errorCode } from '~/utils/apiError'
 
 const toast = useToast()
+const fail = useFailToast()
 const { data } = await useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs')
 const programs = computed(() => data.value ?? [])
 const { enrollment, today, enroll, pause, resume, end, dismiss } = useEnrollment()
-
-function fail(title: string, err: unknown, fallback: string) {
-  toast.add({ title, description: errorMessage(err, fallback), color: 'error' })
-}
 
 const newOpen = ref(false)
 const newName = ref('')

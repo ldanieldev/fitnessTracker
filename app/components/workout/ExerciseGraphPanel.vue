@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
-import type { ChartRange } from '~~/shared/types/series'
+import type { ChartRange, SeriesPoint } from '~~/shared/types/series'
 import type { Exercise, GraphMetric } from '~~/shared/types/workout'
+import { cardioMetricDisplay } from '~~/shared/utils/cardioUnits'
 import { metricLabel, metricPrecision, metricUnit, metricsFor } from '~~/shared/utils/workoutMetrics'
-import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{ exercise: Exercise }>()
 
@@ -29,7 +29,23 @@ await fetch
 const showTrend = ref(true)
 const zeroBased = ref(false)
 
-const unit = computed(() => series.value?.unit ?? metricUnit(metric.value))
+const cardio = computed(() => cardioMetricDisplay(metric.value))
+const unit = computed(() => cardio.value?.unit ?? series.value?.unit ?? metricUnit(metric.value))
+
+function shown(points: SeriesPoint[]): SeriesPoint[] {
+  const display = cardio.value
+  if (!display) return points
+  // Rollups written before zero-distance sets were excluded hold a 0 m/s pace, which displays as an infinite min/mi.
+  return points.map((point) => ({ ...point, value: display.toDisplay(point.value) })).filter((point) => Number.isFinite(point.value))
+}
+
+const points = computed(() => shown(series.value?.points ?? []))
+const trendPoints = computed(() => shown(trend.value))
+const goalValue = computed(() => {
+  const target = series.value?.goal?.targetValue
+  if (target == null) return null
+  return cardio.value ? cardio.value.toDisplay(target) : target
+})
 const precision = computed(() => series.value?.precision ?? metricPrecision(metric.value))
 const label = computed(() => metricLabel(metric.value, props.exercise.loadStyle))
 
@@ -39,13 +55,14 @@ function goalDate(date: string) {
 
 const goalSummary = computed(() => {
   const goal = series.value?.goal
-  if (!goal) return null
-  const target = `${goal.targetValue} ${unit.value}`
+  if (!goal || goalValue.value === null) return null
+  const amount = cardio.value ? cardio.value.format(goalValue.value) : String(goalValue.value)
+  const target = unit.value ? `${amount} ${unit.value}` : amount
   return goal.targetDate ? `Goal ${target} by ${goalDate(goal.targetDate)}` : `Goal ${target}`
 })
 
 const goalSheetOpen = ref(false)
-const toast = useToast()
+const fail = useFailToast()
 const settingDefault = ref(false)
 
 async function makeDefault() {
@@ -57,11 +74,7 @@ async function makeDefault() {
     })
     await invalidateExercises(EXERCISE_KEYS.detail(props.exercise.id))
   } catch (error: unknown) {
-    toast.add({
-      title: 'Could not save default',
-      description: errorMessage(error, 'Could not save this default'),
-      color: 'error'
-    })
+    fail('Couldn\'t save default graph', error, 'Could not save this default')
   } finally {
     settingDefault.value = false
   }
@@ -87,13 +100,14 @@ async function makeDefault() {
 
     <WorkoutMetricChart
       v-if="series"
-      :points="series.points"
-      :trend="showTrend ? trend : []"
-      :goal="series.goal?.targetValue ?? null"
+      :points="points"
+      :trend="showTrend ? trendPoints : []"
+      :goal="goalValue"
       :from="series.from"
       :to="series.to"
       :unit="unit"
       :precision="precision"
+      :format="cardio?.format"
       :label="label"
       :zero-based="zeroBased"
     />

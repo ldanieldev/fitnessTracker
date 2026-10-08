@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import type { ExerciseCategory, ExerciseDetail } from '~~/shared/types/workout'
 import { CATEGORY_DOT_CLASS } from '~~/shared/utils/categoryColors'
-import { errorMessage } from '~/utils/apiError'
 import ExerciseSettingsPanel from '~/components/workout/ExerciseSettingsPanel.vue'
 import ExerciseWorkoutPanel from '~/components/workout/ExerciseWorkoutPanel.vue'
 import ExerciseHistoryPanel from '~/components/workout/ExerciseHistoryPanel.vue'
 import ExerciseGraphPanel from '~/components/workout/ExerciseGraphPanel.vue'
 import ExerciseRecordsPanel from '~/components/workout/ExerciseRecordsPanel.vue'
-import ExerciseVariationPicker from '~/components/workout/ExerciseVariationPicker.vue'
+import ExerciseVariationsPanel from '~/components/workout/ExerciseVariationsPanel.vue'
 
 interface ReferenceData { categories: ExerciseCategory[] }
-interface VariationGroup { id: number, name: string, exerciseIds: number[] }
 
 function titleCase(key: string) {
   return key.replace(/(^|[\s-])([a-z])/g, (_match, sep, letter) => sep + letter.toUpperCase())
@@ -18,7 +16,7 @@ function titleCase(key: string) {
 
 const route = useRoute()
 const id = computed(() => Number(route.params.id))
-const toast = useToast()
+const fail = useFailToast()
 
 const detailFetch = useExerciseFetch<ExerciseDetail>(
   () => EXERCISE_KEYS.detail(id.value),
@@ -38,12 +36,6 @@ watch(error, (value) => {
 const { data: reference } = useExerciseFetch<ReferenceData>(EXERCISE_KEYS.reference, '/api/workouts/reference')
 const categories = computed(() => reference.value?.categories ?? [])
 
-const { data: variationGroups } = useExerciseFetch<VariationGroup[]>(
-  EXERCISE_KEYS.variations,
-  '/api/workouts/variations'
-)
-const variationGroup = computed(() => variationGroups.value?.find((g) => g.exerciseIds.includes(id.value)))
-
 type Tab = 'about' | 'history' | 'graph' | 'records' | 'settings' | 'variations'
 const tabItems = [
   { label: 'About', value: 'about', test: 'exercise-tab-about' },
@@ -55,6 +47,11 @@ const tabItems = [
 ]
 const requestedTab = tabItems.find((item) => item.value === route.query.tab)?.value as Tab | undefined
 const activeTab = ref<Tab>(requestedTab ?? 'about')
+// Mounted on first visit, then kept: v-show alone fetched every panel up front, v-if reset their local state.
+const visitedTabs = reactive(new Set<Tab>([activeTab.value]))
+watch(activeTab, (tab) => {
+  visitedTabs.add(tab)
+})
 
 const dotClass = computed(() => CATEGORY_DOT_CLASS[exercise.value?.category.color ?? ''] ?? CATEGORY_DOT_CLASS.fallback)
 
@@ -64,11 +61,7 @@ async function savePrefs(patch: Record<string, unknown>) {
     await invalidateExercises(EXERCISE_KEYS.detail(id.value))
     await invalidateExercises()
   } catch (err: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(err, 'Could not update this exercise'),
-      color: 'error'
-    })
+    fail('Couldn\'t update exercise', err, 'Could not update this exercise')
   }
 }
 
@@ -89,11 +82,7 @@ async function toggleFavorite() {
     await invalidateExercises(EXERCISE_KEYS.detail(id.value))
     await invalidateExercises()
   } catch (err: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(err, 'Could not update this exercise'),
-      color: 'error'
-    })
+    fail('Couldn\'t update favorite', err, 'Could not update this exercise')
   }
 }
 
@@ -148,27 +137,6 @@ function stepImage(direction: 1 | -1) {
 const formQuery = computed(() => encodeURIComponent(`${exercise.value?.name ?? ''} form`))
 const googleSearchUrl = computed(() => `https://www.google.com/search?q=${formQuery.value}`)
 const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_query=${formQuery.value}`)
-
-const pickerOpen = ref(false)
-
-async function onLink(payload: { groupId?: number, name?: string, exerciseId: number }) {
-  try {
-    if (payload.name) {
-      await apiFetch('/api/workouts/variations', {
-        method: 'POST',
-        body: { name: payload.name, exerciseIds: [payload.exerciseId] }
-      })
-    } else if (payload.groupId !== undefined) {
-      await apiFetch(`/api/workouts/variations/${payload.groupId}`, {
-        method: 'PATCH',
-        body: { addExerciseIds: [payload.exerciseId] }
-      })
-    }
-    await invalidateExercises(EXERCISE_KEYS.variations, EXERCISE_KEYS.detail(id.value))
-  } catch (err: unknown) {
-    toast.add({ title: 'Link failed', description: errorMessage(err, 'Could not link this variation'), color: 'error' })
-  }
-}
 </script>
 
 <template>
@@ -307,15 +275,14 @@ async function onLink(payload: { groupId?: number, name?: string, exerciseId: nu
             <li v-for="(step, index) in exercise.instructions" :key="index">{{ step }}</li>
           </ol>
 
-          <div class="flex flex-col gap-1">
-            <span class="text-sm font-medium text-dimmed">Notes</span>
-            <UTextarea v-model="notes" :rows="3" class="w-full" data-test="detail-notes" @blur="saveNotes" />
-          </div>
+          <UFormField label="Notes" :ui="{ label: 'text-dimmed' }">
+            <!-- Explicit ids here and on link: useId differs between SSR and client in the prod build, leaving the label's for stale. -->
+            <UTextarea id="detail-notes" v-model="notes" :rows="3" class="w-full" data-test="detail-notes" @blur="saveNotes" />
+          </UFormField>
 
-          <div class="flex flex-col gap-1">
-            <span class="text-sm font-medium text-dimmed">Link</span>
-            <UInput v-model="link" placeholder="https://" class="w-full" data-test="detail-link" @blur="saveLink" />
-          </div>
+          <UFormField label="Link" :ui="{ label: 'text-dimmed' }">
+            <UInput id="detail-link" v-model="link" placeholder="https://" class="w-full" data-test="detail-link" @blur="saveLink" />
+          </UFormField>
 
           <div class="flex gap-2">
             <UButton
@@ -341,15 +308,15 @@ async function onLink(payload: { groupId?: number, name?: string, exerciseId: nu
           </div>
         </div>
 
-        <div v-if="activeTab === 'history'">
+        <div v-if="visitedTabs.has('history')" v-show="activeTab === 'history'">
           <ExerciseHistoryPanel :exercise-id="id" />
         </div>
 
-        <div v-if="activeTab === 'graph'">
+        <div v-if="visitedTabs.has('graph')" v-show="activeTab === 'graph'">
           <ExerciseGraphPanel :exercise="exercise" />
         </div>
 
-        <div v-if="activeTab === 'records'">
+        <div v-if="visitedTabs.has('records')" v-show="activeTab === 'records'">
           <ExerciseRecordsPanel :exercise-id="id" :tracking-type="exercise.trackingType" :load-style="exercise.loadStyle" />
         </div>
 
@@ -358,39 +325,9 @@ async function onLink(payload: { groupId?: number, name?: string, exerciseId: nu
           <ExerciseWorkoutPanel :exercise="exercise" @save="onSave" @reset="onReset" />
         </div>
 
-        <div v-show="activeTab === 'variations'" class="flex flex-col gap-3">
-          <div data-test="variation-list" class="flex flex-col gap-2">
-            <template v-if="variationGroup">
-              <p class="text-sm font-medium text-highlighted">{{ variationGroup.name }}</p>
-              <NuxtLink
-                v-for="variation in exercise.variations"
-                :key="variation.id"
-                :to="`/workouts/exercises/${variation.id}`"
-                class="flex min-h-10 items-center rounded-xl bg-elevated px-3 py-2 text-sm"
-              >
-                {{ variation.name }}
-              </NuxtLink>
-            </template>
-            <p v-else class="text-sm text-dimmed">No variations linked yet</p>
-          </div>
-          <UButton
-            label="Link variation"
-            variant="soft"
-            color="neutral"
-            class="min-h-10"
-            data-test="variation-link"
-            @click="pickerOpen = true"
-          />
-        </div>
+        <ExerciseVariationsPanel v-show="activeTab === 'variations'" :exercise="exercise" />
       </div>
 
-      <ExerciseVariationPicker
-        v-if="exercise"
-        v-model:open="pickerOpen"
-        :exercise="exercise"
-        :groups="variationGroups ?? []"
-        @link="onLink"
-      />
       <UModal
         v-if="exercise"
         v-model:open="viewerOpen"

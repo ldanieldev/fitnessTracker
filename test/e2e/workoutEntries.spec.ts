@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, WorkoutSession } from '../../shared/types/workout'
 
 test('workout entries: add, reorder, annotate and remove exercises', async ({ page, goto }) => {
@@ -8,7 +9,7 @@ test('workout entries: add, reorder, annotate and remove exercises', async ({ pa
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
   const squat = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20squat')).json[0]!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {})).json
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
 
   const first = await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
     exerciseId: bench.id
@@ -40,4 +41,25 @@ test('workout entries: add, reorder, annotate and remove exercises', async ({ pa
     exerciseId: 99999999
   })).status).toBe(404)
   expect((await apiFetch(page, 'PATCH', '/api/workouts/entries/99999999', { sortOrder: 0 })).status).toBe(404)
+})
+
+test('adding exercises appends in order, and another user\'s workout is not found', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
+  const squat = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20squat')).json[0]!
+  const mine = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-03-02' })).json
+  let session = mine
+  for (const exercise of [bench, squat, bench]) {
+    session = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${mine.id}/entries`, { exerciseId: exercise.id })).json
+  }
+  expect(session.entries.map((e) => e.sortOrder)).toEqual([0, 1, 2])
+  expect(session.entries.map((e) => e.exerciseId)).toEqual([bench.id, squat.id, bench.id])
+  await apiFetch(page, 'PATCH', `/api/workouts/sessions/${mine.id}`, { finish: true })
+
+  await registerViaApi(page, makeUser())
+  expect((await apiFetch(page, 'POST', `/api/workouts/sessions/${mine.id}/entries`, { exerciseId: bench.id })).status).toBe(404)
+  const ids = session.entries.slice(0, 2).map((e) => e.id)
+  expect((await apiFetch(page, 'POST', `/api/workouts/sessions/${mine.id}/group`, { entryIds: ids })).status).toBe(404)
+  expect((await apiFetch(page, 'DELETE', `/api/workouts/sessions/${mine.id}`)).status).toBe(404)
 })

@@ -3,20 +3,15 @@ import type { PointerChoice } from '~~/shared/types/workout'
 import type { Routine, RoutineDay, RoutineSummary } from '~~/shared/types/routine'
 import { needsPointerChoice } from '~~/shared/utils/routineCycle'
 import WorkoutPointerPrompt from '~/components/workout/WorkoutPointerPrompt.vue'
-import { errorMessage } from '~/utils/apiError'
 
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ start: [body: { routineDayId: number, pointer?: PointerChoice }] }>()
-const toast = useToast()
+const fail = useFailToast()
 
 const summaries = ref<RoutineSummary[]>([])
 const routine = ref<Routine | null>(null)
 const pending = ref<RoutineDay | null>(null)
 const promptOpen = ref(false)
-
-function fail(err: unknown, fallback: string) {
-  toast.add({ title: 'Load failed', description: errorMessage(err, fallback), color: 'error' })
-}
 
 watch(open, async (isOpen) => {
   if (!isOpen) return
@@ -24,7 +19,7 @@ watch(open, async (isOpen) => {
   try {
     summaries.value = await apiFetch<RoutineSummary[]>('/api/workouts/routines')
   } catch (err: unknown) {
-    fail(err, 'Could not load your routines')
+    fail('Couldn\'t load routines', err, 'Could not load your routines')
   }
 })
 
@@ -32,7 +27,7 @@ async function pickRoutine(id: number) {
   try {
     routine.value = await apiFetch<Routine>(`/api/workouts/routines/${id}`)
   } catch (err: unknown) {
-    fail(err, 'Could not load this routine')
+    fail('Couldn\'t load routine', err, 'Could not load this routine')
   }
 }
 

@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm'
 import type { GraphMetric, LoadStyle, TrackingType } from '~~/shared/types/workout'
 import {
+  latestLoadStyle,
   metricLowerIsBetter,
   metricValue,
   rollupFrom,
@@ -109,7 +110,7 @@ function toRow(userId: number, sessionId: number, exerciseId: number, context: R
   }
 }
 
-export async function refreshRollup(userId: number, sessionId: number, exerciseId: number): Promise<void> {
+async function writeRollup(userId: number, sessionId: number, exerciseId: number): Promise<void> {
   const context = await contextFor(sessionId, exerciseId)
   const where = and(
     eq(workoutExerciseRollups.sessionId, sessionId),
@@ -129,6 +130,10 @@ export async function refreshRollup(userId: number, sessionId: number, exerciseI
       target: [workoutExerciseRollups.sessionId, workoutExerciseRollups.exerciseId],
       set: update
     })
+}
+
+export async function refreshRollup(userId: number, sessionId: number, exerciseId: number): Promise<void> {
+  await writeRollup(userId, sessionId, exerciseId)
   await stampGoals(userId, exerciseId)
 }
 
@@ -143,11 +148,7 @@ export async function stampGoals(userId: number, exerciseId: number): Promise<vo
   const goals = await db
     .select()
     .from(workoutExerciseGoals)
-    .where(and(
-      eq(workoutExerciseGoals.userId, userId),
-      eq(workoutExerciseGoals.exerciseId, exerciseId),
-      sql`${workoutExerciseGoals.achievedAt} is null`
-    ))
+    .where(and(eq(workoutExerciseGoals.userId, userId), eq(workoutExerciseGoals.exerciseId, exerciseId)))
   if (goals.length === 0) return
 
   const rows = await db
@@ -155,7 +156,7 @@ export async function stampGoals(userId: number, exerciseId: number): Promise<vo
     .from(workoutExerciseRollups)
     .where(and(eq(workoutExerciseRollups.userId, userId), eq(workoutExerciseRollups.exerciseId, exerciseId)))
   const values = rows.map(toRollupValues)
-  const loadStyle = rows[0]?.loadStyle ?? null
+  const loadStyle = latestLoadStyle(rows)
 
   for (const goal of goals) {
     const target = Number(goal.targetValue)
@@ -164,10 +165,10 @@ export async function stampGoals(userId: number, exerciseId: number): Promise<vo
       if (value == null) return false
       return metricLowerIsBetter(goal.metric as GraphMetric, loadStyle) ? value <= target : value >= target
     })
-    if (!reached) continue
+    if (reached === (goal.achievedAt != null)) continue
     await db
       .update(workoutExerciseGoals)
-      .set({ achievedAt: new Date() })
+      .set({ achievedAt: reached ? new Date() : null })
       .where(and(
         eq(workoutExerciseGoals.userId, userId),
         eq(workoutExerciseGoals.exerciseId, exerciseId),
@@ -189,17 +190,24 @@ export async function rebuildRollups(userId?: number): Promise<{ rows: number }>
     .where(userId === undefined ? undefined : eq(workoutSessions.userId, userId))
 
   // Refresh before deleting so a crash mid-loop leaves stale rows rather than an empty table.
-  for (const pair of pairs) await refreshRollup(pair.userId, pair.sessionId, pair.exerciseId)
+  for (const pair of pairs) await writeRollup(pair.userId, pair.sessionId, pair.exerciseId)
 
   const scope = userId === undefined ? undefined : eq(workoutExerciseRollups.userId, userId)
   if (pairs.length === 0) {
     await db.delete(workoutExerciseRollups).where(scope)
-    return { rows: 0 }
+  } else {
+    const keys = pairs.map((pair) => sql`(${pair.sessionId}, ${pair.exerciseId})`)
+    await db.delete(workoutExerciseRollups).where(and(
+      scope,
+      sql`(${workoutExerciseRollups.sessionId}, ${workoutExerciseRollups.exerciseId}) not in (${sql.join(keys, sql`, `)})`
+    ))
   }
-  const keys = pairs.map((pair) => sql`(${pair.sessionId}, ${pair.exerciseId})`)
-  await db.delete(workoutExerciseRollups).where(and(
-    scope,
-    sql`(${workoutExerciseRollups.sessionId}, ${workoutExerciseRollups.exerciseId}) not in (${sql.join(keys, sql`, `)})`
-  ))
+
+  const goalPairs = await db
+    .selectDistinct({ userId: workoutExerciseGoals.userId, exerciseId: workoutExerciseGoals.exerciseId })
+    .from(workoutExerciseGoals)
+    .where(userId === undefined ? undefined : eq(workoutExerciseGoals.userId, userId))
+  // Stamped after the prune so a goal whose earning rows were just removed loses its Reached stamp.
+  for (const goal of goalPairs) await stampGoals(goal.userId, goal.exerciseId)
   return { rows: pairs.length }
 }

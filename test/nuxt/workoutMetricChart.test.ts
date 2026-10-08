@@ -40,4 +40,42 @@ describe('WorkoutMetricChart', () => {
     const wrapper = await mountSuspended(WorkoutMetricChart, { props: { ...base, points: [] } })
     expect(wrapper.text()).toContain('Nothing logged in this range')
   })
+
+  it('marks a far-off goal at the chart edge instead of drawing a line there', async () => {
+    const wrapper = await mountSuspended(WorkoutMetricChart, {
+      props: { ...base, goal: 400, points: [{ date: '2026-03-01', value: 185 }, { date: '2026-03-08', value: 205 }] }
+    })
+    expect(wrapper.find('[data-test="goal-line"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="goal-edge"]').text()).toBe('↑ Goal 400 lb')
+  })
+
+  it('marks a far goal below the data with a down arrow and the stored value', async () => {
+    const wrapper = await mountSuspended(WorkoutMetricChart, {
+      props: { ...base, goal: 50.25, points: [{ date: '2026-03-01', value: 185 }, { date: '2026-03-08', value: 205 }] }
+    })
+    expect(wrapper.find('[data-test="goal-line"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="goal-edge"]').text()).toBe('↓ Goal 50.25 lb')
+  })
+
+  it('draws a near goal as a line with no edge label', async () => {
+    const wrapper = await mountSuspended(WorkoutMetricChart, {
+      props: { ...base, goal: 215, points: [{ date: '2026-03-01', value: 185 }, { date: '2026-03-08', value: 205 }] }
+    })
+    expect(wrapper.find('[data-test="goal-line"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="goal-edge"]').exists()).toBe(false)
+  })
+
+  it('formats values, ticks and the summary through a format function', async () => {
+    const wrapper = await mountSuspended(WorkoutMetricChart, {
+      props: {
+        ...base,
+        unit: '',
+        label: 'Duration',
+        format: (minutes: number) => `${Math.floor(minutes)}:${String(Math.round((minutes % 1) * 60)).padStart(2, '0')}`,
+        points: [{ date: '2026-03-01', value: 20 }, { date: '2026-03-08', value: 25.5 }]
+      }
+    })
+    expect(wrapper.find('svg').attributes('aria-label')).toContain('latest 25:30 on')
+    expect(wrapper.findAll('svg text').map((t) => t.text())).toContain('20:00')
+  })
 })

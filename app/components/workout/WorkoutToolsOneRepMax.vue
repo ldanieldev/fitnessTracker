@@ -10,6 +10,7 @@ const emit = defineEmits<{ retry: [] }>()
 const { oneRepMaxRepCap } = useWorkoutPrefs()
 const overridden = computed(() => effectiveOneRepMax(null, override.value, oneRepMaxRepCap.value) !== null)
 const oneRm = computed(() => effectiveOneRepMax(props.result, override.value, oneRepMaxRepCap.value))
+const loading = computed(() => props.pending && props.result === null && !overridden.value)
 const table = computed(() => (oneRm.value === null ? [] : repMaxTable(oneRm.value)))
 const sourceLine = computed(() => {
   if (overridden.value) return 'from your numbers · Brzycki'
@@ -19,25 +20,36 @@ const sourceLine = computed(() => {
   return `from ${source.weight}×${source.reps} on ${when} · Brzycki`
 })
 
+// The model only updates when the parent re-renders, so two edits in one tick must build on the last emitted value.
+let latest = override.value
+watch(override, (value) => {
+  latest = value
+})
+
+function patchOverride(patch: Partial<{ weight: number | null, reps: number | null }>) {
+  latest = { ...latest, ...patch }
+  override.value = latest
+}
+
 function setWeight(weight: number | null) {
-  override.value = { ...override.value, weight }
+  patchOverride({ weight })
 }
 
 function setReps(reps: number | null) {
-  override.value = { ...override.value, reps }
+  patchOverride({ reps })
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
-    <div v-if="pending && !overridden" class="flex flex-col gap-2" data-test="one-rep-max-skeleton" aria-busy="true">
+    <div v-if="failed && !loading" class="flex items-center gap-2" data-test="one-rep-max-error">
+      <span class="min-w-0 flex-1 text-sm text-error">Couldn't load your history</span>
+      <UButton label="Retry" variant="soft" color="error" class="min-h-10" data-test="one-rep-max-retry" @click="emit('retry')" />
+    </div>
+    <div v-if="loading" class="flex flex-col gap-2" data-test="one-rep-max-skeleton" aria-busy="true">
       <USkeleton class="h-9 w-40 rounded-lg" />
       <USkeleton class="h-4 w-56 rounded" />
       <USkeleton v-for="row in 5" :key="row" class="h-6 w-full rounded" />
-    </div>
-    <div v-else-if="failed && !overridden" class="flex items-center gap-2" data-test="one-rep-max-error">
-      <span class="min-w-0 flex-1 text-sm text-error">Couldn't load your history</span>
-      <UButton label="Retry" variant="soft" color="error" class="min-h-10" data-test="one-rep-max-retry" @click="emit('retry')" />
     </div>
     <p v-else-if="result?.assisted && !overridden" class="text-sm text-dimmed" data-test="one-rep-max-assisted">
       Not available for assisted exercises.
@@ -46,10 +58,10 @@ function setReps(reps: number | null) {
       <p class="text-3xl font-bold tabular-nums" data-test="one-rep-max-estimate">≈ {{ oneRm }} lb</p>
       <p class="text-xs text-dimmed" data-test="one-rep-max-source">{{ sourceLine }}</p>
     </template>
-    <p v-else-if="hasExercise" class="text-sm text-dimmed" data-test="one-rep-max-empty">
+    <p v-else-if="hasExercise && !failed" class="text-sm text-dimmed" data-test="one-rep-max-empty">
       No sets of 1–10 reps in the last 90 days.
     </p>
-    <p v-else class="text-sm text-dimmed" data-test="one-rep-max-empty">Enter a set to estimate your 1RM.</p>
+    <p v-else-if="!hasExercise" class="text-sm text-dimmed" data-test="one-rep-max-no-exercise">Enter a set to estimate your 1RM.</p>
 
     <div class="flex items-end gap-2">
       <div class="min-w-0 flex-1">

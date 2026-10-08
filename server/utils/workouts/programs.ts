@@ -2,6 +2,7 @@ import { and, asc, count, eq, inArray } from 'drizzle-orm'
 import type { Program, ProgramPhase, ProgramSummary } from '~~/shared/types/program'
 import { programPhases, programs, routines, userProgramEnrollments, workoutTemplates } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
+import { lockLiveEnrollment } from '~~/server/utils/workouts/enrollments'
 import type {
   ProgramCreateInput, ProgramPatchInput, ProgramPhaseCreateInput, ProgramPhasePatchInput
 } from '~~/server/utils/workouts/input'
@@ -17,7 +18,14 @@ export async function ownedProgram(userId: number, id: number, client: DbClient 
   return row
 }
 
-async function ownedPhase(userId: number, phaseId: number, client: DbClient = db) {
+// Locking the parent program serialises count-then-insert and renumbering across concurrent phase edits.
+async function lockOwnedProgram(client: DbClient, userId: number, id: number) {
+  const row = await client.select({ id: programs.id }).from(programs)
+    .where(and(eq(programs.id, id), eq(programs.userId, userId))).for('update').then((r) => r[0])
+  if (!row) throw createError(PROGRAM_NOT_FOUND)
+}
+
+async function ownedPhase(userId: number, phaseId: number, client: DbClient) {
   const row = await client
     .select({ id: programPhases.id, programId: programPhases.programId })
     .from(programPhases)
@@ -28,11 +36,18 @@ async function ownedPhase(userId: number, phaseId: number, client: DbClient = db
   return row
 }
 
+async function lockPhaseProgram(tx: DbClient, userId: number, phaseId: number) {
+  await lockOwnedProgram(tx, userId, (await ownedPhase(userId, phaseId, tx)).programId)
+  // Re-read under the lock: a concurrent delete of this phase would otherwise be renumbered back in as a gap.
+  return ownedPhase(userId, phaseId, tx)
+}
+
 async function assertOwnRoutine(userId: number, routineId: number | null | undefined, client: DbClient) {
   if (routineId == null) return
+  // KEY SHARE makes a phase write queue behind a routine delete and see it gone, instead of failing the FK with a 500.
   const row = await client.select({ id: routines.id }).from(routines)
-    .where(and(eq(routines.id, routineId), eq(routines.userId, userId))).then((r) => r[0])
-  if (!row) throw createError({ statusCode: 400, statusMessage: 'That routine is not yours' })
+    .where(and(eq(routines.id, routineId), eq(routines.userId, userId))).for('key share').then((r) => r[0])
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Routine not found' })
 }
 
 export async function programPhaseRows(client: DbClient, programId: number) {
@@ -127,24 +142,36 @@ export async function patchProgram(userId: number, id: number, patch: ProgramPat
 }
 
 export async function deleteProgram(userId: number, id: number): Promise<void> {
-  await ownedProgram(userId, id)
-  await db.delete(programs).where(eq(programs.id, id))
+  await db.transaction(async (tx) => {
+    // The cascade rewrites the enrollment and phases, so take the global order first or a concurrent sync deadlocks with it.
+    await lockLiveEnrollment(tx, userId)
+    await lockOwnedProgram(tx, userId, id)
+    await tx.delete(programs).where(eq(programs.id, id))
+  })
 }
 
 export async function duplicateProgram(userId: number, id: number): Promise<Program> {
-  const source = await loadProgram(userId, id)
   const copyId = await db.transaction(async (tx) => {
+    const source = await ownedProgram(userId, id, tx)
+    const phases = await programPhaseRows(tx, id)
+    const routineIds = [...new Set(phases.flatMap((phase) => (phase.routineId === null ? [] : [phase.routineId])))]
+    // Key-share locked so no routine is deleted before the copy references it; one deleted meanwhile is skipped, as its set-null FK would.
+    const live = routineIds.length
+      ? new Set((await tx.select({ id: routines.id }).from(routines)
+          .where(and(inArray(routines.id, routineIds), eq(routines.userId, userId)))
+          .orderBy(asc(routines.id)).for('key share')).map((row) => row.id))
+      : new Set<number>()
     const copy = await tx.insert(programs)
       .values({ userId, name: `${source.name} (copy)`.slice(0, 255), description: source.description })
       .returning({ id: programs.id }).then((r) => r[0]!)
-    if (source.phases.length) {
-      await tx.insert(programPhases).values(source.phases.map((phase) => ({
+    if (phases.length) {
+      await tx.insert(programPhases).values(phases.map((phase) => ({
         programId: copy.id,
         name: phase.name,
         sortOrder: phase.sortOrder,
         weeks: phase.weeks,
         deload: phase.deload,
-        routineId: phase.routine?.id ?? null
+        routineId: phase.routineId !== null && live.has(phase.routineId) ? phase.routineId : null
       })))
     }
     return copy.id
@@ -156,24 +183,26 @@ const phaseSiblings = (tx: DbClient, programId: number) =>
   siblingIds(tx, programPhases, programPhases.id, programPhases.sortOrder, programPhases.programId, programId)
 
 export async function addProgramPhase(userId: number, programId: number, input: ProgramPhaseCreateInput): Promise<Program> {
-  await ownedProgram(userId, programId)
-  await assertOwnRoutine(userId, input.routineId, db)
-  const siblings = await phaseSiblings(db, programId)
-  await db.insert(programPhases).values({
-    programId,
-    name: input.name,
-    weeks: input.weeks,
-    routineId: input.routineId ?? null,
-    deload: input.deload ?? false,
-    sortOrder: siblings.length
+  await db.transaction(async (tx) => {
+    await lockOwnedProgram(tx, userId, programId)
+    await assertOwnRoutine(userId, input.routineId, tx)
+    const siblings = await phaseSiblings(tx, programId)
+    await tx.insert(programPhases).values({
+      programId,
+      name: input.name,
+      weeks: input.weeks,
+      routineId: input.routineId ?? null,
+      deload: input.deload ?? false,
+      sortOrder: siblings.length
+    })
   })
   return loadProgram(userId, programId)
 }
 
 export async function patchProgramPhase(userId: number, phaseId: number, patch: ProgramPhasePatchInput): Promise<Program> {
-  const phase = await ownedPhase(userId, phaseId)
-  await assertOwnRoutine(userId, patch.routineId, db)
-  await db.transaction(async (tx) => {
+  const phase = await db.transaction(async (tx) => {
+    const owned = await lockPhaseProgram(tx, userId, phaseId)
+    await assertOwnRoutine(userId, patch.routineId, tx)
     const values: Partial<typeof programPhases.$inferInsert> = {}
     if (patch.name !== undefined) values.name = patch.name
     if (patch.weeks !== undefined) values.weeks = patch.weeks
@@ -181,19 +210,21 @@ export async function patchProgramPhase(userId: number, phaseId: number, patch: 
     if (patch.deload !== undefined) values.deload = patch.deload
     if (Object.keys(values).length) await tx.update(programPhases).set(values).where(eq(programPhases.id, phaseId))
     if (patch.sortOrder !== undefined) {
-      const ids = (await phaseSiblings(tx, phase.programId)).filter((id) => id !== phaseId)
+      const ids = (await phaseSiblings(tx, owned.programId)).filter((id) => id !== phaseId)
       ids.splice(Math.min(patch.sortOrder, ids.length), 0, phaseId)
       await renumberSiblings(tx, programPhases, programPhases.id, programPhases.sortOrder, ids)
     }
+    return owned
   })
   return loadProgram(userId, phase.programId)
 }
 
 export async function deleteProgramPhase(userId: number, phaseId: number): Promise<Program> {
-  const phase = await ownedPhase(userId, phaseId)
-  await db.transaction(async (tx) => {
+  const phase = await db.transaction(async (tx) => {
+    const owned = await lockPhaseProgram(tx, userId, phaseId)
     await tx.delete(programPhases).where(eq(programPhases.id, phaseId))
-    await renumberSiblings(tx, programPhases, programPhases.id, programPhases.sortOrder, await phaseSiblings(tx, phase.programId))
+    await renumberSiblings(tx, programPhases, programPhases.id, programPhases.sortOrder, await phaseSiblings(tx, owned.programId))
+    return owned
   })
   return loadProgram(userId, phase.programId)
 }

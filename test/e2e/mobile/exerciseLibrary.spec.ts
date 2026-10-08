@@ -31,7 +31,7 @@ test('phone: paging, search, filter, settings, photos, custom exercise, variatio
   await expect(page.locator('[data-test="exercise-list"]').getByRole('link')).not.toHaveCount(0)
 
   await page.locator('[data-test="filter-open"]').click()
-  await page.locator('[data-test="muscle-lats"]').click()
+  await page.locator('[data-test="muscle-chest"]').click()
   await page.locator('[data-test="filter-apply"]').click()
   await expect(page.locator('[data-test="filter-badge"]')).toHaveText('1')
 

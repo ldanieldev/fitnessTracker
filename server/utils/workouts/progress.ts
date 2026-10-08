@@ -10,6 +10,7 @@ import type {
   WorkoutProgress
 } from '~~/shared/types/workout'
 import {
+  latestLoadStyle,
   metricLowerIsBetter,
   metricPrecision,
   metricUnit,
@@ -29,7 +30,7 @@ import {
   workoutSets
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
-import { loadExerciseForUser } from '~~/server/utils/workouts/exercises'
+import { loadExerciseForUser, loadExerciseSettings } from '~~/server/utils/workouts/exercises'
 import { loadWorkoutGoal, loadWorkoutGoals } from '~~/server/utils/workouts/goals'
 import { historyForExercise } from '~~/server/utils/workouts/history'
 import { repCapFor, toRollupValues } from '~~/server/utils/workouts/rollups'
@@ -55,7 +56,7 @@ export async function earliestRollup(userId: number, exerciseId?: number): Promi
 }
 
 export async function exerciseSeries(userId: number, exerciseId: number, query: SeriesQuery): Promise<ExerciseSeries> {
-  const exercise = await loadExerciseForUser(userId, exerciseId)
+  const exercise = await loadExerciseSettings(userId, exerciseId)
   if (!metricsFor(exercise.trackingType, exercise.loadStyle).includes(query.metric)) {
     throw createError({ statusCode: 400, statusMessage: 'That metric does not apply to this exercise' })
   }
@@ -100,7 +101,6 @@ export async function exerciseSeries(userId: number, exerciseId: number, query: 
 
 export async function exerciseRecords(userId: number, exerciseId: number): Promise<ExerciseRecords> {
   const exercise = await loadExerciseForUser(userId, exerciseId)
-  const assisted = exercise.loadStyle === 'assisted'
   const [repCap, rows] = await Promise.all([
     repCapFor(userId),
     db
@@ -109,6 +109,7 @@ export async function exerciseRecords(userId: number, exerciseId: number): Promi
       .where(and(eq(workoutExerciseRollups.userId, userId), eq(workoutExerciseRollups.exerciseId, exerciseId)))
       .orderBy(asc(workoutExerciseRollups.performedOn), asc(workoutExerciseRollups.sessionId))
   ])
+  const assisted = (latestLoadStyle(rows) ?? exercise.loadStyle) === 'assisted'
 
   const best = (
     kind: RecordKind,
@@ -274,7 +275,8 @@ export async function workoutProgress(userId: number, from: string, to: string):
         eq(workoutSessions.userId, userId),
         gte(workoutSessions.performedOn, from),
         lte(workoutSessions.performedOn, to),
-        isNotNull(workoutSessions.endedAt)
+        isNotNull(workoutSessions.endedAt),
+        sql`exists (select 1 from ${workoutExerciseRollups} r where r.session_id = ${workoutSessions.id})`
       ))
       .then((r) => r[0]!),
     db
@@ -306,6 +308,10 @@ export async function workoutProgress(userId: number, from: string, to: string):
           inArray(workoutExerciseRollups.exerciseId, goalExerciseIds)
         ))
     : []
+  const noRollupIds = goalExerciseIds.filter((id) => !goalRows.some((row) => row.exerciseId === id))
+  const liveLoadStyles = new Map(await Promise.all(noRollupIds.map(
+    async (id) => [id, (await loadExerciseSettings(userId, id)).loadStyle] as const
+  )))
 
   return {
     from,
@@ -320,7 +326,7 @@ export async function workoutProgress(userId: number, from: string, to: string):
     muscles,
     goals: goals.map((goal) => {
       const rows = goalRows.filter((row) => row.exerciseId === goal.exerciseId)
-      const lowerIsBetter = metricLowerIsBetter(goal.metric, rows[0]?.loadStyle ?? null)
+      const lowerIsBetter = metricLowerIsBetter(goal.metric, latestLoadStyle(rows) ?? liveLoadStyles.get(goal.exerciseId) ?? null)
       const values = rows
         .map((row) => metricValue(toRollupValues(row), goal.metric, goal.targetReps))
         .filter((value): value is number => value != null)

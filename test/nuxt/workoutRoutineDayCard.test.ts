@@ -14,7 +14,7 @@ describe('WorkoutRoutineDayCard', () => {
     const wrapper = await mountSuspended(WorkoutRoutineDayCard, { props })
     const open = wrapper.find('[data-test="routine-entry-open-5"]')
     expect(open.classes()).toContain('cursor-pointer')
-    expect(open.find('[data-test="routine-entry-target-5"]').text()).toBe('3 × 30–45 s')
+    expect(open.find('[data-test="routine-entry-target-5"]').text()).toBe('3 × 0:30–0:45')
     expect(open.find('[class*="chevron-right"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="routine-entry-meta-5"]').exists()).toBe(false)
   })

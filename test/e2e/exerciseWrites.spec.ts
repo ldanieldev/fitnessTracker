@@ -51,7 +51,16 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
   expect(stolen.status).toBe(404)
   const stolenMove = await apiFetch(page, 'PUT', `/api/workouts/exercises/${mine}`, { categoryId: theirs.json.id })
   expect(stolenMove.status).toBe(404)
+  const stolenPref = await apiFetch(page, 'PUT', `/api/workouts/exercises/${mine}/prefs`, {
+    categoryId: theirs.json.id
+  })
+  expect(stolenPref.status).toBe(404)
   await other.close()
+  const ghostPref = await apiFetch(page, 'PUT', `/api/workouts/exercises/${mine}/prefs`, { categoryId: 99999999 })
+  expect(ghostPref.status).toBe(404)
+  const forkOwn = await apiFetch<{ statusMessage: string }>(page, 'POST', `/api/workouts/exercises/${mine}/fork`)
+  expect(forkOwn.status).toBe(403)
+  expect(forkOwn.json.statusMessage).toBe('Your own exercises can be edited directly')
 
   const benchHits = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json
   const shared = benchHits.find((e) => e.shared)!

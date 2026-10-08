@@ -21,7 +21,8 @@
     "ocr:assets": "bun scripts/copy-ocr-assets.ts",
     "exercises:seed": "bun scripts/exercises/buildSeed.ts",
     "exercises:assets": "bun scripts/exercises/fetchAssets.ts",
-    "exercises:bodymap": "bun scripts/exercises/buildBodyMap.ts"
+    "exercises:bodymap": "bun scripts/exercises/buildBodyMap.ts",
+    "exercises:reimport": "bun scripts/exercises/reimport.ts"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.129",

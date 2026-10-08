@@ -28,7 +28,10 @@ const eachSide = computed(() => {
       </div>
     </div>
 
-    <p v-if="bar === null || !sizes" class="text-center text-sm text-dimmed" data-test="plates-not-barbell">
+    <p v-if="barEditable && bar === null" class="text-center text-sm text-dimmed" data-test="plates-no-bar">
+      Enter the bar weight.
+    </p>
+    <p v-else-if="bar === null || !sizes" class="text-center text-sm text-dimmed" data-test="plates-not-barbell">
       Plates apply to barbell exercises.
     </p>
     <template v-else>

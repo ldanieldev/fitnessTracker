@@ -8,6 +8,10 @@ registerEndpoint('/api/workouts/reference', () => ({
 }))
 registerEndpoint('/api/workouts/exercises/12', () => ({ id: 12, name: 'Assisted Dip', loadStyle: 'assisted' }))
 registerEndpoint('/api/workouts/exercises/13', () => ({ id: 13, name: 'Bench Press', loadStyle: 'barbell' }))
+registerEndpoint('/api/workouts/exercises/14', async () => {
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  return { id: 14, name: 'Slow Row', loadStyle: 'plain' }
+})
 
 registerEndpoint('/api/workouts/programs', () => [
   { id: 7, name: 'BLS', phaseCount: 2, totalWeeks: 4, enrolled: true },
@@ -158,6 +162,53 @@ describe('WorkoutHistoryFilterSheet', () => {
     await new Promise((resolve) => setTimeout(resolve, 300))
     expect(q('filter-phase')?.hasAttribute('disabled')).toBe(false)
     expect(q('filter-phase')?.textContent).toContain('Only')
+    wrapper.unmount()
+  })
+
+  it('shows the last picked exercise even when an earlier lookup lands later', async () => {
+    const wrapper = await mount({ exerciseId: 14 })
+    wrapper.findComponent({ name: 'WorkoutExercisePicker' }).vm.$emit('pick', 13)
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(q('filter-exercise')?.textContent).toContain('Bench Press')
+    wrapper.unmount()
+  })
+
+  it('labels the weight neutrally until the exercise is known', async () => {
+    const failed = await mount({ exerciseId: 99, minWeight: 20 })
+    await flush()
+    expect(document.body.textContent).toContain('Weight (lb)')
+    expect(document.body.textContent).not.toContain('Min weight (lb)')
+    failed.unmount()
+
+    const slow = await mount({ exerciseId: 14 })
+    await flush()
+    expect(document.body.textContent).toContain('Weight (lb)')
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(document.body.textContent).toContain('Min weight (lb)')
+    slow.unmount()
+  })
+
+  it('shows a chip for a selected category the reference list lacks, and toggles it off', async () => {
+    const wrapper = await mount({ categories: [1, 77] })
+    await flush()
+    expect(q('filter-category-77')?.textContent).toContain('Unknown category')
+    q('filter-category-77')!.click()
+    await flush()
+    q('filter-apply')!.click()
+    await flush()
+    expect(wrapper.emitted('apply')?.at(-1)).toEqual([{ categories: [1] }])
+    wrapper.unmount()
+  })
+
+  it('does not leave the phase select loading after the program goes to Any mid-fetch and back', async () => {
+    const wrapper = await mount({ programId: 9 })
+    await flush()
+    pickSelect('filter-program', -1)
+    await flush()
+    pickSelect('filter-program', 9)
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    expect(q('filter-phase')?.hasAttribute('disabled')).toBe(false)
+    expect(q('filter-phase')?.textContent).not.toContain('Loading phases…')
     wrapper.unmount()
   })
 })

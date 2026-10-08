@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { exercises, exerciseVariationGroups, exerciseVariationMembers } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
-import type { VariationPatchInput } from '~~/server/utils/workouts/input'
+import type { VariationCreateInput, VariationPatchInput } from '~~/server/utils/workouts/input'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { loadExerciseRows } from '~~/server/utils/workouts/exercises'
 
@@ -79,12 +79,8 @@ async function loadVariationGroup(userId: number, id: number): Promise<Variation
   return group
 }
 
-export async function createVariationGroup(
-  userId: number,
-  name: string,
-  exerciseIds: number[]
-): Promise<VariationGroup> {
-  const ids = [...new Set(exerciseIds)]
+export async function createVariationGroup(userId: number, input: VariationCreateInput): Promise<VariationGroup> {
+  const ids = [...new Set(input.exerciseIds)]
   await assertExercisesVisible(userId, ids)
 
   let created: { id: number }
@@ -92,7 +88,7 @@ export async function createVariationGroup(
     created = await db.transaction(async (tx) => {
       const group = await tx
         .insert(exerciseVariationGroups)
-        .values({ userId, name })
+        .values({ userId, name: input.name })
         .returning({ id: exerciseVariationGroups.id })
         .then((r) => r[0]!)
       await upsertMembers(tx, userId, group.id, ids)
@@ -142,8 +138,7 @@ export async function patchVariationGroup(
   return loadVariationGroup(userId, id)
 }
 
-export async function deleteVariationGroup(userId: number, id: number): Promise<{ ok: true }> {
+export async function deleteVariationGroup(userId: number, id: number): Promise<void> {
   await loadOwnGroupOrThrow(userId, id)
   await db.delete(exerciseVariationGroups).where(eq(exerciseVariationGroups.id, id))
-  return { ok: true }
 }

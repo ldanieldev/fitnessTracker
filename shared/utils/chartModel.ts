@@ -112,6 +112,7 @@ export interface ChartModel {
   areaPath: string
   trendPath: string
   goalY: number | null
+  goalEdge: 'above' | 'below' | null
   dots: ChartDot[]
 }
 
@@ -127,13 +128,27 @@ export interface ChartInput {
   zeroBased?: boolean
 }
 
+// A goal this close to the data (as a share of its magnitude, or one data span) widens the axis; farther ones get an edge label.
+const GOAL_REACH = 0.1
+
+function goalNear(values: number[], goal: number, zeroBased: boolean): boolean {
+  if (values.length === 0) return true
+  const lo = zeroBased ? Math.min(0, ...values) : Math.min(...values)
+  const hi = Math.max(...values)
+  const reach = Math.max(hi - lo, Math.max(Math.abs(lo), Math.abs(hi)) * GOAL_REACH)
+  return goal >= lo - reach && goal <= hi + reach
+}
+
 const PAD = { left: 40, right: 8, top: 8, bottom: 20 }
 
 export function buildChartModel(input: ChartInput): ChartModel {
   const plot = { left: PAD.left, right: input.width - PAD.right, top: PAD.top, bottom: input.height - PAD.bottom }
   const values = [...input.points.map((p) => p.value), ...input.trend.map((p) => p.value)]
-  const lo = values.length ? Math.min(...values) : 0
-  const hi = values.length ? Math.max(...values) : 1
+  const goal = input.goal
+  const goalFits = goal !== null && goalNear(values, goal, input.zeroBased ?? false)
+  const span = goalFits ? [...values, goal] : values
+  const lo = span.length ? Math.min(...span) : 0
+  const hi = span.length ? Math.max(...span) : 1
   const pad = (hi - lo) * 0.05
   const nice = niceTicks(input.zeroBased ? 0 : lo - pad, hi + pad)
   const y = scaleLinear([nice.min, nice.max], [plot.bottom, plot.top])
@@ -152,7 +167,8 @@ export function buildChartModel(input: ChartInput): ChartModel {
     rawPath: pathFrom(rawSegments),
     areaPath: areaFrom(rawSegments, plot.bottom),
     trendPath: pathFrom(trendSegments),
-    goalY: input.goal === null ? null : Math.min(Math.max(y(input.goal), plot.top), plot.bottom),
+    goalY: goalFits ? y(goal) : null,
+    goalEdge: goal === null || goalFits ? null : goal > hi ? 'above' : 'below',
     dots: rawSegments.flat()
   }
 }

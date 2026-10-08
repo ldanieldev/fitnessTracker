@@ -10,10 +10,12 @@ const entry = {
 }
 
 describe('WorkoutRoutineEntrySheet', () => {
-  it('labels the range in seconds for a timed exercise and hides weight', async () => {
+  it('labels the range as m:ss for a timed exercise and hides weight', async () => {
     const wrapper = await mountSuspended(WorkoutRoutineEntrySheet, { attachTo: document.body, props: { open: true, entry } })
     await flushPromises()
-    expect(new DOMWrapper(document.body).text()).toContain('Range (sec)')
+    expect(new DOMWrapper(document.body).text()).toContain('Range (m:ss)')
+    expect((find('[data-test="routine-entry-low"]').element as HTMLInputElement).value).toBe('0:30')
+    expect((find('[data-test="routine-entry-high"]').element as HTMLInputElement).value).toBe('0:45')
     expect(find('[data-test="routine-entry-weight"]').exists()).toBe(false)
     wrapper.unmount()
     document.body.innerHTML = ''
@@ -39,6 +41,43 @@ describe('WorkoutRoutineEntrySheet', () => {
     expect(wrapper.emitted('save')![0]![0]).toEqual({
       targetSets: 3, targetLow: 30, targetHigh: 45, targetWeight: null, restSeconds: null, optional: false, notes: null
     })
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('saves a typed clock range as seconds', async () => {
+    const wrapper = await mountSuspended(WorkoutRoutineEntrySheet, { attachTo: document.body, props: { open: true, entry } })
+    await flushPromises()
+    await find('[data-test="routine-entry-low"]').setValue('0:40')
+    await find('[data-test="routine-entry-high"]').setValue('100')
+    await find('[data-test="routine-entry-save"]').trigger('click')
+    expect(wrapper.emitted('save')![0]![0]).toMatchObject({ targetLow: 40, targetHigh: 60 })
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('edits a distance range in miles and saves metres', async () => {
+    const mile = { ...entry, exerciseName: 'Run', trackingType: 'distance' as const, target: { sets: 1, low: 1609.344, high: 3218.688, weight: null } }
+    const wrapper = await mountSuspended(WorkoutRoutineEntrySheet, { attachTo: document.body, props: { open: true, entry: mile } })
+    await flushPromises()
+    expect(new DOMWrapper(document.body).text()).toContain('Range (mi)')
+    expect((find('[data-test="routine-entry-low"]').element as HTMLInputElement).value).toBe('1')
+    await find('[data-test="routine-entry-low"]').setValue('1.5')
+    await find('[data-test="routine-entry-save"]').trigger('click')
+    expect(wrapper.emitted('save')![0]![0]).toMatchObject({ targetLow: 2414.02, targetHigh: 3218.688 })
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+  it('saves untouched non-round distance bounds exactly, even after focus and blur', async () => {
+    const run = { ...entry, exerciseName: 'Run', trackingType: 'distance' as const, target: { sets: 1, low: 5000, high: 5000, weight: null } }
+    const wrapper = await mountSuspended(WorkoutRoutineEntrySheet, { attachTo: document.body, props: { open: true, entry: run } })
+    await flushPromises()
+    for (const bound of ['low', 'high']) {
+      await find(`[data-test="routine-entry-${bound}"]`).trigger('focus')
+      await find(`[data-test="routine-entry-${bound}"]`).trigger('blur')
+    }
+    await find('[data-test="routine-entry-save"]').trigger('click')
+    expect(wrapper.emitted('save')![0]![0]).toMatchObject({ targetLow: 5000, targetHigh: 5000 })
     wrapper.unmount()
     document.body.innerHTML = ''
   })

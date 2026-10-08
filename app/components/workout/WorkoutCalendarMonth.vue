@@ -13,12 +13,17 @@ const weekStart = computed(() => user.value?.weekStart ?? 1)
 
 const dots = computed(() => calendarDots(props.sessions))
 
-const phaseByDay = computed(() => {
-  const map = new Map<string, string>()
+const phasesByDay = computed(() => {
+  const map = new Map<string, Array<{ phaseId: number, index: number, color: string }>>()
   for (const s of props.sessions) {
-    if (s.program && !map.has(s.performedOn)) {
-      map.set(s.performedOn, phaseColorClass(s.program.phaseIndex))
+    const tag = s.program
+    if (!tag) continue
+    const marks = map.get(s.performedOn) ?? []
+    if (!marks.some((m) => m.phaseId === tag.phaseId)) {
+      marks.push({ phaseId: tag.phaseId, index: tag.phaseIndex, color: phaseColorClass(tag.phaseIndex) })
+      marks.sort((a, b) => a.index - b.index)
     }
+    map.set(s.performedOn, marks)
   }
   return map
 })
@@ -66,11 +71,15 @@ const selected = computed({
           />
           <span v-if="dots.get(cell.toString())?.more" class="text-[9px] leading-none" data-test="calendar-dot-more">+</span>
         </span>
-        <span
-          class="h-0.5 w-4 rounded-full"
-          :class="phaseByDay.get(cell.toString()) ?? 'bg-transparent'"
-          :data-test="phaseByDay.has(cell.toString()) ? 'calendar-phase' : undefined"
-        />
+        <span class="flex h-0.5 w-4 gap-px">
+          <span
+            v-for="mark in phasesByDay.get(cell.toString()) ?? []"
+            :key="mark.phaseId"
+            class="h-full flex-1 rounded-full"
+            :class="mark.color"
+            data-test="calendar-phase"
+          />
+        </span>
       </span>
     </template>
   </UCalendar>
