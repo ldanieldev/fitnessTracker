@@ -245,7 +245,7 @@ async function onSubmit(payload: ExerciseFormPayload) {
             >{{ filterCount }}</span>
           </div>
         </div>
-        <div class="flex gap-2 overflow-x-auto">
+        <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
           <UButton
             label="All"
             size="sm"

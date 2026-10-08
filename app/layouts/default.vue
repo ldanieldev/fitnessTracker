@@ -90,7 +90,7 @@ const links = computed(() => [
         },
         {
           label: 'Timer',
-          // to: '/timer',
+          to: '/workouts/timer',
           onSelect: close
         }
       ]
