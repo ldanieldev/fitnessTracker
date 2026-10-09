@@ -9,7 +9,6 @@ A full-stack Nuxt 4 app for logging workouts, tracking programs, and managing ex
 - **Database**: PostgreSQL via Drizzle ORM
 - **Auth**: `nuxt-auth-utils` (credentials + GitHub OAuth)
 - **Background jobs**: Inngest
-- **Mail (dev)**: Mailpit
 - **Tests**: Vitest (unit + Nuxt) and Playwright (E2E)
 
 ## Prerequisites
@@ -23,7 +22,7 @@ A full-stack Nuxt 4 app for logging workouts, tracking programs, and managing ex
 # create .env — see "Environment" below
 systemctl --user enable --now podman.socket   # see "Other container runtimes" below
 bun install
-podman compose up -d                          # postgres, redis, mailpit, inngest
+podman compose up -d                          # postgres, redis, inngest
 bunx drizzle-kit migrate                      # apply pending migrations
 ```
 
