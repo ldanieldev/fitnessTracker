@@ -1,5 +1,5 @@
-import type { BodyRange } from '~~/shared/types/body'
+import type { ChartRange } from '~~/shared/types/series'
 
 export function useBodyRange() {
-  return useState<BodyRange>('body:range', () => 'mtd')
+  return useState<ChartRange>('body:range', () => 'mtd')
 }

@@ -83,7 +83,7 @@ test.describe('external food search, barcode lookup and import', () => {
     await registerViaApi(page, makeUser())
 
     const today = new Date().toISOString().slice(0, 10)
-    await goto(`/diary/${today}/add`, { waitUntil: 'hydration' })
+    await goto(`/nutrition/diary/${today}/add`, { waitUntil: 'hydration' })
 
     await page.locator('[data-test="online-tab"]').click()
     await page.locator('[data-test="online-query"]').fill('nutella')

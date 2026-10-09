@@ -9,14 +9,14 @@ test('the day header navigates by the week strip and the date sheet, and the FAB
     name: 'Phone Cut', inputMode: 'grams', isDefault: true, targets: [{ nutrient: 'energy', amount: 1900, direction: 'max' }]
   })
 
-  await goto('/diary/2026-09-10', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-10', { waitUntil: 'hydration' })
   const heading = page.locator('[data-test="diary-date"]')
   await expect(heading).toHaveAttribute('data-date', '2026-09-10')
   await expect(heading).toContainText('September 2026')
   await expect(page.getByText('Phone Cut')).toBeVisible()
 
   await page.locator('[data-test="week-day-2026-09-09"]').click()
-  await expect(page).toHaveURL(/\/diary\/2026-09-09$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-09-09$/)
 
   const box = await page.locator('[data-test="day-menu"]').boundingBox()
   expect(box!.x + box!.width).toBeLessThanOrEqual(360)
@@ -24,10 +24,10 @@ test('the day header navigates by the week strip and the date sheet, and the FAB
   await heading.click()
   await expect(page.locator('[data-test="day-calendar"]')).toBeVisible()
   await page.locator('[data-test="day-picker-today"]').click()
-  await expect(page).toHaveURL(new RegExp(`/diary/${todayDate()}$`))
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${todayDate()}$`))
 
   await page.locator('[data-test="fab-add"]').click()
-  await expect(page).toHaveURL(new RegExp(`/diary/${todayDate()}/add$`))
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${todayDate()}/add$`))
 })
 
 function localHHMM(iso: string) {
@@ -53,7 +53,7 @@ test('the meal header shows the derived time, then an edited and reset time', as
     { entryType: 'food', containerId, foodId: food.json.id, quantity: 100, unitLabel: 'g', loggedAt: firstEntryLoggedAt }
   ])
 
-  await goto('/diary/2026-09-11', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-11', { waitUntil: 'hydration' })
   const container = page.locator(`[data-test="container-${containerId}"]`)
   const timeButton = container.locator('[data-test="container-time"]')
 

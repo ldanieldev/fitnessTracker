@@ -16,7 +16,7 @@ describe('NutritionContainerCard', () => {
       props: { container, date: '2026-09-10', nutrients: [{ key: 'energy', name: 'Calories', unit: 'kcal' }, { key: 'protein', name: 'Protein', unit: 'g' }, { key: 'carbohydrate', name: 'Carbs', unit: 'g' }, { key: 'fat', name: 'Fat', unit: 'g' }, { key: 'fiber', name: 'Fiber', unit: 'g' }] }
     })
     const add = wrapper.find('[data-test="container-add"]')
-    expect(add.attributes('href')).toBe('/diary/2026-09-10/add?containerId=7')
+    expect(add.attributes('href')).toBe('/nutrition/diary/2026-09-10/add?containerId=7')
     expect(wrapper.find('[data-test="container-header"]').find('[data-test="container-add"]').exists()).toBe(true)
     expect(wrapper.findAll('[data-test="subtotal-cell"]')).toHaveLength(5)
     expect(wrapper.find('[data-test="subtotal-protein"]').text()).toBe('18')

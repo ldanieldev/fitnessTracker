@@ -132,7 +132,7 @@ test('new and unapplied days follow the current default; an explicitly applied p
 
   // Client-side nav (no reload) — the day was already persisted (from the entry above) with no profile applied.
   await page.getByRole('link', { name: 'Diary' }).click()
-  await expect(page).toHaveURL(new RegExp(`/diary/${date}$`))
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${date}$`))
   await expect(page.locator('[data-test="energy-value"]')).toContainText('1900')
 
   await page.locator('[data-test="day-menu"]').click()
@@ -155,9 +155,9 @@ test('new and unapplied days follow the current default; an explicitly applied p
   ])
   expect(addResponse.ok()).toBe(true)
 
-  await goto(`/diary/${date}`, { waitUntil: 'hydration' })
+  await goto(`/nutrition/diary/${date}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="energy-value"]')).toContainText('1400')
 
-  await goto('/diary/2025-01-01', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2025-01-01', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="energy-value"]')).toContainText('2200')
 })

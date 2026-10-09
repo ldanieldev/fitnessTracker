@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { SeriesPoint } from '~~/shared/types/body'
-import { pathFrom, scaleLinear } from '~~/shared/utils/bodyChart'
-import { dayIndex } from '~~/shared/utils/bodyMetrics'
+import type { SeriesPoint } from '~~/shared/types/series'
+import { pathFrom, scaleLinear } from '~~/shared/utils/chartModel'
+import { dayIndex } from '~~/shared/utils/series'
 
 const props = defineProps<{ points: SeriesPoint[] }>()
 

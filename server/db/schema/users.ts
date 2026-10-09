@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, integer, smallint, unique, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, integer, numeric, smallint, unique, varchar } from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../shared'
 
 export const users = appSchema.table(
@@ -13,11 +13,21 @@ export const users = appSchema.table(
     avatarUrl: varchar('avatar_url', { length: 255 }).default(sql`null`),
     isActive: boolean('is_active').default(true),
     password: varchar({ length: 255 }),
-    weekStart: smallint('week_start').notNull().default(1)
+    weekStart: smallint('week_start').notNull().default(1),
+    defaultRestSeconds: smallint('default_rest_seconds').notNull().default(60),
+    plateSizes: numeric('plate_sizes').array().notNull().default(sql`'{45,35,25,10,5,2.5}'::numeric[]`),
+    oneRepMaxRepCap: smallint('one_rep_max_rep_cap').notNull().default(10)
   },
   (table) => [
     unique('users_email_unique').on(table.email),
-    check('users_week_start_check', sql`${table.weekStart} in (0, 1)`)
+    check('users_week_start_check', sql`${table.weekStart} in (0, 1)`),
+    check('users_default_rest_seconds_check', sql`${table.defaultRestSeconds} between 10 and 600`),
+    check(
+      'users_plate_sizes_check',
+      sql`cardinality(${table.plateSizes}) between 1 and 12
+        and 0 < all(${table.plateSizes}) and 100 >= all(${table.plateSizes})`
+    ),
+    check('users_one_rep_max_rep_cap_check', sql`${table.oneRepMaxRepCap} between 1 and 20`)
   ]
 )
 

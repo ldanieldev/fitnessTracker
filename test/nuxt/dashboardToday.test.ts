@@ -20,6 +20,6 @@ describe('DashboardToday', () => {
     today.value = todayDate()
     await new Promise((r) => setTimeout(r, 20))
     expect(wrapper.find('[data-test="energy-value"]').text()).toBe('437')
-    expect(wrapper.find('a[data-test="dashboard-today"]').attributes('href')).toBe('/diary/today')
+    expect(wrapper.find('a[data-test="dashboard-today"]').attributes('href')).toBe('/nutrition/diary/today')
   })
 })

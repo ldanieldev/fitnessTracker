@@ -1,10 +1,15 @@
 import { and, asc, desc, eq, gte, lte, min } from 'drizzle-orm'
-import type { SeriesGranularity, SeriesPoint } from '~~/shared/types/body'
+import type { SeriesGranularity, SeriesPoint } from '~~/shared/types/series'
 import { measurements, users } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
-import { bucketWeekly, DAILY_CAP_DAYS, daysBetween } from '~~/shared/utils/bodyMetrics'
+import { bucketWeekly, DAILY_CAP_DAYS, daysBetween } from '~~/shared/utils/series'
 
-export async function dailySeries(userId: number, typeId: number, from: string | null, to: string): Promise<SeriesPoint[]> {
+export async function dailySeries(
+  userId: number,
+  typeId: number,
+  from: string | null,
+  to: string
+): Promise<SeriesPoint[]> {
   const rows = await db
     .selectDistinctOn([measurements.measuredOn], { date: measurements.measuredOn, value: measurements.value })
     .from(measurements)
@@ -16,7 +21,8 @@ export async function dailySeries(userId: number, typeId: number, from: string |
         lte(measurements.measuredOn, to)
       )
     )
-    .orderBy(asc(measurements.measuredOn), desc(measurements.measuredAt), desc(measurements.id)) // id breaks same-minute measuredAt ties deterministically
+    // id breaks same-minute measuredAt ties deterministically
+    .orderBy(asc(measurements.measuredOn), desc(measurements.measuredAt), desc(measurements.id))
   return rows.map((r) => ({ date: r.date, value: Number(r.value) }))
 }
 

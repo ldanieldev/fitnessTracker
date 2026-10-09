@@ -13,7 +13,7 @@ async function setup(page: Parameters<typeof registerViaApi>[0]) {
 test('writes and clears day notes', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await setup(page)
-  await goto('/diary/2026-09-04', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-04', { waitUntil: 'hydration' })
 
   await page.locator('[data-test="day-menu"]').click()
   await page.getByRole('menuitem', { name: 'Day notes' }).click()
@@ -39,7 +39,7 @@ test('applies another goal profile to one day', async ({ page, goto }) => {
     name: 'Action Refeed', inputMode: 'grams', isDefault: false, targets: [{ nutrient: 'energy', amount: 2600, direction: 'max' }]
   })
 
-  await goto('/diary/2026-09-05', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-05', { waitUntil: 'hydration' })
   await page.locator('[data-test="day-menu"]').click()
   await page.getByRole('menuitem', { name: 'Apply goal profile' }).click()
   await page.locator(`[data-test="goal-option-${refeed.json.id}"]`).click()
@@ -59,7 +59,7 @@ test('saves a meal as a recipe (skipping a quick-add) and as a saved meal', asyn
     { entryType: 'quick_add', containerId: meal.id, description: 'Coffee', quantity: 1, unitLabel: 'serving', nutrients: { energy: 5 } }
   ])
 
-  await goto('/diary/2026-09-06', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-06', { waitUntil: 'hydration' })
   await page.locator(`[data-test="container-${meal.id}"] [data-test="container-menu"]`).click()
   await page.getByRole('menuitem', { name: 'Save as recipe' }).click()
   await page.locator('[data-test="save-meal-name"]').fill('Action Bowl')

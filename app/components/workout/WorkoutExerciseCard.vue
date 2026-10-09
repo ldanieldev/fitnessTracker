@@ -1,202 +1,281 @@
 <script setup lang="ts">
-import type { WorkoutExercise, DistanceUnit } from '~/types/workout'
-import { DISTANCE_UNITS } from '~/constants/workout'
+import type { DropdownMenuItem } from '@nuxt/ui'
+import type { SetMeasures, WorkoutEntry } from '~~/shared/types/workout'
+import { targetProgressLabel } from '~~/shared/utils/workoutTargets'
+import { prefillFor } from '~~/shared/utils/workoutPrefill'
+import { progressionCopy, progressionFor } from '~~/shared/utils/workoutProgression'
+import { formatSet } from '~~/shared/utils/setFormat'
+import { measuresFor } from '~~/shared/utils/setRules'
+import { plural } from '~/utils/plural'
+import WorkoutSetRow from '~/components/workout/WorkoutSetRow.vue'
+import WorkoutSetForm from '~/components/workout/WorkoutSetForm.vue'
+import WorkoutProgressionPrompt from '~/components/workout/WorkoutProgressionPrompt.vue'
 
-const props = defineProps<{
-  exercise: WorkoutExercise
-  index: number
-}>()
-
-const emit = defineEmits<{
-  toggleCollapse: [index: number]
-  remove: [index: number]
-  showHistory: [exerciseId: number]
-  logSet: [index: number, data: { weight: number; reps: number; rpe: number }]
-  deleteSet: [exerciseIndex: number, setIndex: number]
-  updateSet: [exerciseIndex: number, setIndex: number, data: { weight: number; reps: number; rpe: number }]
-  updateSetNote: [exerciseIndex: number, setIndex: number, note: string]
-  logCardio: [
-    index: number,
-    data: { durationMinutes: number; distance: number; distanceUnit: DistanceUnit; calories: number }
-  ]
-}>()
-
-// Active set input state — defaults from last set if available
-const lastSet = props.exercise.sets.at(-1)
-const weight = ref(lastSet?.weight ?? 135)
-const reps = ref(lastSet?.reps ?? 5)
-const rpe = ref(5)
-
-const totalVolume = computed(() => {
-  return props.exercise.sets.reduce((sum, set) => sum + set.weight * set.reps, 0)
+const props = withDefaults(defineProps<{
+  entry: WorkoutEntry
+  isFirst: boolean
+  isLast: boolean
+  plateButton?: boolean
+  presetWeight?: { weight: number, seq: number } | null
+  deload?: boolean
+  saveErrors?: Record<string, string>
+  supersetLabel?: string | null
+  supersetBorderClass?: string | null
+  canGroup?: boolean
+}>(), {
+  presetWeight: null,
+  deload: false,
+  supersetLabel: null,
+  supersetBorderClass: null,
+  canGroup: false
 })
 
+const emit = defineEmits<{
+  addSet: [values: SetMeasures & { comment?: string }]
+  editSet: [id: number, values: SetMeasures & { comment?: string }]
+  removeSet: [id: number]
+  move: [direction: -1 | 1]
+  remove: []
+  retrySave: [setId: number | null]
+  plates: [weight: number | null]
+  superset: []
+  ungroup: []
+}>()
+
+const collapsed = defineModel<boolean>('collapsed', { default: false })
 const confirmRemoveOpen = ref(false)
 
-function handleRemove() {
+function errorFor(setId: number | null) {
+  return props.saveErrors?.[setId === null ? 'new' : String(setId)] ?? null
+}
+
+const targetLabel = computed(() => targetProgressLabel(props.entry.trackingType, props.entry.target, props.entry.sets.length))
+const targetMet = computed(() => props.entry.target?.sets != null && props.entry.sets.length >= props.entry.target.sets)
+const measures = computed(() => measuresFor(props.entry.trackingType))
+const prefill = computed(() => prefillFor(props.entry.sets, props.entry.lastSets))
+const progression = computed(() => progressionFor(props.entry, props.deload))
+const copy = computed(() =>
+  progression.value ? progressionCopy(progression.value, props.entry.loadStyle, props.entry.target) : null)
+const choice = ref<'apply' | 'stay' | null>(null)
+const promptOpen = ref(false)
+const formWeight = ref<number | null>(null)
+const plateWeight = computed(() => formWeight.value ?? prefill.value.weight ?? null)
+
+watch(
+  [() => props.entry.sets.length, () => progression.value?.kind, () => progression.value?.weight],
+  ([length], [previous]) => {
+    choice.value = null
+    promptOpen.value = progression.value !== null && length > previous
+  }
+)
+
+function choose(picked: 'apply' | 'stay') {
+  choice.value = picked
+  promptOpen.value = false
+}
+const lastSummary = computed(() => props.entry.lastSets.map((set) => formatSet(measures.value, set)))
+const showBar = computed(() => props.entry.loadStyle === 'barbell' && props.entry.barWeight != null)
+const totalVolume = computed(() => {
+  if (!measures.value.includes('weight') || !measures.value.includes('reps') || props.entry.sets.length === 0) return null
+  return props.entry.sets.reduce((sum, set) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0).toLocaleString()
+})
+
+const menu = computed<DropdownMenuItem[][]>(() => [
+  [{
+    label: 'History',
+    icon: 'i-lucide-history',
+    to: `/workouts/exercises/${props.entry.exerciseId}?tab=history`,
+    class: 'sm:hidden',
+    testId: `entry-history-menu-${props.entry.id}`
+  }],
+  [
+    { label: 'Move up', icon: 'i-lucide-arrow-up', disabled: props.isFirst, testId: `entry-up-${props.entry.id}`, onSelect: () => emit('move', -1) },
+    { label: 'Move down', icon: 'i-lucide-arrow-down', disabled: props.isLast, testId: `entry-down-${props.entry.id}`, onSelect: () => emit('move', 1) }
+  ],
+  [
+    { label: 'Superset with…', icon: 'i-lucide-link', disabled: !props.canGroup, testId: `entry-superset-add-${props.entry.id}`, onSelect: () => emit('superset') },
+    ...(props.entry.supersetGroup !== null
+      ? [{ label: 'Remove from superset', icon: 'i-lucide-unlink', testId: `entry-superset-remove-${props.entry.id}`, onSelect: () => emit('ungroup') }]
+      : [])
+  ],
+  [{ label: 'Remove', icon: 'i-lucide-trash-2', color: 'error', testId: `entry-remove-${props.entry.id}`, onSelect: () => (confirmRemoveOpen.value = true) }]
+])
+
+function confirmRemove() {
   confirmRemoveOpen.value = false
-  emit('remove', props.index)
-}
-
-// Cardio input state
-const durationMinutes = ref<number | undefined>(undefined)
-const distance = ref<number | undefined>(undefined)
-const distanceUnit = ref<DistanceUnit>('km')
-const calories = ref<number | undefined>(undefined)
-
-function handleLogSet() {
-  emit('logSet', props.index, { weight: weight.value, reps: reps.value, rpe: rpe.value })
-}
-
-function handleLogCardio() {
-  emit('logCardio', props.index, {
-    durationMinutes: durationMinutes.value ?? 0,
-    distance: distance.value ?? 0,
-    distanceUnit: distanceUnit.value,
-    calories: calories.value ?? 0
-  })
+  emit('remove')
 }
 </script>
 
 <template>
-  <UCard :ui="exercise.collapsed ? { body: 'hidden' } : {}">
+  <UCard
+    :ui="collapsed ? { root: 'divide-y-0', body: 'hidden' } : undefined"
+    :class="supersetBorderClass ? ['border-l-4', supersetBorderClass] : undefined"
+    :data-test="`entry-card-${entry.id}`"
+  >
     <template #header>
-      <div class="flex items-center justify-between gap-1">
-        <button class="flex items-center gap-2 flex-1 text-left min-h-10 py-1" @click="emit('toggleCollapse', index)">
-          <UIcon
-            :name="exercise.collapsed ? 'i-lucide-chevron-right' : 'i-lucide-chevron-down'"
-            class="text-dimmed shrink-0"
+      <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-2">
+          <UButton
+            :icon="collapsed ? 'i-lucide-chevron-right' : 'i-lucide-chevron-down'"
+            variant="ghost"
+            color="neutral"
+            class="size-10 shrink-0 justify-center"
+            :aria-label="collapsed ? 'Expand' : 'Collapse'"
+            :aria-expanded="!collapsed"
+            :aria-controls="`entry-body-${entry.id}`"
+            :data-test="`entry-collapse-${entry.id}`"
+            @click="collapsed = !collapsed"
           />
-          <span class="font-semibold">{{ exercise.name }}</span>
+          <span v-if="supersetLabel" class="shrink-0 font-mono text-xs font-semibold text-dimmed" :data-test="`entry-superset-${entry.id}`">{{ supersetLabel }}</span>
+          <NuxtLink
+            :to="`/workouts/exercises/${entry.exerciseId}`"
+            class="min-w-0 truncate font-semibold text-highlighted"
+            :data-test="`entry-link-${entry.id}`"
+          >
+            {{ entry.exerciseName }}
+          </NuxtLink>
           <UBadge
-            v-if="exercise.type === 'strength' && exercise.sets.length > 0"
-            :label="`${exercise.sets.length} sets`"
+            v-if="targetLabel"
+            :label="targetLabel"
+            :color="targetMet ? 'success' : 'neutral'"
             variant="subtle"
             size="sm"
+            class="shrink-0"
+            :data-test="`entry-target-${entry.id}`"
           />
           <UBadge
-            v-if="exercise.type === 'cardio' && exercise.cardioLog.logged"
-            label="Logged"
+            v-else-if="entry.sets.length > 0"
+            :label="plural(entry.sets.length, 'set')"
             variant="subtle"
-            color="success"
             size="sm"
+            class="shrink-0"
+            :data-test="`entry-sets-${entry.id}`"
           />
-        </button>
-        <UButton
-          icon="i-lucide-history"
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          class="shrink-0"
-          @click="emit('showHistory', exercise.id)"
-        />
-        <UButton
-          icon="i-lucide-trash-2"
-          variant="ghost"
-          color="error"
-          size="sm"
-          class="shrink-0"
-          @click="confirmRemoveOpen = true"
-        />
+          <div class="ml-auto flex shrink-0 items-center">
+            <UButton
+              icon="i-lucide-history"
+              variant="ghost"
+              color="neutral"
+              class="size-10 justify-center max-sm:hidden"
+              aria-label="Exercise history"
+              :to="`/workouts/exercises/${entry.exerciseId}?tab=history`"
+              :data-test="`entry-history-${entry.id}`"
+            />
+            <UDropdownMenu :items="menu">
+              <UButton
+                icon="i-lucide-ellipsis-vertical"
+                variant="ghost"
+                color="neutral"
+                class="size-10 justify-center"
+                aria-label="Exercise actions"
+                :data-test="`entry-menu-${entry.id}`"
+              />
+              <template #item-label="{ item }">
+                <span :data-test="item.testId">{{ item.label }}</span>
+              </template>
+            </UDropdownMenu>
+          </div>
+        </div>
+        <p v-if="entry.notes" class="pl-11 text-xs text-dimmed" :data-test="`entry-notes-${entry.id}`">{{ entry.notes }}</p>
+        <div
+          v-if="entry.optional || showBar || entry.lastSets.length > 0"
+          class="flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-xs leading-snug text-dimmed"
+        >
+          <UBadge v-if="entry.optional" label="optional" variant="outline" color="neutral" size="sm" class="shrink-0" :data-test="`entry-optional-${entry.id}`" />
+          <span v-if="showBar" class="inline-flex items-center">
+            Bar: {{ entry.barWeight }} lb
+            <UButton
+              v-if="plateButton"
+              label="Plates"
+              icon="i-lucide-disc-3"
+              variant="subtle"
+              color="neutral"
+              size="xs"
+              class="ml-2.5 min-h-10"
+              :data-test="`entry-plates-${entry.id}`"
+              @click="emit('plates', plateWeight)"
+            />
+          </span>
+          <span
+            v-if="entry.lastSets.length > 0"
+            class="flex flex-wrap gap-x-1 gap-y-0.5 sm:gap-x-4"
+            :data-test="`entry-last-${entry.id}`"
+          >
+            <span>Last time:</span>
+            <template v-for="(set, index) in lastSummary" :key="index">
+              <span v-if="index > 0" class="sm:hidden">·</span>
+              <span class="whitespace-nowrap" data-test="entry-last-set">{{ set }}</span>
+            </template>
+          </span>
+        </div>
       </div>
     </template>
 
-    <div v-if="!exercise.collapsed">
-      <!-- Strength exercise -->
-      <template v-if="exercise.type === 'strength'">
-        <!-- Completed sets -->
-        <div v-if="exercise.sets.length > 0" class="flex flex-col gap-2 mb-4">
+    <div v-show="!collapsed" :id="`entry-body-${entry.id}`" class="flex flex-col gap-4" :data-test="`entry-body-${entry.id}`">
+      <div v-if="entry.sets.length > 0" class="flex flex-col gap-2 max-sm:gap-1">
+        <div v-for="(set, index) in entry.sets" :key="set.id" data-test="set-row">
           <WorkoutSetRow
-            v-for="(set, setIdx) in exercise.sets"
-            :key="set.setNumber"
             :set="set"
-            @delete="emit('deleteSet', index, setIdx)"
-            @update:set="emit('updateSet', index, setIdx, $event)"
-            @update:note="emit('updateSetNote', index, setIdx, $event)"
+            :index="index"
+            :tracking-type="entry.trackingType"
+            :load-style="entry.loadStyle"
+            :weight-increment="entry.weightIncrement"
+            :error="errorFor(set.id)"
+            @save="(values) => emit('editSet', set.id, values)"
+            @remove="emit('removeSet', set.id)"
           />
-          <div class="flex justify-end px-3 pt-1">
-            <span class="text-xs text-dimmed font-medium">Total Volume: {{ totalVolume.toLocaleString() }} lbs</span>
+          <div v-if="errorFor(set.id)" class="flex items-center gap-2 px-3 pt-1" :data-test="`set-save-error-${set.id}`">
+            <span class="min-w-0 flex-1 truncate text-xs text-error">{{ errorFor(set.id) }}</span>
+            <UButton
+              label="Retry"
+              variant="soft"
+              color="error"
+              class="min-h-10 shrink-0"
+              :data-test="`set-retry-${set.id}`"
+              @click="emit('retrySave', set.id)"
+            />
           </div>
         </div>
-
-        <!-- Active set input -->
-        <div class="flex flex-col gap-4">
-          <USeparator v-if="exercise.sets.length > 0" />
-
-          <p class="text-sm text-dimmed font-medium">Set {{ exercise.sets.length + 1 }}</p>
-
-          <!-- Plate calculator -->
-          <WorkoutPlateCalculator v-model="weight" />
-
-          <!-- Reps -->
-          <div class="flex flex-col items-center gap-1">
-            <span class="text-sm text-dimmed">Reps</span>
-            <UInputNumber v-model="reps" :min="1" :step="1" size="xl" class="w-32" />
-          </div>
-
-          <!-- RPE -->
-          <WorkoutRpeSlider v-model="rpe" />
-
-          <!-- Log button -->
-          <UButton label="Log Set" block size="lg" @click="handleLogSet" />
+        <div v-if="totalVolume" class="flex justify-end px-3">
+          <span class="text-xs font-medium text-dimmed" :data-test="`entry-volume-${entry.id}`">Total Volume: {{ totalVolume }} lb</span>
         </div>
-      </template>
+        <USeparator />
+      </div>
 
-      <!-- Cardio exercise -->
-      <template v-if="exercise.type === 'cardio'">
-        <div v-if="exercise.cardioLog.logged" class="flex flex-col gap-2 p-3 rounded-lg bg-elevated/50">
-          <div class="flex justify-between text-sm">
-            <span class="text-dimmed">Duration</span>
-            <span class="font-medium">{{ exercise.cardioLog.durationMinutes }} min</span>
-          </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-dimmed">Distance</span>
-            <span class="font-medium">{{ exercise.cardioLog.distance }} {{ exercise.cardioLog.distanceUnit }}</span>
-          </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-dimmed">Calories</span>
-            <span class="font-medium">{{ exercise.cardioLog.calories }} cal</span>
-          </div>
-        </div>
-
-        <div v-else class="flex flex-col gap-4">
-          <div class="grid grid-cols-3 gap-3">
-            <div class="flex flex-col gap-1">
-              <span class="text-xs text-dimmed">Duration (min)</span>
-              <UInputNumber v-model="durationMinutes" :min="0" :step="1" placeholder="0" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-xs text-dimmed">Distance</span>
-              <div class="flex gap-1">
-                <UInputNumber
-                  v-model="distance"
-                  :min="0"
-                  :step="distanceUnit === 'm' ? 100 : 0.1"
-                  placeholder="0"
-                  class="flex-1"
-                />
-                <USelect v-model="distanceUnit" :items="DISTANCE_UNITS" value-key="value" class="w-18" />
-              </div>
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-xs text-dimmed">Calories</span>
-              <UInputNumber v-model="calories" :min="0" :step="10" placeholder="0" />
-            </div>
-          </div>
-
-          <UButton label="Log Cardio" block size="lg" @click="handleLogCardio" />
-        </div>
-      </template>
+      <WorkoutSetForm
+        :entry="entry"
+        :preset-weight="presetWeight"
+        :progression="progression"
+        :choice="choice"
+        @save="(values) => emit('addSet', values)"
+        @choose="choose"
+        @weight="(value) => (formWeight = value)"
+      />
+      <div v-if="errorFor(null)" class="flex items-center gap-2 pt-1" data-test="set-save-error-new">
+        <span class="min-w-0 flex-1 truncate text-xs text-error">{{ errorFor(null) }}</span>
+        <UButton
+          label="Retry"
+          variant="soft"
+          color="error"
+          class="min-h-10 shrink-0"
+          data-test="set-retry-new"
+          @click="emit('retrySave', null)"
+        />
+      </div>
     </div>
+
+    <WorkoutProgressionPrompt v-model:open="promptOpen" :copy="copy" :kind="progression?.kind ?? 'add'" @choose="choose" />
+
     <UModal
       v-model:open="confirmRemoveOpen"
-      :title="`Remove ${exercise.name}?`"
+      :title="`Remove ${entry.exerciseName}?`"
       description="This will remove the exercise and all logged sets."
       :ui="{ footer: 'justify-end' }"
     >
       <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="confirmRemoveOpen = false" />
-        <UButton label="Remove" color="error" @click="handleRemove" />
+        <UButton label="Cancel" color="neutral" variant="outline" class="min-h-10" @click="confirmRemoveOpen = false" />
+        <UButton label="Remove" color="error" class="min-h-10" :data-test="`entry-remove-confirm-${entry.id}`" @click="confirmRemove" />
       </template>
     </UModal>
   </UCard>

@@ -29,7 +29,7 @@ const emit = defineEmits<{
   'edit-time': [containerId: number]
 }>()
 
-const addHref = computed(() => `/diary/${props.date}/add?containerId=${props.container.id}`)
+const addHref = computed(() => `/nutrition/diary/${props.date}/add?containerId=${props.container.id}`)
 
 const menu = computed<DropdownMenuItem[][]>(() => [[
   { label: 'Add to this meal', icon: 'i-lucide-plus', to: addHref.value },

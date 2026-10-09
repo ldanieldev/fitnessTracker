@@ -4,7 +4,7 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 const { clearMock, navigateToMock, routeState, fetchMock } = vi.hoisted(() => ({
   clearMock: vi.fn(),
   navigateToMock: vi.fn(),
-  routeState: { path: '/diary/2026-01-01' },
+  routeState: { path: '/nutrition/diary/2026-01-01' },
   fetchMock: vi.fn()
 }))
 
@@ -18,7 +18,7 @@ describe('handleUnauthorized', () => {
     clearMock.mockClear()
     navigateToMock.mockClear()
     fetchMock.mockClear()
-    routeState.path = '/diary/2026-01-01'
+    routeState.path = '/nutrition/diary/2026-01-01'
   })
 
   it('clears the session, redirects to login, and reports that it acted', async () => {
@@ -50,7 +50,7 @@ describe('apiFetch', () => {
     clearMock.mockClear()
     navigateToMock.mockClear()
     fetchMock.mockClear()
-    routeState.path = '/diary/2026-01-01'
+    routeState.path = '/nutrition/diary/2026-01-01'
   })
 
   it('resolves with the $fetch result on success', async () => {

@@ -1,3 +1,5 @@
+import { toSessionUser } from '~~/server/utils/sessionUser'
+
 const githubHandler = defineOAuthGitHubEventHandler({
   config: {
     scope: ['user:email'],
@@ -26,17 +28,7 @@ const githubHandler = defineOAuthGitHubEventHandler({
         session.user?.id
       )
 
-      await setUserSession(event, {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          avatar_url: user.avatarUrl,
-          age: user.age,
-          sex: user.sex,
-          weekStart: user.weekStart as 0 | 1
-        }
-      })
+      await replaceUserSession(event, { user: toSessionUser(user) })
 
       return oauthSuccessRedirect(event, 'github')
     } catch (error) {

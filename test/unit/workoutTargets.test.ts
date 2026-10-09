@@ -1,0 +1,91 @@
+import { describe, expect, it } from 'vitest'
+import {
+  copyTargetsFrom, formatTargetRange, rangePlaceholder, targetMetricFor, targetProgressLabel, targetSummary
+} from '../../shared/utils/workoutTargets'
+
+describe('targetMetricFor', () => {
+  it('prefers reps, then time, then distance', () => {
+    expect(targetMetricFor('weight_reps')).toBe('reps')
+    expect(targetMetricFor('reps_time')).toBe('reps')
+    expect(targetMetricFor('weight_time')).toBe('time')
+    expect(targetMetricFor('distance_time')).toBe('time')
+    expect(targetMetricFor('weight_distance')).toBe('distance')
+    expect(targetMetricFor('weight')).toBeNull()
+  })
+})
+
+describe('copyTargetsFrom', () => {
+  it('counts the sets and spans the reps actually done', () => {
+    const sets = [{ weight: 185, reps: 8 }, { weight: 185, reps: 7 }, { weight: 185, reps: 6 }, { weight: 185, reps: 6 }]
+    expect(copyTargetsFrom('weight_reps', sets, null)).toEqual({ sets: 4, low: 6, high: 8, weight: null })
+  })
+
+  it('keeps the source range when the source had one', () => {
+    const source = { sets: 3, low: 5, high: 8, weight: 200 }
+    expect(copyTargetsFrom('weight_reps', [{ weight: 185, reps: 9 }], source))
+      .toEqual({ sets: 1, low: 5, high: 8, weight: null })
+  })
+
+  it('collapses a single value to low = high and reads seconds for time exercises', () => {
+    expect(copyTargetsFrom('time', [{ durationSeconds: 45 }], null)).toEqual({ sets: 1, low: 45, high: 45, weight: null })
+  })
+
+  it('returns null when nothing was logged and the source had no range', () => {
+    expect(copyTargetsFrom('weight_reps', [], null)).toBeNull()
+  })
+
+  it('drops a source range measured in another metric but keeps the set count', () => {
+    const source = { sets: 3, low: 6, high: 8, weight: null }
+    expect(copyTargetsFrom('weight_time', [{ weight: 100, reps: 8 }], source, 'weight_reps'))
+      .toEqual({ sets: 1, low: null, high: null, weight: null })
+  })
+
+  it('does not derive a range from sets logged in another metric', () => {
+    expect(copyTargetsFrom('weight_time', [{ weight: 100, reps: 8 }, { weight: 100, reps: 6 }], null, 'weight_reps'))
+      .toEqual({ sets: 2, low: null, high: null, weight: null })
+  })
+
+  it('keeps the source range when the type changed but the metric did not', () => {
+    const source = { sets: 3, low: 6, high: 8, weight: null }
+    expect(copyTargetsFrom('reps_time', [{ reps: 8, durationSeconds: 30 }], source, 'weight_reps'))
+      .toEqual({ sets: 1, low: 6, high: 8, weight: null })
+  })
+})
+
+describe('formatting', () => {
+  it('formats ranges per metric', () => {
+    expect(formatTargetRange('reps', 5, 8)).toBe('5–8')
+    expect(formatTargetRange('reps', 8, 8)).toBe('8')
+    expect(formatTargetRange('reps', null, 12)).toBe('12')
+    expect(formatTargetRange('time', 30, 45)).toBe('0:30–0:45')
+    expect(formatTargetRange('time', 900, 1200)).toBe('15:00–20:00')
+    expect(formatTargetRange('distance', 400, 800)).toBe('0.25–0.5 mi')
+    expect(formatTargetRange('reps', null, null)).toBe('')
+  })
+
+  it('builds the input placeholder from the raw values', () => {
+    expect(rangePlaceholder(5, 8)).toBe('5–8')
+    expect(rangePlaceholder(8, 8)).toBe('8')
+    expect(rangePlaceholder(null, null)).toBeNull()
+    expect(rangePlaceholder(1200, 1500, 'time')).toBe('20:00–25:00')
+    expect(rangePlaceholder(1609.344, 3218.688, 'distance')).toBe('1–2')
+    expect(rangePlaceholder(5, 8, 'reps')).toBe('5–8')
+  })
+
+  it('summarises a routine row', () => {
+    expect(targetSummary('weight_reps', { sets: 3, low: 5, high: 8, weight: null })).toBe('3 × 5–8')
+    expect(targetSummary('weight_reps', { sets: 3, low: null, high: null, weight: null })).toBe('3 sets')
+    expect(targetSummary('time', { sets: null, low: 900, high: 1200, weight: null })).toBe('15:00–20:00')
+    expect(targetSummary('weight_reps', { sets: 3, low: 5, high: 8, weight: 135 })).toBe('3 × 5–8 @ 135 lb')
+    expect(targetSummary('weight_reps', null)).toBe('')
+  })
+
+  it('labels progress on the log card', () => {
+    const target = { sets: 3, low: 5, high: 8, weight: null }
+    expect(targetProgressLabel('weight_reps', target, 1)).toBe('1 of 3 · 5–8')
+    expect(targetProgressLabel('weight_reps', target, 4)).toBe('4 of 3 · 5–8')
+    expect(targetProgressLabel('weight_reps', { ...target, low: null, high: null }, 0)).toBe('0 of 3')
+    expect(targetProgressLabel('time', { sets: null, low: 30, high: 45, weight: null }, 2)).toBe('0:30–0:45')
+    expect(targetProgressLabel('weight_reps', null, 2)).toBeNull()
+  })
+})

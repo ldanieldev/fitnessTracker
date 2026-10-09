@@ -26,7 +26,7 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap, with no ta
   })
   await rebuildSearchIndex(page)
 
-  await goto(`/diary/2026-09-01/add?containerId=${target.id}`, { waitUntil: 'hydration' })
+  await goto(`/nutrition/diary/2026-09-01/add?containerId=${target.id}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="add-container"]')).toContainText(target.name)
 
   const tabs = await page.getByRole('tab').all()
@@ -59,7 +59,7 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap, with no ta
 
   await expect(page.locator('[data-test="tray-count"]')).toContainText('3 items')
   await page.locator('[data-test="add-selected"]').click()
-  await expect(page).toHaveURL(/\/diary\/2026-09-01$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-09-01$/)
 
   const day = await apiFetch<{ entries: Array<{ containerId: number, entryType: string, quantity: number }> }>(page, 'GET', '/api/nutrition/diary/2026-09-01')
   expect(day.json.entries).toHaveLength(4)
@@ -82,7 +82,7 @@ test('removing a food from recents hides it there but leaves it searchable and p
     { entryType: 'food', containerId: target.id, foodId: oats.json.id, quantity: 100, unitLabel: 'g' }
   ])
 
-  await goto('/diary/2026-09-02/add', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-02/add', { waitUntil: 'hydration' })
   const recentRow = page.locator('[data-test="food-hit"]', { hasText: `${p} Oats` })
   await expect(recentRow).toBeVisible()
 

@@ -271,7 +271,7 @@ test('copies a day through the dialog with one item excluded and one adjusted', 
     { entryType: 'food', foodId: foodB.json.id, containerId, quantity: 100, unitLabel: 'g' }
   ])
 
-  await goto('/diary/2026-08-01', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-08-01', { waitUntil: 'hydration' })
   await page.locator('[data-test="day-menu"]').click()
   await page.getByRole('menuitem', { name: 'Copy day' }).click()
 
@@ -283,7 +283,7 @@ test('copies a day through the dialog with one item excluded and one adjusted', 
   await rows.nth(1).locator('[data-test="copy-source-quantity"]').fill('200')
 
   await page.locator('[data-test="copy-confirm"]').click()
-  await expect(page).toHaveURL(/\/diary\/2026-08-02$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-08-02$/)
 
   const target = await apiFetch<{
     totals: Record<string, number>
@@ -312,7 +312,7 @@ test('copying one entry into a different container on the same date refreshes th
     { entryType: 'food', foodId: food.json.id, containerId: sourceContainer.id, quantity: 100, unitLabel: 'g' }
   ])
 
-  await goto('/diary/2026-08-03', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-08-03', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(1)
 
   await page.locator('[data-test="entry-row"]').click()
@@ -321,7 +321,7 @@ test('copying one entry into a different container on the same date refreshes th
   await page.getByRole('option', { name: targetContainer.name }).click()
   await page.locator('[data-test="copy-confirm"]').click()
 
-  await expect(page).toHaveURL(/\/diary\/2026-08-03$/)
+  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-08-03$/)
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(2)
 
   const target = await apiFetch<{ entries: Array<{ containerId: number }> }>(page, 'GET', '/api/nutrition/diary/2026-08-03')

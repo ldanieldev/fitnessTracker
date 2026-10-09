@@ -7,9 +7,9 @@ test('a container added in settings appears on the Add screen without a reload',
   const name = `${uniquePrefix('C')} Snack`
 
   // One hard nav establishes the SPA; every step after this is client-side, keeping the Add screen's first containers fetch in the same realm as the settings mutation.
-  await goto('/diary/2026-09-08', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-08', { waitUntil: 'hydration' })
   await page.locator('[data-test="fab-add"]').click()
-  await page.waitForURL('**/diary/2026-09-08/add')
+  await page.waitForURL('**/nutrition/diary/2026-09-08/add')
   // The sidebar auto-closes on its own route-settle watcher; wait for that to fire before opening it ourselves, or our own open loses the race.
   await page.waitForLoadState('networkidle')
 
@@ -47,14 +47,14 @@ test('a recipe saved from a meal appears in the Add screen\'s Recipes tab withou
   ])
 
   // One hard nav establishes the SPA; the FAB/back round trip afterward stays in the same realm as the mutation that must invalidate the recipes fetch asserted empty below.
-  await goto('/diary/2026-09-08', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/2026-09-08', { waitUntil: 'hydration' })
   await page.locator('[data-test="fab-add"]').click()
-  await page.waitForURL('**/diary/2026-09-08/add')
+  await page.waitForURL('**/nutrition/diary/2026-09-08/add')
   await page.locator('[data-test="recipes-tab"]').click()
   await expect(page.locator('[data-test="recipe-choice"]', { hasText: `${p} Bowl` })).toHaveCount(0)
 
   await page.goBack()
-  await page.waitForURL('**/diary/2026-09-08')
+  await page.waitForURL('**/nutrition/diary/2026-09-08')
 
   await page.locator(`[data-test="container-${containers[0]!.id}"] [data-test="container-menu"]`).click()
   await page.getByRole('menuitem', { name: 'Save as recipe' }).click()

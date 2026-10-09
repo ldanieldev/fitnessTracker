@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm'
-import type { MetricOverview, SeriesPoint } from '~~/shared/types/body'
+import type { MetricOverview } from '~~/shared/types/body'
+import type { SeriesPoint } from '~~/shared/types/series'
 import { measurements } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { toEntry } from '~~/server/utils/body/entries'
@@ -32,7 +33,10 @@ export default defineEventHandler(async (event): Promise<MetricOverview[]> => {
         createdAt: measurements.createdAt,
         updatedAt: measurements.updatedAt,
         // id breaks same-minute measuredAt ties deterministically.
-        rn: sql<number>`row_number() over (partition by ${measurements.typeId} order by ${measurements.measuredOn} desc, ${measurements.measuredAt} desc, ${measurements.id} desc)`.as('rn')
+        rn: sql<number>`row_number() over (
+          partition by ${measurements.typeId}
+          order by ${measurements.measuredOn} desc, ${measurements.measuredAt} desc, ${measurements.id} desc
+        )`.as('rn')
       })
       .from(measurements)
       .where(and(eq(measurements.userId, userId), inArray(measurements.typeId, typeIds)))

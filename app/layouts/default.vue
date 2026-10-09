@@ -17,7 +17,9 @@ const close = () => {
 }
 
 const { energyLeft } = useTodaySummary()
-const diaryBadge = computed(() => (loggedIn.value && energyLeft.value !== null ? String(Math.round(energyLeft.value)) : undefined))
+const diaryBadge = computed(() => (
+  loggedIn.value && energyLeft.value !== null ? String(Math.round(energyLeft.value)) : undefined
+))
 
 const links = computed(() => [
   [
@@ -63,22 +65,32 @@ const links = computed(() => [
         },
         {
           label: 'Workout History',
-          // to: '/workouts/history',
+          to: '/workouts/sessions',
           onSelect: close
         },
         {
-          label: 'Exercises',
-          // to: '/exercises',
+          label: 'Routines',
+          to: '/workouts/routines',
           onSelect: close
         },
         {
           label: 'Programs',
-          // to: '/programs',
+          to: '/workouts/programs',
+          onSelect: close
+        },
+        {
+          label: 'Progress',
+          to: '/workouts/progress',
+          onSelect: close
+        },
+        {
+          label: 'Exercises',
+          to: '/workouts/exercises',
           onSelect: close
         },
         {
           label: 'Timer',
-          // to: '/timer',
+          to: '/workouts/timer',
           onSelect: close
         }
       ]
@@ -89,11 +101,11 @@ const links = computed(() => [
       defaultOpen: true,
       type: 'trigger' as const,
       children: [
-        { label: 'Diary', to: '/diary/today', badge: diaryBadge.value, onSelect: close },
+        { label: 'Diary', to: '/nutrition/diary/today', badge: diaryBadge.value, onSelect: close },
         { label: 'Foods', to: '/nutrition/foods', onSelect: close },
         { label: 'Saved meals', to: '/nutrition/saved-meals', onSelect: close },
         { label: 'Recipes', to: '/nutrition/recipes', onSelect: close },
-        { label: 'Summary', to: '/diary/summary', onSelect: close }
+        { label: 'Summary', to: '/nutrition/diary/summary', onSelect: close }
       ]
     }
   ]

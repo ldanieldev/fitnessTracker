@@ -13,8 +13,8 @@ test('no nutrition screen scrolls sideways at the phone width, and the app rende
   ])
 
   const routes = [
-    '/diary/2026-09-07', '/diary/2026-09-07/add', '/diary/2026-09-07/scan', '/diary/2026-09-07/foods/new',
-    '/diary/summary?from=2026-09-01&to=2026-09-07', '/nutrition/recipes', '/nutrition/recipes/new',
+    '/nutrition/diary/2026-09-07', '/nutrition/diary/2026-09-07/add', '/nutrition/diary/2026-09-07/scan', '/nutrition/diary/2026-09-07/foods/new',
+    '/nutrition/diary/summary?from=2026-09-01&to=2026-09-07', '/nutrition/recipes', '/nutrition/recipes/new',
     '/nutrition/saved-meals', '/nutrition/saved-meals/new', '/nutrition/foods', `/nutrition/foods/${food.json.id}`,
     '/nutrition/foods/new', '/settings/nutrition'
   ]
@@ -31,7 +31,7 @@ test('no nutrition screen scrolls sideways at the phone width, and the app rende
 test('the summary shows one card per day on the phone, and its range trigger does not overlap the sidebar toggle', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  await goto('/diary/summary?from=2026-09-01&to=2026-09-03', { waitUntil: 'hydration' })
+  await goto('/nutrition/diary/summary?from=2026-09-01&to=2026-09-03', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="summary-card"]')).toHaveCount(3)
   await expect(page.locator('table')).toHaveCount(0)
 

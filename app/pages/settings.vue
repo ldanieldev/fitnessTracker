@@ -13,6 +13,11 @@ const links = [[
     to: '/settings/security'
   },
   {
+    label: 'Workout',
+    icon: 'i-lucide-dumbbell',
+    to: '/settings/workout'
+  },
+  {
     label: 'Nutrition',
     icon: 'i-lucide-utensils',
     to: '/settings/nutrition'

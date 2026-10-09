@@ -6,7 +6,7 @@ test('shows the viewfinder or a permission notice, and the manual path lands on 
   await registerViaApi(page, makeUser())
 
   const today = new Date().toISOString().slice(0, 10)
-  await goto(`/diary/${today}/scan`, { waitUntil: 'hydration' })
+  await goto(`/nutrition/diary/${today}/scan`, { waitUntil: 'hydration' })
 
   const video = page.locator('[data-test="scan-video"]')
   const permissionNotice = page.locator('[data-test="scan-permission-notice"]')
@@ -15,6 +15,6 @@ test('shows the viewfinder or a permission notice, and the manual path lands on 
   await page.locator('[data-test="scan-manual-input"]').fill('0000000000000')
   await page.locator('[data-test="scan-manual-submit"]').click()
 
-  await expect(page).toHaveURL(new RegExp(`/diary/${today}/foods/new\\?barcode=0000000000000$`))
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${today}/foods/new\\?barcode=0000000000000$`))
   await expect(page.locator('[data-test="food-barcode"]')).toHaveValue('0000000000000')
 })
