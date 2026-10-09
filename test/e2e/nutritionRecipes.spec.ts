@@ -9,7 +9,11 @@ test('recipes are live: editing an ingredient food moves perServing', async ({ p
     name: 'Flour',
     servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 10 } }]
   })
-  const flourFood = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${flour.json.id}`)
+  const flourFood = await apiFetch<{ servings: Array<{ id: number }> }>(
+    page,
+    'GET',
+    `/api/nutrition/foods/${flour.json.id}`
+  )
 
   const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/recipes', {
     name: 'Bread',
@@ -20,7 +24,11 @@ test('recipes are live: editing an ingredient food moves perServing', async ({ p
     ]
   })
 
-  const before = await apiFetch<{ perServing: Record<string, number> }>(page, 'GET', `/api/nutrition/recipes/${created.json.id}`)
+  const before = await apiFetch<{ perServing: Record<string, number> }>(
+    page,
+    'GET',
+    `/api/nutrition/recipes/${created.json.id}`
+  )
   expect(Number(before.json.perServing.protein)).toBeCloseTo(10, 6)
 
   await apiFetch(page, 'PUT', `/api/nutrition/foods/${flour.json.id}/servings/${flourFood.json.servings[0].id}`, {
@@ -30,7 +38,11 @@ test('recipes are live: editing an ingredient food moves perServing', async ({ p
     nutrients: { protein: 20 }
   })
 
-  const after = await apiFetch<{ perServing: Record<string, number> }>(page, 'GET', `/api/nutrition/recipes/${created.json.id}`)
+  const after = await apiFetch<{ perServing: Record<string, number> }>(
+    page,
+    'GET',
+    `/api/nutrition/recipes/${created.json.id}`
+  )
   expect(Number(after.json.perServing.protein)).toBeCloseTo(20, 6)
 })
 
@@ -46,7 +58,7 @@ test('reports an ingredient as broken when its serving is deleted', async ({ pag
       { kind: 'named', label: 'slice', quantity: 1, nutrients: { protein: 3 } }
     ]
   })
-  const loadedFood = await apiFetch<{ servings: Array<{ id: number, label: string }> }>(
+  const loadedFood = await apiFetch<{ servings: Array<{ id: number; label: string }> }>(
     page,
     'GET',
     `/api/nutrition/foods/${food.json.id}`
@@ -83,7 +95,11 @@ test('rejects zero servings', async ({ page, goto }) => {
     name: 'Whatever',
     servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 10 } }]
   })
-  const loadedFood = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${food.json.id}`)
+  const loadedFood = await apiFetch<{ servings: Array<{ id: number }> }>(
+    page,
+    'GET',
+    `/api/nutrition/foods/${food.json.id}`
+  )
 
   const res = await apiFetch(page, 'POST', '/api/nutrition/recipes', {
     name: 'Zero',
@@ -136,7 +152,8 @@ test('logging a recipe writes one line whose expansion survives later recipe edi
     nutrients: Record<string, number>
     ingredientSnapshot: SnapshotItem[]
   }
-  const sumProtein = (items: SnapshotItem[]) => items.reduce((sum, item) => sum + Number(item.nutrients.protein ?? 0), 0)
+  const sumProtein = (items: SnapshotItem[]) =>
+    items.reduce((sum, item) => sum + Number(item.nutrients.protein ?? 0), 0)
 
   // total protein = 40 + 50 = 90 over 8 servings = 11.25 per slice; 2 slices = 22.5
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-05-01/entries', [
@@ -204,7 +221,13 @@ test('ingredients resolve through their own base, never through the weight basis
   const pizza = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Dual basis pizza',
     servings: [
-      { kind: 'named', label: 'slice', quantity: 1, basisGrams: 130, nutrients: { protein: 3, carbohydrate: 2, fat: 5 } },
+      {
+        kind: 'named',
+        label: 'slice',
+        quantity: 1,
+        basisGrams: 130,
+        nutrients: { protein: 3, carbohydrate: 2, fat: 5 }
+      },
       { kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 1, carbohydrate: 2, fat: 2 } }
     ]
   })
@@ -297,21 +320,29 @@ test('recipe reads carry ingredient names, per-line nutrients, and a broken flag
     ]
   })
 
-  const detail = await apiFetch<{ ingredients: Array<{ name: string, nutrients: Record<string, number>, broken: boolean }> }>(
-    page, 'GET', `/api/nutrition/recipes/${created.json.id}`
-  )
+  const detail = await apiFetch<{
+    ingredients: Array<{ name: string; nutrients: Record<string, number>; broken: boolean }>
+  }>(page, 'GET', `/api/nutrition/recipes/${created.json.id}`)
   expect(detail.json.ingredients.map((i) => i.name)).toEqual(['Enriched Oats', 'Enriched Milk'])
   expect(detail.json.ingredients[0]!.nutrients.energy).toBeCloseTo(380, 6)
   expect(detail.json.ingredients.every((i) => !i.broken)).toBe(true)
 
-  const list = await apiFetch<Array<{ id: number, perServing: Record<string, number>, broken: boolean }>>(page, 'GET', '/api/nutrition/recipes')
+  const list = await apiFetch<Array<{ id: number; perServing: Record<string, number>; broken: boolean }>>(
+    page,
+    'GET',
+    '/api/nutrition/recipes'
+  )
   const row = list.json.find((r) => r.id === created.json.id)!
   expect(row.perServing.energy).toBeCloseTo(250, 6)
   expect(row.broken).toBe(false)
 
   await apiFetch(page, 'DELETE', `/api/nutrition/foods/${milk.json.id}`)
-  const after = await apiFetch<{ ingredients: Array<{ name: string, broken: boolean }> }>(page, 'GET', `/api/nutrition/recipes/${created.json.id}`)
+  const after = await apiFetch<{ ingredients: Array<{ name: string; broken: boolean }> }>(
+    page,
+    'GET',
+    `/api/nutrition/recipes/${created.json.id}`
+  )
   expect(after.json.ingredients[1]).toMatchObject({ name: 'Enriched Milk', broken: true })
-  const listAfter = await apiFetch<Array<{ id: number, broken: boolean }>>(page, 'GET', '/api/nutrition/recipes')
+  const listAfter = await apiFetch<Array<{ id: number; broken: boolean }>>(page, 'GET', '/api/nutrition/recipes')
   expect(listAfter.json.find((r) => r.id === created.json.id)!.broken).toBe(true)
 })

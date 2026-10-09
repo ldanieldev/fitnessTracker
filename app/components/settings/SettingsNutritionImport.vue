@@ -46,7 +46,13 @@ function poll(jobId: number) {
         jobError.value = job.error
         uploading.value = false
         if (job.status === 'done') {
-          await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll, 'nutrition:day:', 'nutrition:logged:')
+          await invalidateNutrition(
+            NUTRITION_KEYS.foods,
+            NUTRITION_KEYS.containers,
+            NUTRITION_KEYS.containersAll,
+            'nutrition:day:',
+            'nutrition:logged:'
+          )
           emit('imported')
         }
       } else {
@@ -71,7 +77,10 @@ async function submit() {
   for (const file of selectedFiles.value) formData.append('files', file, file.name)
 
   try {
-    const { jobId } = await apiFetch<{ jobId: number }>('/api/nutrition/import/mymacros', { method: 'POST', body: formData })
+    const { jobId } = await apiFetch<{ jobId: number }>('/api/nutrition/import/mymacros', {
+      method: 'POST',
+      body: formData
+    })
     status.value = 'queued'
     poll(jobId)
   } catch (error: unknown) {
@@ -79,7 +88,9 @@ async function submit() {
     const failedJobId = (error as { data?: { data?: { jobId?: number } } })?.data?.data?.jobId
     toast.add({
       title: 'Import failed',
-      description: failedJobId ? `${errorMessage(error, 'Import failed')} (job #${failedJobId})` : errorMessage(error, 'Import failed'),
+      description: failedJobId
+        ? `${errorMessage(error, 'Import failed')} (job #${failedJobId})`
+        : errorMessage(error, 'Import failed'),
       color: 'error'
     })
   }
@@ -101,7 +112,7 @@ onBeforeUnmount(() => {
         data-test="import-files"
         aria-label="My Macros+ daily export files"
         @change="onFileChange"
-      >
+      />
     </UFormField>
 
     <UButton
@@ -139,6 +150,12 @@ onBeforeUnmount(() => {
       />
     </template>
 
-    <UAlert v-else-if="status === 'failed' && jobError" color="error" variant="subtle" title="Import failed" :description="jobError" />
+    <UAlert
+      v-else-if="status === 'failed' && jobError"
+      color="error"
+      variant="subtle"
+      title="Import failed"
+      :description="jobError"
+    />
   </div>
 </template>

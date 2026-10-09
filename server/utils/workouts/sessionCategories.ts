@@ -1,6 +1,12 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { SessionCategoryDot } from '~~/shared/types/workout'
-import { exerciseCategories, exerciseCategoryPrefs, exercisePrefs, exercises, workoutEntries } from '~~/server/db/schema'
+import {
+  exerciseCategories,
+  exerciseCategoryPrefs,
+  exercisePrefs,
+  exercises,
+  workoutEntries
+} from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { effectiveCategoryId } from '~~/server/utils/workouts/sessionFilter'
 

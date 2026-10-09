@@ -10,9 +10,15 @@ function lastModel(wrapper: Awaited<ReturnType<typeof mountSuspended>>) {
 
 describe('WorkoutPlateSizesPicker', () => {
   it('shows choices and selected sizes heaviest first, pressed when selected', async () => {
-    const wrapper = await mountSuspended(WorkoutPlateSizesPicker, { props: { modelValue: [55, 45], choices: [45, 25] } })
+    const wrapper = await mountSuspended(WorkoutPlateSizesPicker, {
+      props: { modelValue: [55, 45], choices: [45, 25] }
+    })
     const chips = wrapper.findAll('[data-test^="plate-chip-"]')
-    expect(chips.map((chip) => chip.attributes('data-test'))).toEqual(['plate-chip-55', 'plate-chip-45', 'plate-chip-25'])
+    expect(chips.map((chip) => chip.attributes('data-test'))).toEqual([
+      'plate-chip-55',
+      'plate-chip-45',
+      'plate-chip-25'
+    ])
     expect(wrapper.find('[data-test="plate-chip-25"]').attributes('aria-pressed')).toBe('false')
     expect(wrapper.find('[data-test="plate-chip-55"]').attributes('aria-pressed')).toBe('true')
   })
@@ -32,7 +38,9 @@ describe('WorkoutPlateSizesPicker', () => {
 
   it('disables unselected chips once the maximum is selected', async () => {
     const twelve = [100, 55, 45, 35, 25, 15, 10, 5, 2.5, 1.25, 0.5, 0.25]
-    const wrapper = await mountSuspended(WorkoutPlateSizesPicker, { props: { modelValue: twelve, choices: [...twelve, 20] } })
+    const wrapper = await mountSuspended(WorkoutPlateSizesPicker, {
+      props: { modelValue: twelve, choices: [...twelve, 20] }
+    })
     const chip = wrapper.find('[data-test="plate-chip-20"]')
     expect(chip.attributes('disabled')).toBeDefined()
     await chip.trigger('click')
@@ -42,7 +50,9 @@ describe('WorkoutPlateSizesPicker', () => {
 
   it('refuses a 13th size even when an unselected chip is clicked past its disabled state', async () => {
     const twelve = [100, 55, 45, 35, 25, 15, 10, 5, 2.5, 1.25, 0.5, 0.25]
-    const wrapper = await mountSuspended(WorkoutPlateSizesPicker, { props: { modelValue: twelve, choices: [...twelve, 20] } })
+    const wrapper = await mountSuspended(WorkoutPlateSizesPicker, {
+      props: { modelValue: twelve, choices: [...twelve, 20] }
+    })
     const chip = wrapper.findAllComponents({ name: 'UButton' }).find((button) => button.props('label') === '20')!
     chip.vm.$emit('click', new MouseEvent('click'))
     await flushPromises()

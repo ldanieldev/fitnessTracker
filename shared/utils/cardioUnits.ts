@@ -70,9 +70,15 @@ const minutesClock = (minutes: number) => clockLabel(minutes * 60)
 
 export function cardioMetricDisplay(metric: GraphMetric): CardioDisplay | null {
   if (metric === 'distance') {
-    return { unit: 'mi', label: 'mi', toDisplay: (meters) => meters / METERS_PER_MILE, format: (miles) => (isMeasure(miles) ? String(hundredth(miles)) : unknown) }
+    return {
+      unit: 'mi',
+      label: 'mi',
+      toDisplay: (meters) => meters / METERS_PER_MILE,
+      format: (miles) => (isMeasure(miles) ? String(hundredth(miles)) : unknown)
+    }
   }
-  if (metric === 'duration') return { unit: '', label: 'm:ss', toDisplay: (seconds) => seconds / 60, format: minutesClock }
+  if (metric === 'duration')
+    return { unit: '', label: 'm:ss', toDisplay: (seconds) => seconds / 60, format: minutesClock }
   if (metric === 'pace') {
     return { unit: '/mi', label: 'min/mi', toDisplay: (speed) => secondsPerMile(speed) / 60, format: minutesClock }
   }

@@ -1,12 +1,17 @@
 import * as Sentry from '@sentry/nuxt'
 
 const SENTRY_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const
-type SentryLevel = typeof SENTRY_LEVELS[number]
+type SentryLevel = (typeof SENTRY_LEVELS)[number]
 
 // pino writes numeric levels unless a formatter maps them; logger.ts maps them to names, so accept
 // both rather than couple this module to that choice.
 const LEVEL_BY_NUMBER: Record<number, SentryLevel> = {
-  10: 'trace', 20: 'debug', 30: 'info', 40: 'warn', 50: 'error', 60: 'fatal'
+  10: 'trace',
+  20: 'debug',
+  30: 'info',
+  40: 'warn',
+  50: 'error',
+  60: 'fatal'
 }
 
 export function toSentryLevel(level: unknown): SentryLevel {

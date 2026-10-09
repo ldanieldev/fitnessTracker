@@ -11,7 +11,9 @@ const targets = [
 
 describe('NutritionSummaryCard', () => {
   it('shows remaining calories in the ring and fiber over its floor as met', async () => {
-    const c = await mountSuspended(NutritionSummaryCard, { props: { targets, totals: { energy: 1463, protein: 139, fiber: 39 }, goalName: 'cut1', mode: 'remaining' } })
+    const c = await mountSuspended(NutritionSummaryCard, {
+      props: { targets, totals: { energy: 1463, protein: 139, fiber: 39 }, goalName: 'cut1', mode: 'remaining' }
+    })
     expect(c.find('[data-test="energy-value"]').text()).toBe('437')
     expect(c.find('[data-test="fiber-state"]').text()).toBe('met')
     expect(c.find('[data-test="sodium-state"]').text()).toBe('none')
@@ -19,21 +21,32 @@ describe('NutritionSummaryCard', () => {
   })
 
   it('flags calories past the ceiling as over and switches to consumed', async () => {
-    const c = await mountSuspended(NutritionSummaryCard, { props: { targets, totals: { energy: 2100, protein: 150, fiber: 20 }, goalName: 'cut1', mode: 'consumed' } })
+    const c = await mountSuspended(NutritionSummaryCard, {
+      props: { targets, totals: { energy: 2100, protein: 150, fiber: 20 }, goalName: 'cut1', mode: 'consumed' }
+    })
     expect(c.find('[data-test="energy-state"]').text()).toBe('over')
     expect(c.find('[data-test="energy-value"]').text()).toBe('2100')
     expect(c.find('[data-test="total-protein"]').text()).toContain('150')
   })
 
   it('shows the overage as a bare number labelled "kcal over" in remaining mode', async () => {
-    const c = await mountSuspended(NutritionSummaryCard, { props: { targets, totals: { energy: 1909, protein: 150, fiber: 20 }, goalName: 'cut1', mode: 'remaining' } })
+    const c = await mountSuspended(NutritionSummaryCard, {
+      props: { targets, totals: { energy: 1909, protein: 150, fiber: 20 }, goalName: 'cut1', mode: 'remaining' }
+    })
     expect(c.find('[data-test="ring-value"]').text()).toBe('9')
     expect(c.find('svg[aria-label]').attributes('aria-label')).toBe('9 kcal over')
   })
 
   it('labels the ring "kcal eaten" in remaining mode when there is no energy target', async () => {
     const noEnergyTarget = targets.map((t) => (t.key === 'energy' ? { ...t, amount: null, direction: null } : t))
-    const c = await mountSuspended(NutritionSummaryCard, { props: { targets: noEnergyTarget, totals: { energy: 1463, protein: 139, fiber: 39 }, goalName: 'cut1', mode: 'remaining' } })
+    const c = await mountSuspended(NutritionSummaryCard, {
+      props: {
+        targets: noEnergyTarget,
+        totals: { energy: 1463, protein: 139, fiber: 39 },
+        goalName: 'cut1',
+        mode: 'remaining'
+      }
+    })
     expect(c.find('svg[aria-label]').attributes('aria-label')).toContain('kcal eaten')
   })
 })

@@ -1,14 +1,47 @@
 import { describe, expect, it } from 'vitest'
 import type { FoodDetail } from '../../app/types/nutrition'
 
-const idToKey = new Map([[1, 'energy'], [2, 'protein']])
+const idToKey = new Map([
+  [1, 'energy'],
+  [2, 'protein']
+])
 
 function food(id: number, servings: FoodDetail['servings']): FoodDetail {
-  return { id, name: `Food ${id}`, brand: null, barcode: null, createdByUserId: 1, source: null, defaultServingId: null, energyDensity: null, servings }
+  return {
+    id,
+    name: `Food ${id}`,
+    brand: null,
+    barcode: null,
+    createdByUserId: 1,
+    source: null,
+    defaultServingId: null,
+    energyDensity: null,
+    servings
+  }
 }
 
-const oats = food(1, [{ id: 10, kind: 'weight', label: 'g', quantity: 100, basisGrams: 100, hasOwnNutrition: true, nutrients: { 1: 380, 2: 13 } }])
-const milk = food(2, [{ id: 20, kind: 'named', label: 'cup', quantity: 1, basisGrams: null, hasOwnNutrition: true, nutrients: { 1: 120, 2: 8 } }])
+const oats = food(1, [
+  {
+    id: 10,
+    kind: 'weight',
+    label: 'g',
+    quantity: 100,
+    basisGrams: 100,
+    hasOwnNutrition: true,
+    nutrients: { 1: 380, 2: 13 }
+  }
+])
+const milk = food(2, [
+  {
+    id: 20,
+    kind: 'named',
+    label: 'cup',
+    quantity: 1,
+    basisGrams: null,
+    hasOwnNutrition: true,
+    nutrients: { 1: 120, 2: 8 }
+  }
+])
 
 describe('editor lines', () => {
   it('totals resolvable lines, excludes broken ones, and divides per serving', async () => {
@@ -29,7 +62,8 @@ describe('editor lines', () => {
 
   it('builds the request payload without client-only fields', async () => {
     const { linesPayload } = await import('../../app/utils/nutrition/lines')
-    expect(linesPayload([{ uid: 'x', foodId: 1, name: 'Oats', brand: null, quantity: 50, unitLabel: 'g', food: oats }]))
-      .toEqual([{ foodId: 1, quantity: 50, unitLabel: 'g' }])
+    expect(
+      linesPayload([{ uid: 'x', foodId: 1, name: 'Oats', brand: null, quantity: 50, unitLabel: 'g', food: oats }])
+    ).toEqual([{ foodId: 1, quantity: 50, unitLabel: 'g' }])
   })
 })

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { fromLocalInput, toLocalInput } from '~~/shared/utils/workoutTime'
 
-const props = defineProps<{ startedAt: string, endedAt: string | null }>()
+const props = defineProps<{ startedAt: string; endedAt: string | null }>()
 
 const emit = defineEmits<{
-  save: [times: { startedAt: string, endedAt: string | null, performedOn: string }]
+  save: [times: { startedAt: string; endedAt: string | null; performedOn: string }]
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -12,11 +12,15 @@ const open = defineModel<boolean>('open', { default: false })
 const startInput = ref('')
 const endInput = ref('')
 
-watch(open, (value) => {
-  if (!value) return
-  startInput.value = toLocalInput(props.startedAt)
-  endInput.value = props.endedAt ? toLocalInput(props.endedAt) : ''
-}, { immediate: true })
+watch(
+  open,
+  (value) => {
+    if (!value) return
+    startInput.value = toLocalInput(props.startedAt)
+    endInput.value = props.endedAt ? toLocalInput(props.endedAt) : ''
+  },
+  { immediate: true }
+)
 
 function save() {
   const started = fromLocalInput(startInput.value)
@@ -40,7 +44,14 @@ function save() {
         <UFormField label="Ended" hint="Leave empty to keep the workout open">
           <UInput v-model="endInput" type="datetime-local" class="w-full" data-test="session-end-input" />
         </UFormField>
-        <UButton label="Save" block class="min-h-10" :disabled="!startInput" data-test="session-times-save" @click="save" />
+        <UButton
+          label="Save"
+          block
+          class="min-h-10"
+          :disabled="!startInput"
+          data-test="session-times-save"
+          @click="save"
+        />
       </div>
     </template>
   </AppSheet>

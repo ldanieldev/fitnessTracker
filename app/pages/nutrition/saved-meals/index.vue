@@ -23,13 +23,25 @@ const filtered = computed(() => {
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UButton icon="i-lucide-plus" label="New" size="sm" to="/nutrition/saved-meals/new" data-test="new-saved-meal" />
+          <UButton
+            icon="i-lucide-plus"
+            label="New"
+            size="sm"
+            to="/nutrition/saved-meals/new"
+            data-test="new-saved-meal"
+          />
         </template>
       </UDashboardNavbar>
     </template>
     <template #body>
       <div class="flex flex-col gap-3 max-w-2xl mx-auto w-full">
-        <UInput v-model="query" icon="i-lucide-search" placeholder="Search saved meals" class="w-full" data-test="saved-meal-search" />
+        <UInput
+          v-model="query"
+          icon="i-lucide-search"
+          placeholder="Search saved meals"
+          class="w-full"
+          data-test="saved-meal-search"
+        />
         <NutritionResultRow
           v-for="row in filtered"
           :key="row.id"
@@ -41,7 +53,9 @@ const filtered = computed(() => {
           chevron
           @open="navigateTo(`/nutrition/saved-meals/${row.id}`)"
         />
-        <p v-if="filtered.length === 0 && (meals ?? []).length > 0" class="text-sm text-dimmed">No matches for "{{ query }}"</p>
+        <p v-if="filtered.length === 0 && (meals ?? []).length > 0" class="text-sm text-dimmed">
+          No matches for "{{ query }}"
+        </p>
         <p v-else-if="filtered.length === 0" class="text-sm text-dimmed">No saved meals yet</p>
       </div>
     </template>

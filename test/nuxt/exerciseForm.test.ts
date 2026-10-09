@@ -13,7 +13,10 @@ interface SelectProbe {
 const props = {
   open: true,
   categories: [{ id: 1, key: 'chest', name: 'Chest', color: 'rose', sortOrder: 0, shared: true, hidden: false }],
-  muscles: [{ key: 'chest', name: 'Chest' }, { key: 'triceps', name: 'Triceps' }],
+  muscles: [
+    { key: 'chest', name: 'Chest' },
+    { key: 'triceps', name: 'Triceps' }
+  ],
   equipment: [{ key: 'barbell', name: 'Barbell' }]
 }
 
@@ -43,7 +46,9 @@ describe('ExerciseForm', () => {
     await find('[data-test="exercise-muscle-chest"]').trigger('click')
     await find('[data-test="exercise-submit"]').trigger('click')
     expect(wrapper.emitted('submit')![0]![0]).toMatchObject({
-      name: 'Board Press', categoryId: 1, primaryMuscles: ['chest']
+      name: 'Board Press',
+      categoryId: 1,
+      primaryMuscles: ['chest']
     })
   })
 

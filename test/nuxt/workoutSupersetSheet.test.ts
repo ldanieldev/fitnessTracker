@@ -9,7 +9,13 @@ describe('WorkoutSupersetSheet', () => {
   it('emits the picked ids and stays disabled until one is picked', async () => {
     const wrapper = await mountSuspended(WorkoutSupersetSheet, {
       attachTo: document.body,
-      props: { open: true, options: [{ id: 2, name: 'Row' }, { id: 3, name: 'Curl' }] }
+      props: {
+        open: true,
+        options: [
+          { id: 2, name: 'Row' },
+          { id: 3, name: 'Curl' }
+        ]
+      }
     })
     await flushPromises()
     expect(find('[data-test="superset-confirm"]').attributes('disabled')).toBeDefined()

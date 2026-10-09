@@ -7,7 +7,8 @@ const DAY_MS = 86_400_000
 
 export const PHASE_COLORS: CategoryColor[] = ['sky', 'amber', 'emerald', 'violet', 'rose', 'teal', 'orange', 'indigo']
 
-export const phaseColorClass = (index: number): string => CATEGORY_DOT_CLASS[PHASE_COLORS[index % PHASE_COLORS.length]!]!
+export const phaseColorClass = (index: number): string =>
+  CATEGORY_DOT_CLASS[PHASE_COLORS[index % PHASE_COLORS.length]!]!
 
 export function weekStartOf(date: string, weekStart: 0 | 1): string {
   const day = new Date(`${date}T00:00:00Z`).getUTCDay()
@@ -33,7 +34,14 @@ export function programPosition<P extends PhaseSpan>(input: PositionInput<P>): P
   let start = 1
   for (const [index, phase] of input.phases.entries()) {
     if (week < start + phase.weeks) {
-      return { state: between ? 'between' : 'current', week, totalWeeks, phase, phaseIndex: index, weekInPhase: week - start + 1 }
+      return {
+        state: between ? 'between' : 'current',
+        week,
+        totalWeeks,
+        phase,
+        phaseIndex: index,
+        weekInPhase: week - start + 1
+      }
     }
     start += phase.weeks
   }

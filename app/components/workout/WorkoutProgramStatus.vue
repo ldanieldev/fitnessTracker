@@ -9,7 +9,12 @@ const banner = computed(() => {
   if (!e?.notice) return null
   if (e.notice === 'complete') return { title: `${e.program.name} complete`, description: 'No routine is active now.' }
   if (!e.phase) return null
-  return { title: `${e.phase.name} started`, description: e.phase.routine ? `${e.phase.routine.name} is now your active routine.` : 'Rest week — no routine this week.' }
+  return {
+    title: `${e.phase.name} started`,
+    description: e.phase.routine
+      ? `${e.phase.routine.name} is now your active routine.`
+      : 'Rest week — no routine this week.'
+  }
 })
 const badge = computed(() => (enrollment.value ? enrollmentBadge(enrollment.value) : null))
 
@@ -33,12 +38,30 @@ async function onDismiss() {
       icon="i-lucide-flag"
       close
       data-test="program-banner"
-      @update:open="(value: boolean) => { if (!value) onDismiss() }"
+      @update:open="
+        (value: boolean) => {
+          if (!value) onDismiss()
+        }
+      "
     />
-    <NuxtLink v-if="enrollment.state !== 'finished'" to="/workouts/programs" class="flex min-h-10 items-center gap-2 text-sm text-muted" data-test="program-status-line">
-      <UIcon :name="enrollment.state === 'paused' ? 'i-lucide-pause' : 'i-lucide-calendar-range'" class="size-4 shrink-0" />
+    <NuxtLink
+      v-if="enrollment.state !== 'finished'"
+      to="/workouts/programs"
+      class="flex min-h-10 items-center gap-2 text-sm text-muted"
+      data-test="program-status-line"
+    >
+      <UIcon
+        :name="enrollment.state === 'paused' ? 'i-lucide-pause' : 'i-lucide-calendar-range'"
+        class="size-4 shrink-0"
+      />
       <span class="truncate">{{ enrollment.program.name }} · {{ enrollmentLine(enrollment) }}</span>
-      <UBadge v-if="badge" :label="badge" size="sm" variant="subtle" :color="badge === 'Deload' ? 'warning' : 'neutral'" />
+      <UBadge
+        v-if="badge"
+        :label="badge"
+        size="sm"
+        variant="subtle"
+        :color="badge === 'Deload' ? 'warning' : 'neutral'"
+      />
     </NuxtLink>
   </div>
 </template>

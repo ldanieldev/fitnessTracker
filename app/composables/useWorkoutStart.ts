@@ -26,7 +26,11 @@ export function useWorkoutStart() {
     } catch (err: unknown) {
       const open = (err as { data?: { data?: { session?: WorkoutSession | null } } }).data?.data?.session ?? null
       if (open) {
-        toast.add({ title: 'A workout is already open', description: 'Finish it before starting another.', color: 'warning' })
+        toast.add({
+          title: 'A workout is already open',
+          description: 'Finish it before starting another.',
+          color: 'warning'
+        })
         await invalidateWorkouts()
         return open
       }

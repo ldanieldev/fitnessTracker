@@ -12,8 +12,12 @@ const props = defineProps<{ containers: Container[] }>()
 
 const toast = useToast()
 
-const active = computed(() => [...props.containers].filter((c) => !c.isArchived).sort((a, b) => a.sortOrder - b.sortOrder))
-const archived = computed(() => [...props.containers].filter((c) => c.isArchived).sort((a, b) => a.sortOrder - b.sortOrder))
+const active = computed(() =>
+  [...props.containers].filter((c) => !c.isArchived).sort((a, b) => a.sortOrder - b.sortOrder)
+)
+const archived = computed(() =>
+  [...props.containers].filter((c) => c.isArchived).sort((a, b) => a.sortOrder - b.sortOrder)
+)
 
 const drafts = reactive<Record<number, string>>({})
 watch(
@@ -34,7 +38,11 @@ async function rename(container: Container) {
     await apiFetch(`/api/nutrition/meal-containers/${container.id}`, { method: 'PUT', body: { name } })
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   } catch (error: unknown) {
-    toast.add({ title: 'Rename failed', description: errorMessage(error, 'Could not rename container'), color: 'error' })
+    toast.add({
+      title: 'Rename failed',
+      description: errorMessage(error, 'Could not rename container'),
+      color: 'error'
+    })
   } finally {
     savingId.value = null
   }
@@ -46,7 +54,7 @@ async function move(container: Container, direction: -1 | 1) {
   const neighbor = list[index + direction]
   if (!neighbor) return
   try {
-    // Sequential, not Promise.all: if the second PUT fails, only the partner has moved rather than both landing on the same sortOrder.
+    // Sequential, not Promise.all: if the second PUT fails, only one row moved instead of both sharing a sortOrder.
     await apiFetch(`/api/nutrition/meal-containers/${neighbor.id}`, {
       method: 'PUT',
       body: { name: neighbor.name, sortOrder: container.sortOrder }
@@ -56,7 +64,11 @@ async function move(container: Container, direction: -1 | 1) {
       body: { name: container.name, sortOrder: neighbor.sortOrder }
     })
   } catch (error: unknown) {
-    toast.add({ title: 'Reorder failed', description: errorMessage(error, 'Could not reorder containers'), color: 'error' })
+    toast.add({
+      title: 'Reorder failed',
+      description: errorMessage(error, 'Could not reorder containers'),
+      color: 'error'
+    })
   } finally {
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   }
@@ -75,7 +87,11 @@ async function confirmArchive() {
   try {
     await apiFetch(`/api/nutrition/meal-containers/${archiveTarget.value.id}`, { method: 'DELETE' })
   } catch (error: unknown) {
-    toast.add({ title: 'Archive failed', description: errorMessage(error, 'Could not archive container'), color: 'error' })
+    toast.add({
+      title: 'Archive failed',
+      description: errorMessage(error, 'Could not archive container'),
+      color: 'error'
+    })
   } finally {
     archiveTarget.value = null
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)

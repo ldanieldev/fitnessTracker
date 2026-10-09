@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { H3Event } from 'h3'
 import { requireSessionUser, requireUserId } from '../../server/utils/session'
 
-const createError = (opts: { statusCode: number, statusMessage: string }) =>
+const createError = (opts: { statusCode: number; statusMessage: string }) =>
   Object.assign(new Error(opts.statusMessage), opts)
 
 function createDbMock(rows: unknown[]) {
@@ -25,7 +25,10 @@ describe('requireSessionUser', () => {
   it('throws 401 without querying the db when there is no session user', async () => {
     const dbMock = createDbMock([])
     vi.stubGlobal('createError', createError)
-    vi.stubGlobal('getUserSession', vi.fn(() => Promise.resolve({ user: undefined })))
+    vi.stubGlobal(
+      'getUserSession',
+      vi.fn(() => Promise.resolve({ user: undefined }))
+    )
     vi.stubGlobal('clearUserSession', vi.fn())
     vi.stubGlobal('db', dbMock)
 
@@ -39,7 +42,10 @@ describe('requireSessionUser', () => {
     const sessionUser = { id: 1, email: 'me@example.com' }
     const dbMock = createDbMock([{ id: 1 }])
     vi.stubGlobal('createError', createError)
-    vi.stubGlobal('getUserSession', vi.fn(() => Promise.resolve({ user: sessionUser })))
+    vi.stubGlobal(
+      'getUserSession',
+      vi.fn(() => Promise.resolve({ user: sessionUser }))
+    )
     vi.stubGlobal('clearUserSession', vi.fn())
     vi.stubGlobal('db', dbMock)
 
@@ -59,7 +65,10 @@ describe('requireSessionUser', () => {
     const dbMock = createDbMock([])
     const clearUserSession = vi.fn(() => Promise.resolve())
     vi.stubGlobal('createError', createError)
-    vi.stubGlobal('getUserSession', vi.fn(() => Promise.resolve({ user: sessionUser })))
+    vi.stubGlobal(
+      'getUserSession',
+      vi.fn(() => Promise.resolve({ user: sessionUser }))
+    )
     vi.stubGlobal('clearUserSession', clearUserSession)
     vi.stubGlobal('db', dbMock)
 
@@ -75,7 +84,10 @@ describe('requireUserId', () => {
     const sessionUser = { id: 42, email: 'me@example.com' }
     const dbMock = createDbMock([{ id: 42 }])
     vi.stubGlobal('createError', createError)
-    vi.stubGlobal('getUserSession', vi.fn(() => Promise.resolve({ user: sessionUser })))
+    vi.stubGlobal(
+      'getUserSession',
+      vi.fn(() => Promise.resolve({ user: sessionUser }))
+    )
     vi.stubGlobal('clearUserSession', vi.fn())
     vi.stubGlobal('db', dbMock)
 

@@ -11,14 +11,14 @@ type SetResponse = { session: WorkoutSession }
 const props = defineProps<{
   session: WorkoutSession
   plateButton?: boolean
-  presetWeights?: Record<number, { weight: number, seq: number }>
+  presetWeights?: Record<number, { weight: number; seq: number }>
 }>()
 
 const emit = defineEmits<{
   'update:session': [session: WorkoutSession]
-  'setLogged': [entryId: number, flow: SetFlow]
-  'openPlates': [entryId: number, weight: number | null]
-  'delete': []
+  setLogged: [entryId: number, flow: SetFlow]
+  openPlates: [entryId: number, weight: number | null]
+  delete: []
 }>()
 
 const fail = useFailToast()
@@ -40,14 +40,20 @@ function patchSession(body: Record<string, unknown>, title: string, fallback: st
   )
 }
 
-const rename = (name: string | null) => patchSession({ name }, 'Couldn\'t rename workout', 'Could not rename this workout')
-const comment = (notes: string | null) => patchSession({ notes }, 'Couldn\'t save comment', 'Could not save this comment')
-const changeTimes = (times: { startedAt: string, endedAt: string | null, performedOn: string }) =>
+const rename = (name: string | null) =>
+  patchSession({ name }, 'Couldn\'t rename workout', 'Could not rename this workout')
+const comment = (notes: string | null) =>
+  patchSession({ notes }, 'Couldn\'t save comment', 'Could not save this comment')
+const changeTimes = (times: { startedAt: string; endedAt: string | null; performedOn: string }) =>
   patchSession(times, 'Couldn\'t change date and time', 'Could not change the date and time')
 
 function addExercise(exerciseId: number) {
   return applySession(
-    () => apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}/entries`, { method: 'POST', body: { exerciseId } }),
+    () =>
+      apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}/entries`, {
+        method: 'POST',
+        body: { exerciseId }
+      }),
     'Couldn\'t add exercise',
     'Could not add this exercise'
   )
@@ -55,24 +61,29 @@ function addExercise(exerciseId: number) {
 
 function moveEntry(entry: WorkoutEntry, direction: -1 | 1) {
   return applySession(
-    () => apiFetch<WorkoutSession>(`/api/workouts/entries/${entry.id}`, {
-      method: 'PATCH',
-      body: { sortOrder: entry.sortOrder + direction }
-    }),
+    () =>
+      apiFetch<WorkoutSession>(`/api/workouts/entries/${entry.id}`, {
+        method: 'PATCH',
+        body: { sortOrder: entry.sortOrder + direction }
+      }),
     'Couldn\'t reorder exercise',
     'Could not reorder this exercise'
   )
 }
 
 const collapsed = reactive<Record<number, boolean>>({})
-const orderItems = computed(() => props.session.entries.map((entry) => ({ id: entry.id, supersetGroup: entry.supersetGroup })))
+const orderItems = computed(() =>
+  props.session.entries.map((entry) => ({ id: entry.id, supersetGroup: entry.supersetGroup }))
+)
 const canMove = (id: number, delta: -1 | 1) => moveWithGroups(orderItems.value, id, delta) !== orderItems.value
 
 const supersetOpen = ref(false)
 const supersetAnchor = ref<WorkoutEntry | null>(null)
-const supersetOptions = computed(() => props.session.entries
-  .filter((entry) => entry.id !== supersetAnchor.value?.id)
-  .map((entry) => ({ id: entry.id, name: entry.exerciseName })))
+const supersetOptions = computed(() =>
+  props.session.entries
+    .filter((entry) => entry.id !== supersetAnchor.value?.id)
+    .map((entry) => ({ id: entry.id, name: entry.exerciseName }))
+)
 
 function openSuperset(entry: WorkoutEntry) {
   supersetAnchor.value = entry
@@ -83,7 +94,11 @@ function groupWith(ids: number[]) {
   const anchor = supersetAnchor.value
   if (!anchor) return
   return applySession(
-    () => apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}/group`, { method: 'POST', body: { entryIds: [anchor.id, ...ids] } }),
+    () =>
+      apiFetch<WorkoutSession>(`/api/workouts/sessions/${props.session.id}/group`, {
+        method: 'POST',
+        body: { entryIds: [anchor.id, ...ids] }
+      }),
     'Couldn\'t make superset',
     'Could not make this superset'
   )
@@ -91,7 +106,8 @@ function groupWith(ids: number[]) {
 
 function ungroup(entryId: number) {
   return applySession(
-    () => apiFetch<WorkoutSession>(`/api/workouts/entries/${entryId}`, { method: 'PATCH', body: { supersetGroup: null } }),
+    () =>
+      apiFetch<WorkoutSession>(`/api/workouts/entries/${entryId}`, { method: 'PATCH', body: { supersetGroup: null } }),
     'Couldn\'t remove from superset',
     'Could not remove this exercise from the superset'
   )
@@ -135,21 +151,29 @@ function forgetSave(key: string) {
 }
 
 let lastSessionId: number | null = null
-watch(() => props.session, (value) => {
-  if (value.id !== lastSessionId) {
-    lastSessionId = value.id
-    saveErrors.clear()
-    retries.clear()
-    return
-  }
-  for (const key of [...saveErrors.keys()]) {
-    const [entryPart, setPart] = key.split(':')
-    const entry = value.entries.find((candidate) => String(candidate.id) === entryPart)
-    if (!entry || (setPart !== 'new' && !entry.sets.some((set) => String(set.id) === setPart))) forgetSave(key)
-  }
-}, { immediate: true })
+watch(
+  () => props.session,
+  (value) => {
+    if (value.id !== lastSessionId) {
+      lastSessionId = value.id
+      saveErrors.clear()
+      retries.clear()
+      return
+    }
+    for (const key of [...saveErrors.keys()]) {
+      const [entryPart, setPart] = key.split(':')
+      const entry = value.entries.find((candidate) => String(candidate.id) === entryPart)
+      if (!entry || (setPart !== 'new' && !entry.sets.some((set) => String(set.id) === setPart))) forgetSave(key)
+    }
+  },
+  { immediate: true }
+)
 
-async function saveSet(entryId: number, setId: number | null, action: () => Promise<SetResponse>): Promise<WorkoutSession | null> {
+async function saveSet(
+  entryId: number,
+  setId: number | null,
+  action: () => Promise<SetResponse>
+): Promise<WorkoutSession | null> {
   const key = saveKey(entryId, setId)
   saveErrors.delete(key)
   try {
@@ -171,25 +195,33 @@ function retrySave(entryId: number, setId: number | null) {
 
 async function addSet(entryId: number, values: SetValues) {
   const session = await saveSet(entryId, null, () =>
-    apiFetch<SetResponse>(`/api/workouts/entries/${entryId}/sets`, { method: 'POST', body: values }))
+    apiFetch<SetResponse>(`/api/workouts/entries/${entryId}/sets`, { method: 'POST', body: values })
+  )
   if (!session) return
-  const flow = nextAfterSet(session.entries.map((entry) => ({
-    id: entry.id,
-    supersetGroup: entry.supersetGroup,
-    setCount: entry.sets.length,
-    targetSets: entry.target?.sets ?? null
-  })), entryId)
+  const flow = nextAfterSet(
+    session.entries.map((entry) => ({
+      id: entry.id,
+      supersetGroup: entry.supersetGroup,
+      setCount: entry.sets.length,
+      targetSets: entry.target?.sets ?? null
+    })),
+    entryId
+  )
   if (flow.open !== null && flow.open !== entryId) {
     collapsed[entryId] = true
     collapsed[flow.open] = false
     await nextTick()
-    document.querySelector(`[data-test="entry-card-${flow.open}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    document
+      .querySelector(`[data-test="entry-card-${flow.open}"]`)
+      ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }
   emit('setLogged', entryId, flow)
 }
 
 function editSet(entryId: number, setId: number, values: SetValues) {
-  return saveSet(entryId, setId, () => apiFetch<SetResponse>(`/api/workouts/sets/${setId}`, { method: 'PATCH', body: values }))
+  return saveSet(entryId, setId, () =>
+    apiFetch<SetResponse>(`/api/workouts/sets/${setId}`, { method: 'PATCH', body: values })
+  )
 }
 </script>
 

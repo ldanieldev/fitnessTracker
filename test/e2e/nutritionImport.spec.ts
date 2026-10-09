@@ -3,7 +3,7 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import type { ImportResult } from '../../shared/types/nutrition'
 import { apiFetch, makeUser, registerViaApi, uploadFiles } from './helpers'
 
-// The upload-route tests below need the compose `inngest` service running — queueImportJob fails and the route 503s otherwise.
+// The upload-route tests need the compose `inngest` service; otherwise queueImportJob fails and the route 503s.
 
 const fixture = (name: string) => readFileSync(new URL(`../fixtures/mymacros/${name}`, import.meta.url), 'utf8')
 
@@ -14,7 +14,7 @@ interface DayEntry {
 }
 
 interface DayView {
-  containers: Array<{ name: string, entries: DayEntry[] }>
+  containers: Array<{ name: string; entries: DayEntry[] }>
   entries: DayEntry[]
   totals: Record<string, number>
 }
@@ -33,7 +33,9 @@ test('imports two export files, is idempotent, and lands the entries in the diar
   expect(first.json.containersCreated).toBe(0) // registration already seeded Meal 1-5 + Snack
 
   const again = await apiFetch<{ jobId: number }>(page, 'POST', '/api/nutrition/_test/import-job', { files })
-  const second = await apiFetch<ImportResult>(page, 'POST', '/api/nutrition/_test/run-import', { jobId: again.json.jobId })
+  const second = await apiFetch<ImportResult>(page, 'POST', '/api/nutrition/_test/run-import', {
+    jobId: again.json.jobId
+  })
   expect(second.json).toMatchObject({ entries: 0, entriesSkipped: 29, foodsCreated: 0 })
 
   const day = await apiFetch<DayView>(page, 'GET', '/api/nutrition/diary/2026-09-05')
@@ -55,7 +57,10 @@ interface ImportJobView {
   createdAt: string
 }
 
-test('upload route queues a job, accepts a generic content type, and the status route reports its progress', async ({ page, goto }) => {
+test('upload route queues a job, accepts a generic content type, and the status route reports its progress', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -82,14 +87,19 @@ test('upload route queues a job, accepts a generic content type, and the status 
   expect(done.json.result?.entries).toBe(29)
 })
 
-test('upload route rejects an empty submission and a file whose first line is not a My Macros+ header', async ({ page, goto }) => {
+test('upload route rejects an empty submission and a file whose first line is not a My Macros+ header', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
   const empty = await uploadFiles(page, '/api/nutrition/import/mymacros', [])
   expect(empty.status).toBe(400)
 
-  const bad = await uploadFiles(page, '/api/nutrition/import/mymacros', [{ name: 'not-an-export.txt', text: 'not a header\nmore text\n' }])
+  const bad = await uploadFiles(page, '/api/nutrition/import/mymacros', [
+    { name: 'not-an-export.txt', text: 'not a header\nmore text\n' }
+  ])
   expect(bad.status).toBe(400)
   expect((bad.json as { data: { fileName: string } }).data.fileName).toBe('not-an-export.txt')
 })
@@ -98,7 +108,9 @@ test('status route 404s on another user\'s job and on a non-numeric job id', asy
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const upload = await uploadFiles(page, '/api/nutrition/import/mymacros', [{ name: '2026-09-04.txt', text: fixture('2026-09-04.txt') }])
+  const upload = await uploadFiles(page, '/api/nutrition/import/mymacros', [
+    { name: '2026-09-04.txt', text: fixture('2026-09-04.txt') }
+  ])
   const jobId = (upload.json as { jobId: number }).jobId
 
   await registerViaApi(page, makeUser())

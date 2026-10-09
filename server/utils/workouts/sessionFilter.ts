@@ -1,5 +1,13 @@
 import { and, eq, gte, lte, sql, type SQL } from 'drizzle-orm'
-import { exercisePrefs, exercises, programPhases, programs, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
+import {
+  exercisePrefs,
+  exercises,
+  programPhases,
+  programs,
+  workoutEntries,
+  workoutSessions,
+  workoutSets
+} from '~~/server/db/schema'
 import type { SessionFilterQuery } from '~~/server/utils/workouts/input'
 
 export const effectiveCategoryId = sql`coalesce(${exercisePrefs.categoryId}, ${exercises.categoryId})`
@@ -11,7 +19,10 @@ export function sessionFilterWhere(userId: number, filter: SessionFilterQuery): 
 
   const categoryIds = [...new Set(filter.categories ?? [])]
   if (categoryIds.length) {
-    const list = sql.join(categoryIds.map((id) => sql`${id}`), sql`, `)
+    const list = sql.join(
+      categoryIds.map((id) => sql`${id}`),
+      sql`, `
+    )
     const matched = sql`(
       select count(distinct ${effectiveCategoryId})
       from ${workoutEntries} we
@@ -27,7 +38,9 @@ export function sessionFilterWhere(userId: number, filter: SessionFilterQuery): 
     if (filter.minReps !== undefined) bounds.push(sql`ws.reps >= ${filter.minReps}`)
     // Assisted entries store the assist as a positive weight where less is better, so the bound flips.
     if (filter.minWeight !== undefined) {
-      bounds.push(sql`(case when we.load_style = 'assisted' then ws.weight <= ${filter.minWeight} else ws.weight >= ${filter.minWeight} end)`)
+      bounds.push(
+        sql`(case when we.load_style = 'assisted' then ws.weight <= ${filter.minWeight} else ws.weight >= ${filter.minWeight} end)`
+      )
     }
     const setMatch = bounds.length
       ? sql`and exists (select 1 from ${workoutSets} ws where ws.entry_id = we.id and ${sql.join(bounds, sql` and `)})`

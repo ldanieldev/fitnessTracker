@@ -5,7 +5,7 @@ export interface FoodDetail extends FoodForResolve {
   brand: string | null
   barcode: string | null
   createdByUserId: number | null
-  source: { key: string, name: string, attributionRequired: boolean, licenseNotice: string | null } | null
+  source: { key: string; name: string; attributionRequired: boolean; licenseNotice: string | null } | null
   defaultServingId: number | null
   energyDensity: number | null
 }
@@ -17,7 +17,14 @@ export interface FoodHit {
   isFavorite: boolean
   logCount: number
   energyDensity: number | null
-  perDefault: { label: string, quantity: number, energy: number | null, protein: number | null, carbohydrate: number | null, fat: number | null } | null
+  perDefault: {
+    label: string
+    quantity: number
+    energy: number | null
+    protein: number | null
+    carbohydrate: number | null
+    fat: number | null
+  } | null
 }
 
 export interface PickedFood {

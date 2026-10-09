@@ -78,7 +78,9 @@ describe('usdaSearch', () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ usda: { apiKey: '' } }))
     const { usdaSearch } = await import('../../server/utils/nutrition/external/usda')
     await expect(usdaSearch('cheddar cheese', 3)).rejects.toMatchObject({
-      name: 'ExternalSourceError', source: 'usda', kind: 'unconfigured'
+      name: 'ExternalSourceError',
+      source: 'usda',
+      kind: 'unconfigured'
     })
   })
 
@@ -99,14 +101,20 @@ describe('usdaSearch', () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ usda: { apiKey: 'k' } }))
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('too many requests', { status: 429 })))
     const { usdaSearch } = await import('../../server/utils/nutrition/external/usda')
-    await expect(usdaSearch('cheddar cheese', 3)).rejects.toMatchObject({ name: 'ExternalSourceError', kind: 'rate_limited' })
+    await expect(usdaSearch('cheddar cheese', 3)).rejects.toMatchObject({
+      name: 'ExternalSourceError',
+      kind: 'rate_limited'
+    })
   })
 
   it('maps an aborted request to an unavailable ExternalSourceError', async () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ usda: { apiKey: 'k' } }))
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' })))
     const { usdaSearch } = await import('../../server/utils/nutrition/external/usda')
-    await expect(usdaSearch('cheddar cheese', 3)).rejects.toMatchObject({ name: 'ExternalSourceError', kind: 'unavailable' })
+    await expect(usdaSearch('cheddar cheese', 3)).rejects.toMatchObject({
+      name: 'ExternalSourceError',
+      kind: 'unavailable'
+    })
   })
 })
 

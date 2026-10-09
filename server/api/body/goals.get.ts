@@ -7,7 +7,10 @@ import { requireUserId } from '~~/server/utils/session'
 export default defineEventHandler(async (event): Promise<GoalOverview[]> => {
   const userId = await requireUserId(event)
   const types = await listTypesForUser(userId, { includeHidden: true })
-  const goals = await loadGoals(userId, types.map((t) => t.id))
+  const goals = await loadGoals(
+    userId,
+    types.map((t) => t.id)
+  )
   const out: GoalOverview[] = []
   for (const type of types) {
     const goal = goals.get(type.id)

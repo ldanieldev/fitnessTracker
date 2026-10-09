@@ -10,16 +10,19 @@ const DrawerCtor = UDrawer as unknown as new () => ComponentPublicInstance
 const ModalCtor = UModal as unknown as new () => ComponentPublicInstance
 
 function stubMatchMedia(matches: boolean) {
-  vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
-    matches,
-    media: query,
-    onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    dispatchEvent: vi.fn()
-  }) as unknown as MediaQueryList)
+  vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query: string) =>
+      ({
+        matches,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
+      }) as unknown as MediaQueryList
+  )
 }
 
 afterEach(() => {

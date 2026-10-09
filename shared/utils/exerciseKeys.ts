@@ -21,7 +21,14 @@ interface NormalizedExerciseFilters {
 }
 
 const FILTER_ORDER: (keyof NormalizedExerciseFilters)[] = [
-  'q', 'categoryId', 'muscles', 'equipment', 'difficulty', 'favorites', 'includeHidden', 'limit'
+  'q',
+  'categoryId',
+  'muscles',
+  'equipment',
+  'difficulty',
+  'favorites',
+  'includeHidden',
+  'limit'
 ]
 
 function normalizeExerciseFilters(filters: ExerciseListFilters): NormalizedExerciseFilters {

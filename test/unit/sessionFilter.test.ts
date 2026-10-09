@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { activeFilterCount, filterFromRoute, filterToRoute, sessionFilterParams } from '../../shared/utils/sessionFilter'
+import {
+  activeFilterCount,
+  filterFromRoute,
+  filterToRoute,
+  sessionFilterParams
+} from '../../shared/utils/sessionFilter'
 
 describe('sessionFilterParams', () => {
   it('is empty for no filter', () => {
@@ -13,8 +18,9 @@ describe('sessionFilterParams', () => {
 
   it('drops thresholds without an exercise and keeps dates', () => {
     expect(sessionFilterParams({ minWeight: 100, minReps: 5 })).toBe('')
-    expect(sessionFilterParams({ from: '2026-01-01', to: '2026-02-01', exerciseId: 12, minWeight: 225, minReps: 5 }))
-      .toBe('from=2026-01-01&to=2026-02-01&exerciseId=12&minWeight=225&minReps=5')
+    expect(
+      sessionFilterParams({ from: '2026-01-01', to: '2026-02-01', exerciseId: 12, minWeight: 225, minReps: 5 })
+    ).toBe('from=2026-01-01&to=2026-02-01&exerciseId=12&minWeight=225&minReps=5')
   })
 })
 

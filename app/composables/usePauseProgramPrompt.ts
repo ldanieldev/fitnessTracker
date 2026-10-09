@@ -14,7 +14,7 @@ export function usePauseProgramPrompt() {
     try {
       await done(await attempt({ today: today.value ?? todayDate() }))
     } catch (err: unknown) {
-      const data = (err as { data?: { data?: { code?: string, program?: { name: string } } } }).data?.data
+      const data = (err as { data?: { data?: { code?: string; program?: { name: string } } } }).data?.data
       if (data?.code !== 'program_controls_routine') throw err
       programName.value = data.program?.name ?? 'Your program'
       retry = async () => {

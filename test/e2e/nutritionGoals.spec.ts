@@ -108,7 +108,10 @@ test('ratio mode stores percentages and derives grams', async ({ page, goto }) =
   expect(bad.status).toBe(400)
 })
 
-test('new and unapplied days follow the current default; an explicitly applied profile survives a later default change', async ({ page, goto }) => {
+test('new and unapplied days follow the current default; an explicitly applied profile survives a later default change', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -116,14 +119,27 @@ test('new and unapplied days follow the current default; an explicitly applied p
   const containers = await apiFetch<{ id: number }[]>(page, 'GET', '/api/nutrition/meal-containers')
   const containerId = containers.json[0]!.id
   await apiFetch(page, 'POST', `/api/nutrition/diary/${date}/entries`, [
-    { entryType: 'quick_add', containerId, description: 'Snack', quantity: 1, unitLabel: 'serving', nutrients: { energy: 100 } }
+    {
+      entryType: 'quick_add',
+      containerId,
+      description: 'Snack',
+      quantity: 1,
+      unitLabel: 'serving',
+      nutrients: { energy: 100 }
+    }
   ])
 
   const profileA = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/goal-profiles', {
-    name: 'Default A', inputMode: 'grams', isDefault: false, targets: [{ nutrient: 'energy', amount: 2000, direction: 'max' }]
+    name: 'Default A',
+    inputMode: 'grams',
+    isDefault: false,
+    targets: [{ nutrient: 'energy', amount: 2000, direction: 'max' }]
   })
   const profileB = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/goal-profiles', {
-    name: 'Explicit B', inputMode: 'grams', isDefault: false, targets: [{ nutrient: 'energy', amount: 1500, direction: 'max' }]
+    name: 'Explicit B',
+    inputMode: 'grams',
+    isDefault: false,
+    targets: [{ nutrient: 'energy', amount: 1500, direction: 'max' }]
   })
 
   await goto('/settings/nutrition', { waitUntil: 'hydration' })

@@ -37,7 +37,11 @@ export default defineEventHandler(async (event) => {
   for (const file of decoded) {
     const firstLine = file.text.split('\n', 1)[0] ?? ''
     if (!isMyMacrosHeader(firstLine)) {
-      throw createError({ statusCode: 400, statusMessage: `${file.name} is not a My Macros+ export`, data: { fileName: file.name } })
+      throw createError({
+        statusCode: 400,
+        statusMessage: `${file.name} is not a My Macros+ export`,
+        data: { fileName: file.name }
+      })
     }
   }
 

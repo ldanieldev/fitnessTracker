@@ -6,15 +6,45 @@ import WorkoutSessionEditor from '../../app/components/workout/WorkoutSessionEdi
 import WorkoutExerciseCard from '../../app/components/workout/WorkoutExerciseCard.vue'
 
 const entry = (id: number, supersetGroup: number | null, sets: WorkoutEntry['sets'] = []): WorkoutEntry => ({
-  id, exerciseId: id, exerciseName: `Exercise ${id}`, sortOrder: id, trackingType: 'weight_reps', loadStyle: 'plain',
-  barWeight: null, weightIncrement: null, restSeconds: null, plateSizes: null, notes: null,
-  target: { sets: 3, low: null, high: null, weight: null }, supersetGroup, optional: false, restOverrideSeconds: null,
-  sets, lastSets: []
+  id,
+  exerciseId: id,
+  exerciseName: `Exercise ${id}`,
+  sortOrder: id,
+  trackingType: 'weight_reps',
+  loadStyle: 'plain',
+  barWeight: null,
+  weightIncrement: null,
+  restSeconds: null,
+  plateSizes: null,
+  notes: null,
+  target: { sets: 3, low: null, high: null, weight: null },
+  supersetGroup,
+  optional: false,
+  restOverrideSeconds: null,
+  sets,
+  lastSets: []
 })
-const logged = { id: 50, sortOrder: 0, weight: 100, reps: 8, distanceMeters: null, durationSeconds: null, done: false, comment: null, records: [] }
+const logged = {
+  id: 50,
+  sortOrder: 0,
+  weight: 100,
+  reps: 8,
+  distanceMeters: null,
+  durationSeconds: null,
+  done: false,
+  comment: null,
+  records: []
+}
 const session = (entries: WorkoutEntry[]): WorkoutSession => ({
-  id: 7, name: null, performedOn: '2026-10-06', startedAt: '2026-10-06T10:00:00.000Z', endedAt: null, notes: null,
-  routineDayId: null, deload: false, entries
+  id: 7,
+  name: null,
+  performedOn: '2026-10-06',
+  startedAt: '2026-10-06T10:00:00.000Z',
+  endedAt: null,
+  notes: null,
+  routineDayId: null,
+  deload: false,
+  entries
 })
 
 afterEach(() => {

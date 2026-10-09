@@ -28,10 +28,7 @@ export function sumIngredients(resolved: ResolveResult[]): Record<number, number
   return total
 }
 
-export function perServingNutrition(
-  totals: Record<number, number>,
-  servings: number
-): Record<number, number> {
+export function perServingNutrition(totals: Record<number, number>, servings: number): Record<number, number> {
   if (!(servings > 0)) {
     throw new Error('Recipe servings must be positive')
   }

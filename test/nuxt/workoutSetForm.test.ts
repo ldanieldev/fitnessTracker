@@ -5,13 +5,35 @@ import { progressionFor } from '../../shared/utils/workoutProgression'
 import WorkoutSetForm from '../../app/components/workout/WorkoutSetForm.vue'
 
 const set = (id: number, weight: number | null, reps: number | null) => ({
-  id, sortOrder: id, weight, reps, distanceMeters: null, durationSeconds: null, done: false, comment: null, records: []
+  id,
+  sortOrder: id,
+  weight,
+  reps,
+  distanceMeters: null,
+  durationSeconds: null,
+  done: false,
+  comment: null,
+  records: []
 })
 
 const barbell = {
-  id: 9, exerciseId: 7, exerciseName: 'Barbell Squat', sortOrder: 0, trackingType: 'weight_reps' as const,
-  loadStyle: 'barbell' as const, barWeight: 45, weightIncrement: null, restSeconds: null,
-  plateSizes: [55, 45, 35, 25, 10, 5, 2.5], notes: null, target: null, supersetGroup: null, optional: false, restOverrideSeconds: null, sets: [set(1, 175, 5)], lastSets: [{ weight: 165, reps: 5 }]
+  id: 9,
+  exerciseId: 7,
+  exerciseName: 'Barbell Squat',
+  sortOrder: 0,
+  trackingType: 'weight_reps' as const,
+  loadStyle: 'barbell' as const,
+  barWeight: 45,
+  weightIncrement: null,
+  restSeconds: null,
+  plateSizes: [55, 45, 35, 25, 10, 5, 2.5],
+  notes: null,
+  target: null,
+  supersetGroup: null,
+  optional: false,
+  restOverrideSeconds: null,
+  sets: [set(1, 175, 5)],
+  lastSets: [{ weight: 165, reps: 5 }]
 }
 
 const input = (wrapper: Awaited<ReturnType<typeof mountSuspended>>, test: string) =>
@@ -65,11 +87,18 @@ describe('WorkoutSetForm', () => {
     await wrapper.find('[data-test="set-weight-new"]').setValue('185')
     await wrapper.find('[data-test="set-reps-new"]').setValue('8')
     await wrapper.find('[data-test="set-save-new"]').trigger('click')
-    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: 185, reps: 8, distanceMeters: null, durationSeconds: null })
+    expect(wrapper.emitted('save')![0]![0]).toEqual({
+      weight: 185,
+      reps: 8,
+      distanceMeters: null,
+      durationSeconds: null
+    })
   })
 
   it('takes a preset weight and re-applies the same number on a new seq', async () => {
-    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: barbell, presetWeight: { weight: 200, seq: 1 } } })
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: { entry: barbell, presetWeight: { weight: 200, seq: 1 } }
+    })
     expect(input(wrapper, 'set-weight-new').value).toBe('200')
     await wrapper.find('[data-test="set-weight-new"]').setValue('210')
     await wrapper.setProps({ presetWeight: { weight: 200, seq: 2 } })
@@ -77,7 +106,15 @@ describe('WorkoutSetForm', () => {
   })
 
   it('renders the cardio measures for a distance_time exercise', async () => {
-    const cardio = { ...barbell, trackingType: 'distance_time' as const, loadStyle: null, barWeight: null, plateSizes: null, sets: [], lastSets: [] }
+    const cardio = {
+      ...barbell,
+      trackingType: 'distance_time' as const,
+      loadStyle: null,
+      barWeight: null,
+      plateSizes: null,
+      sets: [],
+      lastSets: []
+    }
     const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: cardio } })
     expect(wrapper.find('[data-test="set-distance-new"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="set-duration-new"]').exists()).toBe(true)
@@ -85,14 +122,30 @@ describe('WorkoutSetForm', () => {
   })
 
   it('ignores a preset weight for a tracking type without a weight measure', async () => {
-    const cardio = { ...barbell, trackingType: 'distance_time' as const, loadStyle: null, barWeight: null, plateSizes: null, sets: [], lastSets: [] }
-    const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: cardio, presetWeight: { weight: 200, seq: 1 } } })
+    const cardio = {
+      ...barbell,
+      trackingType: 'distance_time' as const,
+      loadStyle: null,
+      barWeight: null,
+      plateSizes: null,
+      sets: [],
+      lastSets: []
+    }
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: { entry: cardio, presetWeight: { weight: 200, seq: 1 } }
+    })
     await wrapper.find('[data-test="set-save-new"]').trigger('click')
     expect(wrapper.emitted('save')![0]![0]).toMatchObject({ weight: null })
   })
 
   it('shows the assistance with a minus sign for an assisted exercise', async () => {
-    const assisted = { ...barbell, loadStyle: 'assisted' as const, barWeight: null, plateSizes: null, sets: [set(1, 40, 8)] }
+    const assisted = {
+      ...barbell,
+      loadStyle: 'assisted' as const,
+      barWeight: null,
+      plateSizes: null,
+      sets: [set(1, 40, 8)]
+    }
     const wrapper = await mountSuspended(WorkoutSetForm, { props: at(assisted) })
     expect(wrapper.find('[data-test="set-assist-new"]').text()).toBe('−40')
   })
@@ -109,8 +162,10 @@ describe('WorkoutSetForm', () => {
 
   const at = (entry: WorkoutEntry, deload = false) => ({ entry, progression: progressionFor(entry, deload) })
 
-  const text = (wrapper: Awaited<ReturnType<typeof mountSuspended>>, test: string) => wrapper.find(`[data-test="${test}"]`).text()
-  const callout = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => wrapper.find('[data-test="set-progression-callout"]')
+  const text = (wrapper: Awaited<ReturnType<typeof mountSuspended>>, test: string) =>
+    wrapper.find(`[data-test="${test}"]`).text()
+  const callout = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) =>
+    wrapper.find('[data-test="set-progression-callout"]')
 
   it('shows the add callout and keeps the weight just used until the user chooses', async () => {
     const wrapper = await mountSuspended(WorkoutSetForm, { props: at({ ...ranged, sets: [set(1, 185, 6)] }) })
@@ -155,7 +210,9 @@ describe('WorkoutSetForm', () => {
   })
 
   it('shows the carried-over suggestion with the last weight and the target weight is not used', async () => {
-    const wrapper = await mountSuspended(WorkoutSetForm, { props: at({ ...ranged, sets: [], lastSets: [{ weight: 185, reps: 6 }] }) })
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: at({ ...ranged, sets: [], lastSets: [{ weight: 185, reps: 6 }] })
+    })
     expect(input(wrapper, 'set-weight-new').value).toBe('185')
     expect(text(wrapper, 'set-progression-heading')).toBe('Add weight?')
     await wrapper.setProps({ choice: 'apply' })
@@ -163,13 +220,17 @@ describe('WorkoutSetForm', () => {
   })
 
   it('shows no callout inside the range and keeps the target weight on set 1', async () => {
-    const wrapper = await mountSuspended(WorkoutSetForm, { props: at({ ...ranged, sets: [], lastSets: [{ weight: 185, reps: 5 }] }) })
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: at({ ...ranged, sets: [], lastSets: [{ weight: 185, reps: 5 }] })
+    })
     expect(input(wrapper, 'set-weight-new').value).toBe('135')
     expect(callout(wrapper).exists()).toBe(false)
   })
 
   it('offers the drop after a failed bump', async () => {
-    const wrapper = await mountSuspended(WorkoutSetForm, { props: at({ ...ranged, sets: [set(1, 185, 6), set(2, 195, 3)] }) })
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: at({ ...ranged, sets: [set(1, 185, 6), set(2, 195, 3)] })
+    })
     expect(input(wrapper, 'set-weight-new').value).toBe('195')
     expect(text(wrapper, 'set-progression-heading')).toBe('Drop back?')
     expect(text(wrapper, 'set-progression-body')).toBe('3 reps at 195 lb is below 4–6.')
@@ -185,7 +246,13 @@ describe('WorkoutSetForm', () => {
   })
 
   it('uses assist wording for an assisted exercise', async () => {
-    const assisted = { ...ranged, loadStyle: 'assisted' as const, barWeight: null, plateSizes: null, sets: [set(1, 40, 6)] }
+    const assisted = {
+      ...ranged,
+      loadStyle: 'assisted' as const,
+      barWeight: null,
+      plateSizes: null,
+      sets: [set(1, 40, 6)]
+    }
     const wrapper = await mountSuspended(WorkoutSetForm, { props: at(assisted) })
     expect(input(wrapper, 'set-weight-new').value).toBe('40')
     expect(text(wrapper, 'set-progression-heading')).toBe('Less assist?')
@@ -232,7 +299,9 @@ describe('WorkoutSetForm', () => {
   })
 
   it('keeps typed values when a set is deleted', async () => {
-    const wrapper = await mountSuspended(WorkoutSetForm, { props: at({ ...barbell, sets: [set(1, 175, 5), set(2, 205, 6)] }) })
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: at({ ...barbell, sets: [set(1, 175, 5), set(2, 205, 6)] })
+    })
     await wrapper.find('[data-test="set-weight-new"]').setValue('215')
     await wrapper.setProps(at({ ...barbell, sets: [set(1, 175, 5)] }))
     expect(wrapper.find('[data-test="set-form-heading"]').text()).toBe('Set 2')
@@ -240,19 +309,35 @@ describe('WorkoutSetForm', () => {
   })
 
   it('re-seeds on a delete when nothing was typed', async () => {
-    const wrapper = await mountSuspended(WorkoutSetForm, { props: at({ ...barbell, sets: [set(1, 175, 5), set(2, 205, 6)] }) })
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: at({ ...barbell, sets: [set(1, 175, 5), set(2, 205, 6)] })
+    })
     await wrapper.setProps(at({ ...barbell, sets: [set(1, 175, 5)] }))
     expect(input(wrapper, 'set-weight-new').value).toBe('175')
   })
 
   it('hides the assistance caption at zero assist', async () => {
-    const assisted = { ...barbell, loadStyle: 'assisted' as const, barWeight: null, plateSizes: null, sets: [set(1, 40, 8)] }
+    const assisted = {
+      ...barbell,
+      loadStyle: 'assisted' as const,
+      barWeight: null,
+      plateSizes: null,
+      sets: [set(1, 40, 8)]
+    }
     const wrapper = await mountSuspended(WorkoutSetForm, { props: at(assisted) })
     await wrapper.find('[data-test="set-weight-new"]').setValue('0')
     expect(wrapper.find('[data-test="set-assist-new"]').exists()).toBe(false)
   })
 
-  const run = { ...barbell, trackingType: 'distance_time' as const, loadStyle: null, barWeight: null, plateSizes: null, sets: [], lastSets: [] }
+  const run = {
+    ...barbell,
+    trackingType: 'distance_time' as const,
+    loadStyle: null,
+    barWeight: null,
+    plateSizes: null,
+    sets: [],
+    lastSets: []
+  }
 
   it('takes distance in miles and duration as m:ss and logs metres and seconds', async () => {
     const wrapper = await mountSuspended(WorkoutSetForm, { props: { entry: run } })
@@ -261,7 +346,12 @@ describe('WorkoutSetForm', () => {
     await wrapper.find('[data-test="set-distance-new"]').setValue('3.1')
     await wrapper.find('[data-test="set-duration-new"]').setValue('2530')
     await wrapper.find('[data-test="set-save-new"]').trigger('click')
-    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: null, reps: null, distanceMeters: 4988.97, durationSeconds: 1530 })
+    expect(wrapper.emitted('save')![0]![0]).toEqual({
+      weight: null,
+      reps: null,
+      distanceMeters: 4988.97,
+      durationSeconds: 1530
+    })
   })
 
   it('prefills cardio from last time in miles and m:ss', async () => {
@@ -278,7 +368,12 @@ describe('WorkoutSetForm', () => {
     })
     await wrapper.find('[data-test="set-duration-new"]').setValue('45')
     await wrapper.find('[data-test="set-save-new"]').trigger('click')
-    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: null, reps: null, distanceMeters: 100, durationSeconds: 45 })
+    expect(wrapper.emitted('save')![0]![0]).toEqual({
+      weight: null,
+      reps: null,
+      distanceMeters: 100,
+      durationSeconds: 45
+    })
   })
 
   it('hints a time target as a clock range', async () => {

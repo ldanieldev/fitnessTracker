@@ -8,7 +8,8 @@ export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const id = Number(getRouterParam(event, 'id'))
   const existing = await loadTypeForUser(userId, id)
-  if (existing.userId === null) throw createError({ statusCode: 403, statusMessage: 'Built-in measurements cannot be deleted' })
+  if (existing.userId === null)
+    throw createError({ statusCode: 403, statusMessage: 'Built-in measurements cannot be deleted' })
   await db.update(measurementTypes).set({ deletedAt: new Date() }).where(eq(measurementTypes.id, id))
   return { ok: true }
 })

@@ -34,7 +34,9 @@ describe('MeiliIndexProvider', () => {
     const hits = await new ExerciseMeiliProvider('http://localhost:7700', '').query(3, 'row', 5)
     expect(index).toHaveBeenLastCalledWith('exercises')
     expect(search).toHaveBeenLastCalledWith('row', {
-      limit: 5, filter: 'is_catalog = true OR owner_id = 3', showRankingScore: true
+      limit: 5,
+      filter: 'is_catalog = true OR owner_id = 3',
+      showRankingScore: true
     })
     expect(hits).toEqual([{ id: 9, relevance: 0.5 }])
     await new MeiliSearchProvider('http://localhost:7700', '').query(4, 'oats', 5)

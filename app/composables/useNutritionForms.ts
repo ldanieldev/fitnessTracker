@@ -6,6 +6,6 @@ export function numOrUndefined(value: string): number | undefined {
   return Number.isNaN(n) ? undefined : n
 }
 
-export function useContainerItems(containers: MaybeRefOrGetter<Array<{ id: number, name: string }>>) {
+export function useContainerItems(containers: MaybeRefOrGetter<Array<{ id: number; name: string }>>) {
   return computed(() => toValue(containers).map((c) => ({ label: c.name, value: c.id })))
 }

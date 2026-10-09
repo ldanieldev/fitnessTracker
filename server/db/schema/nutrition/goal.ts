@@ -49,5 +49,9 @@ export const searchOutbox = appSchema.table(
     op: varchar('op', { enum: ['upsert', 'delete'] }).notNull(),
     processedAt: timestamp('processed_at').default(sql`null`)
   },
-  (table) => [index('search_outbox_pending').on(table.id).where(sql`processed_at is null`)]
+  (table) => [
+    index('search_outbox_pending')
+      .on(table.id)
+      .where(sql`processed_at is null`)
+  ]
 )

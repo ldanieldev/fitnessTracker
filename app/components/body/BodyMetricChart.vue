@@ -2,17 +2,20 @@
 import type { SeriesGranularity, SeriesPoint } from '~~/shared/types/series'
 import { formatDelta, formatValue } from '~~/shared/utils/bodyMetrics'
 
-const props = withDefaults(defineProps<{
-  points: SeriesPoint[]
-  trend: SeriesPoint[]
-  goal: number | null
-  from: string
-  to: string
-  precision: number
-  unit: string
-  granularity: SeriesGranularity
-  height?: number
-}>(), { height: 200 })
+const props = withDefaults(
+  defineProps<{
+    points: SeriesPoint[]
+    trend: SeriesPoint[]
+    goal: number | null
+    from: string
+    to: string
+    precision: number
+    unit: string
+    granularity: SeriesGranularity
+    height?: number
+  }>(),
+  { height: 200 }
+)
 
 const summary = computed(() => {
   const first = props.points[0]

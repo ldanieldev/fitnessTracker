@@ -26,32 +26,41 @@ function titleCase(key: string): string {
 }
 
 function categoriesSql(): string {
-  const rows = CATEGORY_SEEDS
-    .map((c) => `  (null, ${lit(c.key)}, ${lit(c.name)}, ${lit(c.color)}, ${c.sortOrder})`)
-    .join(',\n')
+  const rows = CATEGORY_SEEDS.map(
+    (c) => `  (null, ${lit(c.key)}, ${lit(c.name)}, ${lit(c.color)}, ${c.sortOrder})`
+  ).join(',\n')
   const set = 'name = excluded.name, color = excluded.color, sort_order = excluded.sort_order, updated_at = now()'
-  return `insert into app.exercise_categories (user_id, key, name, color, sort_order) values\n${rows}\n`
-    + `on conflict (key) where user_id is null do update set ${set};`
+  return (
+    `insert into app.exercise_categories (user_id, key, name, color, sort_order) values\n${rows}\n` +
+    `on conflict (key) where user_id is null do update set ${set};`
+  )
 }
 
 function musclesSql(): string {
   const rows = Object.keys(MUSCLE_CATEGORY)
     .map((key) => {
       const bodyMap = MUSCLE_BODY_MAP[key] ?? []
-      return `  (${lit(key)}, ${lit(titleCase(key))}, ${lit(MUSCLE_CATEGORY[key] ?? null)}, `
-        + `${lit(JSON.stringify(bodyMap))}::jsonb)`
+      return (
+        `  (${lit(key)}, ${lit(titleCase(key))}, ${lit(MUSCLE_CATEGORY[key] ?? null)}, ` +
+        `${lit(JSON.stringify(bodyMap))}::jsonb)`
+      )
     })
     .join(',\n')
-  const set = 'name = excluded.name, category_key = excluded.category_key, '
-    + 'body_map_groups = excluded.body_map_groups, updated_at = now()'
-  return `insert into app.muscles (key, name, category_key, body_map_groups) values\n${rows}\n`
-    + `on conflict (key) do update set ${set};`
+  const set =
+    'name = excluded.name, category_key = excluded.category_key, ' +
+    'body_map_groups = excluded.body_map_groups, updated_at = now()'
+  return (
+    `insert into app.muscles (key, name, category_key, body_map_groups) values\n${rows}\n` +
+    `on conflict (key) do update set ${set};`
+  )
 }
 
 function equipmentSql(): string {
   const rows = EQUIPMENT_KEYS.map((key) => `  (${lit(key)}, ${lit(titleCase(key))})`).join(',\n')
-  return `insert into app.equipment (key, name) values\n${rows}\n`
-    + 'on conflict (key) do update set name = excluded.name, updated_at = now();'
+  return (
+    `insert into app.equipment (key, name) values\n${rows}\n` +
+    'on conflict (key) do update set name = excluded.name, updated_at = now();'
+  )
 }
 
 function exerciseSql(entry: SeedEntry): string {
@@ -60,11 +69,12 @@ function exerciseSql(entry: SeedEntry): string {
   const loadStyle = loadStyleFor(entry)
   const barWeight = barWeightFor(entry)
   const difficulty = difficultyFor(entry)
-  const columns = 'name, category_id, tracking_type, load_style, bar_weight, difficulty, instructions, '
-    + 'images, external_id'
-  const values = `${lit(entry.name)}, c.id, ${lit(trackingType)}, ${lit(loadStyle)}, `
-    + `${barWeight === null ? 'null' : barWeight}, ${lit(difficulty)}, `
-    + `${jsonbOrNull(entry.instructions)}, ${jsonbOrNull(entry.images ?? [])}, ${lit(entry.id)}`
+  const columns =
+    'name, category_id, tracking_type, load_style, bar_weight, difficulty, instructions, ' + 'images, external_id'
+  const values =
+    `${lit(entry.name)}, c.id, ${lit(trackingType)}, ${lit(loadStyle)}, ` +
+    `${barWeight === null ? 'null' : barWeight}, ${lit(difficulty)}, ` +
+    `${jsonbOrNull(entry.instructions)}, ${jsonbOrNull(entry.images ?? [])}, ${lit(entry.id)}`
   return `insert into app.exercises (${columns})
 select ${values}
 from app.exercise_categories c where c.key = ${lit(categoryKey)} and c.user_id is null

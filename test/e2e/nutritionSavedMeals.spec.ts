@@ -28,10 +28,16 @@ test('logging a saved meal writes one entry per food, each editable', async ({ p
   })
 
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-06-01/entries', [
-    { entryType: 'food', savedMealId: savedMeal.json.id, containerId: containers.json[0].id, quantity: 1, unitLabel: 'meal' }
+    {
+      entryType: 'food',
+      savedMealId: savedMeal.json.id,
+      containerId: containers.json[0].id,
+      quantity: 1,
+      unitLabel: 'meal'
+    }
   ])
 
-  const day = await apiFetch<{ entries: unknown[], totals: Record<string, number> }>(
+  const day = await apiFetch<{ entries: unknown[]; totals: Record<string, number> }>(
     page,
     'GET',
     '/api/nutrition/diary/2026-06-01'
@@ -59,11 +65,17 @@ test('save-as-recipe skips quick-adds and reports the count', async ({ page, got
     }
   ])
 
-  const res = await apiFetch<{ id: number, skippedQuickAdds: number, flattenedRecipes: number }>(
+  const res = await apiFetch<{ id: number; skippedQuickAdds: number; flattenedRecipes: number }>(
     page,
     'POST',
     '/api/nutrition/recipes/from-diary',
-    { date: '2026-06-02', containerId: containers.json[0].id, name: 'From Monday', servings: 2, servingName: 'Portions' }
+    {
+      date: '2026-06-02',
+      containerId: containers.json[0].id,
+      name: 'From Monday',
+      servings: 2,
+      servingName: 'Portions'
+    }
   )
   expect(res.json.skippedQuickAdds).toBe(1)
 
@@ -97,18 +109,30 @@ test('from-diary flattens a logged recipe into its ingredients', async ({ page, 
   })
 
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-06-03/entries', [
-    { entryType: 'recipe', recipeId: recipe.json.id, containerId: containers.json[0].id, quantity: 2, unitLabel: 'Slices' }
+    {
+      entryType: 'recipe',
+      recipeId: recipe.json.id,
+      containerId: containers.json[0].id,
+      quantity: 2,
+      unitLabel: 'Slices'
+    }
   ])
 
-  const res = await apiFetch<{ id: number, skippedQuickAdds: number, flattenedRecipes: number }>(
+  const res = await apiFetch<{ id: number; skippedQuickAdds: number; flattenedRecipes: number }>(
     page,
     'POST',
     '/api/nutrition/recipes/from-diary',
-    { date: '2026-06-03', containerId: containers.json[0].id, name: 'Leftover Pizza', servings: 2, servingName: 'Portions' }
+    {
+      date: '2026-06-03',
+      containerId: containers.json[0].id,
+      name: 'Leftover Pizza',
+      servings: 2,
+      servingName: 'Portions'
+    }
   )
   expect(res.json.flattenedRecipes).toBe(1)
 
-  const newRecipe = await apiFetch<{ ingredients: Array<{ foodId: number, quantity: number }> }>(
+  const newRecipe = await apiFetch<{ ingredients: Array<{ foodId: number; quantity: number }> }>(
     page,
     'GET',
     `/api/nutrition/recipes/${res.json.id}`
@@ -141,7 +165,13 @@ test('logging a saved meal with a deleted item food fails atomically', async ({ 
   await apiFetch(page, 'DELETE', `/api/nutrition/foods/${toast}`)
 
   const res = await apiFetch(page, 'POST', '/api/nutrition/diary/2026-06-04/entries', [
-    { entryType: 'food', savedMealId: savedMeal.json.id, containerId: containers.json[0].id, quantity: 1, unitLabel: 'meal' }
+    {
+      entryType: 'food',
+      savedMealId: savedMeal.json.id,
+      containerId: containers.json[0].id,
+      quantity: 1,
+      unitLabel: 'meal'
+    }
   ])
   expect(res.status).toBe(400)
   expect(JSON.stringify(res.json)).toContain('SAVED_MEAL_ITEM_MISSING')
@@ -170,12 +200,17 @@ test('saved-meal reads carry item names, nutrients, item count, and total', asyn
     ]
   })
 
-  const detail = await apiFetch<{ items: Array<{ name: string, nutrients: Record<string, number> }>, total: Record<string, number> }>(
-    page, 'GET', `/api/nutrition/saved-meals/${created.json.id}`
-  )
+  const detail = await apiFetch<{
+    items: Array<{ name: string; nutrients: Record<string, number> }>
+    total: Record<string, number>
+  }>(page, 'GET', `/api/nutrition/saved-meals/${created.json.id}`)
   expect(detail.json.items.map((i) => i.name)).toEqual(['Meal Egg', 'Meal Toast'])
   expect(detail.json.total.energy).toBeCloseTo(367, 6)
 
-  const list = await apiFetch<Array<{ id: number, itemCount: number, total: Record<string, number> }>>(page, 'GET', '/api/nutrition/saved-meals')
+  const list = await apiFetch<Array<{ id: number; itemCount: number; total: Record<string, number> }>>(
+    page,
+    'GET',
+    '/api/nutrition/saved-meals'
+  )
   expect(list.json.find((m) => m.id === created.json.id)).toMatchObject({ itemCount: 2 })
 })

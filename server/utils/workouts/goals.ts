@@ -28,11 +28,13 @@ export async function loadWorkoutGoal(
   const row = await db
     .select()
     .from(workoutExerciseGoals)
-    .where(and(
-      eq(workoutExerciseGoals.userId, userId),
-      eq(workoutExerciseGoals.exerciseId, exerciseId),
-      eq(workoutExerciseGoals.metric, metric)
-    ))
+    .where(
+      and(
+        eq(workoutExerciseGoals.userId, userId),
+        eq(workoutExerciseGoals.exerciseId, exerciseId),
+        eq(workoutExerciseGoals.metric, metric)
+      )
+    )
     .then((r) => r[0])
   return row ? toGoal(row) : null
 }
@@ -58,7 +60,7 @@ export async function putGoal(userId: number, exerciseId: number, input: Workout
 
   const values = {
     targetValue: String(input.targetValue),
-    targetReps: input.metric === 'weight_at_reps' ? input.targetReps ?? null : null,
+    targetReps: input.metric === 'weight_at_reps' ? (input.targetReps ?? null) : null,
     targetDate: input.targetDate ?? null,
     achievedAt: null
   }
@@ -77,9 +79,11 @@ export async function putGoal(userId: number, exerciseId: number, input: Workout
 export async function removeGoal(userId: number, exerciseId: number, metric: GraphMetric): Promise<void> {
   await db
     .delete(workoutExerciseGoals)
-    .where(and(
-      eq(workoutExerciseGoals.userId, userId),
-      eq(workoutExerciseGoals.exerciseId, exerciseId),
-      eq(workoutExerciseGoals.metric, metric)
-    ))
+    .where(
+      and(
+        eq(workoutExerciseGoals.userId, userId),
+        eq(workoutExerciseGoals.exerciseId, exerciseId),
+        eq(workoutExerciseGoals.metric, metric)
+      )
+    )
 }

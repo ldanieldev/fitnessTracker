@@ -33,7 +33,9 @@ async function ensureModule() {
   await prepared
 }
 
-export async function decodeBarcode(input: ImageData | Blob | ArrayBuffer): Promise<{ text: string, format: string } | null> {
+export async function decodeBarcode(
+  input: ImageData | Blob | ArrayBuffer
+): Promise<{ text: string; format: string } | null> {
   await ensureModule()
   const results = await readBarcodes(input as never, { formats: [...FORMATS], maxNumberOfSymbols: 1 })
   const first = results[0]

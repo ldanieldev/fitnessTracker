@@ -3,7 +3,7 @@ defineProps<{ text: string }>()
 const open = defineModel<boolean>('open', { default: false })
 
 function selectAll(event: FocusEvent) {
-  (event.target as HTMLTextAreaElement).select()
+  ;(event.target as HTMLTextAreaElement).select()
 }
 </script>
 

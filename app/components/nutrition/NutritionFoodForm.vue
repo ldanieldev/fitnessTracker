@@ -2,7 +2,13 @@
 import type { NutrientKey } from '~~/shared/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
 import type { ServingDraft } from '~/utils/nutrition/servingDraft'
-import { emptyDraft, nutrientFields, draftToInput, applyParsedNutrients, draftError } from '~/utils/nutrition/servingDraft'
+import {
+  emptyDraft,
+  nutrientFields,
+  draftToInput,
+  applyParsedNutrients,
+  draftError
+} from '~/utils/nutrition/servingDraft'
 import { useTrackedNutrients } from '~/composables/useTrackedNutrients'
 
 interface ParsedLabel {
@@ -34,7 +40,9 @@ const loading = ref(false)
 const showOcr = ref(false)
 
 const servings = ref<ServingDraft[]>(
-  props.prefill?.servings?.length ? props.prefill.servings.map((draft) => ({ ...emptyDraft(), ...draft })) : [emptyDraft()]
+  props.prefill?.servings?.length
+    ? props.prefill.servings.map((draft) => ({ ...emptyDraft(), ...draft }))
+    : [emptyDraft()]
 )
 
 const fields = computed(() => nutrientFields(tracked.value ?? []))
@@ -63,10 +71,11 @@ function removeServing(index: number) {
 
 const weightTaken = computed(() => servings.value.some((d) => d.kind === 'weight'))
 
-const canSubmit = computed(() =>
-  name.value.trim().length > 0 &&
-  servings.value.filter((s) => s.kind === 'weight').length <= 1 &&
-  servings.value.every((d) => !draftError(d))
+const canSubmit = computed(
+  () =>
+    name.value.trim().length > 0 &&
+    servings.value.filter((s) => s.kind === 'weight').length <= 1 &&
+    servings.value.every((d) => !draftError(d))
 )
 
 async function submit() {
@@ -123,7 +132,11 @@ async function submit() {
         <div v-for="(draft, index) in servings" :key="index" class="flex flex-col gap-2 p-3 rounded-lg bg-elevated/50">
           <div class="flex gap-2 items-center justify-between">
             <div class="flex-1">
-              <NutritionServingFields v-model="servings[index]!" :fields="fields" :weight-taken="weightTaken && draft.kind !== 'weight'" />
+              <NutritionServingFields
+                v-model="servings[index]!"
+                :fields="fields"
+                :weight-taken="weightTaken && draft.kind !== 'weight'"
+              />
             </div>
             <UButton
               icon="i-lucide-trash-2"
@@ -140,7 +153,14 @@ async function submit() {
         <UButton label="Add serving" variant="soft" color="neutral" class="w-fit" @click="addServing" />
       </div>
 
-      <UButton label="Create food" :disabled="!canSubmit" :loading="loading" class="w-full sm:w-fit" data-test="food-submit" @click="submit" />
+      <UButton
+        label="Create food"
+        :disabled="!canSubmit"
+        :loading="loading"
+        class="w-full sm:w-fit"
+        data-test="food-submit"
+        @click="submit"
+      />
     </div>
   </UCard>
 </template>

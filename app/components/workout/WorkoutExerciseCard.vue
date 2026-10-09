@@ -11,24 +11,27 @@ import WorkoutSetRow from '~/components/workout/WorkoutSetRow.vue'
 import WorkoutSetForm from '~/components/workout/WorkoutSetForm.vue'
 import WorkoutProgressionPrompt from '~/components/workout/WorkoutProgressionPrompt.vue'
 
-const props = withDefaults(defineProps<{
-  entry: WorkoutEntry
-  isFirst: boolean
-  isLast: boolean
-  plateButton?: boolean
-  presetWeight?: { weight: number, seq: number } | null
-  deload?: boolean
-  saveErrors?: Record<string, string>
-  supersetLabel?: string | null
-  supersetBorderClass?: string | null
-  canGroup?: boolean
-}>(), {
-  presetWeight: null,
-  deload: false,
-  supersetLabel: null,
-  supersetBorderClass: null,
-  canGroup: false
-})
+const props = withDefaults(
+  defineProps<{
+    entry: WorkoutEntry
+    isFirst: boolean
+    isLast: boolean
+    plateButton?: boolean
+    presetWeight?: { weight: number; seq: number } | null
+    deload?: boolean
+    saveErrors?: Record<string, string>
+    supersetLabel?: string | null
+    supersetBorderClass?: string | null
+    canGroup?: boolean
+  }>(),
+  {
+    presetWeight: null,
+    deload: false,
+    supersetLabel: null,
+    supersetBorderClass: null,
+    canGroup: false
+  }
+)
 
 const emit = defineEmits<{
   addSet: [values: SetMeasures & { comment?: string }]
@@ -49,13 +52,16 @@ function errorFor(setId: number | null) {
   return props.saveErrors?.[setId === null ? 'new' : String(setId)] ?? null
 }
 
-const targetLabel = computed(() => targetProgressLabel(props.entry.trackingType, props.entry.target, props.entry.sets.length))
+const targetLabel = computed(() =>
+  targetProgressLabel(props.entry.trackingType, props.entry.target, props.entry.sets.length)
+)
 const targetMet = computed(() => props.entry.target?.sets != null && props.entry.sets.length >= props.entry.target.sets)
 const measures = computed(() => measuresFor(props.entry.trackingType))
 const prefill = computed(() => prefillFor(props.entry.sets, props.entry.lastSets))
 const progression = computed(() => progressionFor(props.entry, props.deload))
 const copy = computed(() =>
-  progression.value ? progressionCopy(progression.value, props.entry.loadStyle, props.entry.target) : null)
+  progression.value ? progressionCopy(progression.value, props.entry.loadStyle, props.entry.target) : null
+)
 const choice = ref<'apply' | 'stay' | null>(null)
 const promptOpen = ref(false)
 const formWeight = ref<number | null>(null)
@@ -76,29 +82,65 @@ function choose(picked: 'apply' | 'stay') {
 const lastSummary = computed(() => props.entry.lastSets.map((set) => formatSet(measures.value, set)))
 const showBar = computed(() => props.entry.loadStyle === 'barbell' && props.entry.barWeight != null)
 const totalVolume = computed(() => {
-  if (!measures.value.includes('weight') || !measures.value.includes('reps') || props.entry.sets.length === 0) return null
+  if (!measures.value.includes('weight') || !measures.value.includes('reps') || props.entry.sets.length === 0)
+    return null
   return props.entry.sets.reduce((sum, set) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0).toLocaleString()
 })
 
 const menu = computed<DropdownMenuItem[][]>(() => [
-  [{
-    label: 'History',
-    icon: 'i-lucide-history',
-    to: `/workouts/exercises/${props.entry.exerciseId}?tab=history`,
-    class: 'sm:hidden',
-    testId: `entry-history-menu-${props.entry.id}`
-  }],
   [
-    { label: 'Move up', icon: 'i-lucide-arrow-up', disabled: props.isFirst, testId: `entry-up-${props.entry.id}`, onSelect: () => emit('move', -1) },
-    { label: 'Move down', icon: 'i-lucide-arrow-down', disabled: props.isLast, testId: `entry-down-${props.entry.id}`, onSelect: () => emit('move', 1) }
+    {
+      label: 'History',
+      icon: 'i-lucide-history',
+      to: `/workouts/exercises/${props.entry.exerciseId}?tab=history`,
+      class: 'sm:hidden',
+      testId: `entry-history-menu-${props.entry.id}`
+    }
   ],
   [
-    { label: 'Superset with…', icon: 'i-lucide-link', disabled: !props.canGroup, testId: `entry-superset-add-${props.entry.id}`, onSelect: () => emit('superset') },
+    {
+      label: 'Move up',
+      icon: 'i-lucide-arrow-up',
+      disabled: props.isFirst,
+      testId: `entry-up-${props.entry.id}`,
+      onSelect: () => emit('move', -1)
+    },
+    {
+      label: 'Move down',
+      icon: 'i-lucide-arrow-down',
+      disabled: props.isLast,
+      testId: `entry-down-${props.entry.id}`,
+      onSelect: () => emit('move', 1)
+    }
+  ],
+  [
+    {
+      label: 'Superset with…',
+      icon: 'i-lucide-link',
+      disabled: !props.canGroup,
+      testId: `entry-superset-add-${props.entry.id}`,
+      onSelect: () => emit('superset')
+    },
     ...(props.entry.supersetGroup !== null
-      ? [{ label: 'Remove from superset', icon: 'i-lucide-unlink', testId: `entry-superset-remove-${props.entry.id}`, onSelect: () => emit('ungroup') }]
+      ? [
+          {
+            label: 'Remove from superset',
+            icon: 'i-lucide-unlink',
+            testId: `entry-superset-remove-${props.entry.id}`,
+            onSelect: () => emit('ungroup')
+          }
+        ]
       : [])
   ],
-  [{ label: 'Remove', icon: 'i-lucide-trash-2', color: 'error', testId: `entry-remove-${props.entry.id}`, onSelect: () => (confirmRemoveOpen.value = true) }]
+  [
+    {
+      label: 'Remove',
+      icon: 'i-lucide-trash-2',
+      color: 'error',
+      testId: `entry-remove-${props.entry.id}`,
+      onSelect: () => (confirmRemoveOpen.value = true)
+    }
+  ]
 ])
 
 function confirmRemove() {
@@ -127,7 +169,12 @@ function confirmRemove() {
             :data-test="`entry-collapse-${entry.id}`"
             @click="collapsed = !collapsed"
           />
-          <span v-if="supersetLabel" class="shrink-0 font-mono text-xs font-semibold text-dimmed" :data-test="`entry-superset-${entry.id}`">{{ supersetLabel }}</span>
+          <span
+            v-if="supersetLabel"
+            class="shrink-0 font-mono text-xs font-semibold text-dimmed"
+            :data-test="`entry-superset-${entry.id}`"
+            >{{ supersetLabel }}</span
+          >
           <NuxtLink
             :to="`/workouts/exercises/${entry.exerciseId}`"
             class="min-w-0 truncate font-semibold text-highlighted"
@@ -177,12 +224,22 @@ function confirmRemove() {
             </UDropdownMenu>
           </div>
         </div>
-        <p v-if="entry.notes" class="pl-11 text-xs text-dimmed" :data-test="`entry-notes-${entry.id}`">{{ entry.notes }}</p>
+        <p v-if="entry.notes" class="pl-11 text-xs text-dimmed" :data-test="`entry-notes-${entry.id}`">
+          {{ entry.notes }}
+        </p>
         <div
           v-if="entry.optional || showBar || entry.lastSets.length > 0"
           class="flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-xs leading-snug text-dimmed"
         >
-          <UBadge v-if="entry.optional" label="optional" variant="outline" color="neutral" size="sm" class="shrink-0" :data-test="`entry-optional-${entry.id}`" />
+          <UBadge
+            v-if="entry.optional"
+            label="optional"
+            variant="outline"
+            color="neutral"
+            size="sm"
+            class="shrink-0"
+            :data-test="`entry-optional-${entry.id}`"
+          />
           <span v-if="showBar" class="inline-flex items-center">
             Bar: {{ entry.barWeight }} lb
             <UButton
@@ -212,7 +269,12 @@ function confirmRemove() {
       </div>
     </template>
 
-    <div v-show="!collapsed" :id="`entry-body-${entry.id}`" class="flex flex-col gap-4" :data-test="`entry-body-${entry.id}`">
+    <div
+      v-show="!collapsed"
+      :id="`entry-body-${entry.id}`"
+      class="flex flex-col gap-4"
+      :data-test="`entry-body-${entry.id}`"
+    >
       <div v-if="entry.sets.length > 0" class="flex flex-col gap-2 max-sm:gap-1">
         <div v-for="(set, index) in entry.sets" :key="set.id" data-test="set-row">
           <WorkoutSetRow
@@ -225,7 +287,11 @@ function confirmRemove() {
             @save="(values) => emit('editSet', set.id, values)"
             @remove="emit('removeSet', set.id)"
           />
-          <div v-if="errorFor(set.id)" class="flex items-center gap-2 px-3 pt-1" :data-test="`set-save-error-${set.id}`">
+          <div
+            v-if="errorFor(set.id)"
+            class="flex items-center gap-2 px-3 pt-1"
+            :data-test="`set-save-error-${set.id}`"
+          >
             <span class="min-w-0 flex-1 truncate text-xs text-error">{{ errorFor(set.id) }}</span>
             <UButton
               label="Retry"
@@ -238,7 +304,9 @@ function confirmRemove() {
           </div>
         </div>
         <div v-if="totalVolume" class="flex justify-end px-3">
-          <span class="text-xs font-medium text-dimmed" :data-test="`entry-volume-${entry.id}`">Total Volume: {{ totalVolume }} lb</span>
+          <span class="text-xs font-medium text-dimmed" :data-test="`entry-volume-${entry.id}`"
+            >Total Volume: {{ totalVolume }} lb</span
+          >
         </div>
         <USeparator />
       </div>
@@ -265,7 +333,12 @@ function confirmRemove() {
       </div>
     </div>
 
-    <WorkoutProgressionPrompt v-model:open="promptOpen" :copy="copy" :kind="progression?.kind ?? 'add'" @choose="choose" />
+    <WorkoutProgressionPrompt
+      v-model:open="promptOpen"
+      :copy="copy"
+      :kind="progression?.kind ?? 'add'"
+      @choose="choose"
+    />
 
     <UModal
       v-model:open="confirmRemoveOpen"
@@ -275,7 +348,13 @@ function confirmRemove() {
     >
       <template #footer>
         <UButton label="Cancel" color="neutral" variant="outline" class="min-h-10" @click="confirmRemoveOpen = false" />
-        <UButton label="Remove" color="error" class="min-h-10" :data-test="`entry-remove-confirm-${entry.id}`" @click="confirmRemove" />
+        <UButton
+          label="Remove"
+          color="error"
+          class="min-h-10"
+          :data-test="`entry-remove-confirm-${entry.id}`"
+          @click="confirmRemove"
+        />
       </template>
     </UModal>
   </UCard>

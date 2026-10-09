@@ -6,7 +6,7 @@ import type { DbClient } from '../../server/utils/db'
 import { writeSparsePref } from '../../server/utils/workouts/sparsePrefs'
 
 function fakeTx() {
-  const calls: { values?: unknown, set?: unknown, deleteWhere?: SQL } = {}
+  const calls: { values?: unknown; set?: unknown; deleteWhere?: SQL } = {}
   const tx = {
     insert: vi.fn(() => ({
       values: (values: unknown) => {

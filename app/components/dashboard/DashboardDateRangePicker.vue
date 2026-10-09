@@ -112,7 +112,13 @@ const selectRange = (range: { days?: number; months?: number; years?: number }) 
           />
         </div>
 
-        <UCalendar v-model="calendarRange" class="p-2" :number-of-months="props.months" :week-starts-on="weekStart" range />
+        <UCalendar
+          v-model="calendarRange"
+          class="p-2"
+          :number-of-months="props.months"
+          :week-starts-on="weekStart"
+          range
+        />
       </div>
     </template>
   </UPopover>

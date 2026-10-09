@@ -6,7 +6,7 @@ import NutritionFoodForm from '../../app/components/nutrition/NutritionFoodForm.
 
 describe('NutritionFoodForm', () => {
   it('sends both nutrients and basisGrams when a named serving row has both', async () => {
-    let capturedBody: { servings: Array<{ nutrients?: Record<string, number>, basisGrams?: number }> } | undefined
+    let capturedBody: { servings: Array<{ nutrients?: Record<string, number>; basisGrams?: number }> } | undefined
 
     registerEndpoint('/api/nutrition/foods', {
       method: 'POST',
@@ -70,13 +70,17 @@ describe('NutritionFoodForm', () => {
 
     await wrapper.find('[data-test="ocr-open"]').trigger('click')
     await wrapper.findComponent({ name: 'NutritionLabelOcr' }).vm.$emit('parsed', {
-      servingGrams: 30, nutrients: { energy: 120, fiber: 4, sodium: 90 }, confidence: 0.9
+      servingGrams: 30,
+      nutrients: { energy: 120, fiber: 4, sodium: 90 },
+      confidence: 0.9
     })
     expect((wrapper.find('[data-test="serving-fiber"]').element as HTMLInputElement).value).toBe('4')
   })
 
   it('sends tracked extras in the create body', async () => {
-    registerEndpoint('/api/nutrition/nutrients/tracked', () => [{ key: 'fiber', name: 'Fiber', unit: 'g', sortOrder: 0 }])
+    registerEndpoint('/api/nutrition/nutrients/tracked', () => [
+      { key: 'fiber', name: 'Fiber', unit: 'g', sortOrder: 0 }
+    ])
     let captured: { servings: Array<{ nutrients?: Record<string, number> }> } | undefined
     registerEndpoint('/api/nutrition/foods', {
       method: 'POST',

@@ -2,7 +2,10 @@ import type { ChartRange, SeriesGranularity, SeriesPoint } from '../types/series
 import { enumerateDates, rollingAverage, shiftDate } from './nutritionSummary'
 
 export const RANGE_DAYS: Record<Exclude<ChartRange, 'all' | 'mtd'>, number> = {
-  '1m': 30, '3m': 90, '6m': 182, '1y': 365
+  '1m': 30,
+  '3m': 90,
+  '6m': 182,
+  '1y': 365
 }
 
 export function rangeStart(range: ChartRange, to: string): string | null {
@@ -40,12 +43,18 @@ export function buildTrend(
   to: string
 ): SeriesPoint[] {
   if (granularity === 'week') {
-    const avg = rollingAverage(points.map((p) => p.value), 4)
+    const avg = rollingAverage(
+      points.map((p) => p.value),
+      4
+    )
     return points.flatMap((p, i) => (avg[i] === null ? [] : [{ date: p.date, value: avg[i]! }]))
   }
   if (from > to) return []
   const byDate = new Map(points.map((p) => [p.date, p.value]))
   const dates = enumerateDates(from, to)
-  const avg = rollingAverage(dates.map((d) => byDate.get(d) ?? null), 7)
+  const avg = rollingAverage(
+    dates.map((d) => byDate.get(d) ?? null),
+    7
+  )
   return dates.flatMap((d, i) => (avg[i] === null ? [] : [{ date: d, value: avg[i]! }]))
 }

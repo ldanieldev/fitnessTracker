@@ -42,9 +42,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       color: 'success'
     })
   } catch (error: unknown) {
-    const message = error instanceof Error && 'data' in error
-      ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-      : undefined
+    const message =
+      error instanceof Error && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : undefined
     toast.add({
       title: 'Update failed',
       description: message || 'Could not update preferences',
@@ -85,7 +86,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
             v-if="canEditPlates"
             :model-value="state.plateSizes ?? []"
             :choices="DEFAULT_PLATE_SIZES"
-            @update:model-value="(sizes) => state.plateSizes = sizes"
+            @update:model-value="(sizes) => (state.plateSizes = sizes)"
           />
           <p v-else class="text-sm text-dimmed">Sign in again to edit your plates.</p>
         </UFormField>

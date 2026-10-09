@@ -26,36 +26,39 @@ export default defineNitroPlugin((nitroApp) => {
 
   app.handler = (event: H3Event) => {
     const method = event.method ?? 'UNKNOWN'
-    return Sentry.startSpan({
-      name: `${method} ${stripQuery(event.path)}`,
-      op: 'http.server',
-      forceTransaction: true,
-      attributes: { 'http.request.method': method }
-    }, async (span) => {
-      const start = performance.now()
-      let status = 500
-      try {
-        const body = await inner(event)
-        status = getResponseStatus(event)
-        return body
-      } catch (error) {
-        // Nitro only stamps the response status from a thrown error after this wrapper returns,
-        // so reading it off the event here would report the handler's last status instead.
-        status = (error as { statusCode?: number }).statusCode ?? 500
-        throw error
-      } finally {
-        // The router only matches inside `inner`, so the low-cardinality route pattern
-        // (/api/users/:id) is not known until after it returns.
-        const route = event.context.matchedRoute?.path ?? stripQuery(event.path)
-        span.updateName(`${method} ${route}`)
-        span.setAttribute('http.route', route)
-        span.setAttribute('http.response.status_code', status)
-        recordRequestDuration((performance.now() - start) / 1000, {
-          'http.route': route,
-          'http.request.method': method,
-          'http.response.status_code': status
-        })
+    return Sentry.startSpan(
+      {
+        name: `${method} ${stripQuery(event.path)}`,
+        op: 'http.server',
+        forceTransaction: true,
+        attributes: { 'http.request.method': method }
+      },
+      async (span) => {
+        const start = performance.now()
+        let status = 500
+        try {
+          const body = await inner(event)
+          status = getResponseStatus(event)
+          return body
+        } catch (error) {
+          // Nitro only stamps the response status from a thrown error after this wrapper returns,
+          // so reading it off the event here would report the handler's last status instead.
+          status = (error as { statusCode?: number }).statusCode ?? 500
+          throw error
+        } finally {
+          // The router only matches inside `inner`, so the low-cardinality route pattern
+          // (/api/users/:id) is not known until after it returns.
+          const route = event.context.matchedRoute?.path ?? stripQuery(event.path)
+          span.updateName(`${method} ${route}`)
+          span.setAttribute('http.route', route)
+          span.setAttribute('http.response.status_code', status)
+          recordRequestDuration((performance.now() - start) / 1000, {
+            'http.route': route,
+            'http.request.method': method,
+            'http.response.status_code': status
+          })
+        }
       }
-    })
+    )
   }
 })

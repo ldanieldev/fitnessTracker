@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import type { MeasurementDirection, MeasurementEntry, MeasurementType } from '~~/shared/types/body'
 import { deltaTone, formatDelta, formatValue } from '~~/shared/utils/bodyMetrics'
 
-const props = defineProps<{ entries: MeasurementEntry[], type: MeasurementType, direction?: MeasurementDirection }>()
+const props = defineProps<{ entries: MeasurementEntry[]; type: MeasurementType; direction?: MeasurementDirection }>()
 const emit = defineEmits<{ edit: [entry: MeasurementEntry] }>()
 
 interface Row {
@@ -25,7 +25,12 @@ const groups = computed<Group[]>(() => {
     const row = { entry, delta: prev ? entry.value - prev.value : null }
     const last = out[out.length - 1]
     if (last && last.date === entry.measuredOn) last.rows.push(row)
-    else out.push({ date: entry.measuredOn, label: format(new Date(`${entry.measuredOn}T00:00:00`), 'EEEE, MMMM d yyyy'), rows: [row] })
+    else
+      out.push({
+        date: entry.measuredOn,
+        label: format(new Date(`${entry.measuredOn}T00:00:00`), 'EEEE, MMMM d yyyy'),
+        rows: [row]
+      })
   })
   return out
 })

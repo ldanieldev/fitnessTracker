@@ -4,7 +4,11 @@ import ExerciseFilterSheet from '~/components/workout/ExerciseFilterSheet.vue'
 import ExerciseForm, { type ExerciseFormPayload } from '~/components/workout/ExerciseForm.vue'
 import ExerciseListRow from '~/components/workout/ExerciseListRow.vue'
 
-interface ReferenceData { categories: ExerciseCategory[], muscles: MuscleRow[], equipment: EquipmentRow[] }
+interface ReferenceData {
+  categories: ExerciseCategory[]
+  muscles: MuscleRow[]
+  equipment: EquipmentRow[]
+}
 
 const filters = reactive<ExerciseListFilters>({})
 const search = ref('')
@@ -34,11 +38,15 @@ const { data: exercises, status } = useExerciseFetch<Exercise[]>(
 // Nuxt carries the previous key's rows into a new key while it loads, so track which filter produced what is shown.
 const shownFilterKey = ref('')
 const shownLimit = ref(PAGE_SIZE)
-watch([status, pagedFilters], ([value]) => {
-  if (value !== 'success') return
-  shownFilterKey.value = filterKey.value
-  shownLimit.value = pages.value * PAGE_SIZE
-}, { immediate: true })
+watch(
+  [status, pagedFilters],
+  ([value]) => {
+    if (value !== 'success') return
+    shownFilterKey.value = filterKey.value
+    shownLimit.value = pages.value * PAGE_SIZE
+  },
+  { immediate: true }
+)
 
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
 const stale = computed(() => loading.value && shownFilterKey.value !== filterKey.value)
@@ -54,9 +62,12 @@ const sentinelVisible = ref(false)
 let observer: IntersectionObserver | undefined
 onMounted(() => {
   if (typeof IntersectionObserver === 'undefined') return
-  observer = new IntersectionObserver((entries) => {
-    sentinelVisible.value = entries.some((entry) => entry.isIntersecting)
-  }, { rootMargin: '200px' })
+  observer = new IntersectionObserver(
+    (entries) => {
+      sentinelVisible.value = entries.some((entry) => entry.isIntersecting)
+    },
+    { rootMargin: '200px' }
+  )
   if (sentinel.value) observer.observe(sentinel.value)
 })
 watch(sentinel, (element, previous) => {
@@ -239,10 +250,10 @@ async function onSubmit(payload: ExerciseFormPayload) {
             />
             <span
               v-if="filterCount > 0"
-              class="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary
-                text-[10px] font-semibold text-inverted"
+              class="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-inverted"
               data-test="filter-badge"
-            >{{ filterCount }}</span>
+              >{{ filterCount }}</span
+            >
           </div>
         </div>
         <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
@@ -285,12 +296,7 @@ async function onSubmit(payload: ExerciseFormPayload) {
           <USkeleton v-for="i in 8" :key="i" class="h-14 rounded-xl" />
         </div>
         <div v-else class="relative">
-          <UProgress
-            v-if="stale"
-            size="xs"
-            class="absolute inset-x-0 -top-2"
-            data-test="exercise-list-loading"
-          />
+          <UProgress v-if="stale" size="xs" class="absolute inset-x-0 -top-2" data-test="exercise-list-loading" />
           <div
             class="flex flex-col gap-2 transition-opacity"
             :class="stale ? 'pointer-events-none opacity-50' : ''"

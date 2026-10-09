@@ -19,7 +19,22 @@ const path = computed(() => {
 </script>
 
 <template>
-  <svg v-if="path" :width="W" :height="H" :viewBox="`0 0 ${W} ${H}`" class="shrink-0" aria-hidden="true" data-test="sparkline">
-    <path :d="path" fill="none" stroke="var(--ui-primary)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
+  <svg
+    v-if="path"
+    :width="W"
+    :height="H"
+    :viewBox="`0 0 ${W} ${H}`"
+    class="shrink-0"
+    aria-hidden="true"
+    data-test="sparkline"
+  >
+    <path
+      :d="path"
+      fill="none"
+      stroke="var(--ui-primary)"
+      stroke-width="1.5"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
   </svg>
 </template>

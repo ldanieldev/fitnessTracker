@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import BodyGoalCard from '../../app/components/body/BodyGoalCard.vue'
 
-const type = { id: 1, key: 'bodyweight', name: 'Bodyweight', unit: 'lbs', precision: 1, direction: 'neutral' as const, builtIn: true, hidden: false, sortOrder: null }
+const type = {
+  id: 1,
+  key: 'bodyweight',
+  name: 'Bodyweight',
+  unit: 'lbs',
+  precision: 1,
+  direction: 'neutral' as const,
+  builtIn: true,
+  hidden: false,
+  sortOrder: null
+}
 
 describe('BodyGoalCard', () => {
   it('shows progress, the amount to go, and the needed weekly pace for a dated goal', async () => {

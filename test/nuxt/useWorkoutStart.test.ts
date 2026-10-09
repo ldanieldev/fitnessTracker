@@ -15,10 +15,18 @@ mockNuxtImport('invalidateWorkouts', () => invalidateMock)
 mockNuxtImport('useToast', () => () => ({ add: toastAdd }))
 
 const session = (id: number): WorkoutSession => ({
-  id, name: null, performedOn: '2026-10-06', startedAt: '2026-10-06T10:00:00.000Z', endedAt: null, notes: null,
-  routineDayId: null, deload: false, entries: []
+  id,
+  name: null,
+  performedOn: '2026-10-06',
+  startedAt: '2026-10-06T10:00:00.000Z',
+  endedAt: null,
+  notes: null,
+  routineDayId: null,
+  deload: false,
+  entries: []
 })
-const httpError = (statusMessage: string, data?: unknown) => Object.assign(new Error(statusMessage), { data: { statusMessage, data } })
+const httpError = (statusMessage: string, data?: unknown) =>
+  Object.assign(new Error(statusMessage), { data: { statusMessage, data } })
 
 afterEach(() => {
   apiFetchMock.mockReset()
@@ -43,7 +51,9 @@ describe('useWorkoutStart', () => {
     apiFetchMock.mockRejectedValueOnce(httpError('A workout is already open', { session: session(9) }))
     const { start } = useWorkoutStart()
     await expect(start({})).resolves.toMatchObject({ id: 9 })
-    expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ title: 'A workout is already open', color: 'warning' }))
+    expect(toastAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'A workout is already open', color: 'warning' })
+    )
     expect(invalidateMock).toHaveBeenCalledTimes(1)
   })
 
@@ -51,17 +61,23 @@ describe('useWorkoutStart', () => {
     apiFetchMock.mockRejectedValueOnce(httpError('Routine day not found'))
     const { start } = useWorkoutStart()
     await expect(start({ routineDayId: 3 })).resolves.toBeNull()
-    expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Couldn\'t start workout', description: 'Routine day not found', color: 'error'
-    }))
+    expect(toastAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Couldn\'t start workout',
+        description: 'Routine day not found',
+        color: 'error'
+      })
+    )
     expect(invalidateMock).not.toHaveBeenCalled()
   })
 
   it('ignores a second start while one is in flight', async () => {
     let resolve: (value: WorkoutSession) => void = () => {}
-    apiFetchMock.mockReturnValueOnce(new Promise<WorkoutSession>((r) => {
-      resolve = r
-    }))
+    apiFetchMock.mockReturnValueOnce(
+      new Promise<WorkoutSession>((r) => {
+        resolve = r
+      })
+    )
     const { start, starting } = useWorkoutStart()
     const first = start({})
     expect(starting.value).toBe(true)

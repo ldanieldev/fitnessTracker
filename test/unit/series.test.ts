@@ -32,10 +32,15 @@ describe('series — buckets and trend', () => {
     expect(weekBucket('2026-09-14', 1)).toBe('2026-09-14')
     expect(weekBucket('2026-09-13', 1)).toBe('2026-09-07')
     const points = [
-      { date: '2026-09-08', value: 200 }, { date: '2026-09-10', value: 199 },
-      { date: '2026-09-15', value: 198 }, { date: '2026-09-16', value: 197.5 }
+      { date: '2026-09-08', value: 200 },
+      { date: '2026-09-10', value: 199 },
+      { date: '2026-09-15', value: 198 },
+      { date: '2026-09-16', value: 197.5 }
     ]
-    expect(bucketWeekly(points, 1)).toEqual([{ date: '2026-09-07', value: 199 }, { date: '2026-09-14', value: 197.5 }])
+    expect(bucketWeekly(points, 1)).toEqual([
+      { date: '2026-09-07', value: 199 },
+      { date: '2026-09-14', value: 197.5 }
+    ])
   })
 
   it('builds a 7-day trailing trend over calendar days, tolerating gaps', async () => {
@@ -44,7 +49,10 @@ describe('series — buckets and trend', () => {
     const trend = buildTrend(points, 'day', '2026-09-01', '2026-09-08')
     expect(trend[0]).toEqual({ date: '2026-09-07', value: 196 }) // mean of 199..193
     expect(trend[1]).toEqual({ date: '2026-09-08', value: 195 })
-    const gappyPoints = [{ date: '2026-09-01', value: 200 }, { date: '2026-09-10', value: 190 }]
+    const gappyPoints = [
+      { date: '2026-09-01', value: 200 },
+      { date: '2026-09-10', value: 190 }
+    ]
     const gappy = buildTrend(gappyPoints, 'day', '2026-09-01', '2026-09-10')
     // days 7–10: the window holds only the readings inside it; day 7 sees just Sep 1, day 10 sees just Sep 10
     expect(gappy.find((p) => p.date === '2026-09-07')?.value).toBe(200)

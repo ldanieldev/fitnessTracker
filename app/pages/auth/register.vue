@@ -102,9 +102,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     await fetchSession()
     await navigateTo('/')
   } catch (error: unknown) {
-    const message = error instanceof Error && 'data' in error
-      ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-      : undefined
+    const message =
+      error instanceof Error && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : undefined
     toast.add({
       title: 'Registration failed',
       description: message || 'Registration failed',

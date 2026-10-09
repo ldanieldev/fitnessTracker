@@ -9,7 +9,9 @@ export const importJobs = appSchema.table('import_jobs', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   source: varchar('source', { enum: ['mymacros'] }).notNull(),
-  status: varchar('status', { enum: ['queued', 'running', 'done', 'failed'] }).notNull().default('queued'),
+  status: varchar('status', { enum: ['queued', 'running', 'done', 'failed'] })
+    .notNull()
+    .default('queued'),
   fileCount: integer('file_count').notNull(),
   payload: jsonb('payload').notNull(),
   result: jsonb('result').default(sql`null`),

@@ -45,7 +45,7 @@ function mapNutriments(n: OffNutriments | undefined): Partial<Record<NutrientKey
   if (n.fiber_100g !== undefined) per100g.fiber = n.fiber_100g
   if (n.sugars_100g !== undefined) per100g.sugar = n.sugars_100g
   if (n['saturated-fat_100g'] !== undefined) per100g.saturatedFat = n['saturated-fat_100g']
-  // OFF reports sodium and salt in grams; the catalogue's sodium unit is mg. Fall back to salt × 400 (salt g / 2.5 * 1000) when sodium is absent.
+  // OFF sodium/salt are grams, the catalogue's sodium is mg; without sodium use salt × 400 (salt g / 2.5 * 1000).
   if (n.sodium_100g !== undefined) per100g.sodium = n.sodium_100g * 1000
   else if (n.salt_100g !== undefined) per100g.sodium = n.salt_100g * 400
   return per100g
@@ -67,8 +67,12 @@ export function offProductToExternal(product: OffProduct): ExternalFood {
 }
 
 function isCompleteHit(hit: OffProduct): boolean {
-  return typeof hit.code === 'string' && hit.code.length > 0 &&
-    typeof hit.product_name === 'string' && hit.product_name.trim().length > 0
+  return (
+    typeof hit.code === 'string' &&
+    hit.code.length > 0 &&
+    typeof hit.product_name === 'string' &&
+    hit.product_name.trim().length > 0
+  )
 }
 
 // Keeps a hit with no reported lang, but drops non-English langs and names with no Latin letter (mislabelled lang).
@@ -110,7 +114,7 @@ function mapOffError(err: unknown): ExternalSourceError {
   return new ExternalSourceError('off', 'unavailable', 'Open Food Facts request failed')
 }
 
-// $fetch (not global fetch) so a relative NUXT_OFF_PRODUCT_URL/SEARCH_URL (e2e stub) resolves via Nitro's internal dispatch, no network hop.
+// $fetch, not fetch, so a relative NUXT_OFF_*_URL (e2e stub) resolves via Nitro's internal dispatch, no network.
 async function fetchOff<T>(url: string, userAgent: string): Promise<T> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 5000)
@@ -125,7 +129,7 @@ export async function offByBarcode(code: string): Promise<ExternalFood | null> {
   const userAgent = requireUserAgent()
   const { productUrl } = useRuntimeConfig().off
   try {
-    const json = await fetchOff<{ status: number, product?: OffProduct }>(
+    const json = await fetchOff<{ status: number; product?: OffProduct }>(
       `${productUrl}/${encodeURIComponent(code)}.json?fields=${PRODUCT_FIELDS}`,
       userAgent
     )
@@ -141,7 +145,7 @@ export async function offSearch(q: string, limit: number): Promise<ExternalFood[
   const userAgent = requireUserAgent()
   const { searchUrl } = useRuntimeConfig().off
   try {
-    // search-a-licious `langs` scopes which language-specific subfields (e.g. product_name.en) are searched; see its OpenAPI /search docs.
+    // search-a-licious `langs` scopes the language subfields searched (e.g. product_name.en); see its /search docs.
     const json = await fetchOff<{ hits: OffProduct[] }>(
       `${searchUrl}?q=${encodeURIComponent(q)}&page_size=${limit}&fields=${SEARCH_FIELDS}&langs=en`,
       userAgent

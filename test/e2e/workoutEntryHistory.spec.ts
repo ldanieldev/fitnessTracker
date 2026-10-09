@@ -5,17 +5,25 @@ import type { Exercise, ExerciseCategory, WorkoutSession } from '../../shared/ty
 type Page = Parameters<typeof apiFetch>[0]
 
 async function exercise(page: Page) {
-  const chest = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference'))
-    .json.categories.find((c) => c.key === 'chest')!
-  return (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('History Test '), categoryId: chest.id, trackingType: 'weight_reps', loadStyle: 'plain'
-  })).json
+  const chest = (
+    await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')
+  ).json.categories.find((c) => c.key === 'chest')!
+  return (
+    await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+      name: uniquePrefix('History Test '),
+      categoryId: chest.id,
+      trackingType: 'weight_reps',
+      loadStyle: 'plain'
+    })
+  ).json
 }
 
 async function session(page: Page, performedOn: string, exerciseIds: number[]) {
   let current = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn })).json
   for (const exerciseId of exerciseIds) {
-    current = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${current.id}/entries`, { exerciseId })).json
+    current = (
+      await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${current.id}/entries`, { exerciseId })
+    ).json
   }
   return current
 }
@@ -23,10 +31,14 @@ async function session(page: Page, performedOn: string, exerciseIds: number[]) {
 const log = (page: Page, entryId: number, weight: number, reps: number) =>
   apiFetch(page, 'POST', `/api/workouts/entries/${entryId}/sets`, { weight, reps })
 const finish = (page: Page, id: number) => apiFetch(page, 'PATCH', `/api/workouts/sessions/${id}`, { finish: true })
-const get = async (page: Page, id: number) => (await apiFetch<WorkoutSession>(page, 'GET', `/api/workouts/sessions/${id}`)).json
+const get = async (page: Page, id: number) =>
+  (await apiFetch<WorkoutSession>(page, 'GET', `/api/workouts/sessions/${id}`)).json
 const records = (s: WorkoutSession) => s.entries.map((e) => e.sets.map((set) => set.records))
 
-test('a session reads records and last time from earlier sessions only, including the same exercise twice', async ({ page, goto }) => {
+test('a session reads records and last time from earlier sessions only, including the same exercise twice', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const [a, b] = [await exercise(page), await exercise(page)]
@@ -60,18 +72,30 @@ test('a session reads records and last time from earlier sessions only, includin
 
   const third = await get(page, s3.id)
   expect(records(third)).toEqual([[[{ kind: 'weight_reps', previous: 100 }]]])
-  expect(third.entries[0]!.lastSets).toEqual([{ weight: 100, reps: 5 }, { weight: 100, reps: 5 }])
+  expect(third.entries[0]!.lastSets).toEqual([
+    { weight: 100, reps: 5 },
+    { weight: 100, reps: 5 }
+  ])
 
   const firstSession = await get(page, s1.id)
   expect(records(firstSession)).toEqual([[[], []]])
   expect(firstSession.entries[0]!.lastSets).toEqual([])
 
   const second2 = await get(page, s2.id)
-  expect(second2.entries.map((e) => e.lastSets)).toEqual([[{ weight: 100, reps: 5 }, { weight: 100, reps: 5 }], []])
+  expect(second2.entries.map((e) => e.lastSets)).toEqual([
+    [
+      { weight: 100, reps: 5 },
+      { weight: 100, reps: 5 }
+    ],
+    []
+  ])
   expect(records(second2)).toEqual([[], [[]]])
 })
 
-test('two sessions on the same day order by start, so the later one reads the earlier one\'s heavier sets', async ({ page, goto }) => {
+test('two sessions on the same day order by start, so the later one reads the earlier one\'s heavier sets', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const a = await exercise(page)
@@ -143,7 +167,10 @@ const EXPECTED_SHAPE = {
           records: []
         }
       ],
-      lastSets: [{ weight: 150, reps: 3 }, { weight: 152.5, reps: 2 }]
+      lastSets: [
+        { weight: 150, reps: 3 },
+        { weight: 152.5, reps: 2 }
+      ]
     },
     {
       id: 'entry1',
@@ -213,7 +240,10 @@ const EXPECTED_SHAPE = {
           durationSeconds: 1800,
           done: false,
           comment: null,
-          records: [{ kind: 'distance', previous: 5000 }, { kind: 'pace', previous: 3.0773076923076923 }]
+          records: [
+            { kind: 'distance', previous: 5000 },
+            { kind: 'pace', previous: 3.0773076923076923 }
+          ]
         },
         {
           id: 'set5',
@@ -300,7 +330,10 @@ const EXPECTED_SHAPE = {
           records: [{ kind: 'weight_reps', previous: 155 }]
         }
       ],
-      lastSets: [{ weight: 150, reps: 3 }, { weight: 152.5, reps: 2 }]
+      lastSets: [
+        { weight: 150, reps: 3 },
+        { weight: 152.5, reps: 2 }
+      ]
     }
   ]
 }
@@ -324,20 +357,38 @@ function normalize(loaded: WorkoutSession, names: Map<number, string>) {
   }
 }
 
-test('a loaded session keeps its full shape across supersets, cardio, assisted and a repeated exercise', async ({ page, goto }) => {
+test('a loaded session keeps its full shape across supersets, cardio, assisted and a repeated exercise', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  const chest = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference'))
-    .json.categories.find((c) => c.key === 'chest')!
-  const create = async (body: Record<string, unknown>) => (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('Shape Test '), categoryId: chest.id, ...body
-  })).json
+  const chest = (
+    await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')
+  ).json.categories.find((c) => c.key === 'chest')!
+  const create = async (body: Record<string, unknown>) =>
+    (
+      await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+        name: uniquePrefix('Shape Test '),
+        categoryId: chest.id,
+        ...body
+      })
+    ).json
   const barbell = await create({ trackingType: 'weight_reps', loadStyle: 'barbell', barWeight: 45 })
   const assisted = await create({ trackingType: 'weight_reps', loadStyle: 'assisted' })
   const cardio = await create({ trackingType: 'distance_time' })
   const plain = await create({ trackingType: 'weight_reps', loadStyle: 'plain' })
-  const names = new Map([[barbell.id, 'barbell'], [assisted.id, 'assisted'], [cardio.id, 'cardio'], [plain.id, 'plain']])
-  await apiFetch(page, 'PUT', `/api/workouts/exercises/${barbell.id}/prefs`, { barWeight: 35, weightIncrement: 2.5, restSeconds: 90 })
+  const names = new Map([
+    [barbell.id, 'barbell'],
+    [assisted.id, 'assisted'],
+    [cardio.id, 'cardio'],
+    [plain.id, 'plain']
+  ])
+  await apiFetch(page, 'PUT', `/api/workouts/exercises/${barbell.id}/prefs`, {
+    barWeight: 35,
+    weightIncrement: 2.5,
+    restSeconds: 90
+  })
 
   const addSet = (entryId: number, body: Record<string, unknown>) =>
     apiFetch(page, 'POST', `/api/workouts/entries/${entryId}/sets`, body)

@@ -8,7 +8,9 @@ test.use({ viewport: { width: 360, height: 689 } })
 async function logWorkout(page: Page, performedOn: string, name: string, exerciseId: number) {
   const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn })).json
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${session.id}`, { name })
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, { exerciseId })).json.entries[0]!
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, { exerciseId })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 100, reps: 5 })
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${session.id}`, { finish: true })
   return session.id
@@ -17,12 +19,19 @@ async function logWorkout(page: Page, performedOn: string, name: string, exercis
 test('phone: month dots, tap a day, list view, filter by category and clear it', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  const cats = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')).json.categories
+  const cats = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')).json
+    .categories
   const chest = cats.find((c) => c.key === 'chest')!
   const back = cats.find((c) => c.key === 'back')!
-  const make = async (categoryId: number) => (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('PhoneCal '), categoryId, trackingType: 'weight_reps', loadStyle: 'plain'
-  })).json
+  const make = async (categoryId: number) =>
+    (
+      await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+        name: uniquePrefix('PhoneCal '),
+        categoryId,
+        trackingType: 'weight_reps',
+        loadStyle: 'plain'
+      })
+    ).json
   const [press, row] = [await make(chest.id), await make(back.id)]
   const pushName = uniquePrefix('Push ')
   const pullName = uniquePrefix('Pull ')
@@ -90,11 +99,16 @@ test('phone: the empty-day message waits for the month to load', async ({ page, 
   })
   try {
     await goto('/workouts/sessions?view=list&month=2026-03&day=2026-03-02', { waitUntil: 'hydration' })
-    const held = page.waitForRequest((request) => request.url().includes('/api/workouts/sessions?') && request.url().includes('from='))
-    await page.route((url) => url.pathname === '/api/workouts/sessions' && url.searchParams.has('from'), async (route) => {
-      await gate
-      await route.continue()
-    })
+    const held = page.waitForRequest(
+      (request) => request.url().includes('/api/workouts/sessions?') && request.url().includes('from=')
+    )
+    await page.route(
+      (url) => url.pathname === '/api/workouts/sessions' && url.searchParams.has('from'),
+      async (route) => {
+        await gate
+        await route.continue()
+      }
+    )
     await page.locator('[data-test="history-view-month"]').click()
     await held
     await expect(page.locator('[data-test="calendar-day-2026-03-02"]')).toBeVisible()
@@ -108,7 +122,8 @@ test('phone: the empty-day message waits for the month to load', async ({ page, 
 test('phone: export the filtered history as CSV', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  const cats = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')).json.categories
+  const cats = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')).json
+    .categories
   const back = cats.find((c) => c.key === 'back')!
   await goto('/workouts/sessions?month=2026-03', { waitUntil: 'hydration' })
 

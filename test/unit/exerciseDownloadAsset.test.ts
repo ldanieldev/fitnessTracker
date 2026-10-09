@@ -28,8 +28,9 @@ describe('downloadAsset', () => {
   it('reports an HTTP failure without writing anything', async () => {
     const dir = tempDir()
     const notFound = vi.fn(async () => new Response('', { status: 404, statusText: 'Not Found' }))
-    expect(await downloadAsset({ path: 'A/0.jpg', url: 'https://x' }, dir, notFound as unknown as typeof fetch))
-      .toBe('A/0.jpg: 404 Not Found')
+    expect(await downloadAsset({ path: 'A/0.jpg', url: 'https://x' }, dir, notFound as unknown as typeof fetch)).toBe(
+      'A/0.jpg: 404 Not Found'
+    )
     expect(existsSync(join(dir, 'A'))).toBe(false)
   })
 

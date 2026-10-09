@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { loadPlan } from '~/utils/plateCalculator'
 
-const props = defineProps<{ bar: number, sizes: number[] }>()
+const props = defineProps<{ bar: number; sizes: number[] }>()
 const model = defineModel<number | null>({ default: null })
 
 const SIZE_PX: Record<number, number> = { 55: 80, 45: 72, 35: 64, 25: 56, 10: 48, 5: 40, 2.5: 34 }
@@ -34,13 +34,17 @@ function remove(size: number) {
   model.value = loaded()
 }
 
-// Re-seed only on an external change (typing, prefill, "Use this weight"); our own taps keep the plates the user actually picked.
-watch(model, (weight) => {
-  if (weight !== null && weight === loaded()) return
-  counts.clear()
-  if (weight === null) return
-  for (const size of loadPlan(weight, props.bar, props.sizes).exact?.perSide ?? []) counts.set(size, count(size) + 1)
-}, { immediate: true })
+// Re-seed only on an external change (typing, prefill, "Use this weight"); our own taps keep the user's plates.
+watch(
+  model,
+  (weight) => {
+    if (weight !== null && weight === loaded()) return
+    counts.clear()
+    if (weight === null) return
+    for (const size of loadPlan(weight, props.bar, props.sizes).exact?.perSide ?? []) counts.set(size, count(size) + 1)
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -92,11 +96,19 @@ watch(model, (weight) => {
           :aria-label="`Remove a pair of ${size} lb plates`"
           :data-test="`plate-count-${size}`"
           @click="remove(size)"
-        >{{ count(size) }}</button>
+        >
+          {{ count(size) }}
+        </button>
       </div>
     </div>
-    <p v-if="plan?.belowBar" class="text-center text-xs text-warning" data-test="plates-below-bar">Less than the bar ({{ bar }} lb)</p>
-    <p v-else-if="plan && !plan.exact" class="text-center text-xs text-warning" data-test="plates-cant-load">Can't load {{ model }} lb with these plates</p>
-    <p class="text-center text-xs text-dimmed" data-test="plates-caption">Bar: {{ bar }} lb · Tap to add, tap the count to remove</p>
+    <p v-if="plan?.belowBar" class="text-center text-xs text-warning" data-test="plates-below-bar">
+      Less than the bar ({{ bar }} lb)
+    </p>
+    <p v-else-if="plan && !plan.exact" class="text-center text-xs text-warning" data-test="plates-cant-load">
+      Can't load {{ model }} lb with these plates
+    </p>
+    <p class="text-center text-xs text-dimmed" data-test="plates-caption">
+      Bar: {{ bar }} lb · Tap to add, tap the count to remove
+    </p>
   </div>
 </template>

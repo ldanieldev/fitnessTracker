@@ -5,7 +5,11 @@
       <circle cx="60" cy="60" r="44" stroke-dashoffset="-92.15" style="stroke: var(--macro-fat, #a855f7)" />
       <circle cx="60" cy="60" r="44" stroke-dashoffset="-184.31" style="stroke: var(--macro-carb, #f59e0b)" />
     </g>
-    <g stroke-width="3" stroke-linejoin="round" style="fill: var(--logo-page-fill, transparent); stroke: var(--logo-ink, #1e293b)">
+    <g
+      stroke-width="3"
+      stroke-linejoin="round"
+      style="fill: var(--logo-page-fill, transparent); stroke: var(--logo-ink, #1e293b)"
+    >
       <path d="M53 48 Q42 43 28 46 L28 74 Q42 71 53 76 Z" />
       <path d="M67 48 Q78 43 92 46 L92 74 Q78 71 67 76 Z" />
     </g>

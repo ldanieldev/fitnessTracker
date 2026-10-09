@@ -12,9 +12,8 @@ class FakeMeiliSearchProvider {
 
 vi.mock('../../server/utils/nutrition/meiliSearch', () => ({ MeiliSearchProvider: FakeMeiliSearchProvider }))
 
-const { getSearchProvider, markSearchUnhealthy, getFallbackProvider, isDegradedProvider } = await import(
-  '../../server/utils/nutrition/searchProvider'
-)
+const { getSearchProvider, markSearchUnhealthy, getFallbackProvider, isDegradedProvider } =
+  await import('../../server/utils/nutrition/searchProvider')
 
 beforeEach(() => {
   vi.clearAllMocks()

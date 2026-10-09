@@ -41,22 +41,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const hashedPassword = await hashPassword(parsed.data.newPassword)
-  await db
-    .update(users)
-    .set({ password: hashedPassword })
-    .where(eq(users.id, sessionUser.id))
+  await db.update(users).set({ password: hashedPassword }).where(eq(users.id, sessionUser.id))
 
   // If user didn't have credentials provider, add it
   if (!user.password) {
     const hasCredentials = await db
       .select({ id: authProviders.id })
       .from(authProviders)
-      .where(
-        and(
-          eq(authProviders.userId, sessionUser.id),
-          eq(authProviders.provider, 'credentials')
-        )
-      )
+      .where(and(eq(authProviders.userId, sessionUser.id), eq(authProviders.provider, 'credentials')))
       .limit(1)
 
     if (!hasCredentials.length) {

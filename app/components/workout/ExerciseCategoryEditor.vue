@@ -13,9 +13,13 @@ const { data: categories } = useExerciseFetch<ExerciseCategory[]>(
 const list = computed(() => categories.value ?? [])
 
 const drafts = reactive<Record<number, string>>({})
-watch(list, (rows) => {
-  for (const c of rows) drafts[c.id] = c.name
-}, { immediate: true })
+watch(
+  list,
+  (rows) => {
+    for (const c of rows) drafts[c.id] = c.name
+  },
+  { immediate: true }
+)
 
 async function renameCategory(category: ExerciseCategory) {
   const name = drafts[category.id]?.trim()

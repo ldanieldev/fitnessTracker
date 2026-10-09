@@ -5,7 +5,10 @@ export function uniqueEmail(prefix = 'e2e') {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
 }
 
-/** Mandatory for any spec that seeds foods and then searches the picker for them — the e2e DB is never reset, so an unprefixed name can collide with a prior run's rows. */
+/**
+ * Mandatory for any spec that seeds foods and then searches the picker for them — the e2e DB is never reset,
+ * so an unprefixed name can collide with a prior run's rows.
+ */
 export function uniquePrefix(base = 'T') {
   return `${base}${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`
 }
@@ -67,7 +70,7 @@ export interface SeedServingInput {
 /** Seeds a catalogue food (createdByUserId null) via the test-only fixture route. */
 export async function seedCatalogFood(
   page: Page,
-  body: { name: string, brand?: string | null, barcode?: string | null, servings: SeedServingInput[] }
+  body: { name: string; brand?: string | null; barcode?: string | null; servings: SeedServingInput[] }
 ): Promise<{ id: number }> {
   return (await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/_test/catalog-food', body)).json
 }
@@ -76,12 +79,13 @@ export async function seedCatalogFood(
 export async function uploadFiles(
   page: Page,
   path: string,
-  files: Array<{ name: string, text: string, type?: string }>
+  files: Array<{ name: string; text: string; type?: string }>
 ): Promise<ApiResult> {
   return page.evaluate(
     async ({ path, files }) => {
       const form = new FormData()
-      for (const file of files) form.append('files', new File([file.text], file.name, { type: file.type ?? 'text/plain' }))
+      for (const file of files)
+        form.append('files', new File([file.text], file.name, { type: file.type ?? 'text/plain' }))
       const res = await fetch(path, { method: 'POST', body: form })
       const text = await res.text()
       let json: unknown
@@ -96,8 +100,16 @@ export async function uploadFiles(
   )
 }
 
-/** Authenticated calls must run inside the page: page.request drops the SameSite=Lax cookie on test-utils' 127.0.0.1 host. */
-export async function apiFetch<T = unknown>(page: Page, method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
+/**
+ * Authenticated calls must run inside the page: page.request drops the SameSite=Lax cookie on test-utils'
+ * 127.0.0.1 host.
+ */
+export async function apiFetch<T = unknown>(
+  page: Page,
+  method: string,
+  path: string,
+  body?: unknown
+): Promise<ApiResult<T>> {
   return page.evaluate(
     async ({ method, path, body }) => {
       const res = await fetch(path, {
@@ -118,7 +130,7 @@ export async function apiFetch<T = unknown>(page: Page, method: string, path: st
   ) as Promise<ApiResult<T>>
 }
 
-// Meilisearch's addDocuments only enqueues the task; force a synchronous rebuild so a search right after seeding sees it.
+// Meilisearch's addDocuments only enqueues; force a synchronous rebuild so a search right after seeding sees it.
 export async function rebuildSearchIndex(page: Page) {
   if (!process.env.NUXT_MEILI_HOST) return
   const res = await apiFetch(page, 'POST', '/api/nutrition/_test/search-rebuild')

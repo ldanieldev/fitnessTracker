@@ -1,12 +1,36 @@
 import { describe, expect, it } from 'vitest'
 
 const rows = [
-  { servingId: 11, kind: 'weight', label: 'g', quantity: '100', basisGrams: '100',
-    hasOwnNutrition: true, nutrientId: 1, amount: '1' },
-  { servingId: 11, kind: 'weight', label: 'g', quantity: '100', basisGrams: '100',
-    hasOwnNutrition: true, nutrientId: 2, amount: '2' },
-  { servingId: 10, kind: 'named', label: 'slice', quantity: '1', basisGrams: null,
-    hasOwnNutrition: true, nutrientId: 1, amount: '3' }
+  {
+    servingId: 11,
+    kind: 'weight',
+    label: 'g',
+    quantity: '100',
+    basisGrams: '100',
+    hasOwnNutrition: true,
+    nutrientId: 1,
+    amount: '1'
+  },
+  {
+    servingId: 11,
+    kind: 'weight',
+    label: 'g',
+    quantity: '100',
+    basisGrams: '100',
+    hasOwnNutrition: true,
+    nutrientId: 2,
+    amount: '2'
+  },
+  {
+    servingId: 10,
+    kind: 'named',
+    label: 'slice',
+    quantity: '1',
+    basisGrams: null,
+    hasOwnNutrition: true,
+    nutrientId: 1,
+    amount: '3'
+  }
 ]
 
 describe('toFoodForResolve', () => {
@@ -35,8 +59,18 @@ describe('toFoodForResolve', () => {
 
   it('retains a serving that has no nutrient rows at all', async () => {
     const { toFoodForResolve } = await import('../../server/utils/nutrition/loadFood')
-    const derived = [{ servingId: 12, kind: 'named', label: 'cup', quantity: '1', basisGrams: '120',
-      hasOwnNutrition: false, nutrientId: null, amount: null }]
+    const derived = [
+      {
+        servingId: 12,
+        kind: 'named',
+        label: 'cup',
+        quantity: '1',
+        basisGrams: '120',
+        hasOwnNutrition: false,
+        nutrientId: null,
+        amount: null
+      }
+    ]
     const food = toFoodForResolve(7, derived)
     expect(food.servings).toHaveLength(1)
     expect(food.servings[0]!.nutrients).toEqual({})

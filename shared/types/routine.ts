@@ -5,7 +5,7 @@ export interface RoutineSummary {
   name: string
   active: boolean
   dayCount: number
-  nextDay: { id: number, name: string } | null
+  nextDay: { id: number; name: string } | null
 }
 
 export interface RoutineEntry {

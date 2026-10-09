@@ -49,9 +49,13 @@ export function sessionFilterParams(filter: SessionFilter): string {
 }
 
 export function filterFromRoute(query: Record<string, unknown>): SessionFilter {
-  const categories = typeof query.cat === 'string'
-    ? query.cat.split(',').map(positiveInt).filter((id): id is number => id !== undefined)
-    : []
+  const categories =
+    typeof query.cat === 'string'
+      ? query.cat
+          .split(',')
+          .map(positiveInt)
+          .filter((id): id is number => id !== undefined)
+      : []
   const minReps = positiveInt(query.r)
   return normalized({
     categories,

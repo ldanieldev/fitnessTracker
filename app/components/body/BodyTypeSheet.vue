@@ -26,14 +26,18 @@ const directionItems = [
   { label: 'Higher is better', value: 'higher' }
 ]
 
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  confirmingDelete.value = false
-  name.value = props.type?.name ?? ''
-  unit.value = props.type?.unit ?? ''
-  precision.value = props.type?.precision ?? 1
-  direction.value = props.type?.direction ?? 'neutral'
-}, { immediate: true })
+watch(
+  open,
+  (isOpen) => {
+    if (!isOpen) return
+    confirmingDelete.value = false
+    name.value = props.type?.name ?? ''
+    unit.value = props.type?.unit ?? ''
+    precision.value = props.type?.precision ?? 1
+    direction.value = props.type?.direction ?? 'neutral'
+  },
+  { immediate: true }
+)
 
 const canSave = computed(() => name.value.trim() !== '' && unit.value.trim() !== '' && !saving.value)
 
@@ -44,13 +48,22 @@ function invalidate() {
 async function save() {
   if (!canSave.value) return
   saving.value = true
-  const body = { name: name.value.trim(), unit: unit.value.trim(), precision: precision.value, direction: direction.value }
+  const body = {
+    name: name.value.trim(),
+    unit: unit.value.trim(),
+    precision: precision.value,
+    direction: direction.value
+  }
   try {
     if (props.type) await apiFetch(`/api/body/types/${props.type.id}`, { method: 'PATCH', body })
     else await apiFetch('/api/body/types', { method: 'POST', body })
     await invalidate()
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this measurement type'), color: 'error' })
+    toast.add({
+      title: 'Save failed',
+      description: errorMessage(error, 'Could not save this measurement type'),
+      color: 'error'
+    })
     return
   } finally {
     saving.value = false
@@ -66,7 +79,11 @@ async function remove() {
     await apiFetch(`/api/body/types/${props.type.id}`, { method: 'DELETE' })
     await invalidate()
   } catch (error: unknown) {
-    toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete this measurement type'), color: 'error' })
+    toast.add({
+      title: 'Delete failed',
+      description: errorMessage(error, 'Could not delete this measurement type'),
+      color: 'error'
+    })
     return
   } finally {
     saving.value = false
@@ -95,8 +112,23 @@ async function remove() {
           <USelect v-model="direction" :items="directionItems" class="w-full" data-test="type-direction" />
         </UFormField>
         <div v-if="!confirmingDelete" class="flex w-full gap-2">
-          <UButton v-if="type" icon="i-lucide-trash-2" color="error" variant="soft" aria-label="Delete measurement type" data-test="type-delete" @click="confirmingDelete = true" />
-          <UButton label="Save" class="ml-auto" :loading="saving" :disabled="!canSave" data-test="type-save" @click="save" />
+          <UButton
+            v-if="type"
+            icon="i-lucide-trash-2"
+            color="error"
+            variant="soft"
+            aria-label="Delete measurement type"
+            data-test="type-delete"
+            @click="confirmingDelete = true"
+          />
+          <UButton
+            label="Save"
+            class="ml-auto"
+            :loading="saving"
+            :disabled="!canSave"
+            data-test="type-save"
+            @click="save"
+          />
         </div>
         <p v-if="type" class="text-xs text-dimmed">Deleting hides this measurement; its readings are kept.</p>
       </div>
@@ -104,7 +136,14 @@ async function remove() {
     <template v-if="type && confirmingDelete" #footer>
       <div class="flex w-full gap-2">
         <UButton label="Cancel" color="neutral" variant="outline" @click="confirmingDelete = false" />
-        <UButton label="Delete" color="error" class="ml-auto" :loading="saving" data-test="type-delete-confirm" @click="remove" />
+        <UButton
+          label="Delete"
+          color="error"
+          class="ml-auto"
+          :loading="saving"
+          data-test="type-delete-confirm"
+          @click="remove"
+        />
       </div>
     </template>
   </AppSheet>

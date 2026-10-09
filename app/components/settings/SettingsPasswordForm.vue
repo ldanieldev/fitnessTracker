@@ -29,7 +29,7 @@ const schemaWithoutCurrent = z
     path: ['confirmPassword']
   })
 
-const schema = computed(() => props.hasCredentials ? schemaWithCurrent : schemaWithoutCurrent)
+const schema = computed(() => (props.hasCredentials ? schemaWithCurrent : schemaWithoutCurrent))
 
 type SchemaWithCurrent = z.input<typeof schemaWithCurrent>
 type SchemaWithoutCurrent = z.input<typeof schemaWithoutCurrent>
@@ -60,9 +60,10 @@ async function onSubmit(payload: FormSubmitEvent<SchemaWithCurrent | SchemaWitho
     state.newPassword = ''
     state.confirmPassword = ''
   } catch (error: unknown) {
-    const message = error instanceof Error && 'data' in error
-      ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-      : undefined
+    const message =
+      error instanceof Error && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : undefined
     toast.add({
       title: 'Failed',
       description: message || 'Could not update password',
@@ -88,6 +89,11 @@ async function onSubmit(payload: FormSubmitEvent<SchemaWithCurrent | SchemaWitho
       <UInput v-model="state.confirmPassword" type="password" class="w-full" />
     </UFormField>
 
-    <UButton type="submit" :label="hasCredentials ? 'Change password' : 'Set password'" :loading="loading" class="w-fit" />
+    <UButton
+      type="submit"
+      :label="hasCredentials ? 'Change password' : 'Set password'"
+      :loading="loading"
+      class="w-fit"
+    />
   </UForm>
 </template>

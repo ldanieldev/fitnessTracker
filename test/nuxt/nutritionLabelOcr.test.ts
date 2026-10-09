@@ -23,7 +23,7 @@ vi.mock('tesseract.js', () => ({
   }))
 }))
 
-// happy-dom's canvas has no adapter (getContext('2d') returns null), so image preprocessing is stubbed to return an inert canvas.
+// happy-dom's canvas has no adapter (getContext('2d') is null), so preprocessing is stubbed with an inert canvas.
 vi.mock('~/utils/ocr/preprocess', () => ({
   loadImageToCanvas: vi.fn(async () => document.createElement('canvas')),
   preprocessForOcr: vi.fn(() => ({}) as ImageData)
@@ -47,11 +47,15 @@ describe('NutritionLabelOcr', () => {
 
     expect(wrapper.find('[data-test="ocr-raw"]').text()).toBe(usLabel)
 
-    expect(createWorker).toHaveBeenCalledWith('eng', undefined, expect.objectContaining({
-      workerPath: expect.stringMatching(/^\/ocr\//),
-      corePath: expect.stringMatching(/^\/ocr\//),
-      langPath: expect.stringMatching(/^\/ocr\//)
-    }))
+    expect(createWorker).toHaveBeenCalledWith(
+      'eng',
+      undefined,
+      expect.objectContaining({
+        workerPath: expect.stringMatching(/^\/ocr\//),
+        corePath: expect.stringMatching(/^\/ocr\//),
+        langPath: expect.stringMatching(/^\/ocr\//)
+      })
+    )
 
     await wrapper.find('[data-test="ocr-apply"]').trigger('click')
 
@@ -80,10 +84,13 @@ describe('NutritionLabelOcr', () => {
     const recognizePromise = new Promise<{ data: { text: string } }>((resolve) => {
       resolveRecognize = resolve
     })
-    vi.mocked(createWorker).mockImplementationOnce(async () => ({
-      recognize: () => recognizePromise,
-      terminate
-    }) as never)
+    vi.mocked(createWorker).mockImplementationOnce(
+      async () =>
+        ({
+          recognize: () => recognizePromise,
+          terminate
+        }) as never
+    )
 
     const wrapper = await mountSuspended(NutritionLabelOcr)
     await selectFile(wrapper)

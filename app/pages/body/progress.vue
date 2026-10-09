@@ -17,7 +17,9 @@ const range = useBodyRange()
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
         <AppRangeTabs v-model="range" />
         <BodyProgressCard v-for="metric in metrics" :key="metric.type.id" :metric="metric" :range="range" />
-        <p v-if="metrics.length === 0" class="text-sm text-dimmed" data-test="progress-empty">Every measurement is hidden</p>
+        <p v-if="metrics.length === 0" class="text-sm text-dimmed" data-test="progress-empty">
+          Every measurement is hidden
+        </p>
       </div>
     </template>
   </UDashboardPanel>

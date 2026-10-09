@@ -26,7 +26,7 @@ interface PlannedEntry {
 }
 
 async function resolveExercises<T extends { exerciseId: number }>(userId: number, rows: T[]) {
-  const resolved: (T & { trackingType: TrackingType, loadStyle: LoadStyle | null })[] = []
+  const resolved: (T & { trackingType: TrackingType; loadStyle: LoadStyle | null })[] = []
   for (const row of rows) {
     try {
       const exercise = await loadExerciseSettings(userId, row.exerciseId)
@@ -45,7 +45,12 @@ interface DayClaim {
   nextDayId: number | null
 }
 
-async function claimRoutineDay(tx: DbClient, userId: number, dayId: number, choice: PointerChoice | undefined): Promise<DayClaim> {
+async function claimRoutineDay(
+  tx: DbClient,
+  userId: number,
+  dayId: number,
+  choice: PointerChoice | undefined
+): Promise<DayClaim> {
   const { routineId } = await ownedRoutineDay(userId, dayId, tx)
   // Routine row before any day row, everywhere: every day writer holds it, so no day can vanish while the start runs.
   const routine = await lockRoutine(tx, userId, routineId)
@@ -64,49 +69,63 @@ async function claimRoutineDay(tx: DbClient, userId: number, dayId: number, choi
 }
 
 async function routineDayEntries(tx: DbClient, userId: number, dayId: number): Promise<PlannedEntry[]> {
-  const rows = await tx.select().from(workoutTemplateEntries).where(eq(workoutTemplateEntries.templateId, dayId))
+  const rows = await tx
+    .select()
+    .from(workoutTemplateEntries)
+    .where(eq(workoutTemplateEntries.templateId, dayId))
     .orderBy(asc(workoutTemplateEntries.sortOrder), asc(workoutTemplateEntries.id))
   const resolved = await resolveExercises(userId, rows)
-  return normalizeGroups(resolved.map((row) => ({
-    id: row.id,
-    exerciseId: row.exerciseId,
-    trackingType: row.trackingType,
-    loadStyle: row.loadStyle,
-    notes: row.notes,
-    target: toEntryTarget(row),
-    supersetGroup: row.supersetGroup,
-    optional: row.optional,
-    restSeconds: row.restSeconds
-  })))
+  return normalizeGroups(
+    resolved.map((row) => ({
+      id: row.id,
+      exerciseId: row.exerciseId,
+      trackingType: row.trackingType,
+      loadStyle: row.loadStyle,
+      notes: row.notes,
+      target: toEntryTarget(row),
+      supersetGroup: row.supersetGroup,
+      optional: row.optional,
+      restSeconds: row.restSeconds
+    }))
+  )
 }
 
-async function copiedEntries(userId: number, copyFromId: number, entryIds: number[] | undefined): Promise<PlannedEntry[]> {
+async function copiedEntries(
+  userId: number,
+  copyFromId: number,
+  entryIds: number[] | undefined
+): Promise<PlannedEntry[]> {
   const source = await loadSession(userId, copyFromId)
   if (entryIds?.some((id) => !source.entries.some((entry) => entry.id === id))) {
     throw createError({ statusCode: 400, statusMessage: 'Those exercises are not in that workout' })
   }
   const picked = entryIds ? source.entries.filter((entry) => entryIds.includes(entry.id)) : source.entries
-  const resolved = await resolveExercises(userId, picked.map((entry) => ({
-    id: entry.id,
-    exerciseId: entry.exerciseId,
-    sourceTrackingType: entry.trackingType,
-    sets: entry.sets,
-    sourceTarget: entry.target,
-    supersetGroup: entry.supersetGroup,
-    optional: entry.optional,
-    restSeconds: entry.restOverrideSeconds
-  })))
-  return normalizeGroups(resolved.map((row) => ({
-    id: row.id,
-    exerciseId: row.exerciseId,
-    trackingType: row.trackingType,
-    loadStyle: row.loadStyle,
-    notes: null,
-    target: copyTargetsFrom(row.trackingType, row.sets, row.sourceTarget, row.sourceTrackingType),
-    supersetGroup: row.supersetGroup,
-    optional: row.optional,
-    restSeconds: row.restSeconds
-  })))
+  const resolved = await resolveExercises(
+    userId,
+    picked.map((entry) => ({
+      id: entry.id,
+      exerciseId: entry.exerciseId,
+      sourceTrackingType: entry.trackingType,
+      sets: entry.sets,
+      sourceTarget: entry.target,
+      supersetGroup: entry.supersetGroup,
+      optional: entry.optional,
+      restSeconds: entry.restOverrideSeconds
+    }))
+  )
+  return normalizeGroups(
+    resolved.map((row) => ({
+      id: row.id,
+      exerciseId: row.exerciseId,
+      trackingType: row.trackingType,
+      loadStyle: row.loadStyle,
+      notes: null,
+      target: copyTargetsFrom(row.trackingType, row.sets, row.sourceTarget, row.sourceTrackingType),
+      supersetGroup: row.supersetGroup,
+      optional: row.optional,
+      restSeconds: row.restSeconds
+    }))
+  )
 }
 
 export async function startSession(userId: number, input: SessionStartInput): Promise<WorkoutSession> {
@@ -122,9 +141,8 @@ export async function startSession(userId: number, input: SessionStartInput): Pr
 
   try {
     const id = await db.transaction(async (tx) => {
-      const claim = input.routineDayId !== undefined
-        ? await claimRoutineDay(tx, userId, input.routineDayId, input.pointer)
-        : null
+      const claim =
+        input.routineDayId !== undefined ? await claimRoutineDay(tx, userId, input.routineDayId, input.pointer) : null
       const tag = await sessionProgramTag(tx, userId, input.performedOn)
       // Insert before reading entries so the open-workout index refuses a second start before the expensive reads.
       const row = await tx

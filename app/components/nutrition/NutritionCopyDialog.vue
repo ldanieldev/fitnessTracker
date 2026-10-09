@@ -12,18 +12,20 @@ interface CopySourceEntry {
 const props = defineProps<{
   open: boolean
   sourceEntries: CopySourceEntry[]
-  containers: Array<{ id: number, name: string }>
+  containers: Array<{ id: number; name: string }>
   defaultDate: string
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  confirm: [payload: {
-    sourceEntryIds: number[]
-    targetDate: string
-    targetContainerId: number | null
-    overrides: CopyOverride[]
-  }]
+  confirm: [
+    payload: {
+      sourceEntryIds: number[]
+      targetDate: string
+      targetContainerId: number | null
+      overrides: CopyOverride[]
+    }
+  ]
 }>()
 
 const KEEP_ORIGINAL_CONTAINER = '__keep_original__'
@@ -53,9 +55,12 @@ function resetState() {
   }
 }
 
-watch(() => props.open, (isOpen) => {
-  if (isOpen) resetState()
-})
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) resetState()
+  }
+)
 watch(() => props.sourceEntries, resetState, { immediate: true })
 
 const overrides = computed<CopyOverride[]>(() =>
@@ -100,12 +105,7 @@ function confirm() {
         </UFormField>
 
         <div class="flex flex-col gap-2">
-          <div
-            v-for="entry in sourceEntries"
-            :key="entry.id"
-            class="flex flex-col gap-1"
-            data-test="copy-source-row"
-          >
+          <div v-for="entry in sourceEntries" :key="entry.id" class="flex flex-col gap-1" data-test="copy-source-row">
             <div class="flex items-center gap-2">
               <UCheckbox
                 :model-value="checked.get(entry.id) ?? true"
@@ -115,7 +115,7 @@ function confirm() {
               <span class="flex-1 truncate">{{ entry.description }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <!-- AppNumberInput's root is w-full, so the width has to sit on a wrapper or the unit gets pushed across the row -->
+              <!-- AppNumberInput's root is w-full; width goes on a wrapper or the unit is pushed across the row -->
               <div class="w-28 shrink-0">
                 <AppNumberInput
                   :model-value="quantities.get(entry.id) ?? entry.quantity"

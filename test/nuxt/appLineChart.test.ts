@@ -4,7 +4,10 @@ import { mountSuspended } from '@nuxt/test-utils/runtime'
 import AppLineChart from '../../app/components/AppLineChart.vue'
 
 const props = {
-  points: [{ date: '2026-03-01', value: 185 }, { date: '2026-03-08', value: 205 }],
+  points: [
+    { date: '2026-03-01', value: 185 },
+    { date: '2026-03-08', value: 205 }
+  ],
   trend: [],
   goal: null,
   from: '2026-03-01',
@@ -14,7 +17,11 @@ const props = {
   emptyText: 'Nothing here'
 }
 
-interface TooltipProps { dot: { value: number }, previous: { value: number } | null, when: string }
+interface TooltipProps {
+  dot: { value: number }
+  previous: { value: number } | null
+  when: string
+}
 
 describe('AppLineChart', () => {
   it('labels itself with the summary and shows the empty text only without points', async () => {
@@ -41,6 +48,8 @@ describe('AppLineChart', () => {
     const wrapper = await mountSuspended(Pair)
     const ids = wrapper.findAll('linearGradient').map((g) => g.attributes('id'))
     expect(new Set(ids).size).toBe(2)
-    expect(wrapper.findAll('path[fill^="url("]').map((p) => p.attributes('fill'))).toEqual(ids.map((id) => `url(#${id})`))
+    expect(wrapper.findAll('path[fill^="url("]').map((p) => p.attributes('fill'))).toEqual(
+      ids.map((id) => `url(#${id})`)
+    )
   })
 })

@@ -32,11 +32,14 @@ describe('recordsFor: weight for reps', () => {
 
   it('inverts for assisted exercises, so less assistance wins', () => {
     const assisted = [set(1, { weight: 40, reps: 8 })]
-    expect(recordsFor(set(2, { weight: 30, reps: 8 }), assisted, 'weight_reps', 'assisted'))
-      .toEqual([{ kind: 'weight_reps', previous: 40 }])
+    expect(recordsFor(set(2, { weight: 30, reps: 8 }), assisted, 'weight_reps', 'assisted')).toEqual([
+      { kind: 'weight_reps', previous: 40 }
+    ])
     expect(recordsFor(set(2, { weight: 50, reps: 8 }), assisted, 'weight_reps', 'assisted')).toEqual([])
     expect(recordsFor(set(1, { weight: 40, reps: 8 }), [], 'weight_reps', 'assisted')).toEqual([])
-    expect(recordsFor(set(2, { weight: 30, reps: 6 }), [set(1, { weight: 40, reps: 8 })], 'weight_reps', 'assisted')).toEqual([])
+    expect(
+      recordsFor(set(2, { weight: 30, reps: 6 }), [set(1, { weight: 40, reps: 8 })], 'weight_reps', 'assisted')
+    ).toEqual([])
   })
 
   it('LG-R19: a dominated set is no record, however different the rep count', () => {
@@ -48,21 +51,26 @@ describe('recordsFor: weight for reps', () => {
 
   it('WT-R16: heavier at fewer reps is no record unless it beats an earlier set on both axes', () => {
     const earlier = [set(1, { weight: 115, reps: 16 }), set(2, { weight: 115, reps: 14 })]
-    expect(recordsFor(set(3, { weight: 120, reps: 15 }), earlier, 'weight_reps', 'plain'))
-      .toEqual([{ kind: 'weight_reps', previous: 115 }])
-    expect(recordsFor(set(2, { weight: 120, reps: 15 }), [set(1, { weight: 115, reps: 16 })], 'weight_reps', 'plain')).toEqual([])
+    expect(recordsFor(set(3, { weight: 120, reps: 15 }), earlier, 'weight_reps', 'plain')).toEqual([
+      { kind: 'weight_reps', previous: 115 }
+    ])
+    expect(
+      recordsFor(set(2, { weight: 120, reps: 15 }), [set(1, { weight: 115, reps: 16 })], 'weight_reps', 'plain')
+    ).toEqual([])
   })
 
   it('LG-R19: more reps at the same weight is a record with no previous value at that rep count', () => {
     const opener = [set(1, { weight: 115, reps: 16 })]
-    expect(recordsFor(set(2, { weight: 115, reps: 17 }), opener, 'weight_reps', 'plain'))
-      .toEqual([{ kind: 'weight_reps', previous: null }])
+    expect(recordsFor(set(2, { weight: 115, reps: 17 }), opener, 'weight_reps', 'plain')).toEqual([
+      { kind: 'weight_reps', previous: null }
+    ])
   })
 
   it('LG-R19: assistance dominates on less assistance and more reps', () => {
     const history = [set(1, { weight: 40, reps: 8 }), set(2, { weight: 40, reps: 6 })]
-    expect(recordsFor(set(3, { weight: 30, reps: 6 }), history, 'weight_reps', 'assisted'))
-      .toEqual([{ kind: 'weight_reps', previous: 40 }])
+    expect(recordsFor(set(3, { weight: 30, reps: 6 }), history, 'weight_reps', 'assisted')).toEqual([
+      { kind: 'weight_reps', previous: 40 }
+    ])
     const after = [...history, set(3, { weight: 30, reps: 6 })]
     expect(recordsFor(set(4, { weight: 45, reps: 8 }), after, 'weight_reps', 'assisted')).toEqual([])
   })
@@ -95,8 +103,9 @@ describe('recordsFor: reps, distance and pace', () => {
 
   it('skips pace when a set carries only one of the two measures', () => {
     const history = [set(1, { distanceMeters: 5000 })]
-    expect(recordsFor(set(2, { distanceMeters: 8000 }), history, 'distance', null))
-      .toEqual([{ kind: 'distance', previous: 5000 }])
+    expect(recordsFor(set(2, { distanceMeters: 8000 }), history, 'distance', null)).toEqual([
+      { kind: 'distance', previous: 5000 }
+    ])
   })
 })
 
@@ -107,7 +116,11 @@ describe('recordsForEarlier: LG-R5 partition', () => {
   })
 
   it('never looks ahead: rows positioned after the set are not "earlier" even with a lower id', () => {
-    const history = [set(5, { weight: 135, reps: 8 }), set(10, { weight: 185, reps: 8 }), set(50, { weight: 225, reps: 8 })]
+    const history = [
+      set(5, { weight: 135, reps: 8 }),
+      set(10, { weight: 185, reps: 8 }),
+      set(50, { weight: 225, reps: 8 })
+    ]
     expect(recordsForEarlier(history, 10, 'weight_reps', 'plain')).toEqual([{ kind: 'weight_reps', previous: 135 }])
   })
 

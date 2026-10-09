@@ -27,7 +27,7 @@ export const programPhases = appSchema.table(
     name: varchar('name', { length: 255 }).notNull(),
     sortOrder: integer('sort_order').notNull(),
     weeks: smallint('weeks').notNull(),
-    // set null, not no action: a user delete cascades to routines before phases; in-app deletes of a used routine are refused (409).
+    // set null, not no action: a user delete cascades routines before phases; in-app used-routine deletes 409.
     routineId: integer('routine_id').references(() => routines.id, { onDelete: 'set null' }),
     deload: boolean('deload').notNull().default(false)
   },
@@ -55,7 +55,9 @@ export const userProgramEnrollments = appSchema.table(
     notice: varchar('notice', { enum: ['phase', 'complete'] }).default(sql`null`)
   },
   (table) => [
-    uniqueIndex('enrollment_one_live').on(table.userId).where(sql`status in ('active', 'paused')`),
+    uniqueIndex('enrollment_one_live')
+      .on(table.userId)
+      .where(sql`status in ('active', 'paused')`),
     index('enrollment_program').on(table.programId)
   ]
 )

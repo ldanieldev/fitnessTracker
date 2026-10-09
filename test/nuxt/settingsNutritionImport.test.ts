@@ -36,7 +36,9 @@ describe('SettingsNutritionImport', () => {
           foodsCreated: 12,
           foodsReused: 0,
           containersCreated: 0,
-          warnings: [{ date: '2026-09-05', code: 'oz_as_fluid', message: 'Silk Vanilla Almond Milk imported as fl oz' }],
+          warnings: [
+            { date: '2026-09-05', code: 'oz_as_fluid', message: 'Silk Vanilla Almond Milk imported as fl oz' }
+          ],
           failedFiles: []
         },
         error: null,
@@ -199,7 +201,7 @@ describe('SettingsNutritionImport', () => {
     await flushPromises()
 
     expect(toastAddMock).toHaveBeenCalledTimes(1)
-    const call = toastAddMock.mock.calls[0]![0] as { title: string, description: string }
+    const call = toastAddMock.mock.calls[0]![0] as { title: string; description: string }
     expect(call.description).toContain('42')
     expect(wrapper.find('[data-test="import-submit"]').attributes('disabled')).toBeUndefined()
   })

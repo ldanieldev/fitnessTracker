@@ -27,7 +27,10 @@ describe('loadPlan', () => {
 
   it('treats the bar alone as an exact load', () => {
     expect(loadPlan(45, 45, DEFAULTS)).toEqual({
-      belowBar: false, exact: { perSide: [], total: 45 }, below: null, above: null
+      belowBar: false,
+      exact: { perSide: [], total: 45 },
+      below: null,
+      above: null
     })
   })
 
@@ -53,7 +56,10 @@ describe('loadPlan', () => {
   })
 
   it('still plans a target at the 2000 lb ceiling', () => {
-    expect(loadPlan(2045, 45, DEFAULTS).exact).toEqual({ perSide: [45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 10], total: 2045 })
+    expect(loadPlan(2045, 45, DEFAULTS).exact).toEqual({
+      perSide: [45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 10],
+      total: 2045
+    })
   })
 })
 

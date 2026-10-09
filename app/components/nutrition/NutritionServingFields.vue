@@ -2,10 +2,14 @@
 import type { NutrientField, ServingDraft } from '~/utils/nutrition/servingDraft'
 import { draftError } from '~/utils/nutrition/servingDraft'
 
-defineProps<{ fields: NutrientField[], weightTaken?: boolean }>()
+defineProps<{ fields: NutrientField[]; weightTaken?: boolean }>()
 const draft = defineModel<ServingDraft>({ required: true })
 
-const weightLabels = [{ label: 'g', value: 'g' }, { label: 'oz', value: 'oz' }, { label: 'lb', value: 'lb' }]
+const weightLabels = [
+  { label: 'g', value: 'g' },
+  { label: 'oz', value: 'oz' },
+  { label: 'lb', value: 'lb' }
+]
 const error = computed(() => draftError(draft.value))
 
 function patch(values: Partial<ServingDraft>) {
@@ -26,7 +30,10 @@ function setNutrient(key: string, value: string) {
     <div class="grid grid-cols-2 gap-2">
       <USelect
         :model-value="draft.kind"
-        :items="[{ label: 'Weight', value: 'weight', disabled: weightTaken && draft.kind !== 'weight' }, { label: 'Named', value: 'named' }]"
+        :items="[
+          { label: 'Weight', value: 'weight', disabled: weightTaken && draft.kind !== 'weight' },
+          { label: 'Named', value: 'named' }
+        ]"
         class="w-full"
         data-test="serving-kind"
         @update:model-value="(value) => setKind(value as 'weight' | 'named')"
@@ -51,7 +58,13 @@ function setNutrient(key: string, value: string) {
     </div>
     <div class="grid grid-cols-2 gap-2">
       <UFormField label="Quantity">
-        <AppNumberInput :model-value="draft.quantity" :min="0" class="w-full" data-test="serving-quantity" @update:model-value="(value) => patch({ quantity: value ?? 0 })" />
+        <AppNumberInput
+          :model-value="draft.quantity"
+          :min="0"
+          class="w-full"
+          data-test="serving-quantity"
+          @update:model-value="(value) => patch({ quantity: value ?? 0 })"
+        />
       </UFormField>
       <UFormField v-if="draft.kind === 'named'" label="Grams (optional)">
         <UInput

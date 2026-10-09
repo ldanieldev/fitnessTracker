@@ -8,7 +8,10 @@ describe('coalesceOutbox', () => {
       { id: 2, entityId: 8, op: 'upsert' as const },
       { id: 3, entityId: 7, op: 'delete' as const }
     ]
-    expect(coalesceOutbox(rows)).toEqual([{ entityId: 8, op: 'upsert' }, { entityId: 7, op: 'delete' }])
+    expect(coalesceOutbox(rows)).toEqual([
+      { entityId: 8, op: 'upsert' },
+      { entityId: 7, op: 'delete' }
+    ])
   })
 
   it('collapses repeated upserts to one', async () => {

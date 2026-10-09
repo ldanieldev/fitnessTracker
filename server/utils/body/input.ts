@@ -34,7 +34,9 @@ export const typeCreateSchema = z.object({
   direction: z.enum(['lower', 'higher', 'neutral'])
 })
 
-export const typePatchSchema = typeCreateSchema.partial().refine((body) => Object.keys(body).length > 0, 'Nothing to update')
+export const typePatchSchema = typeCreateSchema
+  .partial()
+  .refine((body) => Object.keys(body).length > 0, 'Nothing to update')
 
 export const prefsPutSchema = z.object({
   hidden: z.boolean().optional(),

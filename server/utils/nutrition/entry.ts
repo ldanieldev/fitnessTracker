@@ -85,14 +85,18 @@ export async function writeEntry(tx: DbClient, args: WriteEntryArgs) {
 export function selectUnit(
   food: FoodForResolve,
   rawLabel: string
-): { selection: UnitSelection, unitLabel: string, foodServingId: number | null } {
+): { selection: UnitSelection; unitLabel: string; foodServingId: number | null } {
   const normalized = normalizeUnitLabel(rawLabel)
   if (normalized.kind === 'weight') {
     return { selection: { type: 'mass', unit: normalized.unit }, unitLabel: normalized.unit, foodServingId: null }
   }
   const serving = food.servings.find((s) => s.label === normalized.label)
   if (!serving) throw createError({ statusCode: 400, statusMessage: 'Unknown serving unit' })
-  return { selection: { type: 'serving', servingId: serving.id }, unitLabel: normalized.label, foodServingId: serving.id }
+  return {
+    selection: { type: 'serving', servingId: serving.id },
+    unitLabel: normalized.label,
+    foodServingId: serving.id
+  }
 }
 
 export async function resolveEntryInput(

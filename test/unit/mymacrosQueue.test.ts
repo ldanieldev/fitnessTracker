@@ -34,7 +34,10 @@ describe('queueImportJob', () => {
     await expect(queueImportJob(db as never, 42, 7)).rejects.toThrow('runner unreachable')
 
     expect(db.update).toHaveBeenCalledTimes(1)
-    expect(db.set).toHaveBeenCalledWith({ status: 'failed', error: 'Could not queue the import job: runner unreachable' })
+    expect(db.set).toHaveBeenCalledWith({
+      status: 'failed',
+      error: 'Could not queue the import job: runner unreachable'
+    })
     expect(db.where).toHaveBeenCalledTimes(1)
   })
 })

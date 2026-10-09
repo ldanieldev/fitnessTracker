@@ -14,8 +14,9 @@ const rows = [
 describe('toCsv', () => {
   it('emits a header of date, profile and each nutrient key with its target', async () => {
     const { toCsv } = await import('../../shared/utils/nutritionExport')
-    expect(toCsv(rows, ['energy', 'protein']).split('\n')[0])
-      .toBe('date,profile,energy,energy_target,protein,protein_target')
+    expect(toCsv(rows, ['energy', 'protein']).split('\n')[0]).toBe(
+      'date,profile,energy,energy_target,protein,protein_target'
+    )
   })
 
   it('leaves unlogged days blank rather than writing zero', async () => {

@@ -81,7 +81,9 @@ describe('aggregateExternalResults', () => {
 
   it('turns a rejected ExternalSourceError into a typed error entry', () => {
     const err = new ExternalSourceError('usda', 'rate_limited', 'too many requests')
-    const { results, errors } = aggregateExternalResults([{ source: 'usda', result: { status: 'rejected', reason: err } }])
+    const { results, errors } = aggregateExternalResults([
+      { source: 'usda', result: { status: 'rejected', reason: err } }
+    ])
     expect(results).toEqual([])
     expect(errors).toEqual([{ source: 'usda', kind: 'rate_limited', message: 'too many requests' }])
   })

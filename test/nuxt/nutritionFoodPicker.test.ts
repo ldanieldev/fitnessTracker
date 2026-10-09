@@ -23,8 +23,25 @@ const recentHits = [
 
 function detail(id: number, name: string): FoodDetail {
   return {
-    id, name, brand: null, barcode: null, createdByUserId: 1, source: null, defaultServingId: id * 10, energyDensity: null,
-    servings: [{ id: id * 10, kind: 'named' as const, label: 'serving', quantity: 1, basisGrams: null, hasOwnNutrition: true, nutrients: {} }]
+    id,
+    name,
+    brand: null,
+    barcode: null,
+    createdByUserId: 1,
+    source: null,
+    defaultServingId: id * 10,
+    energyDensity: null,
+    servings: [
+      {
+        id: id * 10,
+        kind: 'named' as const,
+        label: 'serving',
+        quantity: 1,
+        basisGrams: null,
+        hasOwnNutrition: true,
+        nutrients: {}
+      }
+    ]
   } as FoodDetail
 }
 
@@ -58,10 +75,15 @@ describe('NutritionFoodPicker', () => {
     await checkboxes[1]!.vm.$emit('update:modelValue', true)
     await vi.waitFor(() => expect(wrapper.findAllComponents(NutritionAmountInput)).toHaveLength(2))
 
-    await wrapper.findAllComponents(NutritionAmountInput)[0]!.vm.$emit('update:modelValue', { quantity: 2, unitLabel: 'serving' })
+    await wrapper
+      .findAllComponents(NutritionAmountInput)[0]!
+      .vm.$emit('update:modelValue', { quantity: 2, unitLabel: 'serving' })
 
     const model = wrapper.props('modelValue') as PickedFood[]
-    expect(model.map((p) => [p.foodId, p.quantity, p.unitLabel])).toEqual([[1, 2, 'serving'], [2, 1, 'serving']])
+    expect(model.map((p) => [p.foodId, p.quantity, p.unitLabel])).toEqual([
+      [1, 2, 'serving'],
+      [2, 1, 'serving']
+    ])
     expect(model[0]!.food.name).toBe('Chicken Breast')
   })
 
@@ -79,7 +101,7 @@ describe('NutritionFoodPicker', () => {
     const wrapper = await mountPicker({ multiple: false })
     const checkboxes = wrapper.findAllComponents(CheckboxCtor)
     await checkboxes[0]!.vm.$emit('update:modelValue', true)
-    await vi.waitFor(() => expect((wrapper.props('modelValue') as PickedFood[])).toHaveLength(1))
+    await vi.waitFor(() => expect(wrapper.props('modelValue') as PickedFood[]).toHaveLength(1))
     await checkboxes[1]!.vm.$emit('update:modelValue', true)
     await vi.waitFor(() => expect((wrapper.props('modelValue') as PickedFood[]).map((p) => p.foodId)).toEqual([2]))
   })
@@ -122,7 +144,8 @@ describe('NutritionFoodPicker', () => {
       return [{ id: 5, name: 'Late Recent', brand: null, isFavorite: false, logCount: 0 }]
     })
     registerEndpoint('/api/nutrition/foods/search', () => ({
-      hits: [{ id: 1, name: 'Chicken', brand: null, isFavorite: false, logCount: 0, energyDensity: null }], degraded: false
+      hits: [{ id: 1, name: 'Chicken', brand: null, isFavorite: false, logCount: 0, energyDensity: null }],
+      degraded: false
     }))
     vi.useFakeTimers()
     const wrapper = await mountPicker()
@@ -156,9 +179,13 @@ describe('NutritionFoodPicker', () => {
 
   it('shows a skeleton instead of the empty text before the first search resolves', async () => {
     let resolveFetch: (() => void) | undefined
-    registerEndpoint('/api/nutrition/foods/recent', () => new Promise((resolve) => {
-      resolveFetch = () => resolve([])
-    }))
+    registerEndpoint(
+      '/api/nutrition/foods/recent',
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () => resolve([])
+        })
+    )
     const wrapper = await mountSuspended(NutritionFoodPicker, {
       props: { modelValue: [] as PickedFood[], 'onUpdate:modelValue': () => {} }
     })
@@ -180,14 +207,19 @@ describe('NutritionFoodPicker', () => {
   it('offers "Remove from recents" only on the recent source, and it hides then refreshes the list', async () => {
     register()
     const wrapper = await mountPicker({ source: 'recent' })
-    const menu = (wrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }).hitMenu({ id: 1 })
+    const menu = (
+      wrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }
+    ).hitMenu({ id: 1 })
     expect(menu[0]!.map((item) => item.label)).toEqual(['View food', 'Remove from recents'])
 
     let deleteCalled = false
-    registerEndpoint('/api/nutrition/foods/1/recent', { method: 'DELETE', handler: () => {
-      deleteCalled = true
-      return { ok: true }
-    } })
+    registerEndpoint('/api/nutrition/foods/1/recent', {
+      method: 'DELETE',
+      handler: () => {
+        deleteCalled = true
+        return { ok: true }
+      }
+    })
     await (menu[0]![1] as unknown as { onSelect: () => Promise<void> }).onSelect()
     await flushPromises()
     expect(deleteCalled).toBe(true)
@@ -196,18 +228,31 @@ describe('NutritionFoodPicker', () => {
   it('does not offer "Remove from recents" on the favorites or mine source', async () => {
     register()
     const favWrapper = await mountPicker({ source: 'favorites' })
-    const favMenu = (favWrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }).hitMenu({ id: 1 })
+    const favMenu = (
+      favWrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }
+    ).hitMenu({ id: 1 })
     expect(favMenu[0]!.map((item) => item.label)).toEqual(['View food'])
 
     registerEndpoint('/api/nutrition/foods', () => [])
     const mineWrapper = await mountPicker({ source: 'mine' })
-    const mineMenu = (mineWrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }).hitMenu({ id: 1 })
+    const mineMenu = (
+      mineWrapper.vm as unknown as { hitMenu: (hit: { id: number }) => Array<Array<{ label: string }>> }
+    ).hitMenu({ id: 1 })
     expect(mineMenu[0]!.map((item) => item.label)).toEqual(['View food'])
   })
 
   it('preserves quantity and unitLabel when select() is called on an already-picked food', async () => {
     register()
-    const initialPicked: PickedFood[] = [{ foodId: 1, name: 'Chicken Breast', brand: null, quantity: 3, unitLabel: 'serving', food: detail(1, 'Chicken Breast') }]
+    const initialPicked: PickedFood[] = [
+      {
+        foodId: 1,
+        name: 'Chicken Breast',
+        brand: null,
+        quantity: 3,
+        unitLabel: 'serving',
+        food: detail(1, 'Chicken Breast')
+      }
+    ]
     const wrapper = await mountPicker({ modelValue: initialPicked })
     await (wrapper.vm as unknown as { select: (id: number) => Promise<void> }).select(1)
     await flushPromises()

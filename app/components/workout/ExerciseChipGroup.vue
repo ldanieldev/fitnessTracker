@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineProps<{
   legend: string
-  items: { key: string, name: string }[]
+  items: { key: string; name: string }[]
   selected: string[]
   testPrefix: string
   isDisabled?: (key: string) => boolean

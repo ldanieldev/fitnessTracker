@@ -27,7 +27,8 @@ export default defineEventHandler(async (event) => {
   )
 
   for (const key of requestedKeys) {
-    if (!availableByKey.has(key)) errors.push({ source: key, kind: 'unconfigured', message: `${key} is not configured` })
+    if (!availableByKey.has(key))
+      errors.push({ source: key, kind: 'unconfigured', message: `${key} is not configured` })
   }
 
   return { results, errors }

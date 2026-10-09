@@ -7,14 +7,18 @@ const plain = { exerciseId: 2, loadStyle: 'plain' as const, bar: null, sizes: nu
 
 describe('WorkoutToolsSetCalc', () => {
   it('rounds 85% to a loadable barbell weight with plates', async () => {
-    const wrapper = await mountSuspended(WorkoutToolsSetCalc, { props: { oneRm: 262, pending: false, context: barbell } })
+    const wrapper = await mountSuspended(WorkoutToolsSetCalc, {
+      props: { oneRm: 262, pending: false, context: barbell }
+    })
     expect(wrapper.find('[data-test="set-calc-raw"]').text()).toContain('222.7')
     expect(wrapper.find('[data-test="set-calc-loadable"]').text()).toContain('225')
     expect(wrapper.find('[data-test="set-calc-plates"]').text()).toBe('Each side: 45 · 45')
   })
 
   it('uses the quick buttons and emits the weight to load', async () => {
-    const wrapper = await mountSuspended(WorkoutToolsSetCalc, { props: { oneRm: 262, pending: false, context: barbell } })
+    const wrapper = await mountSuspended(WorkoutToolsSetCalc, {
+      props: { oneRm: 262, pending: false, context: barbell }
+    })
     await wrapper.find('[data-test="set-calc-quick-75"]').trigger('click')
     expect(wrapper.find('[data-test="set-calc-loadable"]').text()).toContain('195')
     await wrapper.find('[data-test="set-calc-use"]').trigger('click')
@@ -29,14 +33,18 @@ describe('WorkoutToolsSetCalc', () => {
   })
 
   it('shows a skeleton while the 1RM loads and a hint when there is none', async () => {
-    const loading = await mountSuspended(WorkoutToolsSetCalc, { props: { oneRm: null, pending: true, context: barbell } })
+    const loading = await mountSuspended(WorkoutToolsSetCalc, {
+      props: { oneRm: null, pending: true, context: barbell }
+    })
     expect(loading.find('[data-test="set-calc-skeleton"]').exists()).toBe(true)
     const none = await mountSuspended(WorkoutToolsSetCalc, { props: { oneRm: null, pending: false, context: barbell } })
     expect(none.find('[data-test="set-calc-empty"]').exists()).toBe(true)
   })
 
   it('treats 0 % as no input instead of the bare bar', async () => {
-    const wrapper = await mountSuspended(WorkoutToolsSetCalc, { props: { oneRm: 262, pending: false, context: barbell } })
+    const wrapper = await mountSuspended(WorkoutToolsSetCalc, {
+      props: { oneRm: 262, pending: false, context: barbell }
+    })
     await wrapper.find('[data-test="set-calc-percent"]').setValue('0')
     expect(wrapper.find('[data-test="set-calc-raw"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="set-calc-loadable"]').exists()).toBe(false)

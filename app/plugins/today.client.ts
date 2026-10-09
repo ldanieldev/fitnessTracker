@@ -10,6 +10,6 @@ export default defineNuxtPlugin(() => {
     setTimeout(tick, msUntilNextMidnight(new Date()) + 1000)
   }
 
-  // app:mounted fires before the page's Suspense hydrates the layout, so setting today there mismatches the SSR badge; onNuxtReady waits for it.
+  // app:mounted precedes the layout's Suspense hydration (SSR badge mismatch); onNuxtReady waits for it.
   onNuxtReady(tick)
 })

@@ -83,7 +83,7 @@ function nameClass(key: string) {
 function resetRows(profile: Profile | null) {
   const keys = new Set(props.tracked.map((t) => t.key))
   for (const target of profile?.targets ?? []) keys.add(target.nutrient)
-  // Ratio mode's inputs are always protein/carb/fat, even if one has been untracked — otherwise untracking a macro permanently blocks ratio profiles.
+  // Ratio inputs are always protein/carb/fat, even untracked ones; else untracking a macro blocks ratio profiles.
   if (inputMode.value === 'ratio') for (const macro of RATIO_MACROS) keys.add(macro)
   const next: Record<string, RowState> = {}
   for (const key of keys) {
@@ -127,7 +127,7 @@ async function submit() {
     return
   }
 
-  const targets: Array<{ nutrient: string, amount?: number, ratioPercent?: number, direction: string }> = []
+  const targets: Array<{ nutrient: string; amount?: number; ratioPercent?: number; direction: string }> = []
 
   if (inputMode.value === 'ratio') {
     if (!calories.value) {
@@ -202,7 +202,11 @@ async function setDefault(profile: Profile) {
       }
     })
   } catch (error: unknown) {
-    toast.add({ title: 'Set default failed', description: errorMessage(error, 'Could not set default profile'), color: 'error' })
+    toast.add({
+      title: 'Set default failed',
+      description: errorMessage(error, 'Could not set default profile'),
+      color: 'error'
+    })
   } finally {
     await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
   }
@@ -221,7 +225,11 @@ async function confirmDelete() {
   try {
     await apiFetch(`/api/nutrition/goal-profiles/${deleteTarget.value.id}`, { method: 'DELETE' })
   } catch (error: unknown) {
-    toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete goal profile'), color: 'error' })
+    toast.add({
+      title: 'Delete failed',
+      description: errorMessage(error, 'Could not delete goal profile'),
+      color: 'error'
+    })
   } finally {
     deleteTarget.value = null
     await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
@@ -231,10 +239,17 @@ async function confirmDelete() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div v-for="profile in profiles" :key="profile.id" data-test="goal-profile-row" class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-default">
+    <div
+      v-for="profile in profiles"
+      :key="profile.id"
+      data-test="goal-profile-row"
+      class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-default"
+    >
       <div class="flex items-center gap-2">
         <span class="font-medium">{{ profile.name }}</span>
-        <span class="text-sm text-dimmed">{{ displayKcal(profile) !== null ? `${displayKcal(profile)} kcal` : '—' }}</span>
+        <span class="text-sm text-dimmed">{{
+          displayKcal(profile) !== null ? `${displayKcal(profile)} kcal` : '—'
+        }}</span>
         <UBadge v-if="profile.isDefault" color="primary" variant="subtle" label="Default" />
       </div>
       <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -271,7 +286,10 @@ async function confirmDelete() {
           <UFormField label="Input mode">
             <USelect
               v-model="inputMode"
-              :items="[{ label: 'Grams', value: 'grams' }, { label: 'Ratio', value: 'ratio' }]"
+              :items="[
+                { label: 'Grams', value: 'grams' },
+                { label: 'Ratio', value: 'ratio' }
+              ]"
               data-test="goal-input-mode"
               class="w-full"
             />
@@ -282,9 +300,16 @@ async function confirmDelete() {
           </UFormField>
 
           <div class="flex flex-col gap-2">
-            <div v-for="key in rowKeys" :key="key" class="flex flex-wrap items-center gap-2" :data-test="`goal-row-${key}`">
+            <div
+              v-for="key in rowKeys"
+              :key="key"
+              class="flex flex-wrap items-center gap-2"
+              :data-test="`goal-row-${key}`"
+            >
               <template v-if="inputMode === 'ratio' && (RATIO_MACROS as readonly string[]).includes(key)">
-                <span class="w-full sm:w-32 text-sm font-medium" :class="nameClass(key)">{{ nutrientMeta(key)?.name }}</span>
+                <span class="w-full sm:w-32 text-sm font-medium" :class="nameClass(key)">{{
+                  nutrientMeta(key)?.name
+                }}</span>
                 <UInput
                   v-model.number="rows[key]!.ratioPercent"
                   type="number"
@@ -301,7 +326,9 @@ async function confirmDelete() {
               </template>
               <template v-else>
                 <UCheckbox v-model="rows[key]!.enabled" :data-test="`goal-enable-${key}`" />
-                <span class="w-full sm:w-32 text-sm font-medium" :class="nameClass(key)">{{ nutrientMeta(key)?.name }}</span>
+                <span class="w-full sm:w-32 text-sm font-medium" :class="nameClass(key)">{{
+                  nutrientMeta(key)?.name
+                }}</span>
                 <UInput
                   v-model.number="rows[key]!.amount"
                   type="number"

@@ -28,32 +28,42 @@ const entry = z.object({
 const routine = z.object({
   name: z.string().trim().min(1).max(255),
   notes: z.string().max(2000).nullable(),
-  days: z.array(z.object({
-    name: z.string().trim().min(1).max(255),
-    description: z.string().max(255).nullable(),
-    floating: z.boolean(),
-    entries: z.array(entry).max(100)
-  })).max(30)
+  days: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(255),
+        description: z.string().max(255).nullable(),
+        floating: z.boolean(),
+        entries: z.array(entry).max(100)
+      })
+    )
+    .max(30)
 })
 
-export const programExportSchema = z.object({
-  format: z.literal('mfj-program'),
-  version: z.literal(1),
-  program: z.object({
-    name: z.string().trim().min(1).max(255),
-    description: z.string().max(2000).nullable(),
-    phases: z.array(z.object({
+export const programExportSchema = z
+  .object({
+    format: z.literal('mfj-program'),
+    version: z.literal(1),
+    program: z.object({
       name: z.string().trim().min(1).max(255),
-      weeks: z.number().int().min(1).max(104),
-      deload: z.boolean(),
-      routine: z.number().int().min(0).nullable()
-    })).max(52)
-  }),
-  routines: z.array(routine).max(52)
-}).refine(
-  (data) => data.program.phases.every((phase) => phase.routine === null || phase.routine < data.routines.length),
-  { message: 'A phase points at a routine that is not in the file', path: ['program', 'phases'] }
-)
+      description: z.string().max(2000).nullable(),
+      phases: z
+        .array(
+          z.object({
+            name: z.string().trim().min(1).max(255),
+            weeks: z.number().int().min(1).max(104),
+            deload: z.boolean(),
+            routine: z.number().int().min(0).nullable()
+          })
+        )
+        .max(52)
+    }),
+    routines: z.array(routine).max(52)
+  })
+  .refine(
+    (data) => data.program.phases.every((phase) => phase.routine === null || phase.routine < data.routines.length),
+    { message: 'A phase points at a routine that is not in the file', path: ['program', 'phases'] }
+  )
 
 export type ProgramExport = z.infer<typeof programExportSchema>
 export type ExportExercise = ProgramExport['routines'][number]['days'][number]['entries'][number]['exercise']
@@ -66,13 +76,15 @@ export interface OwnExercise {
 
 export function matchImportExercise(
   own: OwnExercise[],
-  wanted: { name: string, trackingType: TrackingType }
-): { kind: 'match', id: number } | { kind: 'create', name: string } {
+  wanted: { name: string; trackingType: TrackingType }
+): { kind: 'match'; id: number } | { kind: 'create'; name: string } {
   const find = (name: string) => own.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
   const same = find(wanted.name)
   if (!same) return { kind: 'create', name: wanted.name }
   if (same.trackingType === wanted.trackingType) return { kind: 'match', id: same.id }
   const alias = `${wanted.name} (imported)`
   const copy = find(alias)
-  return copy && copy.trackingType === wanted.trackingType ? { kind: 'match', id: copy.id } : { kind: 'create', name: alias }
+  return copy && copy.trackingType === wanted.trackingType
+    ? { kind: 'match', id: copy.id }
+    : { kind: 'create', name: alias }
 }

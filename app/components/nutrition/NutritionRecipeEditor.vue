@@ -9,7 +9,7 @@ interface RecipeDetail {
   servings: number
   servingName: string
   notes: string | null
-  ingredients: Array<{ foodId: number, name: string | null, brand: string | null, quantity: number, unitLabel: string }>
+  ingredients: Array<{ foodId: number; name: string | null; brand: string | null; quantity: number; unitLabel: string }>
 }
 
 const props = defineProps<{ recipeId: number | null }>()
@@ -27,9 +27,22 @@ function snapshot(lines: EditorLine[]) {
 }
 
 const {
-  idToKey, lines, loaded, saving, baseline, total, hasBroken,
-  pickerOpen, replaceUid, openPicker, onPicked,
-  editingUid, editingLine, sheetOpen, onLineUpdate, onLineRemove,
+  idToKey,
+  lines,
+  loaded,
+  saving,
+  baseline,
+  total,
+  hasBroken,
+  pickerOpen,
+  replaceUid,
+  openPicker,
+  onPicked,
+  editingUid,
+  editingLine,
+  sheetOpen,
+  onLineUpdate,
+  onLineRemove,
   deleteOpen
 } = useLibraryEditor(snapshot, props.recipeId === null)
 
@@ -43,7 +56,11 @@ onMounted(async () => {
       notes.value = recipe.notes ?? ''
       lines.value = await loadEditorLines(recipe.ingredients)
     } catch (error: unknown) {
-      toast.add({ title: 'Load failed', description: errorMessage(error, 'Could not load this recipe'), color: 'error' })
+      toast.add({
+        title: 'Load failed',
+        description: errorMessage(error, 'Could not load this recipe'),
+        color: 'error'
+      })
     }
   }
   baseline.value = snapshot(lines.value)
@@ -51,9 +68,14 @@ onMounted(async () => {
 })
 
 const perServing = computed(() => ((servings.value ?? 0) > 0 ? divideKeyed(total.value, servings.value ?? 1) : null))
-const canSave = computed(() =>
-  name.value.trim().length > 0 && (servings.value ?? 0) > 0 && servingName.value.trim().length > 0
-  && lines.value.length > 0 && !hasBroken.value && !saving.value
+const canSave = computed(
+  () =>
+    name.value.trim().length > 0 &&
+    (servings.value ?? 0) > 0 &&
+    servingName.value.trim().length > 0 &&
+    lines.value.length > 0 &&
+    !hasBroken.value &&
+    !saving.value
 )
 
 async function save() {
@@ -93,12 +115,29 @@ async function confirmDelete() {
     await invalidateNutrition(NUTRITION_KEYS.recipes)
     await navigateTo('/nutrition/recipes')
   } catch (error: unknown) {
-    toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete this recipe'), color: 'error' })
+    toast.add({
+      title: 'Delete failed',
+      description: errorMessage(error, 'Could not delete this recipe'),
+      color: 'error'
+    })
   }
 }
 
 const menu = computed<DropdownMenuItem[][]>(() =>
-  props.recipeId === null ? [] : [[{ label: 'Delete recipe', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { deleteOpen.value = true } }]]
+  props.recipeId === null
+    ? []
+    : [
+        [
+          {
+            label: 'Delete recipe',
+            icon: 'i-lucide-trash-2',
+            color: 'error',
+            onSelect: () => {
+              deleteOpen.value = true
+            }
+          }
+        ]
+      ]
 )
 </script>
 
@@ -111,7 +150,13 @@ const menu = computed<DropdownMenuItem[][]>(() =>
         </template>
         <template #right>
           <UDropdownMenu v-if="menu.length" :items="menu">
-            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" aria-label="Recipe actions" data-test="recipe-menu" />
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              color="neutral"
+              aria-label="Recipe actions"
+              data-test="recipe-menu"
+            />
           </UDropdownMenu>
         </template>
       </UDashboardNavbar>
@@ -133,10 +178,22 @@ const menu = computed<DropdownMenuItem[][]>(() =>
 
         <div class="flex items-center justify-between">
           <span class="font-medium">Ingredients</span>
-          <UButton icon="i-lucide-plus" label="Add ingredients" variant="soft" size="sm" data-test="add-ingredients" @click="openPicker(null)" />
+          <UButton
+            icon="i-lucide-plus"
+            label="Add ingredients"
+            variant="soft"
+            size="sm"
+            data-test="add-ingredients"
+            @click="openPicker(null)"
+          />
         </div>
         <NutritionIngredientList :lines="lines" :id-to-key="idToKey" @edit="(uid) => (editingUid = uid)" />
-        <UAlert v-if="hasBroken" color="error" variant="soft" title="Remove or replace unavailable ingredients to save" />
+        <UAlert
+          v-if="hasBroken"
+          color="error"
+          variant="soft"
+          title="Remove or replace unavailable ingredients to save"
+        />
 
         <NutritionTotalsPanel :total="total" :per-serving="perServing" :serving-name="servingName" />
 
@@ -144,15 +201,39 @@ const menu = computed<DropdownMenuItem[][]>(() =>
           <UTextarea v-model="notes" :rows="3" class="w-full" data-test="recipe-notes" />
         </UFormField>
 
-        <div class="fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4">
-          <UButton block label="Save recipe" :loading="saving" :disabled="!canSave" data-test="recipe-save" @click="save" />
+        <div
+          class="fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4"
+        >
+          <UButton
+            block
+            label="Save recipe"
+            :loading="saving"
+            :disabled="!canSave"
+            data-test="recipe-save"
+            @click="save"
+          />
         </div>
       </div>
 
-      <NutritionPickerSheet v-model:open="pickerOpen" :multiple="replaceUid === null" :title="replaceUid ? 'Replace ingredient' : 'Add ingredients'" @confirm="onPicked" />
-      <NutritionIngredientSheet v-model:open="sheetOpen" :line="editingLine" @update="onLineUpdate" @remove="onLineRemove" @replace="openPicker" />
+      <NutritionPickerSheet
+        v-model:open="pickerOpen"
+        :multiple="replaceUid === null"
+        :title="replaceUid ? 'Replace ingredient' : 'Add ingredients'"
+        @confirm="onPicked"
+      />
+      <NutritionIngredientSheet
+        v-model:open="sheetOpen"
+        :line="editingLine"
+        @update="onLineUpdate"
+        @remove="onLineRemove"
+        @replace="openPicker"
+      />
 
-      <AppSheet v-model:open="deleteOpen" title="Delete recipe" :description="`Delete ${name}? Logged entries keep their numbers.`">
+      <AppSheet
+        v-model:open="deleteOpen"
+        title="Delete recipe"
+        :description="`Delete ${name}? Logged entries keep their numbers.`"
+      >
         <template #footer>
           <div class="flex w-full justify-end gap-2">
             <UButton label="Cancel" color="neutral" variant="outline" @click="deleteOpen = false" />

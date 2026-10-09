@@ -12,7 +12,9 @@ test('phone: paging, search, filter, settings, photos, custom exercise, variatio
   const rows = page.locator('[data-test="exercise-list"] [data-test="exercise-row"]')
   await expect(rows).toHaveCount(20)
   // The colour classes live in shared/, which Tailwind only scans because main.css names it as a source.
-  const dotColour = await page.locator('[data-test^="exercise-category-"]').first()
+  const dotColour = await page
+    .locator('[data-test^="exercise-category-"]')
+    .first()
     .evaluate((el) => getComputedStyle(el).backgroundColor)
   expect(dotColour).not.toBe('rgba(0, 0, 0, 0)')
 

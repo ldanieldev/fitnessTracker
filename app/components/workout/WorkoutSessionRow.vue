@@ -5,7 +5,7 @@ import type { WorkoutSessionSummary } from '~~/shared/types/workout'
 import { durationLabel } from '~~/shared/utils/workoutTime'
 import { plural } from '~/utils/plural'
 
-const props = defineProps<{ summary: WorkoutSessionSummary, copyDisabled?: boolean }>()
+const props = defineProps<{ summary: WorkoutSessionSummary; copyDisabled?: boolean }>()
 const emit = defineEmits<{
   copy: [id: number]
   share: [id: number]
@@ -19,9 +19,9 @@ const line = computed(() => {
   return [when, plural(s.exerciseCount, 'exercise'), plural(s.setCount, 'set')].join(' · ')
 })
 
-const duration = computed(() => (
+const duration = computed(() =>
   props.summary.endedAt ? durationLabel(props.summary.startedAt, new Date(props.summary.endedAt).getTime()) : null
-))
+)
 
 // Nuxt UI renders menu items through pickLinkProps, so a data-test on the item is dropped; the label slot carries it.
 const menu = computed<DropdownMenuItem[][]>(() => [
@@ -39,13 +39,15 @@ const menu = computed<DropdownMenuItem[][]>(() => [
       onSelect: () => emit('times', props.summary)
     }
   ],
-  [{
-    label: 'Delete',
-    icon: 'i-lucide-trash-2',
-    color: 'error',
-    testId: `session-delete-${props.summary.id}`,
-    onSelect: () => emit('delete', props.summary)
-  }]
+  [
+    {
+      label: 'Delete',
+      icon: 'i-lucide-trash-2',
+      color: 'error',
+      testId: `session-delete-${props.summary.id}`,
+      onSelect: () => emit('delete', props.summary)
+    }
+  ]
 ])
 </script>
 
@@ -70,7 +72,9 @@ const menu = computed<DropdownMenuItem[][]>(() => [
       </span>
       <span class="flex min-w-0 text-xs text-dimmed">
         <span class="truncate">{{ line }}</span>
-        <span v-if="duration" class="shrink-0 whitespace-pre" :data-test="`session-duration-${summary.id}`">{{ ` · ${duration}` }}</span>
+        <span v-if="duration" class="shrink-0 whitespace-pre" :data-test="`session-duration-${summary.id}`">{{
+          ` · ${duration}`
+        }}</span>
       </span>
     </NuxtLink>
     <UButton

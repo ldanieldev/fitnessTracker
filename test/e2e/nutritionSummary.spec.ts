@@ -27,7 +27,12 @@ test('rolling summary excludes an unlogged day rather than treating it as zero',
   await logDay(page, '2026-03-05', 2000)
 
   const summary = await apiFetch<{
-    days: Array<{ date: string, logged: boolean, totals: Record<string, number | null>, rolling: Record<string, number | null> }>
+    days: Array<{
+      date: string
+      logged: boolean
+      totals: Record<string, number | null>
+      rolling: Record<string, number | null>
+    }>
   }>(page, 'GET', '/api/nutrition/diary/summary?from=2026-03-01&to=2026-03-05&window=3')
   expect(summary.status).toBe(200)
 
@@ -48,11 +53,9 @@ test('export returns json with nulled unlogged totals', async ({ page, goto }) =
   await logDay(page, '2026-04-03', 1900)
   await logDay(page, '2026-04-05', 2000)
 
-  const json = await apiFetch<{ days: Array<{ date: string, logged: boolean, totals: Record<string, number | null> }> }>(
-    page,
-    'GET',
-    '/api/nutrition/diary/export?from=2026-04-01&to=2026-04-05&format=json'
-  )
+  const json = await apiFetch<{
+    days: Array<{ date: string; logged: boolean; totals: Record<string, number | null> }>
+  }>(page, 'GET', '/api/nutrition/diary/export?from=2026-04-01&to=2026-04-05&format=json')
   expect(json.status).toBe(200)
   expect(json.json.days.length).toBe(5)
   const skipped = json.json.days.find((d) => d.date === '2026-04-04')!
@@ -87,7 +90,10 @@ test('summary page renders unlogged days as an em dash and exports csv', async (
   expect(openedUrl).toContain('format=csv')
 })
 
-test('csv export covers only the tracked nutrients, carries each one\'s target, and leaves unlogged totals blank', async ({ page, goto }) => {
+test('csv export covers only the tracked nutrients, carries each one\'s target, and leaves unlogged totals blank', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 

@@ -14,9 +14,9 @@ export interface SessionAnchor {
   startedAt: Date
 }
 
-export function withNumericMeasures<T extends { weight: string | null, distanceMeters: string | null }>(
+export function withNumericMeasures<T extends { weight: string | null; distanceMeters: string | null }>(
   row: T
-): Omit<T, 'weight' | 'distanceMeters'> & { weight: number | null, distanceMeters: number | null } {
+): Omit<T, 'weight' | 'distanceMeters'> & { weight: number | null; distanceMeters: number | null } {
   return {
     ...row,
     weight: row.weight != null ? Number(row.weight) : null,
@@ -74,7 +74,9 @@ export async function earlierSetValues(
     .from(workoutSets)
     .innerJoin(workoutEntries, eq(workoutEntries.id, workoutSets.entryId))
     .innerJoin(workoutSessions, eq(workoutSessions.id, workoutEntries.sessionId))
-    .where(and(eq(workoutSessions.userId, userId), inArray(workoutEntries.exerciseId, exerciseIds), earlierThan(anchor)))
+    .where(
+      and(eq(workoutSessions.userId, userId), inArray(workoutEntries.exerciseId, exerciseIds), earlierThan(anchor))
+    )
 
   rows.forEach(({ exerciseId, ...measures }, index) => {
     const list = byExercise.get(exerciseId) ?? []
@@ -93,12 +95,22 @@ export async function lastSetsByExercise(
   const byExercise = new Map<number, SetMeasures[]>()
   if (!exerciseIds.length) return byExercise
   const prior = await db
-    .selectDistinctOn([workoutEntries.exerciseId], { exerciseId: workoutEntries.exerciseId, sessionId: workoutSessions.id })
+    .selectDistinctOn([workoutEntries.exerciseId], {
+      exerciseId: workoutEntries.exerciseId,
+      sessionId: workoutSessions.id
+    })
     .from(workoutSessions)
     .innerJoin(workoutEntries, eq(workoutEntries.sessionId, workoutSessions.id))
     .innerJoin(workoutSets, eq(workoutSets.entryId, workoutEntries.id))
-    .where(and(eq(workoutSessions.userId, userId), inArray(workoutEntries.exerciseId, exerciseIds), earlierThan(anchor)))
-    .orderBy(workoutEntries.exerciseId, desc(workoutSessions.performedOn), desc(workoutSessions.startedAt), desc(workoutSessions.id))
+    .where(
+      and(eq(workoutSessions.userId, userId), inArray(workoutEntries.exerciseId, exerciseIds), earlierThan(anchor))
+    )
+    .orderBy(
+      workoutEntries.exerciseId,
+      desc(workoutSessions.performedOn),
+      desc(workoutSessions.startedAt),
+      desc(workoutSessions.id)
+    )
   if (!prior.length) return byExercise
 
   const rows = await db
@@ -111,7 +123,11 @@ export async function lastSetsByExercise(
     })
     .from(workoutSets)
     .innerJoin(workoutEntries, eq(workoutEntries.id, workoutSets.entryId))
-    .where(or(...prior.map((p) => and(eq(workoutEntries.sessionId, p.sessionId), eq(workoutEntries.exerciseId, p.exerciseId)))))
+    .where(
+      or(
+        ...prior.map((p) => and(eq(workoutEntries.sessionId, p.sessionId), eq(workoutEntries.exerciseId, p.exerciseId)))
+      )
+    )
     .orderBy(workoutSets.sortOrder, workoutSets.id)
 
   for (const row of rows) {

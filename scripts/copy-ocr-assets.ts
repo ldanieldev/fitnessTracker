@@ -10,7 +10,10 @@ mkdirSync(OUT_DIR, { recursive: true })
 
 const copies = [
   { from: require.resolve('tesseract.js/dist/worker.min.js'), to: `${OUT_DIR}/worker.min.js` },
-  { from: require.resolve('tesseract.js-core/tesseract-core-lstm.wasm.js'), to: `${OUT_DIR}/tesseract-core-lstm.wasm.js` },
+  {
+    from: require.resolve('tesseract.js-core/tesseract-core-lstm.wasm.js'),
+    to: `${OUT_DIR}/tesseract-core-lstm.wasm.js`
+  },
   { from: require.resolve('tesseract.js-core/tesseract-core-lstm.wasm'), to: `${OUT_DIR}/tesseract-core-lstm.wasm` }
 ]
 
@@ -25,5 +28,7 @@ if (existsSync(`${OUT_DIR}/eng.traineddata.gz`)) {
   const response = await fetch(ENG_TRAINEDDATA_URL)
   if (!response.ok) throw new Error(`failed to download ${ENG_TRAINEDDATA_URL}: ${response.status}`)
   writeFileSync(`${OUT_DIR}/eng.traineddata.gz`, Buffer.from(await response.arrayBuffer()))
-  console.log(`downloaded ${OUT_DIR}/eng.traineddata.gz (${statSync(`${OUT_DIR}/eng.traineddata.gz`).size} bytes) from ${ENG_TRAINEDDATA_URL}`)
+  console.log(
+    `downloaded ${OUT_DIR}/eng.traineddata.gz (${statSync(`${OUT_DIR}/eng.traineddata.gz`).size} bytes) from ${ENG_TRAINEDDATA_URL}`
+  )
 }

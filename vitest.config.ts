@@ -23,7 +23,7 @@ export default defineConfig({
       await defineVitestProject({
         test: {
           name: 'nuxt',
-          // The Nuxt environment boots an app per file; under CPU load (parallel e2e builds) that exceeds vitest's 10 s default.
+          // The Nuxt env boots an app per file; under load (parallel e2e builds) that exceeds vitest's 10 s default.
           hookTimeout: 30000,
           include: ['test/nuxt/*.{test,spec}.ts'],
           environment: 'nuxt',

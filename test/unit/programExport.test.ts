@@ -4,20 +4,57 @@ import { matchImportExercise, programExportSchema } from '../../shared/utils/pro
 const valid = {
   format: 'mfj-program',
   version: 1,
-  program: { name: 'BLS', description: null, phases: [{ name: 'P1', weeks: 8, deload: false, routine: 0 }, { name: 'Off', weeks: 1, deload: false, routine: null }] },
-  routines: [{
-    name: 'Upper/Lower',
-    notes: null,
-    days: [{
-      name: 'Upper A',
-      description: null,
-      floating: false,
-      entries: [
-        { exercise: { externalId: 'Barbell_Squat' }, targetSets: 3, targetLow: 5, targetHigh: 8, targetWeight: null, supersetGroup: null, optional: false, restSeconds: null, notes: null },
-        { exercise: { name: 'Cable Fly', trackingType: 'weight_reps', loadStyle: 'plain', barWeight: null, category: { name: 'Chest', color: 'rose' } }, targetSets: 3, targetLow: null, targetHigh: null, targetWeight: null, supersetGroup: 1, optional: true, restSeconds: 90, notes: 'slow' }
+  program: {
+    name: 'BLS',
+    description: null,
+    phases: [
+      { name: 'P1', weeks: 8, deload: false, routine: 0 },
+      { name: 'Off', weeks: 1, deload: false, routine: null }
+    ]
+  },
+  routines: [
+    {
+      name: 'Upper/Lower',
+      notes: null,
+      days: [
+        {
+          name: 'Upper A',
+          description: null,
+          floating: false,
+          entries: [
+            {
+              exercise: { externalId: 'Barbell_Squat' },
+              targetSets: 3,
+              targetLow: 5,
+              targetHigh: 8,
+              targetWeight: null,
+              supersetGroup: null,
+              optional: false,
+              restSeconds: null,
+              notes: null
+            },
+            {
+              exercise: {
+                name: 'Cable Fly',
+                trackingType: 'weight_reps',
+                loadStyle: 'plain',
+                barWeight: null,
+                category: { name: 'Chest', color: 'rose' }
+              },
+              targetSets: 3,
+              targetLow: null,
+              targetHigh: null,
+              targetWeight: null,
+              supersetGroup: 1,
+              optional: true,
+              restSeconds: 90,
+              notes: 'slow'
+            }
+          ]
+        }
       ]
-    }]
-  }]
+    }
+  ]
 }
 
 describe('programExportSchema', () => {
@@ -31,22 +68,30 @@ describe('programExportSchema', () => {
   })
 
   it('rejects a phase pointing past the routines list', () => {
-    const bad = { ...valid, program: { ...valid.program, phases: [{ name: 'P', weeks: 1, deload: false, routine: 3 }] } }
+    const bad = {
+      ...valid,
+      program: { ...valid.program, phases: [{ name: 'P', weeks: 1, deload: false, routine: 3 }] }
+    }
     expect(programExportSchema.safeParse(bad).success).toBe(false)
   })
 
   it('rejects zero weeks', () => {
-    const bad = { ...valid, program: { ...valid.program, phases: [{ name: 'P', weeks: 0, deload: false, routine: null }] } }
+    const bad = {
+      ...valid,
+      program: { ...valid.program, phases: [{ name: 'P', weeks: 0, deload: false, routine: null }] }
+    }
     expect(programExportSchema.safeParse(bad).success).toBe(false)
   })
 
   const fly = valid.routines[0]!.days[0]!.entries[1]!.exercise
   const withExercise = (exercise: object) => ({
     ...valid,
-    routines: [{
-      ...valid.routines[0]!,
-      days: [{ ...valid.routines[0]!.days[0]!, entries: [{ ...valid.routines[0]!.days[0]!.entries[1]!, exercise }] }]
-    }]
+    routines: [
+      {
+        ...valid.routines[0]!,
+        days: [{ ...valid.routines[0]!.days[0]!, entries: [{ ...valid.routines[0]!.days[0]!.entries[1]!, exercise }] }]
+      }
+    ]
   })
 
   it.each([
@@ -73,7 +118,10 @@ describe('matchImportExercise', () => {
   ]
 
   it('matches by case-insensitive name and tracking type', () => {
-    expect(matchImportExercise(own, { name: 'cable fly', trackingType: 'weight_reps' })).toEqual({ kind: 'match', id: 1 })
+    expect(matchImportExercise(own, { name: 'cable fly', trackingType: 'weight_reps' })).toEqual({
+      kind: 'match',
+      id: 1
+    })
   })
 
   it('creates when nothing has the name', () => {
@@ -81,7 +129,10 @@ describe('matchImportExercise', () => {
   })
 
   it('creates an "(imported)" copy when the name clashes with another tracking type', () => {
-    expect(matchImportExercise(own, { name: 'Plank', trackingType: 'reps' })).toEqual({ kind: 'create', name: 'Plank (imported)' })
+    expect(matchImportExercise(own, { name: 'Plank', trackingType: 'reps' })).toEqual({
+      kind: 'create',
+      name: 'Plank (imported)'
+    })
   })
 
   it('re-import matches the "(imported)" copy', () => {

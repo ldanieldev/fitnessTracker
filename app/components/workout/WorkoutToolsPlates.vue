@@ -2,12 +2,13 @@
 import { loadPlan } from '~/utils/plateCalculator'
 import WorkoutPlateBar from '~/components/workout/WorkoutPlateBar.vue'
 
-const props = defineProps<{ bar: number | null, sizes: number[] | null, barEditable: boolean, canUse?: boolean }>()
+const props = defineProps<{ bar: number | null; sizes: number[] | null; barEditable: boolean; canUse?: boolean }>()
 const target = defineModel<number | null>('target', { default: null })
-const emit = defineEmits<{ 'update:bar': [bar: number | null], use: [weight: number] }>()
+const emit = defineEmits<{ 'update:bar': [bar: number | null]; use: [weight: number] }>()
 
 const plan = computed(() =>
-  props.bar !== null && props.sizes && target.value !== null ? loadPlan(target.value, props.bar, props.sizes) : null)
+  props.bar !== null && props.sizes && target.value !== null ? loadPlan(target.value, props.bar, props.sizes) : null
+)
 const heaviest = computed(() => Math.max(...(props.sizes ?? [1])))
 const eachSide = computed(() => {
   const plates = plan.value?.exact?.perSide ?? []
@@ -24,7 +25,11 @@ const eachSide = computed(() => {
       </div>
       <div v-if="barEditable" class="w-24 shrink-0">
         <span class="text-sm font-medium text-dimmed">Bar</span>
-        <AppNumberInput :model-value="bar" data-test="tools-bar" @update:model-value="(value) => emit('update:bar', value)" />
+        <AppNumberInput
+          :model-value="bar"
+          data-test="tools-bar"
+          @update:model-value="(value) => emit('update:bar', value)"
+        />
       </div>
     </div>
 

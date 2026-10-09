@@ -19,7 +19,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: (err as Error).message })
   }
 
-  const usdaSource = await db.select().from(foodSources).where(eq(foodSources.key, 'usda')).limit(1).then((r) => r[0])
+  const usdaSource = await db
+    .select()
+    .from(foodSources)
+    .where(eq(foodSources.key, 'usda'))
+    .limit(1)
+    .then((r) => r[0])
 
   return db.transaction((tx) =>
     createFoodRecord(tx, {

@@ -28,8 +28,8 @@ export function copyTargetsFrom(
 ): EntryTarget | null {
   const metric = targetMetricFor(trackingType)
   const sameMetric = metric === targetMetricFor(sourceTrackingType)
-  let low = sameMetric ? source?.low ?? null : null
-  let high = sameMetric ? source?.high ?? null : null
+  let low = sameMetric ? (source?.low ?? null) : null
+  let high = sameMetric ? (source?.high ?? null) : null
   if (low === null && high === null && metric) {
     const values = sets.map((set) => targetValueOf(metric, set)).filter((value): value is number => value !== null)
     if (values.length) {
@@ -54,7 +54,11 @@ function rangeValue(metric: TargetMetric, value: number): string {
   return String(value)
 }
 
-export function rangePlaceholder(low: number | null, high: number | null, metric: TargetMetric = 'reps'): string | null {
+export function rangePlaceholder(
+  low: number | null,
+  high: number | null,
+  metric: TargetMetric = 'reps'
+): string | null {
   const values = span(low, high)
   return values.length ? values.map((value) => rangeValue(metric, value)).join('–') : null
 }
@@ -78,7 +82,11 @@ export function targetSummary(trackingType: TrackingType, target: EntryTarget | 
   return text
 }
 
-export function targetProgressLabel(trackingType: TrackingType, target: EntryTarget | null, logged: number): string | null {
+export function targetProgressLabel(
+  trackingType: TrackingType,
+  target: EntryTarget | null,
+  logged: number
+): string | null {
   if (!target) return null
   const range = rangeFor(trackingType, target)
   if (target.sets === null) return range || null

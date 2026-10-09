@@ -5,7 +5,7 @@ import { createError, readBody } from 'h3'
 import ExerciseVariationsPanel from '../../app/components/workout/ExerciseVariationsPanel.vue'
 
 const category = { id: 1, key: 'chest', name: 'Chest', color: 'rose', sortOrder: 0, shared: true, hidden: false }
-const detail = (id: number, name: string, variations: { id: number, name: string }[]) => ({
+const detail = (id: number, name: string, variations: { id: number; name: string }[]) => ({
   id,
   name,
   category,
@@ -131,7 +131,11 @@ describe('ExerciseVariationsPanel', () => {
     await flushPromises()
     await find('[data-test="variation-group-5"]').trigger('click')
     await vi.waitFor(() => expect(toastAdd).toHaveBeenCalledTimes(1))
-    expect(toastAdd.mock.calls[0]![0]).toMatchObject({ title: 'Couldn\'t link variation', description: 'Group is full', color: 'error' })
+    expect(toastAdd.mock.calls[0]![0]).toMatchObject({
+      title: 'Couldn\'t link variation',
+      description: 'Group is full',
+      color: 'error'
+    })
     await flushPromises()
     expect(groupReads).toBe(readsBefore)
     wrapper.unmount()

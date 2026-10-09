@@ -104,9 +104,7 @@ export default defineEventHandler(async (event) => {
         await tx
           .update(diaryEntryNutrients)
           .set({ amount: String(amount) })
-          .where(
-            and(eq(diaryEntryNutrients.entryId, entry.id), eq(diaryEntryNutrients.nutrientId, Number(nutrientId)))
-          )
+          .where(and(eq(diaryEntryNutrients.entryId, entry.id), eq(diaryEntryNutrients.nutrientId, Number(nutrientId))))
       }
 
       const ratio = body.quantity / oldQuantity

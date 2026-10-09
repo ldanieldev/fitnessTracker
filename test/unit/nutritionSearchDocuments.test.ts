@@ -8,8 +8,14 @@ describe('foodToSearchDocument', () => {
     const { foodToSearchDocument } = await import('../../server/utils/nutrition/searchDocuments')
     const doc = foodToSearchDocument(catalogFood, ['100 g', 'serving'], 'off')
     expect(doc).toEqual({
-      id: 7, name: 'Nutella', brand: 'Ferrero', source: 'off', barcode: '3017624010701',
-      serving_labels: ['100 g', 'serving'], is_catalog: true, owner_id: null
+      id: 7,
+      name: 'Nutella',
+      brand: 'Ferrero',
+      source: 'off',
+      barcode: '3017624010701',
+      serving_labels: ['100 g', 'serving'],
+      is_catalog: true,
+      owner_id: null
     })
   })
 

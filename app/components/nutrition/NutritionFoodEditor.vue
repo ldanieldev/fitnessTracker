@@ -38,7 +38,9 @@ const defaultServing = computed(() => {
   const servings = food.value?.servings ?? []
   return servings.find((s) => s.id === food.value?.defaultServingId) ?? servings[0] ?? null
 })
-const defaultDraft = computed(() => (defaultServing.value ? draftFromServing(defaultServing.value, idToKey.value) : null))
+const defaultDraft = computed(() =>
+  defaultServing.value ? draftFromServing(defaultServing.value, idToKey.value) : null
+)
 
 function weightTaken(servingId: number | null) {
   return (food.value?.servings ?? []).some((s) => s.kind === 'weight' && s.id !== servingId)
@@ -50,7 +52,11 @@ async function saveHeader() {
   try {
     await apiFetch(`/api/nutrition/foods/${props.foodId}`, {
       method: 'PUT',
-      body: { name: header.value.name.trim(), brand: header.value.brand.trim() || null, barcode: header.value.barcode.trim() || null }
+      body: {
+        name: header.value.name.trim(),
+        brand: header.value.brand.trim() || null,
+        barcode: header.value.barcode.trim() || null
+      }
     })
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     toast.add({ title: 'Food saved', color: 'success' })
@@ -96,7 +102,18 @@ async function confirmDelete() {
 
 const menu = computed<DropdownMenuItem[][]>(() =>
   food.value && !isCatalogue.value
-    ? [[{ label: 'Delete food', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { deleteOpen.value = true } }]]
+    ? [
+        [
+          {
+            label: 'Delete food',
+            icon: 'i-lucide-trash-2',
+            color: 'error',
+            onSelect: () => {
+              deleteOpen.value = true
+            }
+          }
+        ]
+      ]
     : []
 )
 </script>
@@ -111,7 +128,13 @@ const menu = computed<DropdownMenuItem[][]>(() =>
         <template #right>
           <UButton v-if="isCatalogue" label="Make my copy" size="sm" data-test="food-fork" @click="fork" />
           <UDropdownMenu v-else-if="menu.length" :items="menu">
-            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" aria-label="Food actions" data-test="food-menu" />
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              color="neutral"
+              aria-label="Food actions"
+              data-test="food-menu"
+            />
           </UDropdownMenu>
         </template>
       </UDashboardNavbar>
@@ -132,8 +155,17 @@ const menu = computed<DropdownMenuItem[][]>(() =>
           <p class="text-sm text-dimmed">Catalogue foods are shared and read-only. Make your own copy to edit it.</p>
           <UCard v-for="serving in food.servings" :key="serving.id" data-test="catalogue-serving">
             <div class="flex flex-col gap-1 text-sm">
-              <span class="font-medium">{{ serving.quantity }} {{ serving.label }}<template v-if="serving.basisGrams && serving.kind === 'named'"> ({{ serving.basisGrams }} g)</template></span>
-              <NutritionMacroText v-if="serving.hasOwnNutrition" :nutrients="keyNutrients(serving.nutrients, idToKey)" with-energy />
+              <span class="font-medium"
+                >{{ serving.quantity }} {{ serving.label
+                }}<template v-if="serving.basisGrams && serving.kind === 'named'">
+                  ({{ serving.basisGrams }} g)</template
+                ></span
+              >
+              <NutritionMacroText
+                v-if="serving.hasOwnNutrition"
+                :nutrients="keyNutrients(serving.nutrients, idToKey)"
+                with-energy
+              />
               <span v-else class="text-dimmed">Derived from the gram weight</span>
             </div>
           </UCard>
@@ -153,7 +185,14 @@ const menu = computed<DropdownMenuItem[][]>(() =>
               </UFormField>
               <NutritionServingPreview v-if="defaultDraft" :draft="defaultDraft" />
               <p v-if="headerError" class="text-sm text-error" data-test="food-header-error">{{ headerError }}</p>
-              <UButton label="Save" class="w-full sm:w-fit" :loading="headerSaving" :disabled="!header.name.trim()" data-test="food-header-save" @click="saveHeader" />
+              <UButton
+                label="Save"
+                class="w-full sm:w-fit"
+                :loading="headerSaving"
+                :disabled="!header.name.trim()"
+                data-test="food-header-save"
+                @click="saveHeader"
+              />
             </div>
           </UCard>
 
@@ -180,11 +219,22 @@ const menu = computed<DropdownMenuItem[][]>(() =>
             @saved="onPendingSaved(key)"
             @cancel="pendingCards = pendingCards.filter((k) => k !== key)"
           />
-          <UButton icon="i-lucide-plus" label="Add serving" variant="soft" class="w-full sm:w-fit" data-test="add-serving" @click="addServing" />
+          <UButton
+            icon="i-lucide-plus"
+            label="Add serving"
+            variant="soft"
+            class="w-full sm:w-fit"
+            data-test="add-serving"
+            @click="addServing"
+          />
         </template>
       </div>
 
-      <AppSheet v-model:open="deleteOpen" title="Delete food" :description="`Delete ${food?.name}? Logged entries keep their numbers.`">
+      <AppSheet
+        v-model:open="deleteOpen"
+        title="Delete food"
+        :description="`Delete ${food?.name}? Logged entries keep their numbers.`"
+      >
         <template #footer>
           <div class="flex w-full justify-end gap-2">
             <UButton label="Cancel" color="neutral" variant="outline" @click="deleteOpen = false" />

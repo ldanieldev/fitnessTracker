@@ -61,7 +61,13 @@ export default defineEventHandler(async (event) => {
 
   const catalog = await nutrientCatalog()
   const energyEntry = catalog.find((n) => n.key === 'energy')
-  const makeEnergyTarget = (amount: number): Target => ({ key: 'energy', name: energyEntry!.name, unit: 'kcal', amount, direction: energyEntry!.defaultDirection })
+  const makeEnergyTarget = (amount: number): Target => ({
+    key: 'energy',
+    name: energyEntry!.name,
+    unit: 'kcal',
+    amount,
+    direction: energyEntry!.defaultDirection
+  })
 
   let targets: Target[]
   if (day && day.goalProfileId !== null) {
@@ -100,7 +106,11 @@ export default defineEventHandler(async (event) => {
           .then((rows) => rows.map((t) => ({ ...t, amount: Number(t.amount) })))
       : []
     if (energyEntry && defaultProfile) {
-      targets = ensureEnergyTarget(targets, makeEnergyTarget, defaultProfile.calories === null ? null : Number(defaultProfile.calories))
+      targets = ensureEnergyTarget(
+        targets,
+        makeEnergyTarget,
+        defaultProfile.calories === null ? null : Number(defaultProfile.calories)
+      )
     }
   }
 

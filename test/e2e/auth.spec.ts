@@ -23,11 +23,14 @@ test.describe('stale session', () => {
     await expect(page).toHaveURL(/\/auth\/login/)
   })
 
-  test('a raw $fetch mutation on an already-open page 401s and lands on login, not just a toast', async ({ page, goto }) => {
+  test('a raw $fetch mutation on an already-open page 401s and lands on login, not just a toast', async ({
+    page,
+    goto
+  }) => {
     await goto('/', { waitUntil: 'hydration' })
     await registerViaApi(page, makeUser())
 
-    // The nutrient catalogue is fetched lazily after hydration; if it lands after the delete it 401s and redirects first, pre-empting the mutation under test.
+    // The nutrient catalogue loads lazily after hydration; landing after the delete, it would 401 and redirect first.
     const catalogLoaded = page.waitForResponse((r) => r.url().includes('/api/nutrition/nutrients'))
     await goto('/nutrition/diary/today', { waitUntil: 'hydration' })
     await expect(page).toHaveURL(/\/nutrition\/diary\/\d{4}-\d{2}-\d{2}$/)
@@ -37,7 +40,7 @@ test.describe('stale session', () => {
     const del = await apiFetch(page, 'POST', '/api/nutrition/_test/delete-user')
     expect(del.ok).toBe(true)
 
-    // Day notes save is a raw $fetch call (not useNutritionFetch) — the page was already open before the row disappeared.
+    // Day notes save is a raw $fetch (not useNutritionFetch): the page was open before the row disappeared.
     await page.locator('[data-test="day-menu"]').click()
     await page.getByRole('menuitem', { name: 'Day notes' }).click()
     await page.locator('[data-test="day-notes-input"]').fill('Should not save')
@@ -108,7 +111,11 @@ test.describe('user preferences', () => {
     await goto('/', { waitUntil: 'hydration' })
     await registerViaApi(page, makeUser())
 
-    const before = await apiFetch<{ user: { id: number, defaultRestSeconds: number } }>(page, 'GET', '/api/_auth/session')
+    const before = await apiFetch<{ user: { id: number; defaultRestSeconds: number } }>(
+      page,
+      'GET',
+      '/api/_auth/session'
+    )
     expect(before.json.user.defaultRestSeconds).toBe(60)
 
     const saved = await apiFetch(page, 'PUT', `/api/users/${before.json.user.id}`, { defaultRestSeconds: 30 })
@@ -123,7 +130,7 @@ test.describe('user preferences', () => {
   test('plate sizes default on the session and save normalised', async ({ page, goto }) => {
     await goto('/', { waitUntil: 'hydration' })
     await registerViaApi(page, makeUser())
-    const before = await apiFetch<{ user: { id: number, plateSizes: number[] } }>(page, 'GET', '/api/_auth/session')
+    const before = await apiFetch<{ user: { id: number; plateSizes: number[] } }>(page, 'GET', '/api/_auth/session')
     expect(before.json.user.plateSizes).toEqual([45, 35, 25, 10, 5, 2.5])
 
     const saved = await apiFetch(page, 'PUT', `/api/users/${before.json.user.id}`, { plateSizes: [2.5, 55, 45] })

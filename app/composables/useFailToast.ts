@@ -9,7 +9,16 @@ export function useFailToast(): FailToast {
       title,
       description: errorMessage(err, fallback),
       color: 'error',
-      actions: retry ? [{ label: 'Retry', onClick: () => { retry() } }] : undefined
+      actions: retry
+        ? [
+            {
+              label: 'Retry',
+              onClick: () => {
+                retry()
+              }
+            }
+          ]
+        : undefined
     })
   }
 }

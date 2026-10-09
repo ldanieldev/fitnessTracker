@@ -21,7 +21,7 @@ interface ExternalErrorEntry {
 }
 
 const emit = defineEmits<{
-  imported: [payload: { id: number, needsNutrition: boolean }]
+  imported: [payload: { id: number; needsNutrition: boolean }]
 }>()
 
 const toast = useToast()
@@ -71,7 +71,7 @@ async function search() {
   if (!trimmed) return
   searching.value = true
   try {
-    const result = await apiFetch<{ results: ExternalResult[], errors: ExternalErrorEntry[] }>(
+    const result = await apiFetch<{ results: ExternalResult[]; errors: ExternalErrorEntry[] }>(
       '/api/nutrition/foods/search/external',
       { query: { q: trimmed, source: source.value, limit: 25 } }
     )
@@ -79,7 +79,11 @@ async function search() {
     errors.value = result.errors
     searched.value = true
   } catch (error: unknown) {
-    toast.add({ title: 'Search failed', description: errorMessage(error, 'Could not search external sources'), color: 'error' })
+    toast.add({
+      title: 'Search failed',
+      description: errorMessage(error, 'Could not search external sources'),
+      color: 'error'
+    })
   } finally {
     searching.value = false
   }
@@ -88,14 +92,21 @@ async function search() {
 async function importResult(result: ExternalResult) {
   importingKey.value = resultKey(result)
   try {
-    const imported = await apiFetch<{ id: number, needsNutrition: boolean, owned: boolean }>('/api/nutrition/foods/import', {
-      method: 'POST',
-      body: { source: result.source, externalId: result.externalId }
-    })
+    const imported = await apiFetch<{ id: number; needsNutrition: boolean; owned: boolean }>(
+      '/api/nutrition/foods/import',
+      {
+        method: 'POST',
+        body: { source: result.source, externalId: result.externalId }
+      }
+    )
     await invalidateNutrition(NUTRITION_KEYS.foods)
     emit('imported', { id: imported.id, needsNutrition: imported.needsNutrition })
   } catch (error: unknown) {
-    toast.add({ title: 'Import failed', description: errorMessage(error, 'Could not import this food'), color: 'error' })
+    toast.add({
+      title: 'Import failed',
+      description: errorMessage(error, 'Could not import this food'),
+      color: 'error'
+    })
   } finally {
     importingKey.value = null
   }

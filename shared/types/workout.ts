@@ -42,7 +42,7 @@ export interface ExerciseCategory {
 
 export interface ExerciseDetail extends Exercise {
   instructions: string[]
-  variations: { id: number, name: string }[]
+  variations: { id: number; name: string }[]
 }
 
 export interface Exercise {
@@ -65,7 +65,7 @@ export interface Exercise {
   favorite: boolean
   hidden: boolean
   shared: boolean
-  overridden: { category: boolean, trackingType: boolean, loadStyle: boolean, barWeight: boolean }
+  overridden: { category: boolean; trackingType: boolean; loadStyle: boolean; barWeight: boolean }
   defaultGraph: GraphMetric | null
 }
 
@@ -246,7 +246,14 @@ export interface HistoryStamp {
 }
 
 export const GRAPH_METRIC_VALUES = [
-  'e1rm', 'max_weight', 'volume', 'total_reps', 'weight_at_reps', 'distance', 'duration', 'pace'
+  'e1rm',
+  'max_weight',
+  'volume',
+  'total_reps',
+  'weight_at_reps',
+  'distance',
+  'duration',
+  'pace'
 ] as const
 export type GraphMetric = (typeof GRAPH_METRIC_VALUES)[number]
 
@@ -329,7 +336,7 @@ export interface ProgressGoal extends WorkoutGoal {
 export interface WorkoutProgress {
   from: string
   to: string
-  totals: { workouts: number, sets: number, reps: number, volume: number, durationSeconds: number }
+  totals: { workouts: number; sets: number; reps: number; volume: number; durationSeconds: number }
   muscles: MuscleVolume[]
   goals: ProgressGoal[]
 }

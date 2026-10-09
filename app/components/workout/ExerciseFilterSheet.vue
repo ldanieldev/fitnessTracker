@@ -5,7 +5,10 @@ import ExerciseCategoryEditor from './ExerciseCategoryEditor.vue'
 import type { MuscleRow } from '~~/shared/types/workout'
 import { exerciseListQuery } from '~~/shared/utils/exerciseKeys'
 
-interface FilterOption { key: string, name: string }
+interface FilterOption {
+  key: string
+  name: string
+}
 type MuscleOption = Pick<MuscleRow, 'key' | 'name' | 'bodyMapGroups'>
 interface SheetFilters {
   muscles: string[]
@@ -14,10 +17,14 @@ interface SheetFilters {
   includeHidden: boolean
 }
 
-interface FacetScope { q?: string, categoryId?: number, favorites?: boolean }
+interface FacetScope {
+  q?: string
+  categoryId?: number
+  favorites?: boolean
+}
 
 const props = withDefaults(
-  defineProps<{ muscles: MuscleOption[], equipment: FilterOption[], filters: SheetFilters, scope?: FacetScope }>(),
+  defineProps<{ muscles: MuscleOption[]; equipment: FilterOption[]; filters: SheetFilters; scope?: FacetScope }>(),
   { scope: () => ({}) }
 )
 const emit = defineEmits<{ apply: [filters: SheetFilters] }>()
@@ -35,38 +42,48 @@ function syncFromProps() {
 }
 
 // Re-sync on open so a filter half-set before Cancel never leaks into the next visit.
-watch(open, (isOpen) => {
-  if (isOpen) syncFromProps()
-}, { immediate: true })
+watch(
+  open,
+  (isOpen) => {
+    if (isOpen) syncFromProps()
+  },
+  { immediate: true }
+)
 
 const facet = ref<string[] | null>(null)
 const facetLoading = ref(false)
-const facetQuery = computed(() => exerciseListQuery({
-  ...props.scope,
-  equipment: local.equipment,
-  difficulty: local.difficulty ?? undefined,
-  includeHidden: local.includeHidden
-}))
+const facetQuery = computed(() =>
+  exerciseListQuery({
+    ...props.scope,
+    equipment: local.equipment,
+    difficulty: local.difficulty ?? undefined,
+    includeHidden: local.includeHidden
+  })
+)
 let facetCall = 0
 // Fetched only while open so the list page's search keystrokes don't each cost a second catalogue pass.
-watch([open, facetQuery], async ([isOpen, query]) => {
-  const call = ++facetCall
-  if (!isOpen) {
-    // A reopen under a different scope must not dim muscles from the previous visit's facet.
-    facet.value = null
-    facetLoading.value = false
-    return
-  }
-  facetLoading.value = true
-  try {
-    const keys = await apiFetch<string[]>(`/api/workouts/exercises/muscles?${query}`)
-    if (call === facetCall) facet.value = keys
-  } catch {
-    if (call === facetCall) facet.value = null
-  } finally {
-    if (call === facetCall) facetLoading.value = false
-  }
-}, { immediate: true })
+watch(
+  [open, facetQuery],
+  async ([isOpen, query]) => {
+    const call = ++facetCall
+    if (!isOpen) {
+      // A reopen under a different scope must not dim muscles from the previous visit's facet.
+      facet.value = null
+      facetLoading.value = false
+      return
+    }
+    facetLoading.value = true
+    try {
+      const keys = await apiFetch<string[]>(`/api/workouts/exercises/muscles?${query}`)
+      if (call === facetCall) facet.value = keys
+    } catch {
+      if (call === facetCall) facet.value = null
+    } finally {
+      if (call === facetCall) facetLoading.value = false
+    }
+  },
+  { immediate: true }
+)
 
 const facetPending = computed(() => facet.value === null && facetLoading.value)
 

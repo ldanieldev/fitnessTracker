@@ -21,9 +21,12 @@ const { defaultRestSeconds } = useWorkoutPrefs()
 const lastLoggedEntryId = ref<number | null>(null)
 
 // Completion's vibrate + toast live in the restTimer plugin so they also fire off this page.
-watch(() => restTimer.isRunning.value, (running) => {
-  if (!running) restTimerOpen.value = false
-})
+watch(
+  () => restTimer.isRunning.value,
+  (running) => {
+    if (!running) restTimerOpen.value = false
+  }
+)
 
 const { session, status, error } = await useActiveSession()
 
@@ -33,14 +36,21 @@ watch(error, (value) => {
 
 const loading = computed(() => status.value === 'pending' && !session.value)
 
-const { data: routineList, status: routineStatus, refresh: refreshRoutines } = useWorkoutFetch<RoutineSummary[]>(WORKOUT_KEYS.routines, '/api/workouts/routines', { lazy: true })
+const {
+  data: routineList,
+  status: routineStatus,
+  refresh: refreshRoutines
+} = useWorkoutFetch<RoutineSummary[]>(WORKOUT_KEYS.routines, '/api/workouts/routines', { lazy: true })
 const routinesLoading = computed(() => routineStatus.value === 'pending' && !routineList.value)
 const dueRoutine = computed(() => routineList.value?.find((routine) => routine.active && routine.nextDay) ?? null)
 
 const { enrollment } = useEnrollment()
-watch(() => enrollment.value?.phase?.id, (now, before) => {
-  if (now !== before) void refreshRoutines()
-})
+watch(
+  () => enrollment.value?.phase?.id,
+  (now, before) => {
+    if (now !== before) void refreshRoutines()
+  }
+)
 
 onMounted(() => {
   wakeLock.enable()
@@ -55,7 +65,12 @@ function toggleWakeLock() {
   else wakeLock.enable()
 }
 
-async function start(body: { routineDayId?: number, pointer?: PointerChoice, copyFromId?: number, entryIds?: number[] }) {
+async function start(body: {
+  routineDayId?: number
+  pointer?: PointerChoice
+  copyFromId?: number
+  entryIds?: number[]
+}) {
   const started = await startWorkout(body)
   if (started) session.value = started
   return started
@@ -70,7 +85,10 @@ async function finishSession() {
   const id = session.value?.id
   if (!id) return
   try {
-    session.value = await apiFetch<WorkoutSession>(`/api/workouts/sessions/${id}`, { method: 'PATCH', body: { finish: true } })
+    session.value = await apiFetch<WorkoutSession>(`/api/workouts/sessions/${id}`, {
+      method: 'PATCH',
+      body: { finish: true }
+    })
     // The plugin's "Rest complete!" toast would otherwise still fire after the workout has ended.
     restTimer.skip()
     toast.add({ title: 'Workout finished', color: 'success' })
@@ -118,7 +136,7 @@ function openPlates(entryId: number, weight: number | null) {
   toolsOpen.value = true
 }
 
-const presetWeights = reactive<Record<number, { weight: number, seq: number }>>({})
+const presetWeights = reactive<Record<number, { weight: number; seq: number }>>({})
 let presetSeq = 0
 
 function useWeight(entryId: number, weight: number) {
@@ -203,7 +221,12 @@ function useWeight(entryId: number, weight: number) {
     </template>
 
     <template #body>
-      <div v-if="loading || (!session && routinesLoading)" class="mx-auto flex w-full max-w-2xl flex-col gap-3" data-test="log-skeleton" aria-busy="true">
+      <div
+        v-if="loading || (!session && routinesLoading)"
+        class="mx-auto flex w-full max-w-2xl flex-col gap-3"
+        data-test="log-skeleton"
+        aria-busy="true"
+      >
         <USkeleton class="h-10 w-full rounded-lg" />
         <USkeleton class="h-28 w-full rounded-xl" />
         <USkeleton class="h-28 w-full rounded-xl" />
@@ -222,13 +245,45 @@ function useWeight(entryId: number, weight: number) {
           @click="startNextDay"
         >
           <span class="flex min-w-0 flex-col items-start">
-            <span class="truncate font-semibold" data-test="start-routine-next-name">{{ dueRoutine.nextDay!.name }}</span>
+            <span class="truncate font-semibold" data-test="start-routine-next-name">{{
+              dueRoutine.nextDay!.name
+            }}</span>
             <span class="truncate text-xs opacity-80">{{ dueRoutine.name }} · next</span>
           </span>
         </UButton>
-        <UButton label="Other routine day…" icon="i-lucide-list" variant="soft" color="neutral" block class="min-h-10" :disabled="starting" data-test="start-routine-other" @click="dayPickerOpen = true" />
-        <UButton label="Copy a past workout…" icon="i-lucide-copy" variant="soft" color="neutral" block class="min-h-10" :disabled="starting" data-test="start-copy" @click="copyOpen = true" />
-        <UButton label="Empty workout" icon="i-lucide-plus" variant="soft" color="neutral" block class="min-h-10" :loading="starting" data-test="start-empty" @click="start({})" />
+        <UButton
+          label="Other routine day…"
+          icon="i-lucide-list"
+          variant="soft"
+          color="neutral"
+          block
+          class="min-h-10"
+          :disabled="starting"
+          data-test="start-routine-other"
+          @click="dayPickerOpen = true"
+        />
+        <UButton
+          label="Copy a past workout…"
+          icon="i-lucide-copy"
+          variant="soft"
+          color="neutral"
+          block
+          class="min-h-10"
+          :disabled="starting"
+          data-test="start-copy"
+          @click="copyOpen = true"
+        />
+        <UButton
+          label="Empty workout"
+          icon="i-lucide-plus"
+          variant="soft"
+          color="neutral"
+          block
+          class="min-h-10"
+          :loading="starting"
+          data-test="start-empty"
+          @click="start({})"
+        />
       </div>
 
       <WorkoutSessionEditor

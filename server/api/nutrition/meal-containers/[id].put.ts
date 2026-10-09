@@ -24,9 +24,7 @@ export default defineEventHandler(async (event) => {
     .then((r) => r[0])
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Container not found' })
 
-  const patch = body.sortOrder !== undefined
-    ? { name: body.name, sortOrder: body.sortOrder }
-    : { name: body.name }
+  const patch = body.sortOrder !== undefined ? { name: body.name, sortOrder: body.sortOrder } : { name: body.name }
 
   try {
     return await db

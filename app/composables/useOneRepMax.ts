@@ -22,7 +22,9 @@ export function useOneRepMax(exerciseId: Ref<number | null>) {
     pending.value = true
     try {
       // The local date, not the server's UTC one, bounds the 90-day window.
-      const value = await apiFetch<OneRepMaxResult>(`/api/workouts/exercises/${id}/one-rep-max`, { query: { on: todayDate() } })
+      const value = await apiFetch<OneRepMaxResult>(`/api/workouts/exercises/${id}/one-rep-max`, {
+        query: { on: todayDate() }
+      })
       if (request === latest) result.value = value
     } catch {
       if (request === latest) {

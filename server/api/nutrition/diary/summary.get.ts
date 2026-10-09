@@ -17,7 +17,13 @@ export default defineEventHandler(async (event) => {
   const { nutrients, days } = await loadIntakeRange(userId, from, to, dates)
 
   const rollingByKey = new Map(
-    nutrients.map((n) => [n.key, rollingAverage(days.map((d) => d.totals[n.key] ?? null), window)])
+    nutrients.map((n) => [
+      n.key,
+      rollingAverage(
+        days.map((d) => d.totals[n.key] ?? null),
+        window
+      )
+    ])
   )
 
   return {

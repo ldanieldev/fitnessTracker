@@ -23,7 +23,7 @@ interface DrainTarget {
   rebuild(): Promise<void>
 }
 
-export function coalesceOutboxRows(rows: OutboxRow[]): Array<{ entityId: number, op: 'upsert' | 'delete' }> {
+export function coalesceOutboxRows(rows: OutboxRow[]): Array<{ entityId: number; op: 'upsert' | 'delete' }> {
   const last = new Map<number, 'upsert' | 'delete'>()
   // delete+set (not just set) moves a re-touched entity to the end, ordering entries by last row id
   for (const row of rows) {

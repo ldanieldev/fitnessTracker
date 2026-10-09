@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import type { Exercise } from '~~/shared/types/workout'
 
-interface VariationGroup { id: number, name: string, exerciseIds: number[] }
-interface LinkTarget { groupId?: number, name?: string }
+interface VariationGroup {
+  id: number
+  name: string
+  exerciseIds: number[]
+}
+interface LinkTarget {
+  groupId?: number
+  name?: string
+}
 
-const props = defineProps<{ exercise: Exercise, groups: VariationGroup[] }>()
+const props = defineProps<{ exercise: Exercise; groups: VariationGroup[] }>()
 const emit = defineEmits<{ link: [payload: LinkTarget & { exerciseId: number }] }>()
 const open = defineModel<boolean>('open', { default: false })
 
@@ -12,7 +19,7 @@ const currentGroup = computed(() => props.groups.find((g) => g.exerciseIds.inclu
 
 const creatingNew = ref(false)
 const newName = ref('')
-const pending = ref<{ target: LinkTarget, targetLabel: string } | null>(null)
+const pending = ref<{ target: LinkTarget; targetLabel: string } | null>(null)
 
 watch(open, (isOpen) => {
   if (!isOpen) return
@@ -65,9 +72,7 @@ function cancelMove() {
   <AppSheet v-model:open="open" title="Link variation">
     <template #body>
       <div v-if="pending" class="flex flex-col gap-4">
-        <p class="text-sm">
-          Move {{ exercise.name }} from {{ currentGroup?.name }} to {{ pending.targetLabel }}?
-        </p>
+        <p class="text-sm">Move {{ exercise.name }} from {{ currentGroup?.name }} to {{ pending.targetLabel }}?</p>
         <div class="flex gap-2">
           <UButton
             label="Cancel"

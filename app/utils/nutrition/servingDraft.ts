@@ -29,10 +29,13 @@ export function emptyDraft(): ServingDraft {
   return { kind: 'named', label: '', quantity: 1, basisGrams: '', nutrients: {} }
 }
 
-export function nutrientFields(tracked: Array<{ key: string, name: string, unit: string }>): NutrientField[] {
+export function nutrientFields(tracked: Array<{ key: string; name: string; unit: string }>): NutrientField[] {
   const macros: NutrientField[] = NUTRITION_MACROS.map((m) => ({ key: m.key, name: m.name, unit: m.unit }))
   const seen = new Set(macros.map((m) => m.key))
-  return [...macros, ...tracked.filter((t) => !seen.has(t.key)).map((t) => ({ key: t.key, name: t.name, unit: t.unit }))]
+  return [
+    ...macros,
+    ...tracked.filter((t) => !seen.has(t.key)).map((t) => ({ key: t.key, name: t.name, unit: t.unit }))
+  ]
 }
 
 function numericNutrients(draft: ServingDraft): Record<string, number> {
@@ -54,13 +57,17 @@ export function draftError(draft: ServingDraft): string | null {
   if (!(draft.quantity > 0)) return 'Quantity must be more than 0'
   const hasNutrients = Object.keys(numericNutrients(draft)).length > 0
   if (draft.kind === 'weight' && !hasNutrients) return 'A weight serving must carry its own nutrition'
-  if (!hasNutrients && positiveGrams(draft.basisGrams) === undefined) return 'A serving without its own nutrition needs a gram weight'
+  if (!hasNutrients && positiveGrams(draft.basisGrams) === undefined)
+    return 'A serving without its own nutrition needs a gram weight'
   return null
 }
 
 export function draftToInput(draft: ServingDraft): ServingInputBody {
   const nutrients = numericNutrients(draft)
-  if (nutrients.energy === undefined && (nutrients.protein !== undefined || nutrients.carbohydrate !== undefined || nutrients.fat !== undefined)) {
+  if (
+    nutrients.energy === undefined &&
+    (nutrients.protein !== undefined || nutrients.carbohydrate !== undefined || nutrients.fat !== undefined)
+  ) {
     const derived = deriveEnergy(nutrients)
     if (derived !== null) nutrients.energy = Math.round(derived)
   }
@@ -89,7 +96,11 @@ export function draftFromServing(serving: ServingBasis, idToKey: Map<number, str
   }
 }
 
-export function applyParsedNutrients(draft: ServingDraft, parsed: Partial<Record<string, number>>, fields: NutrientField[]): ServingDraft {
+export function applyParsedNutrients(
+  draft: ServingDraft,
+  parsed: Partial<Record<string, number>>,
+  fields: NutrientField[]
+): ServingDraft {
   const nutrients = { ...draft.nutrients }
   for (const field of fields) {
     const value = parsed[field.key]

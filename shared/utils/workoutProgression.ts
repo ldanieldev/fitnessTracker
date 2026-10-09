@@ -25,8 +25,12 @@ export function progressionFor(
   const heavier = (a: number, b: number) => (assisted ? a < b : a > b)
   const top = (set: SetMeasures) => set.reps != null && set.reps >= high
   const failedBump = (prev: SetMeasures, set: SetMeasures) =>
-    top(prev) && prev.weight != null && set.weight != null && set.reps != null
-    && heavier(set.weight, prev.weight) && set.reps < low
+    top(prev) &&
+    prev.weight != null &&
+    set.weight != null &&
+    set.reps != null &&
+    heavier(set.weight, prev.weight) &&
+    set.reps < low
 
   const prev = seq.at(-2)
   if (prev && failedBump(prev, trigger)) {
@@ -45,7 +49,7 @@ export function progressionFor(
 export interface ProgressionCopy {
   title: string
   body: string
-  bodyParts: { before: string, range: string, after: string }
+  bodyParts: { before: string; range: string; after: string }
   apply: string
   stay: string
 }

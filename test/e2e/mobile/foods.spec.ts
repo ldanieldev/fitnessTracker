@@ -3,7 +3,7 @@ import { apiFetch, makeUser, registerViaApi, seedCatalogFood, uniquePrefix } fro
 
 interface FoodJson {
   name: string
-  servings: Array<{ id: number, kind: string, label: string, nutrients: Record<string, number> }>
+  servings: Array<{ id: number; kind: string; label: string; nutrients: Record<string, number> }>
 }
 
 test('edits an owned food: header, a serving, a new serving, and a guarded delete', async ({ page, goto }) => {
@@ -24,7 +24,9 @@ test('edits an owned food: header, a serving, a new serving, and a guarded delet
   await page.locator('[data-test="food-header-name"]').fill(`${p} Sourdough Loaf`)
   await page.locator('[data-test="food-header-save"]').click()
   await expect(page).toHaveURL(/\/nutrition\/foods$/)
-  await expect.poll(async () => (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json.name).toBe(`${p} Sourdough Loaf`)
+  await expect
+    .poll(async () => (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json.name)
+    .toBe(`${p} Sourdough Loaf`)
 
   await page.locator('[data-test="my-food-row"]', { hasText: `${p} Sourdough Loaf` }).click()
   await expect(page).toHaveURL(new RegExp(`/nutrition/foods/${foodId}$`))
@@ -32,20 +34,26 @@ test('edits an owned food: header, a serving, a new serving, and a guarded delet
   const weightCard = page.locator('[data-test="serving-card"]').first()
   await weightCard.locator('[data-test="serving-protein"]').fill('10')
   await weightCard.locator('[data-test="serving-card-save"]').click()
-  await expect.poll(async () => {
-    const food = (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json
-    return Object.values(food.servings[0]!.nutrients).includes(10)
-  }).toBe(true)
+  await expect
+    .poll(async () => {
+      const food = (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json
+      return Object.values(food.servings[0]!.nutrients).includes(10)
+    })
+    .toBe(true)
 
   await page.locator('[data-test="add-serving"]').click()
   const newCard = page.locator('[data-test="serving-card"]').last()
   await newCard.locator('[data-test="serving-label"]').fill('slice')
   await newCard.locator('[data-test="serving-basis-grams"]').fill('40')
   await newCard.locator('[data-test="serving-card-save"]').click()
-  await expect.poll(async () => (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json.servings.length).toBe(2)
+  await expect
+    .poll(async () => (await apiFetch<FoodJson>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json.servings.length)
+    .toBe(2)
 
   await page.locator('[data-test="serving-card"]').first().locator('[data-test="serving-card-delete"]').click()
-  await expect(page.locator('[data-test="serving-card"]').first().locator('[data-test="serving-card-error"]')).toBeVisible()
+  await expect(
+    page.locator('[data-test="serving-card"]').first().locator('[data-test="serving-card-error"]')
+  ).toBeVisible()
 })
 
 test('a catalogue food is read-only until copied', async ({ page, goto }) => {

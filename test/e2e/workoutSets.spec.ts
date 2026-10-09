@@ -3,20 +3,27 @@ import { apiFetch, makeUser, registerViaApi } from './helpers'
 import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../shared/types/workout'
 
-interface SetResponse { session: WorkoutSession, set: WorkoutSet }
+interface SetResponse {
+  session: WorkoutSession
+  set: WorkoutSet
+}
 
 test('workout sets: log, validate, record, edit and delete', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const first = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const entryId = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${first.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!.id
+  const first = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entryId = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${first.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!.id
 
   const opener = await apiFetch<SetResponse>(page, 'POST', `/api/workouts/entries/${entryId}/sets`, {
-    weight: 185, reps: 8
+    weight: 185,
+    reps: 8
   })
   expect(opener.status).toBe(200)
   expect(opener.json.set.records).toEqual([])
@@ -26,12 +33,15 @@ test('workout sets: log, validate, record, edit and delete', async ({ page, goto
   expect(missing.status).toBe(400)
 
   const wrongMeasure = await apiFetch(page, 'POST', `/api/workouts/entries/${entryId}/sets`, {
-    weight: 185, reps: 8, distanceMeters: 100
+    weight: 185,
+    reps: 8,
+    distanceMeters: 100
   })
   expect(wrongMeasure.status).toBe(400)
 
   const heavier = await apiFetch<SetResponse>(page, 'POST', `/api/workouts/entries/${entryId}/sets`, {
-    weight: 195, reps: 8
+    weight: 195,
+    reps: 8
   })
   expect(heavier.json.set.records).toEqual([{ kind: 'weight_reps', previous: 185 }])
 
@@ -42,18 +52,25 @@ test('workout sets: log, validate, record, edit and delete', async ({ page, goto
   expect(corrected.json.session.entries[0]!.sets[0]!.records).toEqual([])
 
   const ticked = await apiFetch<SetResponse>(page, 'PATCH', `/api/workouts/sets/${opener.json.set.id}`, {
-    done: true, comment: 'easy'
+    done: true,
+    comment: 'easy'
   })
   expect(ticked.json.set.done).toBe(true)
   expect(ticked.json.set.comment).toBe('easy')
 
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${first.id}`, { finish: true })
 
-  const second = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const secondEntry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${second.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
-  expect(secondEntry.lastSets).toEqual([{ weight: 185, reps: 8 }, { weight: 135, reps: 8 }])
+  const second = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const secondEntry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${second.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
+  expect(secondEntry.lastSets).toEqual([
+    { weight: 185, reps: 8 },
+    { weight: 135, reps: 8 }
+  ])
 
   const removed = await apiFetch<WorkoutSession>(page, 'DELETE', `/api/workouts/sets/${opener.json.set.id}`)
   expect(removed.json.entries).toHaveLength(1)
@@ -66,13 +83,17 @@ test('workout sets: cardio measures round-trip and take the pace record', async 
 
   const exercises = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=running')).json
   const cardio = exercises.find((exercise) => exercise.trackingType === 'distance_time')!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const entryId = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: cardio.id
-  })).json.entries[0]!.id
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entryId = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: cardio.id
+    })
+  ).json.entries[0]!.id
 
   const opener = await apiFetch<SetResponse>(page, 'POST', `/api/workouts/entries/${entryId}/sets`, {
-    distanceMeters: 5000, durationSeconds: 1800
+    distanceMeters: 5000,
+    durationSeconds: 1800
   })
   expect(opener.status).toBe(200)
   expect(opener.json.set.distanceMeters).toBe(5000)
@@ -80,7 +101,8 @@ test('workout sets: cardio measures round-trip and take the pace record', async 
   expect(opener.json.set.records).toEqual([])
 
   const faster = await apiFetch<SetResponse>(page, 'POST', `/api/workouts/entries/${entryId}/sets`, {
-    distanceMeters: 5000, durationSeconds: 1500
+    distanceMeters: 5000,
+    durationSeconds: 1500
   })
   expect(faster.json.set.records).toEqual([{ kind: 'pace', previous: 5000 / 1800 }])
 

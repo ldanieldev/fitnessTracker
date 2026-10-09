@@ -112,10 +112,7 @@ function toRow(userId: number, sessionId: number, exerciseId: number, context: R
 
 async function writeRollup(userId: number, sessionId: number, exerciseId: number): Promise<void> {
   const context = await contextFor(sessionId, exerciseId)
-  const where = and(
-    eq(workoutExerciseRollups.sessionId, sessionId),
-    eq(workoutExerciseRollups.exerciseId, exerciseId)
-  )
+  const where = and(eq(workoutExerciseRollups.sessionId, sessionId), eq(workoutExerciseRollups.exerciseId, exerciseId))
   if (!context) {
     await db.delete(workoutExerciseRollups).where(where)
     return
@@ -138,10 +135,7 @@ export async function refreshRollup(userId: number, sessionId: number, exerciseI
 }
 
 export async function refreshSessionDate(sessionId: number, performedOn: string): Promise<void> {
-  await db
-    .update(workoutExerciseRollups)
-    .set({ performedOn })
-    .where(eq(workoutExerciseRollups.sessionId, sessionId))
+  await db.update(workoutExerciseRollups).set({ performedOn }).where(eq(workoutExerciseRollups.sessionId, sessionId))
 }
 
 export async function stampGoals(userId: number, exerciseId: number): Promise<void> {
@@ -169,11 +163,13 @@ export async function stampGoals(userId: number, exerciseId: number): Promise<vo
     await db
       .update(workoutExerciseGoals)
       .set({ achievedAt: reached ? new Date() : null })
-      .where(and(
-        eq(workoutExerciseGoals.userId, userId),
-        eq(workoutExerciseGoals.exerciseId, exerciseId),
-        eq(workoutExerciseGoals.metric, goal.metric)
-      ))
+      .where(
+        and(
+          eq(workoutExerciseGoals.userId, userId),
+          eq(workoutExerciseGoals.exerciseId, exerciseId),
+          eq(workoutExerciseGoals.metric, goal.metric)
+        )
+      )
   }
 }
 
@@ -197,10 +193,14 @@ export async function rebuildRollups(userId?: number): Promise<{ rows: number }>
     await db.delete(workoutExerciseRollups).where(scope)
   } else {
     const keys = pairs.map((pair) => sql`(${pair.sessionId}, ${pair.exerciseId})`)
-    await db.delete(workoutExerciseRollups).where(and(
-      scope,
-      sql`(${workoutExerciseRollups.sessionId}, ${workoutExerciseRollups.exerciseId}) not in (${sql.join(keys, sql`, `)})`
-    ))
+    await db
+      .delete(workoutExerciseRollups)
+      .where(
+        and(
+          scope,
+          sql`(${workoutExerciseRollups.sessionId}, ${workoutExerciseRollups.exerciseId}) not in (${sql.join(keys, sql`, `)})`
+        )
+      )
   }
 
   const goalPairs = await db

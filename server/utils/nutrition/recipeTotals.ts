@@ -45,11 +45,7 @@ export interface RecipeNutrition {
   ingredients: ResolvedIngredient[]
 }
 
-export async function loadRecipe(
-  client: DbClient,
-  userId: number,
-  recipeId: number
-): Promise<LoadedRecipe | null> {
+export async function loadRecipe(client: DbClient, userId: number, recipeId: number): Promise<LoadedRecipe | null> {
   const head = await client
     .select()
     .from(recipes)

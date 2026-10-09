@@ -52,7 +52,12 @@ describe('WorkoutPlateCircles', () => {
 
   it('shows every size of the exercise\'s set and nothing else', async () => {
     const wrapper = await mountSuspended(WorkoutPlateCircles, { props: { modelValue: 45, bar: 45, sizes: [45, 25] } })
-    expect(wrapper.findAll('[data-test^="plate-"]').filter((n) => !n.attributes('data-test')!.startsWith('plate-count')).map((n) => n.attributes('data-test'))).toEqual(['plate-45', 'plate-25'])
+    expect(
+      wrapper
+        .findAll('[data-test^="plate-"]')
+        .filter((n) => !n.attributes('data-test')!.startsWith('plate-count'))
+        .map((n) => n.attributes('data-test'))
+    ).toEqual(['plate-45', 'plate-25'])
   })
 
   it('explains an unloadable weight and a weight below the bar', async () => {
@@ -80,14 +85,26 @@ describe('WorkoutPlateCircles', () => {
   it('grows the count badge\'s hit area only up and right, away from the plate face', async () => {
     const wrapper = await mountSuspended(WorkoutPlateCircles, { props: { modelValue: 135, bar: 45, sizes: [45, 25] } })
     const classes = wrapper.find('[data-test="plate-count-45"]').classes()
-    expect(classes).toEqual(expect.arrayContaining(['before:absolute', 'before:left-1/2', 'before:bottom-1/2', 'before:-top-0.5', 'before:-right-2.5']))
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        'before:absolute',
+        'before:left-1/2',
+        'before:bottom-1/2',
+        'before:-top-0.5',
+        'before:-right-2.5'
+      ])
+    )
     expect(classes.filter((c) => /^before:-(inset|left|bottom)/.test(c))).toEqual([])
   })
 
   it('centres the small plates\' badge on the tap box corner so it covers little of the plate', async () => {
-    const wrapper = await mountSuspended(WorkoutPlateCircles, { props: { modelValue: 60, bar: 45, sizes: [45, 5, 2.5] } })
+    const wrapper = await mountSuspended(WorkoutPlateCircles, {
+      props: { modelValue: 60, bar: 45, sizes: [45, 5, 2.5] }
+    })
     for (const size of [5, 2.5]) {
-      expect(wrapper.find(`[data-test="plate-count-${size}"]`).classes()).toEqual(expect.arrayContaining(['-right-2.5', '-top-2.5']))
+      expect(wrapper.find(`[data-test="plate-count-${size}"]`).classes()).toEqual(
+        expect.arrayContaining(['-right-2.5', '-top-2.5'])
+      )
     }
   })
 })

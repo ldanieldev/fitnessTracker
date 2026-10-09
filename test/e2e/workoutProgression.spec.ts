@@ -7,11 +7,22 @@ import type { WorkoutSession } from '../../shared/types/workout'
 test('a session in a deload phase reports deload; others do not', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  const routine = (await apiFetch<Routine>(page, 'POST', '/api/workouts/routines', { name: uniquePrefix('PG R ') })).json
+  const routine = (await apiFetch<Routine>(page, 'POST', '/api/workouts/routines', { name: uniquePrefix('PG R ') }))
+    .json
   await apiFetch(page, 'POST', `/api/workouts/routines/${routine.id}/days`, { name: 'A' })
-  const program = (await apiFetch<Program>(page, 'POST', '/api/workouts/programs', { name: uniquePrefix('PG P ') })).json
-  await apiFetch(page, 'POST', `/api/workouts/programs/${program.id}/phases`, { name: 'Build', weeks: 1, routineId: routine.id })
-  await apiFetch(page, 'POST', `/api/workouts/programs/${program.id}/phases`, { name: 'Deload', weeks: 1, routineId: routine.id, deload: true })
+  const program = (await apiFetch<Program>(page, 'POST', '/api/workouts/programs', { name: uniquePrefix('PG P ') }))
+    .json
+  await apiFetch(page, 'POST', `/api/workouts/programs/${program.id}/phases`, {
+    name: 'Build',
+    weeks: 1,
+    routineId: routine.id
+  })
+  await apiFetch(page, 'POST', `/api/workouts/programs/${program.id}/phases`, {
+    name: 'Deload',
+    weeks: 1,
+    routineId: routine.id,
+    deload: true
+  })
   await apiFetch(page, 'POST', `/api/workouts/programs/${program.id}/enroll`, { when: 'now', today: '2026-01-05' })
 
   const start = async (performedOn: string) => {

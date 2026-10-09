@@ -4,9 +4,15 @@ import NutritionTotalsPanel from '../../app/components/nutrition/NutritionTotals
 
 describe('NutritionTotalsPanel', () => {
   it('keeps the total and per-serving hooks and renders macro bars', async () => {
-    registerEndpoint('/api/nutrition/nutrients/tracked', () => [{ key: 'fiber', name: 'Fiber', unit: 'g', sortOrder: 0 }])
+    registerEndpoint('/api/nutrition/nutrients/tracked', () => [
+      { key: 'fiber', name: 'Fiber', unit: 'g', sortOrder: 0 }
+    ])
     const wrapper = await mountSuspended(NutritionTotalsPanel, {
-      props: { total: { energy: 500, protein: 21, carbohydrate: 67, fat: 9, fiber: 8 }, perServing: { energy: 250, protein: 10.5, carbohydrate: 33.5, fat: 4.5, fiber: 4 }, servingName: 'bowl' }
+      props: {
+        total: { energy: 500, protein: 21, carbohydrate: 67, fat: 9, fiber: 8 },
+        perServing: { energy: 250, protein: 10.5, carbohydrate: 33.5, fat: 4.5, fiber: 4 },
+        servingName: 'bowl'
+      }
     })
     expect(wrapper.find('[data-test="total-energy"]').text()).toContain('500')
     expect(wrapper.find('[data-test="per-serving-energy"]').text()).toContain('250')
@@ -31,6 +37,8 @@ describe('NutritionTotalsPanel', () => {
         servingName: 'serving'
       }
     })
-    expect(wrapper.find('[data-test="bar-protein"]').find('[style*="width"]').attributes('style')).toContain('width: 20%')
+    expect(wrapper.find('[data-test="bar-protein"]').find('[style*="width"]').attributes('style')).toContain(
+      'width: 20%'
+    )
   })
 })

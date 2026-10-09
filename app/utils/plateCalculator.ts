@@ -55,7 +55,9 @@ export function loadPlan(target: number, bar: number, sizes: number[]): LoadPlan
   // Caps the DP arrays: a mistyped six-digit target would otherwise allocate hundreds of MB.
   if (targetUnits - barUnits > 2 * MAX_SIDE_UNITS) return { belowBar: false, exact: null, below: null, above: null }
 
-  const units = normalizePlateSizes(sizes).map(toUnits).filter((unit) => unit > 0)
+  const units = normalizePlateSizes(sizes)
+    .map(toUnits)
+    .filter((unit) => unit > 0)
   const side = (targetUnits - barUnits) / 2
   const limit = Math.ceil(side) + (units[0] ?? 0)
   const { count, last } = fewestPlates(units, limit)

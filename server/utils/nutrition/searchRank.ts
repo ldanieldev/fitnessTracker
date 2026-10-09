@@ -23,11 +23,12 @@ export function rerank(candidates: SearchCandidate[], signals: RerankSignals): S
       logCount: signals.usage.get(c.id) ?? 0,
       order: i
     }))
-    .sort((a, b) =>
-      Number(b.isFavorite) - Number(a.isFavorite)
-      || b.logCount - a.logCount
-      || b.relevance - a.relevance
-      || a.order - b.order
+    .sort(
+      (a, b) =>
+        Number(b.isFavorite) - Number(a.isFavorite) ||
+        b.logCount - a.logCount ||
+        b.relevance - a.relevance ||
+        a.order - b.order
     )
     .map((hit) => ({
       id: hit.id,

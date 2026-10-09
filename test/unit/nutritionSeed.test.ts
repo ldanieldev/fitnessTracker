@@ -27,7 +27,9 @@ describe('nutrient seed catalogue', () => {
 
   it('marks energy, protein, carbohydrate and fat as macros', async () => {
     const { NUTRIENT_SEED } = await import('../../server/db/seed/nutrition')
-    const macros = NUTRIENT_SEED.filter((n) => n.isMacro).map((n) => n.key).sort()
+    const macros = NUTRIENT_SEED.filter((n) => n.isMacro)
+      .map((n) => n.key)
+      .sort()
     expect(macros).toEqual(['carbohydrate', 'energy', 'fat', 'protein'])
   })
 

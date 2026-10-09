@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { weekOf, shiftWeek } from '~/utils/nutrition/week'
 
-const props = defineProps<{ date: string, logged: string[], weekStart: 0 | 1 }>()
+const props = defineProps<{ date: string; logged: string[]; weekStart: 0 | 1 }>()
 const emit = defineEmits<{ navigate: [date: string] }>()
 
 const today = useToday()
@@ -28,8 +28,22 @@ function onPointerUp(e: PointerEvent) {
 </script>
 
 <template>
-  <div class="flex items-center gap-1 select-none touch-pan-y" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="startX = null">
-    <UButton icon="i-lucide-chevron-left" variant="ghost" color="neutral" size="xs" class="hidden sm:inline-flex" aria-label="Previous week" data-test="week-prev" @click="move(-1)" />
+  <div
+    class="flex items-center gap-1 select-none touch-pan-y"
+    @pointerdown="onPointerDown"
+    @pointerup="onPointerUp"
+    @pointercancel="startX = null"
+  >
+    <UButton
+      icon="i-lucide-chevron-left"
+      variant="ghost"
+      color="neutral"
+      size="xs"
+      class="hidden sm:inline-flex"
+      aria-label="Previous week"
+      data-test="week-prev"
+      @click="move(-1)"
+    />
     <div class="grid flex-1 grid-cols-7 gap-1">
       <button
         v-for="d in days"
@@ -42,11 +56,26 @@ function onPointerUp(e: PointerEvent) {
         @click="emit('navigate', d)"
       >
         <span>{{ dayLabel(d) }}</span>
-        <span class="text-[15px] font-semibold" :class="d === date ? 'text-white' : 'text-highlighted'">{{ dayNumber(d) }}</span>
-        <span class="mt-0.5 size-1 rounded-full" :class="loggedSet.has(d) ? 'bg-protein' : 'bg-transparent'" :data-test="loggedSet.has(d) ? 'logged-dot' : undefined" />
+        <span class="text-[15px] font-semibold" :class="d === date ? 'text-white' : 'text-highlighted'">{{
+          dayNumber(d)
+        }}</span>
+        <span
+          class="mt-0.5 size-1 rounded-full"
+          :class="loggedSet.has(d) ? 'bg-protein' : 'bg-transparent'"
+          :data-test="loggedSet.has(d) ? 'logged-dot' : undefined"
+        />
         <span v-if="d === today" class="sr-only">today</span>
       </button>
     </div>
-    <UButton icon="i-lucide-chevron-right" variant="ghost" color="neutral" size="xs" class="hidden sm:inline-flex" aria-label="Next week" data-test="week-next" @click="move(1)" />
+    <UButton
+      icon="i-lucide-chevron-right"
+      variant="ghost"
+      color="neutral"
+      size="xs"
+      class="hidden sm:inline-flex"
+      aria-label="Next week"
+      data-test="week-next"
+      @click="move(1)"
+    />
   </div>
 </template>

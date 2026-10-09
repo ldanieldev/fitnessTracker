@@ -6,7 +6,7 @@ import { useIsNarrow } from '~/composables/useIsNarrow'
 export type DayAction = 'copy-day' | 'select' | 'notes' | 'goal' | 'summary'
 
 defineProps<{ date: string }>()
-const emit = defineEmits<{ navigate: [date: string], action: [action: DayAction] }>()
+const emit = defineEmits<{ navigate: [date: string]; action: [action: DayAction] }>()
 
 const pickerOpen = ref(false)
 const narrow = useIsNarrow()
@@ -48,7 +48,13 @@ const menu: DropdownMenuItem[][] = [
     </template>
     <template #right>
       <UDropdownMenu :items="menu">
-        <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" aria-label="Day actions" data-test="day-menu" />
+        <UButton
+          icon="i-lucide-ellipsis-vertical"
+          variant="ghost"
+          color="neutral"
+          aria-label="Day actions"
+          data-test="day-menu"
+        />
       </UDropdownMenu>
     </template>
   </UDashboardNavbar>

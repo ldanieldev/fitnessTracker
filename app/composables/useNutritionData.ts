@@ -25,8 +25,12 @@ export const NUTRITION_LIST_KEYS = [
   NUTRITION_KEYS.tracked
 ]
 
-// useFetch captures $fetch from '#build/fetch' at module load (nuxt/dist/app/composables/fetch.js), so apiFetch can't reach it and 401s are handled here. Options are widened at the call because getCachedData's NoInfer<T> rejects UseFetchOptions<T> under a generic T.
-export function useNutritionFetch<T>(key: string | (() => string), url: string | (() => string), opts: UseFetchOptions<T> = {}) {
+// useFetch binds $fetch from '#build/fetch' at module load, so apiFetch can't intercept it; 401s are handled here.
+export function useNutritionFetch<T>(
+  key: string | (() => string),
+  url: string | (() => string),
+  opts: UseFetchOptions<T> = {}
+) {
   const existingHooks = opts.onResponseError
   const onExistingResponseError = Array.isArray(existingHooks) ? existingHooks : existingHooks ? [existingHooks] : []
   return useFetch<T>(url, {
@@ -36,7 +40,7 @@ export function useNutritionFetch<T>(key: string | (() => string), url: string |
       if (context.response.status === 401) handleUnauthorized()
       for (const hook of onExistingResponseError) (hook as (c: unknown) => unknown)(context)
     }
-  } as Parameters<typeof useFetch<T>>[1])
+  } as Parameters<typeof useFetch<T>>[1]) // getCachedData's NoInfer<T> rejects UseFetchOptions<T> under a generic T
 }
 
 // A key ending in ':' is a prefix matching every mounted fetch under it (logged weeks, days).

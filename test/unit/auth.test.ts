@@ -22,7 +22,7 @@ function createDbMock(selectResults: unknown[][], insertReturn: unknown[] = []) 
   return { db: { select, insert, update }, select, insert, insertValues, insertReturning, update, updateSet }
 }
 
-const createError = (opts: { statusCode: number, statusMessage: string }) =>
+const createError = (opts: { statusCode: number; statusMessage: string }) =>
   Object.assign(new Error(opts.statusMessage), opts)
 
 const provider = { provider: 'google', providerAccountId: 'g-123' }

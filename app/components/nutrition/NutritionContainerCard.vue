@@ -31,13 +31,24 @@ const emit = defineEmits<{
 
 const addHref = computed(() => `/nutrition/diary/${props.date}/add?containerId=${props.container.id}`)
 
-const menu = computed<DropdownMenuItem[][]>(() => [[
-  { label: 'Add to this meal', icon: 'i-lucide-plus', to: addHref.value },
-  { label: 'Copy meal', icon: 'i-lucide-copy', onSelect: () => emit('copy-container', props.container.id) }
-], [
-  { label: 'Save as recipe', icon: 'i-lucide-chef-hat', onSelect: () => emit('save-as', props.container.id, 'recipe') },
-  { label: 'Save as saved meal', icon: 'i-lucide-bookmark', onSelect: () => emit('save-as', props.container.id, 'saved-meal') }
-]])
+const menu = computed<DropdownMenuItem[][]>(() => [
+  [
+    { label: 'Add to this meal', icon: 'i-lucide-plus', to: addHref.value },
+    { label: 'Copy meal', icon: 'i-lucide-copy', onSelect: () => emit('copy-container', props.container.id) }
+  ],
+  [
+    {
+      label: 'Save as recipe',
+      icon: 'i-lucide-chef-hat',
+      onSelect: () => emit('save-as', props.container.id, 'recipe')
+    },
+    {
+      label: 'Save as saved meal',
+      icon: 'i-lucide-bookmark',
+      onSelect: () => emit('save-as', props.container.id, 'saved-meal')
+    }
+  ]
+])
 
 const trackedNutrients = computed(() => (props.nutrients?.length ? props.nutrients : NUTRITION_MACROS))
 const trackedKeys = computed(() => new Set(trackedNutrients.value.map((n) => n.key)))
@@ -51,8 +62,9 @@ const subtotalNutrients = computed(() => {
 })
 
 const subtotals = computed(() =>
-  macroParts(subtotalNutrients.value, { withEnergy: withEnergy.value, extras: extras.value })
-    .filter((part) => trackedKeys.value.has(part.key))
+  macroParts(subtotalNutrients.value, { withEnergy: withEnergy.value, extras: extras.value }).filter((part) =>
+    trackedKeys.value.has(part.key)
+  )
 )
 
 const energy = computed(() => props.container.subtotals.energy ?? 0)
@@ -79,9 +91,23 @@ const displayTime = computed(() => deriveMealTime(props.container.mealTime, prop
         </div>
         <div class="flex shrink-0 items-center gap-1">
           <UDropdownMenu :items="menu">
-            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" size="sm" aria-label="Meal actions" data-test="container-menu" />
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              aria-label="Meal actions"
+              data-test="container-menu"
+            />
           </UDropdownMenu>
-          <UButton icon="i-lucide-plus" color="primary" size="sm" :to="addHref" aria-label="Add to this meal" data-test="container-add" />
+          <UButton
+            icon="i-lucide-plus"
+            color="primary"
+            size="sm"
+            :to="addHref"
+            aria-label="Add to this meal"
+            data-test="container-add"
+          />
         </div>
       </div>
     </template>
@@ -100,9 +126,18 @@ const displayTime = computed(() => deriveMealTime(props.container.mealTime, prop
     </div>
 
     <template #footer>
-      <div class="grid gap-1 text-center text-[11px]" :style="{ gridTemplateColumns: `repeat(${subtotals.length}, minmax(0, 1fr))` }">
+      <div
+        class="grid gap-1 text-center text-[11px]"
+        :style="{ gridTemplateColumns: `repeat(${subtotals.length}, minmax(0, 1fr))` }"
+      >
         <div v-for="cell in subtotals" :key="cell.key" data-test="subtotal-cell">
-          <div class="font-semibold tabular-nums text-highlighted" :class="cell.cls" :data-test="`subtotal-${cell.key}`">{{ cell.text }}</div>
+          <div
+            class="font-semibold tabular-nums text-highlighted"
+            :class="cell.cls"
+            :data-test="`subtotal-${cell.key}`"
+          >
+            {{ cell.text }}
+          </div>
           <div class="text-dimmed">{{ cell.label }}</div>
         </div>
       </div>

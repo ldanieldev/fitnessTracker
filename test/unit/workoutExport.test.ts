@@ -21,8 +21,20 @@ describe('toWorkoutCsv', () => {
   it('writes the header first', () => {
     expect(toWorkoutCsv([]).split('\n')[0]).toBe(WORKOUT_CSV_HEADER.join(','))
     expect(WORKOUT_CSV_HEADER).toEqual([
-      'Date', 'Workout', 'Exercise', 'Category', 'Set', 'Weight', 'Weight unit', 'Reps', 'Distance',
-      'Distance unit', 'Duration (s)', 'Superset', 'Comment', 'Workout comment'
+      'Date',
+      'Workout',
+      'Exercise',
+      'Category',
+      'Set',
+      'Weight',
+      'Weight unit',
+      'Reps',
+      'Distance',
+      'Distance unit',
+      'Duration (s)',
+      'Superset',
+      'Comment',
+      'Workout comment'
     ])
   })
 
@@ -38,7 +50,10 @@ describe('toWorkoutCsv', () => {
   it('keeps negative assisted weights, superset labels and escapes hostile text', () => {
     const line = toWorkoutCsv([
       row({ workout: 'Pull, "heavy"', weight: -20, superset: 'A2', comment: 'grip\nslipped', workoutComment: 'ok' })
-    ]).split('\n').slice(1).join('\n')
+    ])
+      .split('\n')
+      .slice(1)
+      .join('\n')
     expect(line).toBe('2026-10-01,"Pull, ""heavy""",Bench Press,Chest,1,-20,lb,8,,,,A2,"grip\nslipped",ok')
   })
 })

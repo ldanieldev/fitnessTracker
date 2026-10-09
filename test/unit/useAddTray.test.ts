@@ -2,9 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import type { PickedFood } from '../../app/types/nutrition'
 
-const idToKey = ref(new Map([[1, 'energy'], [2, 'protein'], [3, 'carbohydrate'], [4, 'fat']]))
+const idToKey = ref(
+  new Map([
+    [1, 'energy'],
+    [2, 'protein'],
+    [3, 'carbohydrate'],
+    [4, 'fat']
+  ])
+)
 
-// Nuxt's real useState is only available under the nuxt vitest project; this mimics its per-key ref sharing for the node project.
+// Nuxt's real useState only exists in the nuxt vitest project; this mimics its per-key ref sharing for node.
 const stateStore = new Map<string, ReturnType<typeof ref>>()
 beforeEach(() => {
   stateStore.clear()
@@ -26,7 +33,17 @@ const picked = {
   unitLabel: 'g',
   food: {
     id: 1,
-    servings: [{ id: 10, kind: 'weight', label: 'g', quantity: 100, basisGrams: 100, hasOwnNutrition: true, nutrients: { 1: 380, 2: 13, 3: 68, 4: 7 } }]
+    servings: [
+      {
+        id: 10,
+        kind: 'weight',
+        label: 'g',
+        quantity: 100,
+        basisGrams: 100,
+        hasOwnNutrition: true,
+        nutrients: { 1: 380, 2: 13, 3: 68, 4: 7 }
+      }
+    ]
   }
 } as unknown as PickedFood
 
@@ -52,7 +69,15 @@ describe('useAddTray', () => {
     const { useAddTray } = await import('../../app/composables/useAddTray')
     const tray = useAddTray(idToKey, '2026-09-01')
     tray.state.foods = [picked]
-    tray.toggleRecipe({ id: 7, name: 'Chili', servingName: 'bowl', perServing: { energy: 450, protein: 30, carbohydrate: 40, fat: 15 } }, true)
+    tray.toggleRecipe(
+      {
+        id: 7,
+        name: 'Chili',
+        servingName: 'bowl',
+        perServing: { energy: 450, protein: 30, carbohydrate: 40, fat: 15 }
+      },
+      true
+    )
     tray.setRecipeServings(7, 2)
     tray.toggleMeal({ id: 9, name: 'Breakfast', total: { energy: 200, protein: 10, carbohydrate: 20, fat: 5 } }, true)
 

@@ -9,14 +9,17 @@ const props = defineProps<{ session: WorkoutSession }>()
 const emit = defineEmits<{
   rename: [name: string | null]
   comment: [notes: string | null]
-  changeTimes: [times: { startedAt: string, endedAt: string | null, performedOn: string }]
+  changeTimes: [times: { startedAt: string; endedAt: string | null; performedOn: string }]
   delete: []
 }>()
 
 const name = ref(props.session.name ?? '')
-watch(() => props.session.name, (value) => {
-  name.value = value ?? ''
-})
+watch(
+  () => props.session.name,
+  (value) => {
+    name.value = value ?? ''
+  }
+)
 
 function saveName() {
   const value = name.value.trim() || null
@@ -45,10 +48,13 @@ onMounted(() => {
   if (!props.session.endedAt) startTicker()
 })
 onBeforeUnmount(stopTicker)
-watch(() => props.session.endedAt, (endedAt) => {
-  if (endedAt) stopTicker()
-  else startTicker()
-})
+watch(
+  () => props.session.endedAt,
+  (endedAt) => {
+    if (endedAt) stopTicker()
+    else startTicker()
+  }
+)
 
 const elapsedLabel = computed(() =>
   durationLabel(props.session.startedAt, props.session.endedAt ? new Date(props.session.endedAt).getTime() : now.value)
@@ -67,10 +73,31 @@ const { manualOpen, manualText, shareSession } = useWorkoutShare()
 const menu: DropdownMenuItem[][] = [
   [
     { label: 'Comment', icon: 'i-lucide-notebook-pen', onSelect: () => openComment() },
-    { label: 'Change date & time', icon: 'i-lucide-calendar-clock', onSelect: () => { timesOpen.value = true } },
-    { label: 'Share', icon: 'i-lucide-share-2', onSelect: () => { void shareSession(props.session) } }
+    {
+      label: 'Change date & time',
+      icon: 'i-lucide-calendar-clock',
+      onSelect: () => {
+        timesOpen.value = true
+      }
+    },
+    {
+      label: 'Share',
+      icon: 'i-lucide-share-2',
+      onSelect: () => {
+        void shareSession(props.session)
+      }
+    }
   ],
-  [{ label: 'Delete', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { deleteOpen.value = true } }]
+  [
+    {
+      label: 'Delete',
+      icon: 'i-lucide-trash-2',
+      color: 'error',
+      onSelect: () => {
+        deleteOpen.value = true
+      }
+    }
+  ]
 ]
 
 function openComment() {
@@ -121,7 +148,13 @@ function confirmDelete() {
     <AppSheet v-model:open="commentOpen" title="Workout comment">
       <template #body>
         <div class="flex flex-col gap-3" data-test="session-comment">
-          <UTextarea v-model="commentText" :rows="4" :maxlength="2000" class="w-full" data-test="session-comment-input" />
+          <UTextarea
+            v-model="commentText"
+            :rows="4"
+            :maxlength="2000"
+            class="w-full"
+            data-test="session-comment-input"
+          />
           <UButton label="Save" block class="min-h-10" data-test="session-comment-save" @click="saveComment" />
         </div>
       </template>
@@ -140,7 +173,14 @@ function confirmDelete() {
       <template #body>
         <div class="flex flex-col gap-3" data-test="session-delete">
           <p class="text-sm text-muted">This removes the workout and every set logged in it.</p>
-          <UButton label="Delete" color="error" block class="min-h-10" data-test="session-delete-confirm" @click="confirmDelete" />
+          <UButton
+            label="Delete"
+            color="error"
+            block
+            class="min-h-10"
+            data-test="session-delete-confirm"
+            @click="confirmDelete"
+          />
         </div>
       </template>
     </AppSheet>

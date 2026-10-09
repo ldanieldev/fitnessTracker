@@ -85,10 +85,7 @@ export const foodServings = appSchema.table(
       .on(table.foodId)
       .where(sql`kind = 'weight' and deleted_at is null`),
     check('serving_has_basis', sql`has_own_nutrition or basis_grams is not null`),
-    check(
-      'weight_serving_owns_nutrition',
-      sql`kind <> 'weight' or (basis_grams is not null and has_own_nutrition)`
-    ),
+    check('weight_serving_owns_nutrition', sql`kind <> 'weight' or (basis_grams is not null and has_own_nutrition)`),
     check('serving_quantity_positive', sql`quantity > 0`),
     check('serving_basis_grams_positive', sql`basis_grams is null or basis_grams > 0`)
   ]

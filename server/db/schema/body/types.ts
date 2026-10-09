@@ -14,11 +14,15 @@ export const measurementTypes = appSchema.table(
     name: varchar('name', { length: 64 }).notNull(),
     unit: varchar('unit', { length: 16 }).notNull(),
     precision: smallint('precision').notNull().default(1),
-    direction: varchar('direction', { enum: ['lower', 'higher', 'neutral'] }).notNull().default('neutral'),
+    direction: varchar('direction', { enum: ['lower', 'higher', 'neutral'] })
+      .notNull()
+      .default('neutral'),
     deletedAt: timestamp('deleted_at').default(sql`null`)
   },
   (table) => [
-    uniqueIndex('measurement_type_builtin_key').on(table.key).where(sql`user_id is null`),
+    uniqueIndex('measurement_type_builtin_key')
+      .on(table.key)
+      .where(sql`user_id is null`),
     uniqueIndex('measurement_type_user_name')
       .on(table.userId, sql`lower(name)`)
       .where(sql`user_id is not null and deleted_at is null`)

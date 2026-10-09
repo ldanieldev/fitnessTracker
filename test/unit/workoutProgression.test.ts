@@ -14,14 +14,26 @@ const entry = (over: Partial<Parameters<typeof progressionFor>[0]> = {}): Parame
   ...over
 })
 
-const today = (...sets: SetMeasures[]) => sets.map((set, i) => ({
-  id: i + 1, sortOrder: i, distanceMeters: null, durationSeconds: null, done: false, comment: null, records: [], ...set
-}))
+const today = (...sets: SetMeasures[]) =>
+  sets.map((set, i) => ({
+    id: i + 1,
+    sortOrder: i,
+    distanceMeters: null,
+    durationSeconds: null,
+    done: false,
+    comment: null,
+    records: [],
+    ...set
+  }))
 
 describe('progressionFor', () => {
   it('adds the increment after a top-of-range set today', () => {
-    expect(progressionFor(entry({ sets: today(s(185, 6)) }), false))
-      .toEqual({ kind: 'add', weight: 195, fromWeight: 185, reps: 6 })
+    expect(progressionFor(entry({ sets: today(s(185, 6)) }), false)).toEqual({
+      kind: 'add',
+      weight: 195,
+      fromWeight: 185,
+      reps: 6
+    })
   })
 
   it('counts reps above the top as the top', () => {
@@ -29,8 +41,12 @@ describe('progressionFor', () => {
   })
 
   it('bumps the first set of a session from the last set of the previous one', () => {
-    expect(progressionFor(entry({ lastSets: [s(185, 5), s(185, 6)] }), false))
-      .toEqual({ kind: 'add', weight: 195, fromWeight: 185, reps: 6 })
+    expect(progressionFor(entry({ lastSets: [s(185, 5), s(185, 6)] }), false)).toEqual({
+      kind: 'add',
+      weight: 195,
+      fromWeight: 185,
+      reps: 6
+    })
   })
 
   it('stays quiet inside the range', () => {
@@ -42,8 +58,12 @@ describe('progressionFor', () => {
   })
 
   it('needs a real range: fixed reps and no target never cue', () => {
-    expect(progressionFor(entry({ target: { sets: 3, low: 5, high: 5, weight: null }, sets: today(s(185, 5)) }), false)).toBeNull()
-    expect(progressionFor(entry({ target: { sets: 3, low: null, high: 6, weight: null }, sets: today(s(185, 6)) }), false)).toBeNull()
+    expect(
+      progressionFor(entry({ target: { sets: 3, low: 5, high: 5, weight: null }, sets: today(s(185, 5)) }), false)
+    ).toBeNull()
+    expect(
+      progressionFor(entry({ target: { sets: 3, low: null, high: 6, weight: null }, sets: today(s(185, 6)) }), false)
+    ).toBeNull()
     expect(progressionFor(entry({ target: null, sets: today(s(185, 6)) }), false)).toBeNull()
   })
 
@@ -62,8 +82,12 @@ describe('progressionFor', () => {
   })
 
   it('drops back to the old load after a failed bump', () => {
-    expect(progressionFor(entry({ sets: today(s(185, 6), s(195, 3)) }), false))
-      .toEqual({ kind: 'drop', weight: 185, fromWeight: 195, reps: 3 })
+    expect(progressionFor(entry({ sets: today(s(185, 6), s(195, 3)) }), false)).toEqual({
+      kind: 'drop',
+      weight: 185,
+      fromWeight: 195,
+      reps: 3
+    })
   })
 
   it('drops back even in a deload', () => {
@@ -95,18 +119,31 @@ describe('progressionFor', () => {
 
   it('inverts for assisted exercises', () => {
     const assisted = { loadStyle: 'assisted' as const }
-    expect(progressionFor(entry({ ...assisted, sets: today(s(40, 6)) }), false))
-      .toEqual({ kind: 'add', weight: 30, fromWeight: 40, reps: 6 })
-    expect(progressionFor(entry({ ...assisted, sets: today(s(40, 6), s(30, 3)) }), false))
-      .toEqual({ kind: 'drop', weight: 40, fromWeight: 30, reps: 3 })
+    expect(progressionFor(entry({ ...assisted, sets: today(s(40, 6)) }), false)).toEqual({
+      kind: 'add',
+      weight: 30,
+      fromWeight: 40,
+      reps: 6
+    })
+    expect(progressionFor(entry({ ...assisted, sets: today(s(40, 6), s(30, 3)) }), false)).toEqual({
+      kind: 'drop',
+      weight: 40,
+      fromWeight: 30,
+      reps: 3
+    })
     expect(progressionFor(entry({ ...assisted, sets: today(s(40, 6), s(50, 3)) }), false)).toBeNull()
   })
 
   it('rounds non-binary increments to 2 decimals', () => {
-    expect(progressionFor(entry({ weightIncrement: 2.2, sets: today(s(47.2, 6)) }), false))
-      .toEqual({ kind: 'add', weight: 49.4, fromWeight: 47.2, reps: 6 })
-    expect(progressionFor(entry({ loadStyle: 'assisted', weightIncrement: 2.5, sets: today(s(33.3, 6)) }), false))
-      .toEqual({ kind: 'add', weight: 30.8, fromWeight: 33.3, reps: 6 })
+    expect(progressionFor(entry({ weightIncrement: 2.2, sets: today(s(47.2, 6)) }), false)).toEqual({
+      kind: 'add',
+      weight: 49.4,
+      fromWeight: 47.2,
+      reps: 6
+    })
+    expect(
+      progressionFor(entry({ loadStyle: 'assisted', weightIncrement: 2.5, sets: today(s(33.3, 6)) }), false)
+    ).toEqual({ kind: 'add', weight: 30.8, fromWeight: 33.3, reps: 6 })
   })
 
   it('assisted never suggests zero assist', () => {
@@ -127,12 +164,14 @@ describe('progressionFor', () => {
     })
 
     it('words a drop', () => {
-      expect(progressionCopy({ kind: 'drop', weight: 150, fromWeight: 155, reps: 3 }, 'barbell', target)).toMatchObject({
-        title: 'Drop back?',
-        body: '3 reps at 155 lb is below 4–6.',
-        apply: 'Drop to 150 lb',
-        stay: 'Stay at 155 lb'
-      })
+      expect(progressionCopy({ kind: 'drop', weight: 150, fromWeight: 155, reps: 3 }, 'barbell', target)).toMatchObject(
+        {
+          title: 'Drop back?',
+          body: '3 reps at 155 lb is below 4–6.',
+          apply: 'Drop to 150 lb',
+          stay: 'Stay at 155 lb'
+        }
+      )
     })
 
     it('words assisted add and drop', () => {
@@ -152,8 +191,9 @@ describe('progressionFor', () => {
     })
 
     it('rounds the step to 2 decimals', () => {
-      expect(progressionCopy({ kind: 'add', weight: 49.4, fromWeight: 47.2, reps: 6 }, 'plain', target).apply)
-        .toBe('Add 2.2 lb → 49.4 lb')
+      expect(progressionCopy({ kind: 'add', weight: 49.4, fromWeight: 47.2, reps: 6 }, 'plain', target).apply).toBe(
+        'Add 2.2 lb → 49.4 lb'
+      )
     })
   })
 })

@@ -4,16 +4,32 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import WorkoutToolsSheet from '../../app/components/workout/WorkoutToolsSheet.vue'
 
 const entry = (id: number, name: string, plateSizes: number[] | null) => ({
-  id, exerciseId: id + 100, exerciseName: name, sortOrder: id, trackingType: 'weight_reps' as const,
-  loadStyle: plateSizes ? 'barbell' as const : 'plain' as const, barWeight: plateSizes ? 45 : null,
-  weightIncrement: null, restSeconds: null, plateSizes, notes: null, target: null, supersetGroup: null, optional: false, restOverrideSeconds: null, sets: [], lastSets: []
+  id,
+  exerciseId: id + 100,
+  exerciseName: name,
+  sortOrder: id,
+  trackingType: 'weight_reps' as const,
+  loadStyle: plateSizes ? ('barbell' as const) : ('plain' as const),
+  barWeight: plateSizes ? 45 : null,
+  weightIncrement: null,
+  restSeconds: null,
+  plateSizes,
+  notes: null,
+  target: null,
+  supersetGroup: null,
+  optional: false,
+  restOverrideSeconds: null,
+  sets: [],
+  lastSets: []
 })
 
 const entries = [entry(1, 'Squat', [55, 45, 25, 10, 5, 2.5]), entry(2, 'Curl', null)]
 
 const PLATES = [55, 45, 25, 10, 5, 2.5]
 const found = (estimate: number) => ({
-  estimate, source: { weight: 225, reps: 7, performedOn: '2026-09-02' }, assisted: false
+  estimate,
+  source: { weight: 225, reps: 7, performedOn: '2026-09-02' },
+  assisted: false
 })
 
 function field(selector: string) {
@@ -65,7 +81,9 @@ describe('WorkoutToolsSheet', () => {
 
   it('fetches the selected exercise\'s 1RM when the tab opens', async () => {
     registerEndpoint('/api/workouts/exercises/101/one-rep-max', () => ({
-      estimate: 253.1, source: { weight: 225, reps: 5, performedOn: '2026-09-02' }, assisted: false
+      estimate: 253.1,
+      source: { weight: 225, reps: 5, performedOn: '2026-09-02' },
+      assisted: false
     }))
     const wrapper = await mountSuspended(WorkoutToolsSheet, {
       props: { entries, open: true, entryId: 1, tab: 'one-rep-max', target: null }
@@ -77,8 +95,16 @@ describe('WorkoutToolsSheet', () => {
   })
 
   it('clears the 1RM override when the exercise changes or the sheet closes', async () => {
-    registerEndpoint('/api/workouts/exercises/105/one-rep-max', () => ({ estimate: null, source: null, assisted: false }))
-    registerEndpoint('/api/workouts/exercises/106/one-rep-max', () => ({ estimate: null, source: null, assisted: false }))
+    registerEndpoint('/api/workouts/exercises/105/one-rep-max', () => ({
+      estimate: null,
+      source: null,
+      assisted: false
+    }))
+    registerEndpoint('/api/workouts/exercises/106/one-rep-max', () => ({
+      estimate: null,
+      source: null,
+      assisted: false
+    }))
     const lifts = [entry(5, 'Bench', PLATES), entry(6, 'Row', PLATES)]
     const wrapper = await mountSuspended(WorkoutToolsSheet, {
       props: { entries: lifts, open: true, entryId: 5, tab: 'one-rep-max', target: null }

@@ -59,13 +59,22 @@ describe('workouts/progress page', () => {
       ...progress,
       goals: [
         { ...goal, exerciseId: 3, exerciseName: 'Run', metric: 'distance', targetValue: 16093.44, current: 8046.72 },
-        { ...goal, exerciseId: 4, exerciseName: 'Tempo', metric: 'pace', targetValue: 1609.344 / 480, current: 5000 / 1500 },
+        {
+          ...goal,
+          exerciseId: 4,
+          exerciseName: 'Tempo',
+          metric: 'pace',
+          targetValue: 1609.344 / 480,
+          current: 5000 / 1500
+        },
         { ...goal, exerciseId: 5, exerciseName: 'Bench', metric: 'max_weight', targetValue: 225, current: 185 }
       ]
     }))
     const wrapper = await mountSuspended(WorkoutProgressPage, { attachTo: document.body })
     await flushPromises()
-    const values = [...document.querySelectorAll('[data-test="progress-goal-values"]')].map((p) => p.textContent!.replace(/\s+/g, ' ').trim())
+    const values = [...document.querySelectorAll('[data-test="progress-goal-values"]')].map((p) =>
+      p.textContent!.replace(/\s+/g, ' ').trim()
+    )
     expect(values).toEqual(['5 / 10 mi', '8:03 / 8:00 /mi', '185 / 225 lb'])
     wrapper.unmount()
     document.body.innerHTML = ''

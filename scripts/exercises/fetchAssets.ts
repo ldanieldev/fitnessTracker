@@ -35,7 +35,7 @@ const plan = assetPlan(images, existing)
 const failures: string[] = []
 let fetched = 0
 
-async function downloadOne(item: { path: string, url: string }) {
+async function downloadOne(item: { path: string; url: string }) {
   const failure = await downloadAsset(item, OUT_DIR)
   if (failure) failures.push(failure)
   else fetched++

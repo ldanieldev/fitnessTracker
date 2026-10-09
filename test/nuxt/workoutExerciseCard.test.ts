@@ -3,15 +3,44 @@ import { nextTick } from 'vue'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import WorkoutExerciseCard from '../../app/components/workout/WorkoutExerciseCard.vue'
 
-const set = (id: number, weight: number, reps: number, records: { kind: 'weight_reps', previous: number | null }[] = []) => ({
-  id, sortOrder: id, weight, reps, distanceMeters: null, durationSeconds: null, done: false, comment: null, records
+const set = (
+  id: number,
+  weight: number,
+  reps: number,
+  records: { kind: 'weight_reps'; previous: number | null }[] = []
+) => ({
+  id,
+  sortOrder: id,
+  weight,
+  reps,
+  distanceMeters: null,
+  durationSeconds: null,
+  done: false,
+  comment: null,
+  records
 })
 
 const entry = {
-  id: 9, exerciseId: 7, exerciseName: 'Barbell Bench Press', sortOrder: 0, trackingType: 'weight_reps' as const,
-  loadStyle: 'barbell' as const, barWeight: 45, weightIncrement: 5, restSeconds: null, plateSizes: [45, 35, 25, 10, 5, 2.5],
-  notes: null, target: null, supersetGroup: null, optional: false, restOverrideSeconds: null, sets: [set(1, 185, 8), set(2, 205, 6, [{ kind: 'weight_reps', previous: 185 }])],
-  lastSets: [{ weight: 175, reps: 8 }, { weight: 175, reps: 6 }]
+  id: 9,
+  exerciseId: 7,
+  exerciseName: 'Barbell Bench Press',
+  sortOrder: 0,
+  trackingType: 'weight_reps' as const,
+  loadStyle: 'barbell' as const,
+  barWeight: 45,
+  weightIncrement: 5,
+  restSeconds: null,
+  plateSizes: [45, 35, 25, 10, 5, 2.5],
+  notes: null,
+  target: null,
+  supersetGroup: null,
+  optional: false,
+  restOverrideSeconds: null,
+  sets: [set(1, 185, 8), set(2, 205, 6, [{ kind: 'weight_reps', previous: 185 }])],
+  lastSets: [
+    { weight: 175, reps: 8 },
+    { weight: 175, reps: 6 }
+  ]
 }
 
 const mount = (props: Record<string, unknown> = {}) =>
@@ -67,7 +96,9 @@ describe('WorkoutExerciseCard', () => {
   it('summarises last time under the name, and omits the line without one', async () => {
     const wrapper = await mount()
     expect(wrapper.findAll('[data-test="entry-last-set"]').map((n) => n.text())).toEqual(['175 lb × 8', '175 lb × 6'])
-    const fresh = await mount({ entry: { ...entry, lastSets: [], loadStyle: 'plain', barWeight: null, plateSizes: null } })
+    const fresh = await mount({
+      entry: { ...entry, lastSets: [], loadStyle: 'plain', barWeight: null, plateSizes: null }
+    })
     expect(fresh.find('[data-test="entry-last-9"]').exists()).toBe(false)
   })
 
@@ -89,11 +120,21 @@ describe('WorkoutExerciseCard', () => {
   it('disables moving up on the first card and moving down on the last', async () => {
     const first = await mount()
     await first.find('[data-test="entry-menu-9"]').trigger('click')
-    expect(document.body.querySelector('[data-test="entry-up-9"]')!.closest('[role="menuitem"]')!.getAttribute('aria-disabled')).toBe('true')
+    expect(
+      document.body
+        .querySelector('[data-test="entry-up-9"]')!
+        .closest('[role="menuitem"]')!
+        .getAttribute('aria-disabled')
+    ).toBe('true')
     document.body.innerHTML = ''
     const last = await mount({ isFirst: false, isLast: true })
     await last.find('[data-test="entry-menu-9"]').trigger('click')
-    expect(document.body.querySelector('[data-test="entry-down-9"]')!.closest('[role="menuitem"]')!.getAttribute('aria-disabled')).toBe('true')
+    expect(
+      document.body
+        .querySelector('[data-test="entry-down-9"]')!
+        .closest('[role="menuitem"]')!
+        .getAttribute('aria-disabled')
+    ).toBe('true')
   })
 
   it('puts a History item at the top of the menu, hidden above the sm breakpoint', async () => {
@@ -115,7 +156,7 @@ describe('WorkoutExerciseCard', () => {
   })
 
   it('shows a failed save beside the set it belongs to, and a failed add under the form', async () => {
-    const wrapper = await mount({ saveErrors: { '2': 'Nope', 'new': 'Also nope' } })
+    const wrapper = await mount({ saveErrors: { '2': 'Nope', new: 'Also nope' } })
     expect(wrapper.find('[data-test="set-save-error-2"]').text()).toContain('Nope')
     expect(wrapper.find('[data-test="set-save-error-new"]').text()).toContain('Also nope')
     await wrapper.find('[data-test="set-retry-2"]').trigger('click')
@@ -208,7 +249,9 @@ describe('WorkoutExerciseCard', () => {
     ;(document.body.querySelector('[data-test="progression-prompt"] [aria-label="Close"]') as HTMLElement).click()
     await nextTick()
     await nextTick()
-    expect(document.body.querySelector('[data-test="progression-prompt"]')?.getAttribute('data-state') ?? 'closed').toBe('closed')
+    expect(
+      document.body.querySelector('[data-test="progression-prompt"]')?.getAttribute('data-state') ?? 'closed'
+    ).toBe('closed')
     expect(wrapper.find('[data-test="set-progression-callout"]').exists()).toBe(true)
     await wrapper.find('[data-test="set-progression-apply"]').trigger('click')
     expect((wrapper.find('[data-test="set-weight-new"]').element as HTMLInputElement).value).toBe('190')
@@ -244,7 +287,9 @@ describe('WorkoutExerciseCard', () => {
 
   it('labels a superset member and bands the card', async () => {
     const wrapper = await mount({
-      entry: { ...entry, supersetGroup: 1 }, supersetLabel: 'A2', supersetBorderClass: 'border-l-sky-500'
+      entry: { ...entry, supersetGroup: 1 },
+      supersetLabel: 'A2',
+      supersetBorderClass: 'border-l-sky-500'
     })
     expect(wrapper.find('[data-test="entry-superset-9"]').text()).toBe('A2')
     expect(wrapper.find('[data-test="entry-card-9"]').classes()).toContain('border-l-sky-500')
@@ -258,7 +303,12 @@ describe('WorkoutExerciseCard', () => {
   it('offers Superset with… only when another exercise exists, and emits it', async () => {
     const lone = await mount()
     await lone.find('[data-test="entry-menu-9"]').trigger('click')
-    expect(document.body.querySelector('[data-test="entry-superset-add-9"]')!.closest('[role="menuitem"]')!.getAttribute('aria-disabled')).toBe('true')
+    expect(
+      document.body
+        .querySelector('[data-test="entry-superset-add-9"]')!
+        .closest('[role="menuitem"]')!
+        .getAttribute('aria-disabled')
+    ).toBe('true')
     expect(document.body.querySelector('[data-test="entry-superset-remove-9"]')).toBeNull()
     document.body.innerHTML = ''
     const paired = await mount({ canGroup: true })

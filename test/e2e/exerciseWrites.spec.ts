@@ -2,7 +2,9 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 import type { Exercise } from '../../shared/types/workout'
 
-interface Reference { categories: { id: number, key: string }[] }
+interface Reference {
+  categories: { id: number; key: string }[]
+}
 
 test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({ page, goto, browser }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -12,7 +14,7 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
   const reference = (await apiFetch<Reference>(page, 'GET', '/api/workouts/reference')).json
   const core = reference.categories.find((c) => c.key === 'core')!
 
-  const created = (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+  const created = await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
     name,
     categoryId: core.id,
     trackingType: 'weight_reps',
@@ -20,13 +22,15 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
     equipment: ['cable'],
     primaryMuscles: ['abdominals'],
     secondaryMuscles: []
-  }))
+  })
   expect(created.status).toBe(200)
   expect(created.json.shared).toBe(false)
   const mine = created.json.id
 
   const dupe = await apiFetch(page, 'POST', '/api/workouts/exercises', {
-    name: name.toLowerCase(), categoryId: core.id, trackingType: 'reps'
+    name: name.toLowerCase(),
+    categoryId: core.id,
+    trackingType: 'reps'
   })
   expect(dupe.status).toBe(409)
 
@@ -34,7 +38,9 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
   expect(renamed.json.name).toBe(`${name} v2`)
 
   const ghostCategory = await apiFetch(page, 'POST', '/api/workouts/exercises', {
-    name: `${name} ghost`, categoryId: 99999999, trackingType: 'reps'
+    name: `${name} ghost`,
+    categoryId: 99999999,
+    trackingType: 'reps'
   })
   expect(ghostCategory.status).toBe(404)
 
@@ -43,10 +49,13 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
   await otherPage.goto(page.url())
   await registerViaApi(otherPage, makeUser())
   const theirs = await apiFetch<{ id: number }>(otherPage, 'POST', '/api/workouts/categories', {
-    name: uniquePrefix('Theirs '), color: 'lime'
+    name: uniquePrefix('Theirs '),
+    color: 'lime'
   })
   const stolen = await apiFetch(page, 'POST', '/api/workouts/exercises', {
-    name: `${name} stolen`, categoryId: theirs.json.id, trackingType: 'reps'
+    name: `${name} stolen`,
+    categoryId: theirs.json.id,
+    trackingType: 'reps'
   })
   expect(stolen.status).toBe(404)
   const stolenMove = await apiFetch(page, 'PUT', `/api/workouts/exercises/${mine}`, { categoryId: theirs.json.id })
@@ -68,7 +77,11 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
   expect((await apiFetch(page, 'DELETE', `/api/workouts/exercises/${shared.id}`)).status).toBe(403)
 
   const prefs = await apiFetch<Exercise>(page, 'PUT', `/api/workouts/exercises/${shared.id}/prefs`, {
-    barWeight: 35, restSeconds: 180, weightIncrement: 2.5, notes: 'Mid grip', loadStyle: 'assisted'
+    barWeight: 35,
+    restSeconds: 180,
+    weightIncrement: 2.5,
+    notes: 'Mid grip',
+    loadStyle: 'assisted'
   })
   expect(prefs.json.barWeight).toBe(null)
   expect(prefs.json.loadStyle).toBe('assisted')
@@ -76,7 +89,8 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
   expect(prefs.json.overridden.loadStyle).toBe(true)
 
   const reset = await apiFetch<Exercise>(page, 'PUT', `/api/workouts/exercises/${shared.id}/prefs`, {
-    loadStyle: null, barWeight: null
+    loadStyle: null,
+    barWeight: null
   })
   expect(reset.json.loadStyle).toBe('barbell')
   expect(reset.json.barWeight).toBe(45)

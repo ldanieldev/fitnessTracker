@@ -34,7 +34,7 @@ function round6(v: number) {
   return Math.round(v * 1e6) / 1e6
 }
 
-export function niceTicks(min: number, max: number, count = 5): { min: number, max: number, ticks: number[] } {
+export function niceTicks(min: number, max: number, count = 5): { min: number; max: number; ticks: number[] } {
   if (max - min === 0) {
     min -= 1
     max += 1
@@ -64,7 +64,10 @@ function lineOf(segment: XY[]): string {
 }
 
 export function pathFrom(segments: XY[][]): string {
-  return segments.filter((s) => s.length > 0).map(lineOf).join(' ')
+  return segments
+    .filter((s) => s.length > 0)
+    .map(lineOf)
+    .join(' ')
 }
 
 export function areaFrom(segments: XY[][], baselineY: number): string {
@@ -103,11 +106,11 @@ export interface ChartDot extends XY {
 export interface ChartModel {
   width: number
   height: number
-  plot: { left: number, right: number, top: number, bottom: number }
+  plot: { left: number; right: number; top: number; bottom: number }
   x: Scale
   y: Scale
-  yTicks: Array<{ value: number, y: number }>
-  xTicks: Array<{ date: string, x: number }>
+  yTicks: Array<{ value: number; y: number }>
+  xTicks: Array<{ date: string; x: number }>
   rawPath: string
   areaPath: string
   trendPath: string
@@ -128,7 +131,7 @@ export interface ChartInput {
   zeroBased?: boolean
 }
 
-// A goal this close to the data (as a share of its magnitude, or one data span) widens the axis; farther ones get an edge label.
+// A goal this close to the data (share of its magnitude, or one data span) widens the axis; farther gets an edge label.
 const GOAL_REACH = 0.1
 
 function goalNear(values: number[], goal: number, zeroBased: boolean): boolean {

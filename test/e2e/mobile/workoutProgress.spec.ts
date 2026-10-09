@@ -8,10 +8,13 @@ test('progress reads on a phone', async ({ page, goto }) => {
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 185, reps: 8 })
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${session.id}`, { finish: true })
 
@@ -24,8 +27,8 @@ test('progress reads on a phone', async ({ page, goto }) => {
   await goto('/workouts/progress', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="progress-total-sets"]')).toContainText('1')
   // Nothing may overflow the viewport at 360 px.
-  const overflow = await page.evaluate(() => (
-    document.documentElement.scrollWidth - document.documentElement.clientWidth
-  ))
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  )
   expect(overflow).toBeLessThanOrEqual(0)
 })

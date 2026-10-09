@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  copyTargetsFrom, formatTargetRange, rangePlaceholder, targetMetricFor, targetProgressLabel, targetSummary
+  copyTargetsFrom,
+  formatTargetRange,
+  rangePlaceholder,
+  targetMetricFor,
+  targetProgressLabel,
+  targetSummary
 } from '../../shared/utils/workoutTargets'
 
 describe('targetMetricFor', () => {
@@ -16,18 +21,32 @@ describe('targetMetricFor', () => {
 
 describe('copyTargetsFrom', () => {
   it('counts the sets and spans the reps actually done', () => {
-    const sets = [{ weight: 185, reps: 8 }, { weight: 185, reps: 7 }, { weight: 185, reps: 6 }, { weight: 185, reps: 6 }]
+    const sets = [
+      { weight: 185, reps: 8 },
+      { weight: 185, reps: 7 },
+      { weight: 185, reps: 6 },
+      { weight: 185, reps: 6 }
+    ]
     expect(copyTargetsFrom('weight_reps', sets, null)).toEqual({ sets: 4, low: 6, high: 8, weight: null })
   })
 
   it('keeps the source range when the source had one', () => {
     const source = { sets: 3, low: 5, high: 8, weight: 200 }
-    expect(copyTargetsFrom('weight_reps', [{ weight: 185, reps: 9 }], source))
-      .toEqual({ sets: 1, low: 5, high: 8, weight: null })
+    expect(copyTargetsFrom('weight_reps', [{ weight: 185, reps: 9 }], source)).toEqual({
+      sets: 1,
+      low: 5,
+      high: 8,
+      weight: null
+    })
   })
 
   it('collapses a single value to low = high and reads seconds for time exercises', () => {
-    expect(copyTargetsFrom('time', [{ durationSeconds: 45 }], null)).toEqual({ sets: 1, low: 45, high: 45, weight: null })
+    expect(copyTargetsFrom('time', [{ durationSeconds: 45 }], null)).toEqual({
+      sets: 1,
+      low: 45,
+      high: 45,
+      weight: null
+    })
   })
 
   it('returns null when nothing was logged and the source had no range', () => {
@@ -36,19 +55,36 @@ describe('copyTargetsFrom', () => {
 
   it('drops a source range measured in another metric but keeps the set count', () => {
     const source = { sets: 3, low: 6, high: 8, weight: null }
-    expect(copyTargetsFrom('weight_time', [{ weight: 100, reps: 8 }], source, 'weight_reps'))
-      .toEqual({ sets: 1, low: null, high: null, weight: null })
+    expect(copyTargetsFrom('weight_time', [{ weight: 100, reps: 8 }], source, 'weight_reps')).toEqual({
+      sets: 1,
+      low: null,
+      high: null,
+      weight: null
+    })
   })
 
   it('does not derive a range from sets logged in another metric', () => {
-    expect(copyTargetsFrom('weight_time', [{ weight: 100, reps: 8 }, { weight: 100, reps: 6 }], null, 'weight_reps'))
-      .toEqual({ sets: 2, low: null, high: null, weight: null })
+    expect(
+      copyTargetsFrom(
+        'weight_time',
+        [
+          { weight: 100, reps: 8 },
+          { weight: 100, reps: 6 }
+        ],
+        null,
+        'weight_reps'
+      )
+    ).toEqual({ sets: 2, low: null, high: null, weight: null })
   })
 
   it('keeps the source range when the type changed but the metric did not', () => {
     const source = { sets: 3, low: 6, high: 8, weight: null }
-    expect(copyTargetsFrom('reps_time', [{ reps: 8, durationSeconds: 30 }], source, 'weight_reps'))
-      .toEqual({ sets: 1, low: 6, high: 8, weight: null })
+    expect(copyTargetsFrom('reps_time', [{ reps: 8, durationSeconds: 30 }], source, 'weight_reps')).toEqual({
+      sets: 1,
+      low: 6,
+      high: 8,
+      weight: null
+    })
   })
 })
 

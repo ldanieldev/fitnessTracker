@@ -3,9 +3,13 @@ import type { EquipmentRow, Exercise, ExerciseCategory, MuscleRow } from '~~/sha
 import { CATEGORY_DOT_CLASS } from '~~/shared/utils/categoryColors'
 import ExerciseForm, { type ExerciseFormPayload } from '~/components/workout/ExerciseForm.vue'
 
-interface ReferenceData { categories: ExerciseCategory[], muscles: MuscleRow[], equipment: EquipmentRow[] }
+interface ReferenceData {
+  categories: ExerciseCategory[]
+  muscles: MuscleRow[]
+  equipment: EquipmentRow[]
+}
 
-const props = withDefaults(defineProps<{ title?: string, busy?: boolean }>(), { title: 'Add exercise', busy: false })
+const props = withDefaults(defineProps<{ title?: string; busy?: boolean }>(), { title: 'Add exercise', busy: false })
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ pick: [exerciseId: number] }>()
 
@@ -47,17 +51,21 @@ async function load() {
 }
 
 let keepSearch = false
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  if (!keepSearch) {
-    clearTimeout(debounceTimer)
-    search.value = ''
-    q.value = ''
-  }
-  keepSearch = false
-  results.clear()
-  void load()
-}, { immediate: true })
+watch(
+  open,
+  (isOpen) => {
+    if (!isOpen) return
+    if (!keepSearch) {
+      clearTimeout(debounceTimer)
+      search.value = ''
+      q.value = ''
+    }
+    keepSearch = false
+    results.clear()
+    void load()
+  },
+  { immediate: true }
+)
 
 watch(q, () => {
   if (open.value) void load()

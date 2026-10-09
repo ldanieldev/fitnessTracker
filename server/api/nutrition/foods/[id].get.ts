@@ -23,26 +23,25 @@ export default defineEventHandler(async (event) => {
   const energyNutrientId = await getNutrientId('energy')
 
   // A manually created food never carries a sourceId; report it as sourced from no external catalogue.
-  const source = food.sourceId === null
-    ? null
-    : await db
-        .select({
-          key: foodSources.key,
-          name: foodSources.name,
-          attributionRequired: foodSources.attributionRequired,
-          licenseNotice: foodSources.licenseNotice
-        })
-        .from(foodSources)
-        .where(eq(foodSources.id, food.sourceId))
-        .limit(1)
-        .then((r) => r[0] ?? null)
+  const source =
+    food.sourceId === null
+      ? null
+      : await db
+          .select({
+            key: foodSources.key,
+            name: foodSources.name,
+            attributionRequired: foodSources.attributionRequired,
+            licenseNotice: foodSources.licenseNotice
+          })
+          .from(foodSources)
+          .where(eq(foodSources.id, food.sourceId))
+          .limit(1)
+          .then((r) => r[0] ?? null)
 
   return {
     ...food,
     source,
     defaultServingId: defaultServing(food)?.id ?? null,
-    energyDensity: basis
-      ? energyDensity(basis.nutrients[energyNutrientId] ?? null, basis.basisGrams)
-      : null
+    energyDensity: basis ? energyDensity(basis.nutrients[energyNutrientId] ?? null, basis.basisGrams) : null
   }
 })

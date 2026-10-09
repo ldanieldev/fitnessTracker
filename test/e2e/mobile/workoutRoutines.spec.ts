@@ -13,11 +13,17 @@ async function pickMenuItem(page: Page, menu: string, item: string) {
 }
 
 async function exercise(page: Page) {
-  const chest = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference'))
-    .json.categories.find((c) => c.key === 'chest')!
-  return (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('Phone Routine '), categoryId: chest.id, trackingType: 'weight_reps', loadStyle: 'plain'
-  })).json
+  const chest = (
+    await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')
+  ).json.categories.find((c) => c.key === 'chest')!
+  return (
+    await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+      name: uniquePrefix('Phone Routine '),
+      categoryId: chest.id,
+      trackingType: 'weight_reps',
+      loadStyle: 'plain'
+    })
+  ).json
 }
 
 async function logSet(page: Page, entryId: number, weight: string, reps: string) {
@@ -43,20 +49,28 @@ test('phone: build a routine with a superset, run the due day, then an off-order
   await page.locator('[data-test="routine-day-add"]').click()
   await page.locator('[data-test="routine-day-name"]').fill('Day A')
   await page.locator('[data-test="routine-day-save"]').click()
-  await expect.poll(async () => (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json.days.length).toBe(1)
+  await expect
+    .poll(async () => (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json.days.length)
+    .toBe(1)
   let routine = (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json
   const dayA = routine.days[0]!.id
   await expect(page.locator(`[data-test="routine-day-next-${dayA}"]`)).toBeVisible()
 
-  for (const e of [press, row]) await apiFetch(page, 'POST', `/api/workouts/routine-days/${dayA}/entries`, { exerciseId: e.id })
+  for (const e of [press, row])
+    await apiFetch(page, 'POST', `/api/workouts/routine-days/${dayA}/entries`, { exerciseId: e.id })
   await apiFetch(page, 'POST', `/api/workouts/routines/${routineId}/days`, { name: 'Pump', floating: true })
   await apiFetch(page, 'POST', `/api/workouts/routines/${routineId}/days`, { name: 'Day B' })
   await page.reload({ waitUntil: 'networkidle' })
   routine = (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json
-  const [ePress, eRow] = routine.days[0]!.entries as [Routine['days'][0]['entries'][0], Routine['days'][0]['entries'][0]]
+  const [ePress, eRow] = routine.days[0]!.entries as [
+    Routine['days'][0]['entries'][0],
+    Routine['days'][0]['entries'][0]
+  ]
   const dayB = routine.days.find((d) => d.name === 'Day B')!.id
-  const rotation = async () => (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json.days
-    .filter((d) => !d.floating).map((d) => d.name)
+  const rotation = async () =>
+    (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json.days
+      .filter((d) => !d.floating)
+      .map((d) => d.name)
 
   const created = uniquePrefix('Picker New ')
   await page.locator(`[data-test="routine-day-add-exercise-${dayB}"]`).click()
@@ -92,7 +106,9 @@ test('phone: build a routine with a superset, run the due day, then an off-order
   await expect(page.locator(`[data-test="routine-entry-label-${eRow.id}"]`)).toHaveText('A2')
 
   await page.locator('[data-test="routine-active"]').click()
-  await expect.poll(async () => (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json.active).toBe(true)
+  await expect
+    .poll(async () => (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routineId}`)).json.active)
+    .toBe(true)
 
   const messages: string[] = []
   page.on('console', (m) => messages.push(m.text()))
@@ -100,7 +116,9 @@ test('phone: build a routine with a superset, run the due day, then an off-order
   expect(messages.filter((m) => /hydration/i.test(m))).toEqual([])
   await expect(page.locator('[data-test="start-routine-next-name"]')).toHaveText('Day A')
   await page.locator('[data-test="start-routine-next"]').click()
-  await expect.poll(async () => (await apiFetch<WorkoutSession | null>(page, 'GET', '/api/workouts/sessions/active')).json).not.toBeNull()
+  await expect
+    .poll(async () => (await apiFetch<WorkoutSession | null>(page, 'GET', '/api/workouts/sessions/active')).json)
+    .not.toBeNull()
   const session = (await apiFetch<WorkoutSession>(page, 'GET', '/api/workouts/sessions/active')).json
   const [a1, a2] = session.entries.map((e) => e.id) as [number, number]
   await expect(page.locator(`[data-test="entry-target-${a1}"]`)).toHaveText('0 of 2 · 5–8')
@@ -109,7 +127,10 @@ test('phone: build a routine with a superset, run the due day, then an off-order
   await logSet(page, a1, '100', '8')
   await expect(page.locator('[data-test="progression-prompt"]')).toBeVisible()
   await page.locator('[data-test="progression-prompt-stay"]').click()
-  await page.screenshot({ path: '.superpowers/sdd/Workout Structure Plan/screenshots/log-superset-phone.png', fullPage: true })
+  await page.screenshot({
+    path: '.superpowers/sdd/Workout Structure Plan/screenshots/log-superset-phone.png',
+    fullPage: true
+  })
   await expect(page.locator(`[data-test="entry-card-${a2}"] [data-test="set-form"]`)).toBeVisible()
   await expect(page.locator(`[data-test="entry-card-${a1}"] [data-test="set-form"]`)).toBeHidden()
   await expect(page.locator('[data-test="rest-timer-pill"]')).toHaveCount(0)
@@ -140,18 +161,29 @@ test('phone: build a routine with a superset, run the due day, then an off-order
 
   await goto(`/workouts/routines/${routineId}`, { waitUntil: 'hydration' })
   await expect(page.locator(`[data-test="routine-day-next-${dayB}"]`)).toBeVisible()
-  await page.screenshot({ path: '.superpowers/sdd/Workout Structure Plan/screenshots/routine-editor-phone.png', fullPage: true })
+  await page.screenshot({
+    path: '.superpowers/sdd/Workout Structure Plan/screenshots/routine-editor-phone.png',
+    fullPage: true
+  })
 })
 
 test('phone: copy a past workout with one exercise unticked shows targets', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const [one, two] = [await exercise(page), await exercise(page)]
-  let source = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate(), name: uniquePrefix('Copy Src ') })).json
+  let source = (
+    await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
+      performedOn: todayDate(),
+      name: uniquePrefix('Copy Src ')
+    })
+  ).json
   for (const e of [one, two]) {
-    source = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${source.id}/entries`, { exerciseId: e.id })).json
+    source = (
+      await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${source.id}/entries`, { exerciseId: e.id })
+    ).json
   }
-  for (const reps of [10, 8]) await apiFetch(page, 'POST', `/api/workouts/entries/${source.entries[0]!.id}/sets`, { weight: 60, reps })
+  for (const reps of [10, 8])
+    await apiFetch(page, 'POST', `/api/workouts/entries/${source.entries[0]!.id}/sets`, { weight: 60, reps })
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${source.id}`, { finish: true })
 
   await goto('/workouts/log', { waitUntil: 'hydration' })
@@ -159,7 +191,9 @@ test('phone: copy a past workout with one exercise unticked shows targets', asyn
   await page.locator(`[data-test="copy-session-${source.id}"]`).click()
   await page.locator(`[data-test="copy-entry-${source.entries[1]!.id}"]`).click()
   await page.locator('[data-test="copy-start"]').click()
-  await expect.poll(async () => (await apiFetch<WorkoutSession | null>(page, 'GET', '/api/workouts/sessions/active')).json).not.toBeNull()
+  await expect
+    .poll(async () => (await apiFetch<WorkoutSession | null>(page, 'GET', '/api/workouts/sessions/active')).json)
+    .not.toBeNull()
   const copy = (await apiFetch<WorkoutSession>(page, 'GET', '/api/workouts/sessions/active')).json
   expect(copy.entries).toHaveLength(1)
   await expect(page.locator(`[data-test="entry-target-${copy.entries[0]!.id}"]`)).toHaveText('0 of 2 · 8–10')
@@ -175,7 +209,10 @@ test('phone: a failed rename or notes save shows the saved text again', async ({
   await goto(`/workouts/routines/${routine.id}`, { waitUntil: 'hydration' })
 
   await page.route(`**/api/workouts/routines/${routine.id}`, (route) =>
-    route.request().method() === 'PATCH' ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }) : route.continue())
+    route.request().method() === 'PATCH'
+      ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+      : route.continue()
+  )
   const name = page.locator('[data-test="routine-name"]')
   const notes = page.locator('[data-test="routine-notes"]')
   await name.fill('Renamed')
@@ -190,7 +227,8 @@ test('phone: a failed rename or notes save shows the saved text again', async ({
 test('phone: a second tap while a routine change is in flight is ignored', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  let routine = (await apiFetch<Routine>(page, 'POST', '/api/workouts/routines', { name: uniquePrefix('Phone Busy ') })).json
+  let routine = (await apiFetch<Routine>(page, 'POST', '/api/workouts/routines', { name: uniquePrefix('Phone Busy ') }))
+    .json
   for (const name of ['Day A', 'Day B', 'Day C']) {
     routine = (await apiFetch<Routine>(page, 'POST', `/api/workouts/routines/${routine.id}/days`, { name })).json
   }

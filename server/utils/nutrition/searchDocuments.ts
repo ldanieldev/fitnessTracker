@@ -25,7 +25,11 @@ export const SEARCH_INDEX_SETTINGS = {
   rankingRules: ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness']
 }
 
-export function foodToSearchDocument(food: FoodRowForIndex, servingLabels: string[], sourceKey: string): SearchDocument {
+export function foodToSearchDocument(
+  food: FoodRowForIndex,
+  servingLabels: string[],
+  sourceKey: string
+): SearchDocument {
   return {
     id: food.id,
     name: food.name,

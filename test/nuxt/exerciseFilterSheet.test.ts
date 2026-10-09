@@ -10,7 +10,10 @@ const props = {
     { key: 'chest', name: 'Chest', bodyMapGroups: ['CHEST'] },
     { key: 'lats', name: 'Lats', bodyMapGroups: ['LATS'] }
   ],
-  equipment: [{ key: 'barbell', name: 'Barbell' }, { key: 'cable', name: 'Cable' }],
+  equipment: [
+    { key: 'barbell', name: 'Barbell' },
+    { key: 'cable', name: 'Cable' }
+  ],
   filters: { muscles: [], equipment: [], difficulty: null, includeHidden: false }
 }
 

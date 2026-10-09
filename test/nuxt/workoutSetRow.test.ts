@@ -4,7 +4,15 @@ import { mountSuspended } from '@nuxt/test-utils/runtime'
 import WorkoutSetRow from '../../app/components/workout/WorkoutSetRow.vue'
 
 const logged = {
-  id: 3, sortOrder: 0, weight: 185, reps: 8, distanceMeters: null, durationSeconds: null, done: false, comment: null, records: []
+  id: 3,
+  sortOrder: 0,
+  weight: 185,
+  reps: 8,
+  distanceMeters: null,
+  durationSeconds: null,
+  done: false,
+  comment: null,
+  records: []
 }
 
 const base = { set: logged, index: 0, trackingType: 'weight_reps' as const, loadStyle: 'plain' as const }
@@ -48,14 +56,18 @@ describe('WorkoutSetRow', () => {
 
   it('reads cardio measures and shows no volume', async () => {
     const cardio = { ...logged, weight: null, reps: null, distanceMeters: 5000, durationSeconds: 1800 }
-    const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: cardio, trackingType: 'distance_time' } })
+    const wrapper = await mountSuspended(WorkoutSetRow, {
+      props: { ...base, set: cardio, trackingType: 'distance_time' }
+    })
     expect(wrapper.find('[data-test="set-measure-3-distance"]').text()).toBe('3.11 mi')
     expect(wrapper.find('[data-test="set-measure-3-duration"]').text()).toBe('30:00')
     expect(wrapper.find('[data-test="set-volume-3"]').exists()).toBe(false)
   })
 
   it('shows the assistance with a minus sign', async () => {
-    const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: { ...logged, weight: 40 }, loadStyle: 'assisted' } })
+    const wrapper = await mountSuspended(WorkoutSetRow, {
+      props: { ...base, set: { ...logged, weight: 40 }, loadStyle: 'assisted' }
+    })
     expect(wrapper.find('[data-test="set-measure-3-weight"]').text()).toBe('−40 lb')
   })
 
@@ -73,7 +85,12 @@ describe('WorkoutSetRow', () => {
     await startEdit(wrapper)
     await wrapper.find('[data-test="set-weight-3"]').setValue('195')
     await wrapper.find('[data-test="set-save-3"]').trigger('click')
-    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: 195, reps: 8, distanceMeters: null, durationSeconds: null })
+    expect(wrapper.emitted('save')![0]![0]).toEqual({
+      weight: 195,
+      reps: 8,
+      distanceMeters: null,
+      durationSeconds: null
+    })
     expect(wrapper.find('[data-test="set-weight-3"]').exists()).toBe(true)
   })
 
@@ -183,13 +200,17 @@ describe('WorkoutSetRow', () => {
   })
 
   it('opens with the note visible when the set already has a comment', async () => {
-    const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: { ...logged, comment: 'felt heavy' } } })
+    const wrapper = await mountSuspended(WorkoutSetRow, {
+      props: { ...base, set: { ...logged, comment: 'felt heavy' } }
+    })
     expect((wrapper.find('[data-test="set-note-3"]').element as HTMLTextAreaElement).value).toBe('felt heavy')
   })
 
   it('edits cardio in miles and m:ss and saves metres and seconds', async () => {
     const cardio = { ...logged, weight: null, reps: null, distanceMeters: 5000, durationSeconds: 1800 }
-    const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: cardio, trackingType: 'distance_time' } })
+    const wrapper = await mountSuspended(WorkoutSetRow, {
+      props: { ...base, set: cardio, trackingType: 'distance_time' }
+    })
     await startEdit(wrapper)
     expect((wrapper.find('[data-test="set-distance-3"]').element as HTMLInputElement).value).toBe('3.11')
     expect((wrapper.find('[data-test="set-duration-3"]').element as HTMLInputElement).value).toBe('30:00')
@@ -199,15 +220,27 @@ describe('WorkoutSetRow', () => {
     await wrapper.find('[data-test="set-distance-3"]').setValue('5')
     await wrapper.find('[data-test="set-duration-3"]').setValue('28:15')
     await wrapper.find('[data-test="set-save-3"]').trigger('click')
-    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: null, reps: null, distanceMeters: 8046.72, durationSeconds: 1695 })
+    expect(wrapper.emitted('save')![0]![0]).toEqual({
+      weight: null,
+      reps: null,
+      distanceMeters: 8046.72,
+      durationSeconds: 1695
+    })
   })
 
   it('saves the stored distance exactly when only the time was edited', async () => {
     const sprint = { ...logged, weight: null, reps: null, distanceMeters: 100, durationSeconds: 20 }
-    const wrapper = await mountSuspended(WorkoutSetRow, { props: { ...base, set: sprint, trackingType: 'distance_time' } })
+    const wrapper = await mountSuspended(WorkoutSetRow, {
+      props: { ...base, set: sprint, trackingType: 'distance_time' }
+    })
     await startEdit(wrapper)
     await wrapper.find('[data-test="set-duration-3"]').setValue('18')
     await wrapper.find('[data-test="set-save-3"]').trigger('click')
-    expect(wrapper.emitted('save')![0]![0]).toEqual({ weight: null, reps: null, distanceMeters: 100, durationSeconds: 18 })
+    expect(wrapper.emitted('save')![0]![0]).toEqual({
+      weight: null,
+      reps: null,
+      distanceMeters: 100,
+      durationSeconds: 18
+    })
   })
 })

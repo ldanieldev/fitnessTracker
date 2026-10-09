@@ -1,6 +1,6 @@
 export type CacheMountOutcome = 'memory' | 'redis'
 
-// Kept free of Nitro globals (useStorage, redisDriver/ioredis) so it runs under plain vitest; the caller owns the probe's driver.
+// Free of Nitro globals (useStorage, redisDriver/ioredis) so it runs under plain vitest; the caller owns the driver.
 export async function resolveRedisCache(
   url: string | undefined,
   probe: () => Promise<void>,

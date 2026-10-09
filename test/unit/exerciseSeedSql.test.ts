@@ -65,8 +65,9 @@ describe('buildSeedSql', () => {
   })
 
   it('clears the catalogue links of every seeded exercise before re-linking it', () => {
-    const statements = buildSeedSql([bench, { ...bench, id: 'No_Kit', name: 'No Kit', equipment: null }])
-      .split('--> statement-breakpoint')
+    const statements = buildSeedSql([bench, { ...bench, id: 'No_Kit', name: 'No Kit', equipment: null }]).split(
+      '--> statement-breakpoint'
+    )
     const at = (needle: string) => statements.findIndex((s) => s.includes(needle))
     for (const table of ['exercise_muscles', 'exercise_equipment']) {
       const clear = statements[at(`delete from app.${table}`)]!

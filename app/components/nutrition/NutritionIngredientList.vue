@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type EditorLine, isLineBroken, lineNutrients } from '~/utils/nutrition/lines'
 
-const props = defineProps<{ lines: EditorLine[], idToKey: Map<number, string> }>()
+const props = defineProps<{ lines: EditorLine[]; idToKey: Map<number, string> }>()
 defineEmits<{ edit: [uid: string] }>()
 
 const rows = computed(() =>

@@ -22,7 +22,11 @@ export function useWorkoutShare() {
     try {
       await shareSession(await apiFetch<WorkoutSession>(`/api/workouts/sessions/${id}`))
     } catch (err: unknown) {
-      toast.add({ title: 'Share failed', description: errorMessage(err, 'Could not load this workout'), color: 'error' })
+      toast.add({
+        title: 'Share failed',
+        description: errorMessage(err, 'Could not load this workout'),
+        color: 'error'
+      })
     }
   }
 

@@ -16,10 +16,12 @@ function trackingClient() {
       state.queries++
       state.inFlight++
       state.maxInFlight = Math.max(state.maxInFlight, state.inFlight)
-      return new Promise<unknown[]>((resolve) => setTimeout(() => {
-        state.inFlight--
-        resolve([])
-      }, 5)).then(onfulfilled, onrejected)
+      return new Promise<unknown[]>((resolve) =>
+        setTimeout(() => {
+          state.inFlight--
+          resolve([])
+        }, 5)
+      ).then(onfulfilled, onrejected)
     }
   }
   const client = { select: () => chain } as unknown as DbClient

@@ -22,7 +22,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  toggle: [meal: { id: number, name: string, total: Record<string, number> }, on: boolean]
+  toggle: [meal: { id: number; name: string; total: Record<string, number> }, on: boolean]
 }>()
 
 const toast = useToast()
@@ -74,7 +74,12 @@ async function toggleExpand(meal: MealRow) {
       </template>
       <template v-if="expanded.has(meal.id)" #default>
         <ul class="flex flex-col gap-1 list-none p-0 m-0 ps-6">
-          <li v-for="(item, index) in items.get(meal.id) ?? []" :key="index" class="flex items-center gap-2 text-sm" data-test="meal-choice-item">
+          <li
+            v-for="(item, index) in items.get(meal.id) ?? []"
+            :key="index"
+            class="flex items-center gap-2 text-sm"
+            data-test="meal-choice-item"
+          >
             <span>{{ item.name }} — {{ item.quantity }} {{ item.unitLabel }}</span>
             <UBadge v-if="item.broken" label="Unavailable" color="error" variant="subtle" />
           </li>

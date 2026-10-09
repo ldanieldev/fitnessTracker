@@ -12,10 +12,16 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   const body = await parseBody(event, typePatchSchema)
   const existing = await loadTypeForUser(userId, id)
-  if (existing.userId === null) throw createError({ statusCode: 403, statusMessage: 'Built-in measurements cannot be edited' })
+  if (existing.userId === null)
+    throw createError({ statusCode: 403, statusMessage: 'Built-in measurements cannot be edited' })
 
   try {
-    const row = await db.update(measurementTypes).set(body).where(eq(measurementTypes.id, id)).returning().then((r) => r[0]!)
+    const row = await db
+      .update(measurementTypes)
+      .set(body)
+      .where(eq(measurementTypes.id, id))
+      .returning()
+      .then((r) => r[0]!)
     const pref = await db
       .select({ hidden: measurementTypePrefs.hidden, sortOrder: measurementTypePrefs.sortOrder })
       .from(measurementTypePrefs)

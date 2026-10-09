@@ -22,18 +22,18 @@ export interface RangeDay {
   date: string
   logged: boolean
   totals: Record<string, number | null>
-  targets: Record<string, { amount: number, direction: TargetDirection }> | null
+  targets: Record<string, { amount: number; direction: TargetDirection }> | null
   profileName: string | null
 }
 
 export interface IntakeRange {
-  nutrients: Array<{ key: string, name: string, unit: string }>
+  nutrients: Array<{ key: string; name: string; unit: string }>
   days: RangeDay[]
 }
 
 const rangeQuerySchema = z.object({ from: z.string(), to: z.string() })
 
-export function parseIntakeRangeQuery(query: Record<string, unknown>): { from: string, to: string, dates: string[] } {
+export function parseIntakeRangeQuery(query: Record<string, unknown>): { from: string; to: string; dates: string[] } {
   const parsed = parseWith(rangeQuerySchema, query)
 
   const from = parseDiaryDate(parsed.from)
@@ -88,7 +88,7 @@ export async function loadIntakeRange(
         .where(eq(goalProfileTargets.profileId, defaultProfile.id))
     : []
 
-  const defaultTargets: Record<string, { amount: number, direction: TargetDirection }> = {}
+  const defaultTargets: Record<string, { amount: number; direction: TargetDirection }> = {}
   for (const row of defaultProfileTargetRows) {
     if (!trackedKeys.has(row.key)) continue
     defaultTargets[row.key] = { amount: Number(row.amount), direction: row.direction as TargetDirection }
@@ -117,7 +117,7 @@ export async function loadIntakeRange(
         .groupBy(diaryEntries.dayId, nutrients.key)
     : []
 
-  const targetsByDay = new Map<number, Record<string, { amount: number, direction: TargetDirection }>>()
+  const targetsByDay = new Map<number, Record<string, { amount: number; direction: TargetDirection }>>()
   for (const row of targetRows) {
     if (!trackedKeys.has(row.key)) continue
     const rec = targetsByDay.get(row.dayId) ?? {}
@@ -148,8 +148,8 @@ export async function loadIntakeRange(
     for (const n of nutrientRows) totals[n.key] = dayTotals[n.key] ?? 0
 
     const usesDefault = day.goalProfileId === null
-    const calories = usesDefault ? defaultProfile?.calories ?? null : day.calories
-    const profileName = usesDefault ? defaultProfile?.name ?? null : day.profileName
+    const calories = usesDefault ? (defaultProfile?.calories ?? null) : day.calories
+    const profileName = usesDefault ? (defaultProfile?.name ?? null) : day.profileName
 
     let targets = resolveDayTargets(day.goalProfileId, targetsByDay.get(day.id) ?? {}, defaultTargets)
     if (energyEntry) {

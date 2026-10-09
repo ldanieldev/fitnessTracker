@@ -5,9 +5,16 @@ interface ListedFood {
   id: number
   name: string
   brand: string | null
-  defaultServing: { label: string, quantity: number } | null
+  defaultServing: { label: string; quantity: number } | null
   energy: number | null
-  perDefault: { label: string, quantity: number, energy: number | null, protein: number | null, carbohydrate: number | null, fat: number | null } | null
+  perDefault: {
+    label: string
+    quantity: number
+    energy: number | null
+    protein: number | null
+    carbohydrate: number | null
+    fat: number | null
+  } | null
 }
 
 test('lists only my own live foods with default-serving energy, filtered by q', async ({ page, goto }) => {
@@ -28,7 +35,10 @@ test('lists only my own live foods with default-serving energy, filtered by q', 
     servings: [{ kind: 'named', label: 'bar', quantity: 1, nutrients: { energy: 200 } }]
   })
   await apiFetch(page, 'DELETE', `/api/nutrition/foods/${gone.json.id}`)
-  await seedCatalogFood(page, { name: 'List Catalogue Oats', servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }] })
+  await seedCatalogFood(page, {
+    name: 'List Catalogue Oats',
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+  })
 
   const all = await apiFetch<ListedFood[]>(page, 'GET', '/api/nutrition/foods')
   expect(all.status).toBe(200)

@@ -7,9 +7,20 @@ const state = { inserts: 0, failOnInsert: 0 }
 const rows: Record<string, unknown[]> = {
   workout_entries: [10, 11, 12].map((sessionId) => ({ userId: 1, sessionId, exerciseId: 5 })),
   workout_sessions: [{ performedOn: '2026-10-01' }],
-  workout_sets: [{ trackingType: 'weight_reps', loadStyle: 'plain', weight: '100', reps: 5, distanceMeters: null, durationSeconds: null }],
+  workout_sets: [
+    {
+      trackingType: 'weight_reps',
+      loadStyle: 'plain',
+      weight: '100',
+      reps: 5,
+      distanceMeters: null,
+      durationSeconds: null
+    }
+  ],
   users: [{ cap: 10 }],
-  workout_exercise_goals: [{ userId: 1, exerciseId: 5, metric: 'max_weight', targetValue: '300', targetReps: null, achievedAt: null }],
+  workout_exercise_goals: [
+    { userId: 1, exerciseId: 5, metric: 'max_weight', targetValue: '300', targetReps: null, achievedAt: null }
+  ],
   workout_exercise_rollups: []
 }
 
@@ -45,7 +56,7 @@ function query(op: string, table?: Table): FakeQuery {
       const crash = op === 'insert' && ++state.inserts === state.failOnInsert
       const result: Promise<unknown[]> = crash
         ? Promise.reject(new Error('crash'))
-        : Promise.resolve(op.startsWith('select') ? rows[name] ?? [] : [])
+        : Promise.resolve(op.startsWith('select') ? (rows[name] ?? []) : [])
       return result.then(onfulfilled, onrejected)
     }
   }

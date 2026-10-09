@@ -2,9 +2,19 @@ import { describe, expect, it } from 'vitest'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import WorkoutHistoryFilterSheet from '../../app/components/workout/WorkoutHistoryFilterSheet.vue'
 
-const category = (id: number, key: string, color: string) => ({ id, key, name: key, color, sortOrder: id, shared: true, hidden: false })
+const category = (id: number, key: string, color: string) => ({
+  id,
+  key,
+  name: key,
+  color,
+  sortOrder: id,
+  shared: true,
+  hidden: false
+})
 registerEndpoint('/api/workouts/reference', () => ({
-  categories: [category(1, 'chest', 'rose'), category(2, 'back', 'amber')], muscles: [], equipment: []
+  categories: [category(1, 'chest', 'rose'), category(2, 'back', 'amber')],
+  muscles: [],
+  equipment: []
 }))
 registerEndpoint('/api/workouts/exercises/12', () => ({ id: 12, name: 'Assisted Dip', loadStyle: 'assisted' }))
 registerEndpoint('/api/workouts/exercises/13', () => ({ id: 13, name: 'Bench Press', loadStyle: 'barbell' }))
@@ -20,19 +30,37 @@ registerEndpoint('/api/workouts/programs', () => [
 ])
 registerEndpoint('/api/workouts/programs/9', async () => {
   await new Promise((resolve) => setTimeout(resolve, 150))
-  return { id: 9, name: 'Slow', description: null, totalWeeks: 1, phases: [{ id: 90, name: 'Only', sortOrder: 0, weeks: 1, deload: false, routine: null }] }
+  return {
+    id: 9,
+    name: 'Slow',
+    description: null,
+    totalWeeks: 1,
+    phases: [{ id: 90, name: 'Only', sortOrder: 0, weeks: 1, deload: false, routine: null }]
+  }
 })
 registerEndpoint('/api/workouts/programs/7', () => ({
-  id: 7, name: 'BLS', description: null, totalWeeks: 4,
-  phases: [{ id: 70, name: 'Build', sortOrder: 0, weeks: 2, deload: false, routine: null }, { id: 71, name: 'Peak', sortOrder: 1, weeks: 2, deload: false, routine: null }]
+  id: 7,
+  name: 'BLS',
+  description: null,
+  totalWeeks: 4,
+  phases: [
+    { id: 70, name: 'Build', sortOrder: 0, weeks: 2, deload: false, routine: null },
+    { id: 71, name: 'Peak', sortOrder: 1, weeks: 2, deload: false, routine: null }
+  ]
 }))
-registerEndpoint('/api/workouts/programs/8', () => ({ id: 8, name: 'Other', description: null, totalWeeks: 2, phases: [] }))
+registerEndpoint('/api/workouts/programs/8', () => ({
+  id: 8,
+  name: 'Other',
+  description: null,
+  totalWeeks: 2,
+  phases: []
+}))
 
 const mount = (filter = {}) =>
   mountSuspended(WorkoutHistoryFilterSheet, { props: { open: true, filter }, attachTo: document.body })
 const q = (sel: string) => document.querySelector<HTMLElement>(`[data-test="${sel}"]`)
 function pickSelect(testId: string, value: number) {
-  type Instance = { props?: { items?: unknown }, parent: Instance | null, emit: (event: string, value: number) => void }
+  type Instance = { props?: { items?: unknown }; parent: Instance | null; emit: (event: string, value: number) => void }
   let node = (q(testId) as unknown as { __vueParentComponent: Instance | null }).__vueParentComponent
   while (node && !node.props?.items) node = node.parent
   node!.emit('update:modelValue', value)
@@ -58,7 +86,9 @@ describe('WorkoutHistoryFilterSheet', () => {
   it('disables thresholds until an exercise is chosen and labels assisted exercises', async () => {
     const none = await mount()
     await flush()
-    expect(q('filter-min-weight')?.querySelector('input')?.disabled ?? (q('filter-min-weight') as HTMLInputElement).disabled).toBe(true)
+    expect(
+      q('filter-min-weight')?.querySelector('input')?.disabled ?? (q('filter-min-weight') as HTMLInputElement).disabled
+    ).toBe(true)
     none.unmount()
 
     const assisted = await mount({ exerciseId: 12, minWeight: 20 })

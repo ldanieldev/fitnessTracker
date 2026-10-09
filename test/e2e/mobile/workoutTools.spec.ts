@@ -2,7 +2,10 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from '../helpers'
 import type { Exercise } from '../../../shared/types/workout'
 
-test('phone: a logged set starts the exercise rest in the pill, and tools open from the header', async ({ page, goto }) => {
+test('phone: a logged set starts the exercise rest in the pill, and tools open from the header', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
@@ -29,7 +32,10 @@ test('phone: a logged set starts the exercise rest in the pill, and tools open f
   await page.screenshot({ path: 'test-results/workout-tools-360.png', fullPage: false })
 })
 
-test('phone: a running rest survives leaving the log page, reads its countdown, and still announces the end', async ({ page, goto }) => {
+test('phone: a running rest survives leaving the log page, reads its countdown, and still announces the end', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!

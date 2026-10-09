@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ExternalFood, ExternalSourceKey } from '../../server/utils/nutrition/external/types'
 
-interface CacheEntry { value: unknown }
+interface CacheEntry {
+  value: unknown
+}
 
-function fakeDefineCachedFunction(fn: (...args: unknown[]) => Promise<unknown>, opts: { getKey: (...args: unknown[]) => string }) {
+function fakeDefineCachedFunction(
+  fn: (...args: unknown[]) => Promise<unknown>,
+  opts: { getKey: (...args: unknown[]) => string }
+) {
   const store = new Map<string, CacheEntry>()
   return async (...args: unknown[]) => {
     const key = opts.getKey(...args)
@@ -17,8 +22,15 @@ function fakeDefineCachedFunction(fn: (...args: unknown[]) => Promise<unknown>, 
 
 function food(source: ExternalSourceKey, id: string): ExternalFood {
   return {
-    source, externalId: id, name: 'Food', brand: null, barcode: null, per100g: null,
-    servingGrams: null, servingLabel: null, attribution: null
+    source,
+    externalId: id,
+    name: 'Food',
+    brand: null,
+    barcode: null,
+    per100g: null,
+    servingGrams: null,
+    servingLabel: null,
+    attribution: null
   }
 }
 

@@ -10,13 +10,31 @@ const { enrollment } = await vi.hoisted(async () => {
 mockNuxtImport('useEnrollment', () => () => ({ enrollment }))
 
 const phases = [
-  { id: 1, name: 'Hypertrophy', sortOrder: 0, weeks: 4, deload: false, routine: { id: 5, name: 'Upper/Lower', dayCount: 4 } },
+  {
+    id: 1,
+    name: 'Hypertrophy',
+    sortOrder: 0,
+    weeks: 4,
+    deload: false,
+    routine: { id: 5, name: 'Upper/Lower', dayCount: 4 }
+  },
   { id: 2, name: 'Deload', sortOrder: 1, weeks: 1, deload: true, routine: { id: 5, name: 'Upper/Lower', dayCount: 4 } },
   { id: 3, name: 'Off', sortOrder: 2, weeks: 1, deload: false, routine: null }
 ]
 const base: Enrollment = {
-  id: 9, program: { id: 3, name: 'BLS' }, status: 'active', state: 'current', week: 2, totalWeeks: 6,
-  phaseIndex: 0, weekInPhase: 2, phase: phases[0]!, phases, anchorDate: '2026-09-28', notice: null, nextDay: { id: 1, name: 'Upper A' }
+  id: 9,
+  program: { id: 3, name: 'BLS' },
+  status: 'active',
+  state: 'current',
+  week: 2,
+  totalWeeks: 6,
+  phaseIndex: 0,
+  weekInPhase: 2,
+  phase: phases[0]!,
+  phases,
+  anchorDate: '2026-09-28',
+  notice: null,
+  nextDay: { id: 1, name: 'Upper A' }
 }
 
 afterEach(() => {
@@ -51,7 +69,14 @@ describe('DashboardProgram', () => {
   it('hides when there is no enrollment or it has finished', async () => {
     const none = await mountSuspended(DashboardProgram)
     expect(none.find('[data-test="dashboard-program"]').exists()).toBe(false)
-    enrollment.value = { ...base, status: 'completed', state: 'finished', phase: null, phaseIndex: -1, notice: 'complete' }
+    enrollment.value = {
+      ...base,
+      status: 'completed',
+      state: 'finished',
+      phase: null,
+      phaseIndex: -1,
+      notice: 'complete'
+    }
     const done = await mountSuspended(DashboardProgram)
     expect(done.find('[data-test="dashboard-program"]').exists()).toBe(false)
   })

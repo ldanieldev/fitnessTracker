@@ -7,13 +7,23 @@ import WorkoutExercisePicker from '../../app/components/workout/WorkoutExerciseP
 const category = { id: 1, key: 'chest', name: 'Chest', color: 'red' }
 function exercise(id: number, name: string, shared: boolean) {
   return {
-    id, name, shared, category, trackingType: 'weight_reps', loadStyle: 'plain', barWeight: null, equipment: [],
-    primaryMuscles: [], secondaryMuscles: [], notes: null
+    id,
+    name,
+    shared,
+    category,
+    trackingType: 'weight_reps',
+    loadStyle: 'plain',
+    barWeight: null,
+    equipment: [],
+    primaryMuscles: [],
+    secondaryMuscles: [],
+    notes: null
   }
 }
 
 const find = (selector: string) => new DOMWrapper(document.querySelector(selector))
-const input = () => document.querySelector<HTMLInputElement>('[data-test="exercise-search"] input, input[data-test="exercise-search"]')!
+const input = () =>
+  document.querySelector<HTMLInputElement>('[data-test="exercise-search"] input, input[data-test="exercise-search"]')!
 
 async function settle() {
   await flushPromises()
@@ -38,7 +48,9 @@ function stub() {
     handler: () => exercise(9, 'Cable Fly', false)
   })
   registerEndpoint('/api/workouts/reference', () => ({
-    categories: [category], muscles: [], equipment: []
+    categories: [category],
+    muscles: [],
+    equipment: []
   }))
 }
 
@@ -136,7 +148,9 @@ describe('WorkoutExercisePicker', () => {
     await type('Cable Fly')
     await find('[data-test="exercise-new"]').trigger('click')
     await settle()
-    const name = document.querySelector<HTMLInputElement>('input[data-test="exercise-name"], [data-test="exercise-name"] input')!
+    const name = document.querySelector<HTMLInputElement>(
+      'input[data-test="exercise-name"], [data-test="exercise-name"] input'
+    )!
     expect(name.value).toBe('Cable Fly')
     await find('[data-test="exercise-submit"]').trigger('click')
     await settle()

@@ -4,13 +4,24 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import WorkoutDayPickerSheet from '../../app/components/workout/WorkoutDayPickerSheet.vue'
 
 const find = (selector: string) => new DOMWrapper(document.querySelector(selector))
-const day = (id: number, name: string, floating = false) => ({ id, name, description: null, floating, sortOrder: id, entries: [] })
+const day = (id: number, name: string, floating = false) => ({
+  id,
+  name,
+  description: null,
+  floating,
+  sortOrder: id,
+  entries: []
+})
 
 registerEndpoint('/api/workouts/routines', () => [
   { id: 9, name: 'Upper/Lower', active: true, dayCount: 3, nextDay: { id: 1, name: 'Upper' } }
 ])
 registerEndpoint('/api/workouts/routines/9', () => ({
-  id: 9, name: 'Upper/Lower', notes: null, active: true, nextDayId: 1,
+  id: 9,
+  name: 'Upper/Lower',
+  notes: null,
+  active: true,
+  nextDayId: 1,
   days: [day(1, 'Upper'), day(2, 'Lower'), day(3, 'Arms', true)]
 }))
 

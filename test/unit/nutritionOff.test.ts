@@ -77,7 +77,7 @@ describe('isEnglishHit', () => {
 const PRODUCT_URL = 'https://world.openfoodfacts.org/api/v2/product'
 const SEARCH_URL = 'https://search.openfoodfacts.org/search'
 
-function stubOffConfig(overrides: Partial<{ productUrl: string, searchUrl: string }> = {}) {
+function stubOffConfig(overrides: Partial<{ productUrl: string; searchUrl: string }> = {}) {
   vi.stubGlobal('useRuntimeConfig', () => ({
     off: { userAgent: 'Test/1.0 (a@b.com)', productUrl: PRODUCT_URL, searchUrl: SEARCH_URL, ...overrides }
   }))
@@ -92,7 +92,9 @@ describe('offByBarcode', () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ off: { userAgent: '' } }))
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     await expect(offByBarcode('3017624010701')).rejects.toMatchObject({
-      name: 'ExternalSourceError', source: 'off', kind: 'unconfigured'
+      name: 'ExternalSourceError',
+      source: 'off',
+      kind: 'unconfigured'
     })
   })
 
@@ -114,7 +116,9 @@ describe('offByBarcode', () => {
     const { offByBarcode } = await import('../../server/utils/nutrition/external/off')
     await offByBarcode('3017624010701')
     const [url] = fetchMock.mock.calls[0]!
-    expect(url).toBe('/api/nutrition/_test/off/product/3017624010701.json?fields=code,product_name,brands,serving_size,nutriments')
+    expect(url).toBe(
+      '/api/nutrition/_test/off/product/3017624010701.json?fields=code,product_name,brands,serving_size,nutriments'
+    )
   })
 
   it('returns null when OFF reports status 0 (not found)', async () => {
@@ -170,11 +174,19 @@ describe('offSearch', () => {
 })
 
 describe('fetchJson', () => {
-  // Real 20 ms timeout, not fake timers: vi.useFakeTimers() would also freeze AbortController's timer and its abort event.
+  // Real 20 ms timeout: vi.useFakeTimers() would also freeze AbortController's timer and its abort event.
   it('rejects with AbortError when the request exceeds the timeout', async () => {
-    vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
-      init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })))
-    })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+            )
+          })
+      )
+    )
     const { fetchJson } = await import('../../server/utils/nutrition/external/http')
     await expect(fetchJson('http://example.com', {}, 20)).rejects.toMatchObject({ name: 'AbortError' })
   })

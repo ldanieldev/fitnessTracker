@@ -10,7 +10,10 @@ const sourceEntries = [
   { id: 4, containerId: 20, description: 'Toast', quantity: 1, unitLabel: 'slice' }
 ]
 
-const containers = [{ id: 10, name: 'Breakfast' }, { id: 20, name: 'Lunch' }]
+const containers = [
+  { id: 10, name: 'Breakfast' },
+  { id: 20, name: 'Lunch' }
+]
 
 let activeWrapper: { unmount: () => void } | undefined
 
@@ -20,7 +23,7 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-// UModal teleports to document.body, which findAllComponents can't see without a subTree, so tests drive the real body through DOM events.
+// UModal teleports to document.body, out of findAllComponents' reach, so tests drive the body via DOM events.
 async function mountDialog() {
   const wrapper = await mountSuspended(NutritionCopyDialog, {
     attachTo: document.body,

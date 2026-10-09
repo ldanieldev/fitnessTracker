@@ -15,7 +15,10 @@ export const users = appSchema.table(
     password: varchar({ length: 255 }),
     weekStart: smallint('week_start').notNull().default(1),
     defaultRestSeconds: smallint('default_rest_seconds').notNull().default(60),
-    plateSizes: numeric('plate_sizes').array().notNull().default(sql`'{45,35,25,10,5,2.5}'::numeric[]`),
+    plateSizes: numeric('plate_sizes')
+      .array()
+      .notNull()
+      .default(sql`'{45,35,25,10,5,2.5}'::numeric[]`),
     oneRepMaxRepCap: smallint('one_rep_max_rep_cap').notNull().default(10)
   },
   (table) => [
@@ -41,7 +44,5 @@ export const authProviders = appSchema.table(
     provider: varchar({ length: 50 }).notNull(),
     providerAccountId: varchar('provider_account_id', { length: 255 }).notNull()
   },
-  (table) => [
-    unique('auth_providers_provider_account_unique').on(table.provider, table.providerAccountId)
-  ]
+  (table) => [unique('auth_providers_provider_account_unique').on(table.provider, table.providerAccountId)]
 )

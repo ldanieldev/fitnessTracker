@@ -22,7 +22,7 @@ test('renaming a container is retroactive and archiving never deletes', async ({
   const archive = await apiFetch(page, 'DELETE', `/api/nutrition/meal-containers/${first.id}`)
   expect(archive.ok).toBe(true)
 
-  const after = await apiFetch<{ id: number, name: string, isArchived: boolean }[]>(
+  const after = await apiFetch<{ id: number; name: string; isArchived: boolean }[]>(
     page,
     'GET',
     '/api/nutrition/meal-containers?includeArchived=1'

@@ -34,7 +34,7 @@ export function evaluateTarget(input: TargetInput): TargetEvaluation {
   return { remaining: raw, state, progress }
 }
 
-export function ensureEnergyTarget<T extends { key: string, amount: number, direction: TargetDirection }>(
+export function ensureEnergyTarget<T extends { key: string; amount: number; direction: TargetDirection }>(
   targets: T[],
   make: (amount: number) => T,
   calories?: number | null

@@ -5,17 +5,45 @@ import type { DiaryEntry } from '../../app/composables/useDiaryDay'
 const food: FoodForResolve = {
   id: 1,
   servings: [
-    { id: 10, kind: 'weight', label: 'g', quantity: 100, basisGrams: 100, hasOwnNutrition: true, nutrients: { 1: 200 } },
-    { id: 11, kind: 'named', label: 'slice', quantity: 1, basisGrams: null, hasOwnNutrition: true, nutrients: { 1: 90 } }
+    {
+      id: 10,
+      kind: 'weight',
+      label: 'g',
+      quantity: 100,
+      basisGrams: 100,
+      hasOwnNutrition: true,
+      nutrients: { 1: 200 }
+    },
+    {
+      id: 11,
+      kind: 'named',
+      label: 'slice',
+      quantity: 1,
+      basisGrams: null,
+      hasOwnNutrition: true,
+      nutrients: { 1: 90 }
+    }
   ]
 }
 
 function entry(over: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
-    id: 5, containerId: 1, entryType: 'food', foodId: 1, foodServingId: 10, recipeId: null,
-    quantity: 150, unitLabel: 'g', gramsResolved: 150, description: 'Bread', brandSnapshot: null,
-    loggedAt: new Date(2026, 8, 10, 7, 40).toISOString(), notes: null, ingredientSnapshot: null,
-    nutrients: { energy: 300, protein: 12 }, ...over
+    id: 5,
+    containerId: 1,
+    entryType: 'food',
+    foodId: 1,
+    foodServingId: 10,
+    recipeId: null,
+    quantity: 150,
+    unitLabel: 'g',
+    gramsResolved: 150,
+    description: 'Bread',
+    brandSnapshot: null,
+    loggedAt: new Date(2026, 8, 10, 7, 40).toISOString(),
+    notes: null,
+    ingredientSnapshot: null,
+    nutrients: { energy: 300, protein: 12 },
+    ...over
   }
 }
 
@@ -41,7 +69,10 @@ describe('entryEdit', () => {
     const { draftFromEntry, entryPatch } = await import('../../app/utils/nutrition/entryEdit')
     const food = entry()
     expect(entryPatch(food, draftFromEntry(food))).toEqual({})
-    expect(entryPatch(food, { ...draftFromEntry(food), quantity: 200, unitLabel: 'slice', notes: '  ' })).toEqual({ quantity: 200, unitLabel: 'slice' })
+    expect(entryPatch(food, { ...draftFromEntry(food), quantity: 200, unitLabel: 'slice', notes: '  ' })).toEqual({
+      quantity: 200,
+      unitLabel: 'slice'
+    })
 
     const recipe = entry({ entryType: 'recipe', unitLabel: 'bowl', quantity: 1, notes: 'old' })
     const patch = entryPatch(recipe, { ...draftFromEntry(recipe), unitLabel: 'plate', containerId: 2, notes: '' })

@@ -20,9 +20,7 @@ function scale(nutrients: Record<number, number>, ratio: number): Record<number,
 export function selectGramBasis(food: FoodForResolve): ServingBasis | null {
   const weight = food.servings.find((s) => s.kind === 'weight')
   if (weight) return weight
-  const candidates = food.servings
-    .filter((s) => s.hasOwnNutrition && s.basisGrams !== null)
-    .sort((a, b) => a.id - b.id)
+  const candidates = food.servings.filter((s) => s.hasOwnNutrition && s.basisGrams !== null).sort((a, b) => a.id - b.id)
   return candidates[0] ?? null
 }
 
@@ -32,11 +30,7 @@ export function defaultServing(food: FoodForResolve): ServingBasis | null {
   return [...food.servings].sort((a, b) => a.id - b.id)[0] ?? null
 }
 
-export function resolveNutrition(
-  food: FoodForResolve,
-  selection: UnitSelection,
-  quantity: number
-): ResolveResult {
+export function resolveNutrition(food: FoodForResolve, selection: UnitSelection, quantity: number): ResolveResult {
   if (!(quantity > 0)) {
     throw new Error('Quantity must be positive')
   }

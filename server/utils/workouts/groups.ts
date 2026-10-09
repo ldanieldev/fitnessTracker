@@ -30,7 +30,7 @@ export const SESSION_ENTRY_GROUPS: GroupedTable = {
 
 // Id order keeps every locker in one order; NO KEY UPDATE still lets set inserts take their FK KEY SHARE meanwhile.
 export async function lockGroupRows(tx: DbClient, groups: GroupedTable, parentId: number) {
-  const result = await tx.execute<{ id: number, sort_order: number, superset_group: number | null }>(sql`
+  const result = await tx.execute<{ id: number; sort_order: number; superset_group: number | null }>(sql`
     select ${groups.id} as id, ${groups.sortOrder} as sort_order, ${groups.supersetGroup} as superset_group
     from ${groups.table} where ${groups.parent} = ${parentId} order by ${groups.id} for no key update
   `)
@@ -57,7 +57,9 @@ export async function regroup(
   for (const [index, item] of change(items).entries()) {
     const was = stored.get(item.id)
     if (was && was.sortOrder === index && was.supersetGroup === item.supersetGroup) continue
-    await tx.execute(sql`update ${groups.table} set ${sortOrderName} = ${index}, ${groupName} = ${item.supersetGroup} where ${groups.id} = ${item.id}`)
+    await tx.execute(
+      sql`update ${groups.table} set ${sortOrderName} = ${index}, ${groupName} = ${item.supersetGroup} where ${groups.id} = ${item.id}`
+    )
   }
 }
 

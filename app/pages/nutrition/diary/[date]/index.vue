@@ -16,7 +16,7 @@ if (!DATE_RE.test(rawParam.value)) {
   await navigateTo('/nutrition/diary/today', { replace: true })
 }
 
-// The redirect above aborts rendering for an invalid param, so this never needs a `todayDate()` fallback that would run during SSR.
+// The redirect above aborts on an invalid param, so no SSR-side `todayDate()` fallback is needed here.
 const date = computed(() => rawParam.value)
 
 const { user } = useUserSession()
@@ -30,7 +30,18 @@ const { data: loggedWeek } = useNutritionFetch<{ dates: string[] }>(
 )
 
 const toast = useToast()
-const { day, profiles, updateEntry, deleteEntry, goalName, targets: targetRows, totals, subtotalNutrients, profilesFetch, dayFetch } = useDaySummary(date)
+const {
+  day,
+  profiles,
+  updateEntry,
+  deleteEntry,
+  goalName,
+  targets: targetRows,
+  totals,
+  subtotalNutrients,
+  profilesFetch,
+  dayFetch
+} = useDaySummary(date)
 await profilesFetch
 
 const mode = ref<'remaining' | 'consumed'>('remaining')
@@ -72,11 +83,13 @@ const entrySheetOpen = computed({
 
 const notesOpen = ref(false)
 const goalOpen = ref(false)
-const saveAs = ref<{ kind: 'recipe' | 'saved-meal', containerId: number } | null>(null)
+const saveAs = ref<{ kind: 'recipe' | 'saved-meal'; containerId: number } | null>(null)
 
 const mealTimeContainerId = ref<number | null>(null)
 const mealTimeContainer = computed(() => day.value?.containers.find((c) => c.id === mealTimeContainerId.value) ?? null)
-const mealTimeValue = computed(() => (mealTimeContainer.value ? deriveMealTime(mealTimeContainer.value.mealTime, mealTimeContainer.value.entries) : null))
+const mealTimeValue = computed(() =>
+  mealTimeContainer.value ? deriveMealTime(mealTimeContainer.value.mealTime, mealTimeContainer.value.entries) : null
+)
 const mealTimeOpen = computed({
   get: () => mealTimeContainerId.value !== null,
   set: (value) => {
@@ -84,8 +97,8 @@ const mealTimeOpen = computed({
   }
 })
 
-const saveAsContainerName = computed(() =>
-  day.value?.containers.find((c) => c.id === saveAs.value?.containerId)?.name ?? ''
+const saveAsContainerName = computed(
+  () => day.value?.containers.find((c) => c.id === saveAs.value?.containerId)?.name ?? ''
 )
 const saveAsOpen = computed({
   get: () => saveAs.value !== null,
@@ -98,8 +111,14 @@ function onSaveAs(containerId: number, kind: 'recipe' | 'saved-meal') {
   saveAs.value = { containerId, kind }
 }
 
-const anySheetOpen = computed(() =>
-  copyDialogOpen.value || entrySheetOpen.value || notesOpen.value || goalOpen.value || saveAsOpen.value || mealTimeOpen.value
+const anySheetOpen = computed(
+  () =>
+    copyDialogOpen.value ||
+    entrySheetOpen.value ||
+    notesOpen.value ||
+    goalOpen.value ||
+    saveAsOpen.value ||
+    mealTimeOpen.value
 )
 
 function openCopyDialog(entries: DiaryEntry[]) {
@@ -145,7 +164,11 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
   try {
     await apiFetch('/api/nutrition/diary/copy', { method: 'POST', body: payload })
   } catch (error: unknown) {
-    toast.add({ title: 'Copy failed', description: errorMessage(error, 'Could not copy these entries'), color: 'error' })
+    toast.add({
+      title: 'Copy failed',
+      description: errorMessage(error, 'Could not copy these entries'),
+      color: 'error'
+    })
     return
   }
   copyDialogOpen.value = false
@@ -161,12 +184,24 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
   <UDashboardPanel id="diary">
     <template #header>
       <NutritionDayHeader :date="date" @navigate="(d) => navigateTo(`/nutrition/diary/${d}`)" @action="onDayAction" />
-      <NutritionWeekStrip :date="date" :logged="loggedWeek?.dates ?? []" :week-start="weekStart" @navigate="(d) => navigateTo(`/nutrition/diary/${d}`)" />
+      <NutritionWeekStrip
+        :date="date"
+        :logged="loggedWeek?.dates ?? []"
+        :week-start="weekStart"
+        @navigate="(d) => navigateTo(`/nutrition/diary/${d}`)"
+      />
     </template>
 
     <template #body>
       <div class="flex flex-col gap-4 max-w-3xl mx-auto w-full pb-24">
-        <NutritionSummaryCard v-if="day" v-model:mode="mode" :targets="targetRows" :totals="totals" :goal-name="goalName" @apply-goal="goalOpen = true" />
+        <NutritionSummaryCard
+          v-if="day"
+          v-model:mode="mode"
+          :targets="targetRows"
+          :totals="totals"
+          :goal-name="goalName"
+          @apply-goal="goalOpen = true"
+        />
 
         <NutritionListSkeleton v-if="dayFetch.status.value === 'pending' && !day" />
         <NutritionContainerCard
@@ -196,9 +231,24 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         </button>
       </div>
 
-      <div v-if="selection.state.active" class="fixed inset-x-0 bottom-0 z-10 flex gap-2 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:static lg:border-0 lg:bg-transparent">
-        <UButton label="Done" variant="soft" color="neutral" data-test="toggle-select-mode" @click="selection.toggle()" />
-        <UButton label="Copy selected" class="ml-auto" :disabled="selection.state.selected.size === 0" data-test="copy-selected" @click="copySelected" />
+      <div
+        v-if="selection.state.active"
+        class="fixed inset-x-0 bottom-0 z-10 flex gap-2 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:static lg:border-0 lg:bg-transparent"
+      >
+        <UButton
+          label="Done"
+          variant="soft"
+          color="neutral"
+          data-test="toggle-select-mode"
+          @click="selection.toggle()"
+        />
+        <UButton
+          label="Copy selected"
+          class="ml-auto"
+          :disabled="selection.state.selected.size === 0"
+          data-test="copy-selected"
+          @click="copySelected"
+        />
       </div>
 
       <UButton

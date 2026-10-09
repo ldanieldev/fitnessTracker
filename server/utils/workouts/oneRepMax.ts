@@ -27,7 +27,12 @@ async function historyStamp(userId: number, exerciseId: number): Promise<History
     .innerJoin(workoutSessions, eq(workoutSessions.id, workoutEntries.sessionId))
     .where(ownSetsOf(userId, exerciseId))
     .then((r) => r[0])
-  return { sets: row?.sets ?? 0, setsAt: row?.setsAt ?? null, sessionsAt: row?.sessionsAt ?? null, entriesAt: row?.entriesAt ?? null }
+  return {
+    sets: row?.sets ?? 0,
+    setsAt: row?.setsAt ?? null,
+    sessionsAt: row?.sessionsAt ?? null,
+    entriesAt: row?.entriesAt ?? null
+  }
 }
 
 async function computeEstimate(
@@ -41,17 +46,21 @@ async function computeEstimate(
     .from(workoutSets)
     .innerJoin(workoutEntries, eq(workoutEntries.id, workoutSets.entryId))
     .innerJoin(workoutSessions, eq(workoutSessions.id, workoutEntries.sessionId))
-    .where(and(
-      ownSetsOf(userId, exerciseId),
-      between(workoutSessions.performedOn, estimateWindowStart(on), on),
-      gt(workoutSets.weight, '0'),
-      between(workoutSets.reps, 1, repCap),
-      or(isNull(workoutEntries.loadStyle), ne(workoutEntries.loadStyle, 'assisted'))
-    ))
+    .where(
+      and(
+        ownSetsOf(userId, exerciseId),
+        between(workoutSessions.performedOn, estimateWindowStart(on), on),
+        gt(workoutSets.weight, '0'),
+        between(workoutSets.reps, 1, repCap),
+        or(isNull(workoutEntries.loadStyle), ne(workoutEntries.loadStyle, 'assisted'))
+      )
+    )
   const best = bestEstimate(
-    rows.map((row) => (
-      { weight: row.weight != null ? Number(row.weight) : null, reps: row.reps, performedOn: row.performedOn }
-    )),
+    rows.map((row) => ({
+      weight: row.weight != null ? Number(row.weight) : null,
+      reps: row.reps,
+      performedOn: row.performedOn
+    })),
     on,
     repCap
   )

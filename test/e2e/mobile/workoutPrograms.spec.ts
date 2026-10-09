@@ -4,7 +4,10 @@ import type { Routine } from '../../../shared/types/routine'
 
 test.use({ viewport: { width: 360, height: 740 } })
 
-test('phone: build a program, start it now, see it on log, history and dashboard, pause and resume', async ({ page, goto }) => {
+test('phone: build a program, start it now, see it on log, history and dashboard, pause and resume', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const routineName = uniquePrefix('Phone UL ')
@@ -84,7 +87,10 @@ test('phone: editor fields show the saved value again after a blank name or a fa
   await expect(name).toHaveValue(programName)
 
   await page.route(`**/api/workouts/programs/${program.id}`, (route) =>
-    route.request().method() === 'PATCH' ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }) : route.continue())
+    route.request().method() === 'PATCH'
+      ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+      : route.continue()
+  )
   await name.fill('Renamed')
   await name.blur()
   await expect(page.getByText('Couldn\'t save program', { exact: true })).toBeVisible()

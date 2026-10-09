@@ -27,7 +27,15 @@ export function useLibraryEditor(snapshot: (lines: EditorLine[]) => string, init
   }
 
   function onPicked(picked: PickedFood[]) {
-    const added = picked.map((p) => ({ uid: nextUid(), foodId: p.foodId, name: p.name, brand: p.brand, quantity: p.quantity, unitLabel: p.unitLabel, food: p.food }))
+    const added = picked.map((p) => ({
+      uid: nextUid(),
+      foodId: p.foodId,
+      name: p.name,
+      brand: p.brand,
+      quantity: p.quantity,
+      unitLabel: p.unitLabel,
+      food: p.food
+    }))
     if (replaceUid.value) {
       lines.value = lines.value.flatMap((line) => (line.uid === replaceUid.value ? added.slice(0, 1) : [line]))
     } else {

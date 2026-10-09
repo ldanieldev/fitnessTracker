@@ -9,16 +9,45 @@ describe('body schema', () => {
     expect(getTableName(schema.measurementGoals)).toBe('measurement_goals')
     expect(getTableName(schema.measurementTypePrefs)).toBe('measurement_type_prefs')
 
-    expect(Object.keys(getTableColumns(schema.measurementTypes)).sort()).toEqual(
-      ['createdAt', 'deletedAt', 'direction', 'id', 'key', 'name', 'precision', 'unit', 'updatedAt', 'userId']
-    )
-    expect(Object.keys(getTableColumns(schema.measurements)).sort()).toEqual(
-      ['createdAt', 'id', 'measuredAt', 'measuredOn', 'typeId', 'updatedAt', 'userId', 'value']
-    )
-    expect(Object.keys(getTableColumns(schema.measurementGoals)).sort()).toEqual(
-      ['createdAt', 'id', 'startDate', 'startValue', 'targetDate', 'targetValue', 'typeId', 'updatedAt', 'userId']
-    )
-    expect(Object.keys(getTableColumns(schema.measurementTypePrefs)).sort()).toEqual(['hidden', 'sortOrder', 'typeId', 'userId'])
+    expect(Object.keys(getTableColumns(schema.measurementTypes)).sort()).toEqual([
+      'createdAt',
+      'deletedAt',
+      'direction',
+      'id',
+      'key',
+      'name',
+      'precision',
+      'unit',
+      'updatedAt',
+      'userId'
+    ])
+    expect(Object.keys(getTableColumns(schema.measurements)).sort()).toEqual([
+      'createdAt',
+      'id',
+      'measuredAt',
+      'measuredOn',
+      'typeId',
+      'updatedAt',
+      'userId',
+      'value'
+    ])
+    expect(Object.keys(getTableColumns(schema.measurementGoals)).sort()).toEqual([
+      'createdAt',
+      'id',
+      'startDate',
+      'startValue',
+      'targetDate',
+      'targetValue',
+      'typeId',
+      'updatedAt',
+      'userId'
+    ])
+    expect(Object.keys(getTableColumns(schema.measurementTypePrefs)).sort()).toEqual([
+      'hidden',
+      'sortOrder',
+      'typeId',
+      'userId'
+    ])
   })
 
   it('seeds exactly the three built-ins with null user and stable keys', async () => {

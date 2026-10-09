@@ -13,7 +13,7 @@ test('renaming a container in settings retroactively relabels a previously logge
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const containers = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
   const container = containers.json[0]!
   await logEntry(page, '2026-08-01', container.id)
 
@@ -23,7 +23,9 @@ test('renaming a container in settings retroactively relabels a previously logge
   await nameInput.fill('Renamed Container')
 
   const [renameResponse] = await Promise.all([
-    page.waitForResponse((r) => r.url().includes(`/api/nutrition/meal-containers/${container.id}`) && r.request().method() === 'PUT'),
+    page.waitForResponse(
+      (r) => r.url().includes(`/api/nutrition/meal-containers/${container.id}`) && r.request().method() === 'PUT'
+    ),
     page.locator(`[data-test="container-save-${container.id}"]`).click()
   ])
   expect(renameResponse.ok()).toBe(true)

@@ -10,11 +10,28 @@ vi.mock('../../shared/utils/exerciseSearch', async (importOriginal) => {
 const { resolveAndFilter } = await import('../../shared/utils/exerciseList')
 
 const category: ExerciseCategory = {
-  id: 1, key: 'chest', name: 'Chest', color: 'rose', sortOrder: 0, shared: true, hidden: false
+  id: 1,
+  key: 'chest',
+  name: 'Chest',
+  color: 'rose',
+  sortOrder: 0,
+  shared: true,
+  hidden: false
 }
 const rowNamed = (id: number, name: string): ExerciseRow => ({
-  id, name, categoryId: 1, trackingType: 'reps', loadStyle: null, barWeight: null, difficulty: null, images: [],
-  instructions: [], createdByUserId: null, equipment: [], primaryMuscles: [], secondaryMuscles: []
+  id,
+  name,
+  categoryId: 1,
+  trackingType: 'reps',
+  loadStyle: null,
+  barWeight: null,
+  difficulty: null,
+  images: [],
+  instructions: [],
+  createdByUserId: null,
+  equipment: [],
+  primaryMuscles: [],
+  secondaryMuscles: []
 })
 
 describe('resolveAndFilter ranking', () => {

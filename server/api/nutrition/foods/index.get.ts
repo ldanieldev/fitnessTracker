@@ -20,7 +20,9 @@ function defaultEnergy(food: FoodForResolve, energyId: number): number | null {
   const serving = defaultServing(food)
   if (!serving) return null
   try {
-    return resolveNutrition(food, { type: 'serving', servingId: serving.id }, serving.quantity).nutrients[energyId] ?? null
+    return (
+      resolveNutrition(food, { type: 'serving', servingId: serving.id }, serving.quantity).nutrients[energyId] ?? null
+    )
   } catch (err) {
     if (err instanceof NoWeightBasisError) return null
     throw err
@@ -63,7 +65,15 @@ export default defineEventHandler(async (event) => {
     })
     .from(foodServings)
     .leftJoin(foodNutrients, eq(foodNutrients.foodServingId, foodServings.id))
-    .where(and(inArray(foodServings.foodId, heads.map((h) => h.id)), isNull(foodServings.deletedAt)))
+    .where(
+      and(
+        inArray(
+          foodServings.foodId,
+          heads.map((h) => h.id)
+        ),
+        isNull(foodServings.deletedAt)
+      )
+    )
 
   const rowsByFood = new Map<number, ServingNutrientRow[]>()
   for (const { foodId, ...row } of rows) {

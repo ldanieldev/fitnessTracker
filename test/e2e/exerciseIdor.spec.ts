@@ -2,21 +2,35 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 import type { Exercise } from '../../shared/types/workout'
 
-interface Reference { categories: { id: number, key: string }[] }
-interface VariationGroup { id: number, name: string, exerciseIds: number[] }
+interface Reference {
+  categories: { id: number; key: string }[]
+}
+interface VariationGroup {
+  id: number
+  name: string
+  exerciseIds: number[]
+}
 
 test('another user cannot reach a private exercise or variation group', async ({ page, goto, browser }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const name = uniquePrefix('Private Curl ')
-  const core = (await apiFetch<Reference>(page, 'GET', '/api/workouts/reference')).json.categories
-    .find((c) => c.key === 'core')!
-  const mine = (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name, categoryId: core.id, trackingType: 'weight_reps'
-  })).json
-  const group = (await apiFetch<VariationGroup>(page, 'POST', '/api/workouts/variations', {
-    name: `${name}Group`, exerciseIds: [mine.id]
-  })).json
+  const core = (await apiFetch<Reference>(page, 'GET', '/api/workouts/reference')).json.categories.find(
+    (c) => c.key === 'core'
+  )!
+  const mine = (
+    await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+      name,
+      categoryId: core.id,
+      trackingType: 'weight_reps'
+    })
+  ).json
+  const group = (
+    await apiFetch<VariationGroup>(page, 'POST', '/api/workouts/variations', {
+      name: `${name}Group`,
+      exerciseIds: [mine.id]
+    })
+  ).json
 
   const exerciseUrl = `/api/workouts/exercises/${mine.id}`
   const groupUrl = `/api/workouts/variations/${group.id}`
@@ -38,7 +52,8 @@ test('another user cannot reach a private exercise or variation group', async ({
   expect((await apiFetch(page, 'PATCH', groupUrl, { name: 'Taken' })).status).toBe(200)
   expect((await apiFetch(page, 'PATCH', groupUrl, { name: `${name}Group` })).status).toBe(200)
   const spare = await apiFetch<VariationGroup>(page, 'POST', '/api/workouts/variations', {
-    name: uniquePrefix('Grab '), exerciseIds: [mine.id]
+    name: uniquePrefix('Grab '),
+    exerciseIds: [mine.id]
   })
   expect(spare.status).toBe(200)
   expect((await apiFetch(page, 'PATCH', groupUrl, { addExerciseIds: [mine.id] })).status).toBe(200)
@@ -61,12 +76,16 @@ test('another user cannot reach a private exercise or variation group', async ({
     expect((await apiFetch(intruder, 'PATCH', groupUrl, { name: 'Taken' })).status).toBe(404)
     expect((await apiFetch(intruder, 'DELETE', groupUrl)).status).toBe(404)
     const grab = await apiFetch(intruder, 'POST', '/api/workouts/variations', {
-      name: uniquePrefix('Grab '), exerciseIds: [mine.id]
+      name: uniquePrefix('Grab '),
+      exerciseIds: [mine.id]
     })
     expect(grab.status).toBe(404)
-    const own = (await apiFetch<VariationGroup>(intruder, 'POST', '/api/workouts/variations', {
-      name: uniquePrefix('Own '), exerciseIds: []
-    })).json
+    const own = (
+      await apiFetch<VariationGroup>(intruder, 'POST', '/api/workouts/variations', {
+        name: uniquePrefix('Own '),
+        exerciseIds: []
+      })
+    ).json
     const added = await apiFetch(intruder, 'PATCH', `/api/workouts/variations/${own.id}`, { addExerciseIds: [mine.id] })
     expect(added.status).toBe(404)
     const theirGroups = (await apiFetch<VariationGroup[]>(intruder, 'GET', '/api/workouts/variations')).json

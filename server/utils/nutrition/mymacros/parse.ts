@@ -41,13 +41,17 @@ export function isMyMacrosHeader(line: string): boolean {
 }
 
 export class MyMacrosParseError extends Error {
-  constructor(public readonly fileName: string, public readonly line: number, message: string) {
+  constructor(
+    public readonly fileName: string,
+    public readonly line: number,
+    message: string
+  ) {
     super(`${fileName}:${line}: ${message}`)
     this.name = 'MyMacrosParseError'
   }
 }
 
-export function normalizeMmpUnit(raw: string): { unit: string, basisGrams: number | null } {
+export function normalizeMmpUnit(raw: string): { unit: string; basisGrams: number | null } {
   let label = raw.trim()
   let basisGrams: number | null = null
   const compound = COMPOUND.exec(label)

@@ -6,7 +6,13 @@ import { db } from '~~/server/utils/db'
 export type MeasurementRow = typeof measurements.$inferSelect
 
 export function toEntry(row: MeasurementRow): MeasurementEntry {
-  return { id: row.id, typeId: row.typeId, value: Number(row.value), measuredAt: row.measuredAt.toISOString(), measuredOn: row.measuredOn }
+  return {
+    id: row.id,
+    typeId: row.typeId,
+    value: Number(row.value),
+    measuredAt: row.measuredAt.toISOString(),
+    measuredOn: row.measuredOn
+  }
 }
 
 export async function loadEntryForUser(userId: number, entryId: number): Promise<MeasurementRow> {

@@ -33,12 +33,14 @@ export function applyOverrides(
     if (!(quantity > 0)) {
       throw new Error('Override quantity must be positive')
     }
-    return [{
-      sourceEntryId: entry.id,
-      containerId: targetContainerId ?? entry.containerId,
-      quantity,
-      unitLabel: override?.unitLabel ?? entry.unitLabel
-    }]
+    return [
+      {
+        sourceEntryId: entry.id,
+        containerId: targetContainerId ?? entry.containerId,
+        quantity,
+        unitLabel: override?.unitLabel ?? entry.unitLabel
+      }
+    ]
   })
 
   if (plan.length === 0) {

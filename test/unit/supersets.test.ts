@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  groupItems, moveWithGroups, moveWithGroupsTo, nextAfterSet, normalizeGroups, supersetIndex, supersetLabel, ungroupItem
+  groupItems,
+  moveWithGroups,
+  moveWithGroupsTo,
+  nextAfterSet,
+  normalizeGroups,
+  supersetIndex,
+  supersetLabel,
+  ungroupItem
 } from '../../shared/utils/supersets'
 
 const item = (id: number, supersetGroup: number | null = null) => ({ id, supersetGroup })
@@ -85,8 +92,12 @@ describe('labels', () => {
 })
 
 describe('nextAfterSet', () => {
-  const entry = (id: number, supersetGroup: number | null, setCount: number, targetSets: number | null) =>
-    ({ id, supersetGroup, setCount, targetSets })
+  const entry = (id: number, supersetGroup: number | null, setCount: number, targetSets: number | null) => ({
+    id,
+    supersetGroup,
+    setCount,
+    targetSets
+  })
 
   it('jumps to the next member without rest mid-round', () => {
     const entries = [entry(1, 1, 1, 3), entry(2, 1, 0, 3), entry(3, null, 0, 3)]
@@ -121,7 +132,15 @@ describe('nextAfterSet', () => {
   })
 
   it('stays put below target or without one', () => {
-    expect(nextAfterSet([entry(1, null, 1, 3), entry(2, null, 0, 3)], 1)).toEqual({ open: null, rest: true, restFromEntryId: 1 })
-    expect(nextAfterSet([entry(1, null, 4, null), entry(2, null, 0, 3)], 1)).toEqual({ open: null, rest: true, restFromEntryId: 1 })
+    expect(nextAfterSet([entry(1, null, 1, 3), entry(2, null, 0, 3)], 1)).toEqual({
+      open: null,
+      rest: true,
+      restFromEntryId: 1
+    })
+    expect(nextAfterSet([entry(1, null, 4, null), entry(2, null, 0, 3)], 1)).toEqual({
+      open: null,
+      rest: true,
+      restFromEntryId: 1
+    })
   })
 })

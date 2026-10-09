@@ -3,7 +3,15 @@ import type { users } from '~~/server/db/schema'
 
 type SessionUserRow = Pick<
   typeof users.$inferSelect,
-  | 'id' | 'email' | 'name' | 'avatarUrl' | 'age' | 'sex' | 'weekStart' | 'defaultRestSeconds' | 'plateSizes'
+  | 'id'
+  | 'email'
+  | 'name'
+  | 'avatarUrl'
+  | 'age'
+  | 'sex'
+  | 'weekStart'
+  | 'defaultRestSeconds'
+  | 'plateSizes'
   | 'oneRepMaxRepCap'
 >
 

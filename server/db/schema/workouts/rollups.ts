@@ -28,7 +28,10 @@ export const workoutExerciseRollups = appSchema.table(
     topWeightReps: integer('top_weight_reps').default(sql`null`),
     topSetVolume: numeric('top_set_volume').default(sql`null`),
     bestE1rm: numeric('best_e1rm').default(sql`null`),
-    weightByReps: jsonb('weight_by_reps').$type<Record<string, number>>().notNull().default(sql`'{}'::jsonb`),
+    weightByReps: jsonb('weight_by_reps')
+      .$type<Record<string, number>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     totalDistanceMeters: numeric('total_distance_meters').default(sql`null`),
     totalDurationSeconds: integer('total_duration_seconds').default(sql`null`),
     bestPace: numeric('best_pace').default(sql`null`)

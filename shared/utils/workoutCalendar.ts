@@ -7,7 +7,7 @@ export interface DayDots {
 
 const isoDay = (date: Date) => date.toISOString().slice(0, 10)
 
-export function monthRange(month: string): { from: string, to: string } {
+export function monthRange(month: string): { from: string; to: string } {
   const [year, monthIndex] = month.split('-').map(Number) as [number, number]
   return {
     from: isoDay(new Date(Date.UTC(year, monthIndex - 1, 1 - 7))),

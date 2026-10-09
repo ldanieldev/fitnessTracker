@@ -2,7 +2,7 @@
 import type { DiaryEntryInput } from '~/composables/useDiaryDay'
 
 const props = defineProps<{
-  containers: Array<{ id: number, name: string }>
+  containers: Array<{ id: number; name: string }>
   defaultContainerId?: number
 }>()
 
@@ -55,7 +55,12 @@ function submit() {
   <UCard data-test="quick-add-form">
     <div class="flex flex-col gap-3">
       <UFormField label="Description">
-        <UInput v-model="description" placeholder="e.g. Restaurant burger" class="w-full" data-test="quick-add-description" />
+        <UInput
+          v-model="description"
+          placeholder="e.g. Restaurant burger"
+          class="w-full"
+          data-test="quick-add-description"
+        />
       </UFormField>
       <UFormField label="Container">
         <USelect v-model="containerId" :items="containerItems" class="w-full" />

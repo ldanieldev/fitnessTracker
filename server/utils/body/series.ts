@@ -36,7 +36,11 @@ export async function earliestDate(userId: number, typeId: number): Promise<stri
 }
 
 export async function userWeekStart(userId: number): Promise<0 | 1> {
-  const row = await db.select({ weekStart: users.weekStart }).from(users).where(eq(users.id, userId)).then((r) => r[0])
+  const row = await db
+    .select({ weekStart: users.weekStart })
+    .from(users)
+    .where(eq(users.id, userId))
+    .then((r) => r[0])
   return row?.weekStart === 0 ? 0 : 1
 }
 

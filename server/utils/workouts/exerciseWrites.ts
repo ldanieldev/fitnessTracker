@@ -25,13 +25,21 @@ const CATEGORY_NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Category not
 const BAD_REFERENCE_ERROR = { statusCode: 400, statusMessage: 'Unknown reference in request' } as const
 const FORK_OWN_ERROR = { statusCode: 403, statusMessage: 'Your own exercises can be edited directly' } as const
 const PREF_COLUMNS = [
-  'categoryId', 'trackingType', 'loadStyle', 'barWeight', 'weightIncrement', 'restSeconds', 'notes', 'link',
+  'categoryId',
+  'trackingType',
+  'loadStyle',
+  'barWeight',
+  'weightIncrement',
+  'restSeconds',
+  'notes',
+  'link',
   'defaultGraph'
 ] as const
 
 // Unvalidated it reaches the insert as a raw FK, which 500s on a bogus id and lets another user's category in.
 async function assertCategoryVisible(userId: number, categoryId: number, client: DbClient = db): Promise<void> {
-  if (!(await loadCategoriesByIds(userId, [categoryId], client)).has(categoryId)) throw createError(CATEGORY_NOT_FOUND_ERROR)
+  if (!(await loadCategoriesByIds(userId, [categoryId], client)).has(categoryId))
+    throw createError(CATEGORY_NOT_FOUND_ERROR)
 }
 
 function exerciseWriteError(err: unknown): unknown {
@@ -111,7 +119,9 @@ function writePrefPatch(
   return writeSparsePref(tx, exercisePrefRow(userId, exerciseId), patch)
 }
 
-/** Creates the exercise inside the caller's transaction and returns its id; the row is only readable once that commits. */
+/**
+ * Creates the exercise inside the caller's transaction and returns its id; the row is only readable once that commits.
+ */
 export async function insertExercise(tx: DbTransaction, userId: number, input: ExerciseCreateInput): Promise<number> {
   await assertCategoryVisible(userId, input.categoryId, tx)
   const barWeight = input.loadStyle === 'barbell' && input.barWeight != null ? String(input.barWeight) : null

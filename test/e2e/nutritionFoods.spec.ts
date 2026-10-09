@@ -17,7 +17,7 @@ test('creates a unit-first food and resolves both bases independently', async ({
 
   const read = await apiFetch(page, 'GET', `/api/nutrition/foods/${id}`)
   const food = read.json as {
-    servings: Array<{ id: number, label: string, nutrients: Record<number, number> }>
+    servings: Array<{ id: number; label: string; nutrients: Record<number, number> }>
     defaultServingId: number
     energyDensity: number
   }
@@ -70,7 +70,7 @@ test('refuses to edit away the gram basis while another serving derives from it'
   })
   expect(addCup.ok).toBe(true)
 
-  const before = await apiFetch<{ servings: Array<{ id: number, label: string }> }>(
+  const before = await apiFetch<{ servings: Array<{ id: number; label: string }> }>(
     page,
     'GET',
     `/api/nutrition/foods/${id}`
@@ -106,7 +106,7 @@ test('updating a food changes only name, brand and barcode', async ({ page, goto
   })
   const id = created.json.id
 
-  const updated = await apiFetch<{ id: number, name: string, brand: string | null, barcode: string | null }>(
+  const updated = await apiFetch<{ id: number; name: string; brand: string | null; barcode: string | null }>(
     page,
     'PUT',
     `/api/nutrition/foods/${id}`,
@@ -115,7 +115,7 @@ test('updating a food changes only name, brand and barcode', async ({ page, goto
   expect(updated.ok).toBe(true)
   expect(updated.json).toMatchObject({ id, name: 'After', brand: null, barcode: '0123456789012' })
 
-  const read = await apiFetch<{ name: string, servings: Array<{ nutrients: Record<string, number> }> }>(
+  const read = await apiFetch<{ name: string; servings: Array<{ nutrients: Record<string, number> }> }>(
     page,
     'GET',
     `/api/nutrition/foods/${id}`
@@ -157,7 +157,7 @@ test('starred foods rank above unstarred ones in recents', async ({ page, goto }
       name,
       servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 1 } }]
     })
-    // Recents ties null-logCount rows alphabetically; logging once gives a non-null logCount that outranks the dev DB's thousands of unlogged catalogue foods
+    // Recents ties null-logCount rows alphabetically; one log outranks the dev DB's thousands of unlogged foods
     await apiFetch(page, 'POST', '/api/nutrition/diary/2026-08-01/entries', [
       { entryType: 'food', containerId, foodId: res.json.id, quantity: 100, unitLabel: 'g' }
     ])
@@ -168,20 +168,12 @@ test('starred foods rank above unstarred ones in recents', async ({ page, goto }
   const starred = await mk('Starred food')
   expect((await apiFetch(page, 'PUT', `/api/nutrition/foods/${starred}/favorite`)).ok).toBe(true)
 
-  const recents = await apiFetch<Array<{ id: number, isFavorite: boolean }>>(
-    page,
-    'GET',
-    '/api/nutrition/foods/recent'
-  )
+  const recents = await apiFetch<Array<{ id: number; isFavorite: boolean }>>(page, 'GET', '/api/nutrition/foods/recent')
   expect(recents.json[0].id).toBe(starred)
   expect(recents.json.map((f) => f.id)).toContain(plain)
 
   expect((await apiFetch(page, 'DELETE', `/api/nutrition/foods/${starred}/favorite`)).ok).toBe(true)
-  const after = await apiFetch<Array<{ id: number, isFavorite: boolean }>>(
-    page,
-    'GET',
-    '/api/nutrition/foods/recent'
-  )
+  const after = await apiFetch<Array<{ id: number; isFavorite: boolean }>>(page, 'GET', '/api/nutrition/foods/recent')
   expect(after.json.find((f) => f.id === starred)!.isFavorite).toBe(false)
 })
 
@@ -208,14 +200,33 @@ test('catalogue foods are read-only until forked into an independent user-owned 
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const { id } = await seedCatalogFood(page, {
-    name: 'Catalogue oats', servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 13 } }]
+    name: 'Catalogue oats',
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 13 } }]
   })
   expect((await apiFetch(page, 'PUT', `/api/nutrition/foods/${id}`, { name: 'x' })).status).toBe(403)
   expect((await apiFetch(page, 'DELETE', `/api/nutrition/foods/${id}`)).status).toBe(403)
   const food = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${id}`)
   const sid = food.json.servings[0]!.id
-  expect((await apiFetch(page, 'POST', `/api/nutrition/foods/${id}/servings`, { kind: 'named', label: 'cup', quantity: 1, basisGrams: 80 })).status).toBe(403)
-  expect((await apiFetch(page, 'PUT', `/api/nutrition/foods/${id}/servings/${sid}`, { kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 1 } })).status).toBe(403)
+  expect(
+    (
+      await apiFetch(page, 'POST', `/api/nutrition/foods/${id}/servings`, {
+        kind: 'named',
+        label: 'cup',
+        quantity: 1,
+        basisGrams: 80
+      })
+    ).status
+  ).toBe(403)
+  expect(
+    (
+      await apiFetch(page, 'PUT', `/api/nutrition/foods/${id}/servings/${sid}`, {
+        kind: 'weight',
+        label: 'g',
+        quantity: 100,
+        nutrients: { protein: 1 }
+      })
+    ).status
+  ).toBe(403)
   expect((await apiFetch(page, 'DELETE', `/api/nutrition/foods/${id}/servings/${sid}`)).status).toBe(403)
 
   const forked = await apiFetch<{ id: number }>(page, 'POST', `/api/nutrition/foods/${id}/fork`)

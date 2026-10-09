@@ -4,8 +4,15 @@ import { mountSuspended } from '@nuxt/test-utils/runtime'
 import WorkoutSessionRow from '../../app/components/workout/WorkoutSessionRow.vue'
 
 const summary = {
-  id: 9, name: 'Push A', performedOn: '2026-10-03', startedAt: '2026-10-03T15:00:00.000Z',
-  endedAt: '2026-10-03T15:52:00.000Z', exerciseCount: 2, setCount: 6, categories: [], program: null
+  id: 9,
+  name: 'Push A',
+  performedOn: '2026-10-03',
+  startedAt: '2026-10-03T15:00:00.000Z',
+  endedAt: '2026-10-03T15:52:00.000Z',
+  exerciseCount: 2,
+  setCount: 6,
+  categories: [],
+  program: null
 }
 
 afterEach(() => {
@@ -51,7 +58,9 @@ describe('WorkoutSessionRow', () => {
     const duration = wrapper.find('[data-test="session-duration-9"]')
     expect(duration.text()).toBe('· 52:00')
     expect(duration.classes()).toContain('shrink-0')
-    expect(duration.element.parentElement!.querySelector('.truncate')!.textContent).toBe('Sat, Oct 3 · 2 exercises · 6 sets')
+    expect(duration.element.parentElement!.querySelector('.truncate')!.textContent).toBe(
+      'Sat, Oct 3 · 2 exercises · 6 sets'
+    )
     const open = await mountSuspended(WorkoutSessionRow, { props: { summary: { ...summary, endedAt: null } } })
     expect(open.find('[data-test="session-duration-9"]').exists()).toBe(false)
   })

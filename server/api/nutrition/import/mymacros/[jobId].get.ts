@@ -6,7 +6,8 @@ import { requireUserId } from '~~/server/utils/session'
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const jobId = Number(getRouterParam(event, 'jobId'))
-  if (!Number.isInteger(jobId) || jobId <= 0) throw createError({ statusCode: 404, statusMessage: 'Import job not found' })
+  if (!Number.isInteger(jobId) || jobId <= 0)
+    throw createError({ statusCode: 404, statusMessage: 'Import job not found' })
 
   const job = await db
     .select({

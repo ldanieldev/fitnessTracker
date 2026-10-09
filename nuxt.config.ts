@@ -10,7 +10,7 @@ function resolveSrvxBunAdapter() {
   }
 }
 
-// @opentelemetry/resources ships no `exports` map, so Nitro's resolver loops on the bare specifier (ENOTDIR on a self-repeating build/src path) and the dev server dies before serving; alias to the ESM entry.
+// @opentelemetry/resources has no `exports` map, so Nitro's resolver loops (ENOTDIR) and dev dies; alias the ESM entry.
 function resolveOtelResources() {
   try {
     const pkg = createRequire(import.meta.url).resolve('@opentelemetry/resources/package.json')
@@ -114,13 +114,7 @@ export default defineNuxtConfig({
   },
   vite: {
     optimizeDeps: {
-      include: [
-        '@internationalized/date',
-        'date-fns',
-        'zod',
-        '@vue/devtools-core',
-        '@vue/devtools-kit'
-      ]
+      include: ['@internationalized/date', 'date-fns', 'zod', '@vue/devtools-core', '@vue/devtools-kit']
     }
   },
   eslint: {

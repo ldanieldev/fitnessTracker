@@ -12,7 +12,7 @@ function resolveCategoryFor(
   row: CatalogueExerciseRow,
   pref: ExercisePrefRow | null,
   categoriesById: Map<number, ExerciseCategory>
-): { category: ExerciseCategory, pref: ExercisePrefRow | null } {
+): { category: ExerciseCategory; pref: ExercisePrefRow | null } {
   const prefCategory = pref?.categoryId != null ? categoriesById.get(pref.categoryId) : undefined
   if (prefCategory) return { category: prefCategory, pref }
 

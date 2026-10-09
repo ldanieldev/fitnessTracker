@@ -106,7 +106,11 @@ describe('ensureEnergyTarget', () => {
 
   it('takes direction from make, not a fixed default', async () => {
     const { ensureEnergyTarget } = await import('../../shared/utils/nutritionTargets')
-    const targets = [{ key: 'protein', amount: 175, direction: 'min' as const }, { key: 'carbohydrate', amount: 165, direction: 'target' as const }, { key: 'fat', amount: 60, direction: 'target' as const }]
+    const targets = [
+      { key: 'protein', amount: 175, direction: 'min' as const },
+      { key: 'carbohydrate', amount: 165, direction: 'target' as const },
+      { key: 'fat', amount: 60, direction: 'target' as const }
+    ]
     const result = ensureEnergyTarget(targets, (amount) => ({ key: 'energy', amount, direction: 'min' as const }))
     expect(result.at(-1)?.direction).toBe('min')
   })

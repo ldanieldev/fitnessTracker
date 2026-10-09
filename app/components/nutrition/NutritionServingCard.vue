@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import type { ServingBasis } from '~~/shared/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
-import { type NutrientField, draftError, draftFromServing, draftToInput, emptyDraft } from '~/utils/nutrition/servingDraft'
+import {
+  type NutrientField,
+  draftError,
+  draftFromServing,
+  draftToInput,
+  emptyDraft
+} from '~/utils/nutrition/servingDraft'
 
 const props = defineProps<{
   foodId: number
@@ -11,12 +17,12 @@ const props = defineProps<{
   idToKey: Map<number, string>
 }>()
 
-const emit = defineEmits<{ saved: [], deleted: [], cancel: [] }>()
+const emit = defineEmits<{ saved: []; deleted: []; cancel: [] }>()
 
 const original = computed(() => (props.serving ? draftFromServing(props.serving, props.idToKey) : emptyDraft()))
 const draft = ref(original.value)
 const dirty = computed(() => props.serving === null || JSON.stringify(draft.value) !== JSON.stringify(original.value))
-// A sibling card's save reloads `food`, handing every card a fresh `serving` prop — only clobber this card's draft when it has no unsaved edit.
+// A sibling's save hands every card a fresh `serving` prop; only clobber this draft when it has no unsaved edit.
 watch(original, (value) => {
   if (!dirty.value) draft.value = value
 })
@@ -70,8 +76,22 @@ async function remove() {
     <p v-if="error" class="text-sm text-error mt-2" data-test="serving-card-error">{{ error }}</p>
     <template #footer>
       <div class="flex gap-2">
-        <UButton :label="serving ? 'Delete' : 'Discard'" color="error" variant="soft" :disabled="busy" data-test="serving-card-delete" @click="remove" />
-        <UButton label="Save" class="ml-auto" :loading="busy" :disabled="!dirty || draftError(draft) !== null" data-test="serving-card-save" @click="save" />
+        <UButton
+          :label="serving ? 'Delete' : 'Discard'"
+          color="error"
+          variant="soft"
+          :disabled="busy"
+          data-test="serving-card-delete"
+          @click="remove"
+        />
+        <UButton
+          label="Save"
+          class="ml-auto"
+          :loading="busy"
+          :disabled="!dirty || draftError(draft) !== null"
+          data-test="serving-card-save"
+          @click="save"
+        />
       </div>
     </template>
   </UCard>

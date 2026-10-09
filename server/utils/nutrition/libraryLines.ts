@@ -22,7 +22,7 @@ export async function describeLines(
   client: DbClient,
   userId: number,
   lines: LibraryLineInput[]
-): Promise<{ lines: DescribedLine[], total: Record<string, number> }> {
+): Promise<{ lines: DescribedLine[]; total: Record<string, number> }> {
   const { nutrientCatalog } = await import('./nutrientIds')
   const idToKey = new Map((await nutrientCatalog()).map((n) => [n.id, n.key]))
 

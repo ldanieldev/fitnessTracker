@@ -8,7 +8,10 @@ import { requireUserId } from '~~/server/utils/session'
 
 const mealTimePutSchema = z.object({
   containerId: z.number().int(),
-  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable()
+  time: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .nullable()
 })
 
 export default defineEventHandler(async (event) => {

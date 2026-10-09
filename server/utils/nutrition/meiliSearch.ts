@@ -29,8 +29,12 @@ export class MeiliSearchProvider extends MeiliIndexProvider<SearchDocument> impl
 async function loadSearchDocument(foodId: number): Promise<SearchDocument | null> {
   const head = await db
     .select({
-      id: foods.id, name: foods.name, brand: foods.brand, barcode: foods.barcode,
-      createdByUserId: foods.createdByUserId, sourceKey: foodSources.key
+      id: foods.id,
+      name: foods.name,
+      brand: foods.brand,
+      barcode: foods.barcode,
+      createdByUserId: foods.createdByUserId,
+      sourceKey: foodSources.key
     })
     .from(foods)
     .leftJoin(foodSources, eq(foodSources.id, foods.sourceId))

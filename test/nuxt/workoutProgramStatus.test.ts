@@ -12,15 +12,40 @@ mockNuxtImport('useEnrollment', () => () => ({ enrollment, dismiss }))
 mockNuxtImport('useToast', () => () => ({ add: toastAdd }))
 
 const phases = [
-  { id: 1, name: 'Hypertrophy', sortOrder: 0, weeks: 4, deload: false, routine: { id: 5, name: 'Upper/Lower', dayCount: 4 } },
+  {
+    id: 1,
+    name: 'Hypertrophy',
+    sortOrder: 0,
+    weeks: 4,
+    deload: false,
+    routine: { id: 5, name: 'Upper/Lower', dayCount: 4 }
+  },
   { id: 2, name: 'Deload', sortOrder: 1, weeks: 1, deload: true, routine: { id: 5, name: 'Upper/Lower', dayCount: 4 } },
   { id: 3, name: 'Off', sortOrder: 2, weeks: 1, deload: false, routine: null }
 ]
 const base: Enrollment = {
-  id: 9, program: { id: 3, name: 'BLS' }, status: 'active', state: 'current', week: 2, totalWeeks: 6,
-  phaseIndex: 0, weekInPhase: 2, phase: phases[0]!, phases, anchorDate: '2026-09-28', notice: null, nextDay: { id: 1, name: 'Upper A' }
+  id: 9,
+  program: { id: 3, name: 'BLS' },
+  status: 'active',
+  state: 'current',
+  week: 2,
+  totalWeeks: 6,
+  phaseIndex: 0,
+  weekInPhase: 2,
+  phase: phases[0]!,
+  phases,
+  anchorDate: '2026-09-28',
+  notice: null,
+  nextDay: { id: 1, name: 'Upper A' }
 }
-const finished: Enrollment = { ...base, status: 'completed', state: 'finished', phase: null, phaseIndex: -1, notice: 'complete' }
+const finished: Enrollment = {
+  ...base,
+  status: 'completed',
+  state: 'finished',
+  phase: null,
+  phaseIndex: -1,
+  notice: 'complete'
+}
 
 afterEach(() => {
   enrollment.value = null

@@ -43,7 +43,7 @@ export function linesPayload(lines: EditorLine[]) {
 }
 
 export async function loadEditorLines(
-  lines: Array<{ foodId: number, name: string | null, brand: string | null, quantity: number, unitLabel: string }>
+  lines: Array<{ foodId: number; name: string | null; brand: string | null; quantity: number; unitLabel: string }>
 ): Promise<EditorLine[]> {
   return Promise.all(
     lines.map(async (line) => {

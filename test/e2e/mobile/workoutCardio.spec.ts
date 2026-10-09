@@ -7,15 +7,24 @@ test.use({ viewport: { width: 360, height: 800 } })
 test('phone: log a run in miles and m:ss, edit it, and store metres and seconds', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  const cardio = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference'))
-    .json.categories.find((c) => c.key === 'cardio')!
-  const run = (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('Run '), categoryId: cardio.id, trackingType: 'distance_time'
-  })).json
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-02-02' })).json
-  const entryId = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: run.id
-  })).json.entries[0]!.id
+  const cardio = (
+    await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')
+  ).json.categories.find((c) => c.key === 'cardio')!
+  const run = (
+    await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+      name: uniquePrefix('Run '),
+      categoryId: cardio.id,
+      trackingType: 'distance_time'
+    })
+  ).json
+  const session = (
+    await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-02-02' })
+  ).json
+  const entryId = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: run.id
+    })
+  ).json.entries[0]!.id
 
   await goto('/workouts/log', { waitUntil: 'hydration' })
   const card = page.locator(`[data-test="entry-card-${entryId}"]`)

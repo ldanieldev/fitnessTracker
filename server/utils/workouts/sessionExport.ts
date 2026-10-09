@@ -31,8 +31,13 @@ export async function loadWorkoutCsvRows(userId: number, filter: SessionFilterQu
     .innerJoin(exercises, eq(exercises.id, workoutEntries.exerciseId))
     .where(sessionFilterWhere(userId, filter))
     .orderBy(
-      asc(workoutSessions.performedOn), asc(workoutSessions.startedAt), asc(workoutSessions.id),
-      asc(workoutEntries.sortOrder), asc(workoutEntries.id), asc(workoutSets.sortOrder), asc(workoutSets.id)
+      asc(workoutSessions.performedOn),
+      asc(workoutSessions.startedAt),
+      asc(workoutSessions.id),
+      asc(workoutEntries.sortOrder),
+      asc(workoutEntries.id),
+      asc(workoutSets.sortOrder),
+      asc(workoutSets.id)
     )
   if (!sets.length) return []
 
@@ -40,14 +45,19 @@ export async function loadWorkoutCsvRows(userId: number, filter: SessionFilterQu
   const [categories, groups] = await Promise.all([
     loadEntryCategories(userId, sessionIds),
     db
-      .select({ id: workoutEntries.id, sessionId: workoutEntries.sessionId, supersetGroup: workoutEntries.supersetGroup })
+      .select({
+        id: workoutEntries.id,
+        sessionId: workoutEntries.sessionId,
+        supersetGroup: workoutEntries.supersetGroup
+      })
       .from(workoutEntries)
       .where(inArray(workoutEntries.sessionId, sessionIds))
       .orderBy(workoutEntries.sessionId, workoutEntries.sortOrder, workoutEntries.id)
   ])
   const categoryName = new Map(categories.map((row) => [row.entryId, row.name]))
   const sessionEntries = new Map<number, typeof groups>()
-  for (const entry of groups) sessionEntries.set(entry.sessionId, [...(sessionEntries.get(entry.sessionId) ?? []), entry])
+  for (const entry of groups)
+    sessionEntries.set(entry.sessionId, [...(sessionEntries.get(entry.sessionId) ?? []), entry])
 
   const setNumber = new Map<number, number>()
   const seenSession = new Set<number>()

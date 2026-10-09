@@ -15,7 +15,10 @@ async function pickMenuItem(page: Page, menu: string, item: string) {
   await page.locator(`[data-test="${item}"]`).click()
 }
 
-test('phone: start a workout, log sets, set a record, edit, collapse, end, copy and revisit', async ({ page, goto }) => {
+test('phone: start a workout, log sets, set a record, edit, collapse, end, copy and revisit', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const name = uniquePrefix('Phone Day ')
@@ -50,13 +53,19 @@ test('phone: start a workout, log sets, set a record, edit, collapse, end, copy 
   await expectRestPill(page)
 
   const firstRow = page.locator('[data-test="set-row"]').first()
-  const firstId = (await firstRow.locator('[data-test^="set-line-"]').getAttribute('data-test'))!.replace('set-line-', '')
+  const firstId = (await firstRow.locator('[data-test^="set-line-"]').getAttribute('data-test'))!.replace(
+    'set-line-',
+    ''
+  )
   await pickMenuItem(page, `set-menu-${firstId}`, `set-edit-${firstId}`)
   await page.locator(`[data-test="set-weight-${firstId}"]`).fill('190')
   await page.locator(`[data-test="set-save-${firstId}"]`).click()
   await expect(page.locator(`[data-test="set-measure-${firstId}-weight"]`)).toHaveText('190 lb')
 
-  const cardId = (await page.locator('[data-test^="entry-card-"]').first().getAttribute('data-test'))!.replace('entry-card-', '')
+  const cardId = (await page.locator('[data-test^="entry-card-"]').first().getAttribute('data-test'))!.replace(
+    'entry-card-',
+    ''
+  )
   await page.locator(`[data-test="entry-collapse-${cardId}"]`).click()
   await expect(page.locator('[data-test="set-form"]')).toBeHidden()
   await page.locator(`[data-test="entry-collapse-${cardId}"]`).click()

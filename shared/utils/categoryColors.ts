@@ -1,5 +1,16 @@
 export const CATEGORY_COLORS = [
-  'rose', 'amber', 'orange', 'violet', 'emerald', 'sky', 'slate', 'cyan', 'lime', 'pink', 'teal', 'indigo'
+  'rose',
+  'amber',
+  'orange',
+  'violet',
+  'emerald',
+  'sky',
+  'slate',
+  'cyan',
+  'lime',
+  'pink',
+  'teal',
+  'indigo'
 ] as const
 
 export type CategoryColor = (typeof CATEGORY_COLORS)[number]

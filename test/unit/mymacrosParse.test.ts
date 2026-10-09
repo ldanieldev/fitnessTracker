@@ -6,7 +6,8 @@ const fixture = (name: string) => readFileSync(new URL(`../fixtures/mymacros/${n
 describe('normalizeMmpUnit', () => {
   it('maps every gram spelling to g', async () => {
     const { normalizeMmpUnit } = await import('../../server/utils/nutrition/mymacros/parse')
-    for (const raw of ['Grams', 'Gram', 'grams', 'g', 'G', 'Grams ']) expect(normalizeMmpUnit(raw)).toEqual({ unit: 'g', basisGrams: null })
+    for (const raw of ['Grams', 'Gram', 'grams', 'g', 'G', 'Grams '])
+      expect(normalizeMmpUnit(raw)).toEqual({ unit: 'g', basisGrams: null })
   })
   it('maps ounce spellings to oz and keeps named units trimmed', async () => {
     const { normalizeMmpUnit } = await import('../../server/utils/nutrition/mymacros/parse')
@@ -16,7 +17,8 @@ describe('normalizeMmpUnit', () => {
   })
   it('maps every pound spelling to lb', async () => {
     const { normalizeMmpUnit } = await import('../../server/utils/nutrition/mymacros/parse')
-    for (const raw of ['Pound', 'Pounds', 'lb', 'lbs', 'LB']) expect(normalizeMmpUnit(raw)).toEqual({ unit: 'lb', basisGrams: null })
+    for (const raw of ['Pound', 'Pounds', 'lb', 'lbs', 'LB'])
+      expect(normalizeMmpUnit(raw)).toEqual({ unit: 'lb', basisGrams: null })
   })
   it('parses the compound serving form', async () => {
     const { normalizeMmpUnit } = await import('../../server/utils/nutrition/mymacros/parse')
@@ -35,7 +37,18 @@ describe('parseMyMacrosExport', () => {
     const { parseMyMacrosExport } = await import('../../server/utils/nutrition/mymacros/parse')
     const day = parseMyMacrosExport(fixture('2026-09-05.txt'), '2026-09-05.txt')
     expect(day.rows).toHaveLength(18)
-    expect(day.rows[0]).toMatchObject({ container: 'Meal 1', ordinal: 0, name: 'Jerk Chicken', quantity: 1, unit: 'Serving', basisGrams: null, kcal: 239.2, protein: 52.8, carbs: 2.84, fat: 0 })
+    expect(day.rows[0]).toMatchObject({
+      container: 'Meal 1',
+      ordinal: 0,
+      name: 'Jerk Chicken',
+      quantity: 1,
+      unit: 'Serving',
+      basisGrams: null,
+      kcal: 239.2,
+      protein: 52.8,
+      carbs: 2.84,
+      fat: 0
+    })
     const cottage = day.rows.find((r) => r.name === 'Small curd low fat cottage cheese')!
     expect(cottage).toMatchObject({ unit: 'Serving', basisGrams: 113, quantity: 1, kcal: 90.4 })
     const onion = day.rows.find((r) => r.name === 'Onion Seasoning Mix')!
@@ -54,7 +67,8 @@ describe('parseMyMacrosExport', () => {
     for (const name of ['2026-08-27.txt', '2026-09-03.txt', '2026-09-04.txt', '2026-09-05.txt']) {
       const day = parseMyMacrosExport(fixture(name), name)
       const sum = (k: 'kcal' | 'protein' | 'carbs' | 'fat') => day.rows.reduce((a, r) => a + r[k], 0)
-      for (const k of ['kcal', 'protein', 'carbs', 'fat'] as const) expect(Math.abs(sum(k) - day.dailyTotals[k])).toBeLessThan(0.05)
+      for (const k of ['kcal', 'protein', 'carbs', 'fat'] as const)
+        expect(Math.abs(sum(k) - day.dailyTotals[k])).toBeLessThan(0.05)
     }
   })
   it('parses a CRLF export identically to its LF counterpart', async () => {

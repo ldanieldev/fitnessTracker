@@ -3,8 +3,9 @@ import { exerciseListKey, exerciseListQuery } from '../../shared/utils/exerciseK
 
 describe('exerciseListKey', () => {
   it('is stable regardless of filter order', () => {
-    expect(exerciseListKey({ q: 'bench', muscles: ['lats', 'chest'] }))
-      .toBe(exerciseListKey({ muscles: ['chest', 'lats'], q: 'bench' }))
+    expect(exerciseListKey({ q: 'bench', muscles: ['lats', 'chest'] })).toBe(
+      exerciseListKey({ muscles: ['chest', 'lats'], q: 'bench' })
+    )
   })
 
   it('separates different filters', () => {
@@ -22,8 +23,9 @@ describe('exerciseListKey', () => {
 
 describe('exerciseListQuery', () => {
   it('emits only the set filters in a fixed order', () => {
-    expect(exerciseListQuery({ includeHidden: true, q: ' dum press ', muscles: ['lats', 'chest'] }))
-      .toBe('q=dum+press&muscles=chest%2Clats&includeHidden=1')
+    expect(exerciseListQuery({ includeHidden: true, q: ' dum press ', muscles: ['lats', 'chest'] })).toBe(
+      'q=dum+press&muscles=chest%2Clats&includeHidden=1'
+    )
   })
   it('omits false flags, empty text and null difficulty', () => {
     expect(exerciseListQuery({ q: '', favorites: false, includeHidden: false, difficulty: null })).toBe('')
@@ -32,7 +34,8 @@ describe('exerciseListQuery', () => {
     expect(exerciseListQuery({ limit: 40, q: 'row' })).toBe('q=row&limit=40')
   })
   it('carries the category and difficulty', () => {
-    expect(exerciseListQuery({ categoryId: 3, difficulty: 'beginner', favorites: true }))
-      .toBe('categoryId=3&difficulty=beginner&favorites=1')
+    expect(exerciseListQuery({ categoryId: 3, difficulty: 'beginner', favorites: true })).toBe(
+      'categoryId=3&difficulty=beginner&favorites=1'
+    )
   })
 })

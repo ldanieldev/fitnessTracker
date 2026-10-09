@@ -10,7 +10,12 @@ export async function requireSessionUser(event: H3Event) {
   }
 
   if (event.context.sessionUserExists === undefined) {
-    const row = await db.select({ id: users.id }).from(users).where(eq(users.id, session.user.id)).limit(1).then((r) => r[0])
+    const row = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1)
+      .then((r) => r[0])
     event.context.sessionUserExists = !!row
   }
 

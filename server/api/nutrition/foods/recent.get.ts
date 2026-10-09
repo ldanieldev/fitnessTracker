@@ -43,7 +43,10 @@ export default defineEventHandler(async (event) => {
         )
         .limit(50)
 
-  const perDefaults = await perDefaultByFood(db, rows.map((row) => row.id))
+  const perDefaults = await perDefaultByFood(
+    db,
+    rows.map((row) => row.id)
+  )
 
   return rows.map((row) => ({
     id: row.id,

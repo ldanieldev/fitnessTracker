@@ -2,9 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { ExternalFood } from '../../server/utils/nutrition/external/types'
 
 const base: ExternalFood = {
-  source: 'off', externalId: '3017624010701', name: 'Nutella', brand: 'Ferrero', barcode: '3017624010701',
+  source: 'off',
+  externalId: '3017624010701',
+  name: 'Nutella',
+  brand: 'Ferrero',
+  barcode: '3017624010701',
   per100g: { energy: 539, protein: 6.3, carbohydrate: 57.5, fat: 30.9, sugar: 56.3, saturatedFat: 10.6, sodium: 43 },
-  servingGrams: 15, servingLabel: 'serving', attribution: 'Open Food Facts (ODbL)'
+  servingGrams: 15,
+  servingLabel: 'serving',
+  attribution: 'Open Food Facts (ODbL)'
 }
 
 describe('mapExternalFood', () => {

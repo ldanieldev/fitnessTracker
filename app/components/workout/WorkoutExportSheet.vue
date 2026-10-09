@@ -39,7 +39,14 @@ function download() {
         </div>
         <p class="text-xs text-dimmed">Leave a date blank to export from the first or to the latest workout.</p>
         <p v-if="error" class="text-sm text-error" data-test="export-error">{{ error }}</p>
-        <UButton label="Download" icon="i-lucide-download" block class="min-h-10" data-test="export-download" @click="download" />
+        <UButton
+          label="Download"
+          icon="i-lucide-download"
+          block
+          class="min-h-10"
+          data-test="export-download"
+          @click="download"
+        />
       </div>
     </template>
   </AppSheet>

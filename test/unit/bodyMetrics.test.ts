@@ -59,9 +59,10 @@ describe('bodyMetrics — goals', () => {
 
   it('reads the actual pace off the trend slope and judges on-track by sign and magnitude', async () => {
     const { actualPace, onTrack } = await import('../../shared/utils/bodyMetrics')
-    const trend = Array.from({ length: 30 }, (_, i) => (
-      { date: `2026-09-${String(i + 1).padStart(2, '0')}`, value: 200 - i * 0.1 }
-    ))
+    const trend = Array.from({ length: 30 }, (_, i) => ({
+      date: `2026-09-${String(i + 1).padStart(2, '0')}`,
+      value: 200 - i * 0.1
+    }))
     expect(actualPace(trend)).toBeCloseTo(-0.7, 6)
     expect(actualPace([{ date: '2026-09-01', value: 200 }])).toBeNull()
     expect(onTrack(-0.9, -1.0)).toBe(true)

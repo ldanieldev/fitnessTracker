@@ -24,12 +24,16 @@ const paceSeconds = computed({
   }
 })
 
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  validationError.value = ''
-  target.value = props.goal?.targetValue ?? null
-  date.value = props.goal?.targetDate ?? ''
-}, { immediate: true })
+watch(
+  open,
+  (isOpen) => {
+    if (!isOpen) return
+    validationError.value = ''
+    target.value = props.goal?.targetValue ?? null
+    date.value = props.goal?.targetDate ?? ''
+  },
+  { immediate: true }
+)
 
 async function save() {
   if (target.value === null || target.value <= 0) {
@@ -84,7 +88,15 @@ async function remove() {
         </UFormField>
         <p v-if="validationError" class="text-sm text-error">{{ validationError }}</p>
         <div class="flex w-full gap-2">
-          <UButton v-if="goal" label="Remove" color="error" variant="soft" :loading="saving" data-test="goal-remove" @click="remove" />
+          <UButton
+            v-if="goal"
+            label="Remove"
+            color="error"
+            variant="soft"
+            :loading="saving"
+            data-test="goal-remove"
+            @click="remove"
+          />
           <UButton label="Save" class="ml-auto" :loading="saving" data-test="goal-save" @click="save" />
         </div>
       </div>

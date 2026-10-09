@@ -15,7 +15,10 @@ test('routine CRUD without days', async ({ page, goto }) => {
   const routine = await newRoutine(page)
   expect(routine).toMatchObject({ active: false, nextDayId: null, days: [] })
 
-  const renamed = await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routines/${routine.id}`, { name: 'Upper/Lower', notes: 'BLS' })
+  const renamed = await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routines/${routine.id}`, {
+    name: 'Upper/Lower',
+    notes: 'BLS'
+  })
   expect(renamed.json).toMatchObject({ name: 'Upper/Lower', notes: 'BLS' })
 
   const noDays = await apiFetch(page, 'PATCH', `/api/workouts/routines/${routine.id}`, { active: true })
@@ -40,11 +43,17 @@ test('another user cannot see or change a routine', async ({ page, goto }) => {
 })
 
 async function exercise(page: Page, trackingType = 'weight_reps') {
-  const chest = (await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference'))
-    .json.categories.find((c) => c.key === 'chest')!
-  return (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('Routine Ex '), categoryId: chest.id, trackingType, loadStyle: 'plain'
-  })).json
+  const chest = (
+    await apiFetch<{ categories: ExerciseCategory[] }>(page, 'GET', '/api/workouts/reference')
+  ).json.categories.find((c) => c.key === 'chest')!
+  return (
+    await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+      name: uniquePrefix('Routine Ex '),
+      categoryId: chest.id,
+      trackingType,
+      loadStyle: 'plain'
+    })
+  ).json
 }
 
 async function addDay(page: Page, routineId: number, name: string, floating = false) {
@@ -69,7 +78,12 @@ test('days: order, floating, pointer, skip, make next, activate, duplicate', asy
   current = (await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routines/${routine.id}`, { nextDayId: upper })).json
   expect(current.nextDayId).toBe(upper)
 
-  current = (await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routine-days/${lower}`, { sortOrder: 0, description: 'Squat focus' })).json
+  current = (
+    await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routine-days/${lower}`, {
+      sortOrder: 0,
+      description: 'Squat focus'
+    })
+  ).json
   expect(current.days.map((d) => d.id)).toEqual([lower, upper, pump])
   expect(current.days[0]!.description).toBe('Squat focus')
 
@@ -97,22 +111,34 @@ test('routine exercises: targets, range check, groups, reorder, deleted exercise
   const ex = [await exercise(page), await exercise(page), await exercise(page), await exercise(page, 'time')]
   let current = routine
   for (const e of ex) {
-    current = (await apiFetch<Routine>(page, 'POST', `/api/workouts/routine-days/${dayId}/entries`, { exerciseId: e.id })).json
+    current = (
+      await apiFetch<Routine>(page, 'POST', `/api/workouts/routine-days/${dayId}/entries`, { exerciseId: e.id })
+    ).json
   }
   const entries = current.days[0]!.entries
   expect(entries[0]!.target).toEqual({ sets: 3, low: null, high: null, weight: null })
   const [a, b, c, plank] = entries.map((e) => e.id) as [number, number, number, number]
 
-  current = (await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routine-entries/${a}`, {
-    targetLow: 5, targetHigh: 8, restSeconds: 180, optional: true, notes: 'per side'
-  })).json
+  current = (
+    await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routine-entries/${a}`, {
+      targetLow: 5,
+      targetHigh: 8,
+      restSeconds: 180,
+      optional: true,
+      notes: 'per side'
+    })
+  ).json
   expect(current.days[0]!.entries[0]).toMatchObject({
-    target: { sets: 3, low: 5, high: 8, weight: null }, restSeconds: 180, optional: true, notes: 'per side'
+    target: { sets: 3, low: 5, high: 8, weight: null },
+    restSeconds: 180,
+    optional: true,
+    notes: 'per side'
   })
   expect(current.days[0]!.entries[3]!.trackingType).toBe('time')
   expect((await apiFetch(page, 'PATCH', `/api/workouts/routine-entries/${a}`, { targetLow: 9 })).status).toBe(400)
 
-  current = (await apiFetch<Routine>(page, 'POST', `/api/workouts/routine-days/${dayId}/group`, { entryIds: [a, c] })).json
+  current = (await apiFetch<Routine>(page, 'POST', `/api/workouts/routine-days/${dayId}/group`, { entryIds: [a, c] }))
+    .json
   expect(current.days[0]!.entries.map((e) => e.id)).toEqual([a, c, b, plank])
   current = (await apiFetch<Routine>(page, 'PATCH', `/api/workouts/routine-entries/${b}`, { sortOrder: 0 })).json
   expect(current.days[0]!.entries.map((e) => e.id)).toEqual([b, a, c, plank])
@@ -125,7 +151,9 @@ test('routine exercises: targets, range check, groups, reorder, deleted exercise
   expect(current.days[0]!.entries.find((e) => e.id === a)!.supersetGroup).toBeNull()
   expect(current.days[0]!.entries.map((e) => e.sortOrder)).toEqual([0, 1, 2])
 
-  const deletedAdd = await apiFetch(page, 'POST', `/api/workouts/routine-days/${dayId}/entries`, { exerciseId: ex[2]!.id })
+  const deletedAdd = await apiFetch(page, 'POST', `/api/workouts/routine-days/${dayId}/entries`, {
+    exerciseId: ex[2]!.id
+  })
   expect(deletedAdd.status).toBe(404)
 })
 
@@ -137,7 +165,9 @@ test('concurrent day adds, exercise adds and skips each land once', async ({ pag
   const read = async () => (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routine.id}`)).json
 
   const routineLock = await holdLocks('select id from app.routines where id = $1 for update', [routine.id])
-  const dayAdds = ['Day B', 'Day C'].map((name) => apiFetch(page, 'POST', `/api/workouts/routines/${routine.id}/days`, { name }))
+  const dayAdds = ['Day B', 'Day C'].map((name) =>
+    apiFetch(page, 'POST', `/api/workouts/routines/${routine.id}/days`, { name })
+  )
   try {
     await routineLock.waitForBlocked(2)
   } finally {
@@ -150,7 +180,9 @@ test('concurrent day adds, exercise adds and skips each land once', async ({ pag
   const dayA = current.days[0]!.id
   const [e1, e2] = [await exercise(page), await exercise(page)]
   const entryLock = await holdLocks('select id from app.routines where id = $1 for update', [routine.id])
-  const entryAdds = [e1, e2].map((e) => apiFetch(page, 'POST', `/api/workouts/routine-days/${dayA}/entries`, { exerciseId: e.id }))
+  const entryAdds = [e1, e2].map((e) =>
+    apiFetch(page, 'POST', `/api/workouts/routine-days/${dayA}/entries`, { exerciseId: e.id })
+  )
   try {
     await entryLock.waitForBlocked(2)
   } finally {
@@ -178,7 +210,9 @@ test('two sibling day deletes both land and renumber without a deadlock', async 
   await registerViaApi(page, makeUser())
   const routine = await newRoutine(page)
   for (const name of ['Day A', 'Day B', 'Day C']) await addDay(page, routine.id, name)
-  const [a, b, c] = (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routine.id}`)).json.days.map((d) => d.id)
+  const [a, b, c] = (await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routine.id}`)).json.days.map(
+    (d) => d.id
+  )
 
   const lock = await holdLocks('select id from app.routines where id = $1 for update', [routine.id])
   let deletes: Promise<{ status: number }>[] | undefined
@@ -195,7 +229,10 @@ test('two sibling day deletes both land and renumber without a deadlock', async 
   expect(after.days.map((d) => [d.id, d.sortOrder])).toEqual([[a, 0]])
 })
 
-test('two routines activated at once both land without a deadlock, leaving exactly one active', async ({ page, goto }) => {
+test('two routines activated at once both land without a deadlock, leaving exactly one active', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const [a, b] = [await newRoutine(page), await newRoutine(page)]
@@ -214,14 +251,20 @@ test('two routines activated at once both land without a deadlock, leaving exact
   expect(list.filter((r) => r.active)).toHaveLength(1)
 })
 
-test('an activation does not deadlock with phase inserts that reference routines out of id order', async ({ page, goto }) => {
+test('an activation does not deadlock with phase inserts that reference routines out of id order', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const a = await newRoutine(page)
   const b = await newRoutine(page)
   await addDay(page, a.id, 'Day A')
-  const program = (await apiFetch<{ id: number }>(page, 'POST', '/api/workouts/programs', { name: uniquePrefix('Race ') })).json
-  const insert = 'insert into app.program_phases (program_id, name, sort_order, weeks, routine_id) values ($1, $2, $3, 1, $4)'
+  const program = (
+    await apiFetch<{ id: number }>(page, 'POST', '/api/workouts/programs', { name: uniquePrefix('Race ') })
+  ).json
+  const insert =
+    'insert into app.program_phases (program_id, name, sort_order, weeks, routine_id) values ($1, $2, $3, 1, $4)'
 
   const lock = await holdLocks(insert, [program.id, 'First', 0, b.id])
   let settled = false
@@ -231,7 +274,10 @@ test('an activation does not deadlock with phase inserts that reference routines
   let second: string
   try {
     await expect.poll(async () => settled || (await lock.queued()) > 0).toBe(true)
-    second = await lock.client.query(insert, [program.id, 'Second', 1, a.id]).then(() => 'inserted', (err) => err.code)
+    second = await lock.client.query(insert, [program.id, 'Second', 1, a.id]).then(
+      () => 'inserted',
+      (err) => err.code
+    )
   } finally {
     await lock.release({ rollback: true })
   }
@@ -261,12 +307,17 @@ test('the log page waits for the routine list before showing the start buttons',
   const gate = new Promise<void>((resolve) => {
     release = resolve
   })
-  await page.route((url) => url.pathname === '/api/workouts/routines', async (route) => {
-    await gate
-    await route.continue()
-  })
+  await page.route(
+    (url) => url.pathname === '/api/workouts/routines',
+    async (route) => {
+      await gate
+      await route.continue()
+    }
+  )
   const held = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/workouts/routines')
-  const sessionLoaded = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/workouts/sessions/active')
+  const sessionLoaded = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === '/api/workouts/sessions/active'
+  )
   try {
     await page.getByRole('link', { name: 'Log Workout' }).click()
     await held

@@ -2,7 +2,15 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { ProgramImportResult } from '~~/shared/types/program'
 import type { TrackingType } from '~~/shared/types/workout'
 import { matchImportExercise, type ExportExercise, type ProgramExport } from '~~/shared/utils/programExport'
-import { exerciseCategories, exercises, programPhases, programs, routines, workoutTemplateEntries, workoutTemplates } from '~~/server/db/schema'
+import {
+  exerciseCategories,
+  exercises,
+  programPhases,
+  programs,
+  routines,
+  workoutTemplateEntries,
+  workoutTemplates
+} from '~~/server/db/schema'
 import { db, type DbTransaction } from '~~/server/utils/db'
 import { loadProgram } from '~~/server/utils/workouts/programs'
 import { loadRoutine } from '~~/server/utils/workouts/routines'
@@ -12,19 +20,30 @@ import { targetColumns } from '~~/server/utils/workouts/targets'
 import type { CategoryColor } from '~~/shared/utils/categoryColors'
 
 function slug(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'program'
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'program'
+  )
 }
 
 async function catalogueIdsByExternalId(externalIds: string[]): Promise<Map<string, number>> {
   if (!externalIds.length) return new Map()
-  const rows = await db.select({ id: exercises.id, externalId: exercises.externalId }).from(exercises)
-    .where(and(inArray(exercises.externalId, externalIds), isNull(exercises.createdByUserId), isNull(exercises.deletedAt)))
+  const rows = await db
+    .select({ id: exercises.id, externalId: exercises.externalId })
+    .from(exercises)
+    .where(
+      and(inArray(exercises.externalId, externalIds), isNull(exercises.createdByUserId), isNull(exercises.deletedAt))
+    )
   return new Map(rows.flatMap((row) => (row.externalId ? [[row.externalId, row.id] as const] : [])))
 }
 
-export async function exportProgram(userId: number, id: number): Promise<{ filename: string, body: ProgramExport }> {
+export async function exportProgram(userId: number, id: number): Promise<{ filename: string; body: ProgramExport }> {
   const program = await loadProgram(userId, id)
-  const routineIds = [...new Set(program.phases.map((phase) => phase.routine?.id).filter((rid): rid is number => rid !== undefined))]
+  const routineIds = [
+    ...new Set(program.phases.map((phase) => phase.routine?.id).filter((rid): rid is number => rid !== undefined))
+  ]
   const loaded = await Promise.all(routineIds.map((rid) => loadRoutine(userId, rid)))
   const exerciseIds = [...new Set(loaded.flatMap((r) => r.days.flatMap((d) => d.entries.map((e) => e.exerciseId))))]
   const rows = exerciseIds.length
@@ -105,20 +124,25 @@ async function resolveExercise(
     result.matched++
     return hit!
   }
-  const own = await tx.select({ id: exercises.id, name: exercises.name, trackingType: exercises.trackingType }).from(exercises)
-    .where(and(
-      eq(exercises.createdByUserId, userId),
-      isNull(exercises.deletedAt),
-      sql`lower(${exercises.name}) in (lower(${wanted.name}), lower(${`${wanted.name} (imported)`}))`
-    ))
-  const decision = matchImportExercise(own as { id: number, name: string, trackingType: TrackingType }[], wanted)
+  const own = await tx
+    .select({ id: exercises.id, name: exercises.name, trackingType: exercises.trackingType })
+    .from(exercises)
+    .where(
+      and(
+        eq(exercises.createdByUserId, userId),
+        isNull(exercises.deletedAt),
+        sql`lower(${exercises.name}) in (lower(${wanted.name}), lower(${`${wanted.name} (imported)`}))`
+      )
+    )
+  const decision = matchImportExercise(own as { id: number; name: string; trackingType: TrackingType }[], wanted)
   if (decision.kind === 'match') {
     result.matched++
     return decision.id
   }
   const categories = await listCategoriesForUser(userId, { includeHidden: true, client: tx })
-  const category = categories.find((c) => c.name.toLowerCase() === wanted.category.name.toLowerCase())
-    ?? await createCategory(userId, { name: wanted.category.name, color: wanted.category.color }, tx)
+  const category =
+    categories.find((c) => c.name.toLowerCase() === wanted.category.name.toLowerCase()) ??
+    (await createCategory(userId, { name: wanted.category.name, color: wanted.category.color }, tx))
   const id = await insertExercise(tx, userId, {
     name: decision.name,
     categoryId: category.id,
@@ -135,8 +159,12 @@ async function resolveExercise(
 
 export async function importProgram(userId: number, data: ProgramExport): Promise<ProgramImportResult> {
   const result: ProgramImportResult['exercises'] = { matched: 0, created: [] }
-  const wanted = data.routines.flatMap((routine) => routine.days.flatMap((day) => day.entries.map((entry) => entry.exercise)))
-  const catalogue = await catalogueIdsByExternalId([...new Set(wanted.flatMap((w) => (w.externalId ? [w.externalId] : [])))])
+  const wanted = data.routines.flatMap((routine) =>
+    routine.days.flatMap((day) => day.entries.map((entry) => entry.exercise))
+  )
+  const catalogue = await catalogueIdsByExternalId([
+    ...new Set(wanted.flatMap((w) => (w.externalId ? [w.externalId] : [])))
+  ])
   // Checked before the transaction opens, so a file naming an unknown catalogue id 400s without writing anything.
   const unknown = wanted.find((w) => !('name' in w) && !catalogue.has(w.externalId))
   if (unknown) throw createError({ statusCode: 400, statusMessage: `Unknown catalogue exercise ${unknown.externalId}` })
@@ -164,37 +192,61 @@ export async function importProgram(userId: number, data: ProgramExport): Promis
 
     const routineIds: number[] = []
     for (const [r, routine] of data.routines.entries()) {
-      const row = await tx.insert(routines).values({ userId, name: routine.name, notes: routine.notes })
-        .returning({ id: routines.id }).then((x) => x[0]!)
+      const row = await tx
+        .insert(routines)
+        .values({ userId, name: routine.name, notes: routine.notes })
+        .returning({ id: routines.id })
+        .then((x) => x[0]!)
       routineIds.push(row.id)
       for (const [d, day] of routine.days.entries()) {
-        const dayRow = await tx.insert(workoutTemplates).values({
-          userId, routineId: row.id, name: day.name, description: day.description, floating: day.floating, sortOrder: d
-        }).returning({ id: workoutTemplates.id }).then((x) => x[0]!)
+        const dayRow = await tx
+          .insert(workoutTemplates)
+          .values({
+            userId,
+            routineId: row.id,
+            name: day.name,
+            description: day.description,
+            floating: day.floating,
+            sortOrder: d
+          })
+          .returning({ id: workoutTemplates.id })
+          .then((x) => x[0]!)
         if (!day.entries.length) continue
-        await tx.insert(workoutTemplateEntries).values(day.entries.map((entry, e) => ({
-          templateId: dayRow.id,
-          exerciseId: exerciseIds[r]![d]![e]!,
-          sortOrder: e,
-          ...targetColumns({ sets: entry.targetSets, low: entry.targetLow, high: entry.targetHigh, weight: entry.targetWeight }),
-          supersetGroup: entry.supersetGroup,
-          optional: entry.optional,
-          restSeconds: entry.restSeconds,
-          notes: entry.notes
-        })))
+        await tx.insert(workoutTemplateEntries).values(
+          day.entries.map((entry, e) => ({
+            templateId: dayRow.id,
+            exerciseId: exerciseIds[r]![d]![e]!,
+            sortOrder: e,
+            ...targetColumns({
+              sets: entry.targetSets,
+              low: entry.targetLow,
+              high: entry.targetHigh,
+              weight: entry.targetWeight
+            }),
+            supersetGroup: entry.supersetGroup,
+            optional: entry.optional,
+            restSeconds: entry.restSeconds,
+            notes: entry.notes
+          }))
+        )
       }
     }
-    const program = await tx.insert(programs).values({ userId, name: data.program.name, description: data.program.description })
-      .returning({ id: programs.id }).then((x) => x[0]!)
+    const program = await tx
+      .insert(programs)
+      .values({ userId, name: data.program.name, description: data.program.description })
+      .returning({ id: programs.id })
+      .then((x) => x[0]!)
     if (data.program.phases.length) {
-      await tx.insert(programPhases).values(data.program.phases.map((phase, index) => ({
-        programId: program.id,
-        name: phase.name,
-        weeks: phase.weeks,
-        deload: phase.deload,
-        sortOrder: index,
-        routineId: phase.routine === null ? null : routineIds[phase.routine]!
-      })))
+      await tx.insert(programPhases).values(
+        data.program.phases.map((phase, index) => ({
+          programId: program.id,
+          name: phase.name,
+          weeks: phase.weeks,
+          deload: phase.deload,
+          sortOrder: index,
+          routineId: phase.routine === null ? null : routineIds[phase.routine]!
+        }))
+      )
     }
     return program.id
   })

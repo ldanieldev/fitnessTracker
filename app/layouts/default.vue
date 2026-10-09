@@ -17,99 +17,102 @@ const close = () => {
 }
 
 const { energyLeft } = useTodaySummary()
-const diaryBadge = computed(() => (
+const diaryBadge = computed(() =>
   loggedIn.value && energyLeft.value !== null ? String(Math.round(energyLeft.value)) : undefined
-))
+)
 
-const links = computed(() => [
-  [
-    {
-      label: 'Dashboard',
-      icon: 'i-lucide-layout-dashboard',
-      to: '/',
-      onSelect: close
-    },
-    {
-      label: 'Body',
-      icon: 'i-lucide-person-standing',
-      defaultOpen: true,
-      type: 'trigger' as const,
-      children: [
+const links = computed(
+  () =>
+    [
+      [
         {
-          label: 'Measurements',
-          to: '/body',
+          label: 'Dashboard',
+          icon: 'i-lucide-layout-dashboard',
+          to: '/',
           onSelect: close
         },
         {
-          label: 'Progress',
-          to: '/body/progress',
-          onSelect: close
+          label: 'Body',
+          icon: 'i-lucide-person-standing',
+          defaultOpen: true,
+          type: 'trigger' as const,
+          children: [
+            {
+              label: 'Measurements',
+              to: '/body',
+              onSelect: close
+            },
+            {
+              label: 'Progress',
+              to: '/body/progress',
+              onSelect: close
+            },
+            {
+              label: 'Goals',
+              to: '/body/goals',
+              onSelect: close
+            }
+          ]
         },
         {
-          label: 'Goals',
-          to: '/body/goals',
-          onSelect: close
+          label: 'Workouts',
+          icon: 'i-lucide-dumbbell',
+          defaultOpen: true,
+          type: 'trigger' as const,
+          children: [
+            {
+              label: 'Log Workout',
+              to: '/workouts/log',
+              onSelect: close
+            },
+            {
+              label: 'Workout History',
+              to: '/workouts/sessions',
+              onSelect: close
+            },
+            {
+              label: 'Routines',
+              to: '/workouts/routines',
+              onSelect: close
+            },
+            {
+              label: 'Programs',
+              to: '/workouts/programs',
+              onSelect: close
+            },
+            {
+              label: 'Progress',
+              to: '/workouts/progress',
+              onSelect: close
+            },
+            {
+              label: 'Exercises',
+              to: '/workouts/exercises',
+              onSelect: close
+            },
+            {
+              label: 'Timer',
+              to: '/workouts/timer',
+              onSelect: close
+            }
+          ]
+        },
+        {
+          label: 'Nutrition',
+          icon: 'i-lucide-utensils',
+          defaultOpen: true,
+          type: 'trigger' as const,
+          children: [
+            { label: 'Diary', to: '/nutrition/diary/today', badge: diaryBadge.value, onSelect: close },
+            { label: 'Foods', to: '/nutrition/foods', onSelect: close },
+            { label: 'Saved meals', to: '/nutrition/saved-meals', onSelect: close },
+            { label: 'Recipes', to: '/nutrition/recipes', onSelect: close },
+            { label: 'Summary', to: '/nutrition/diary/summary', onSelect: close }
+          ]
         }
       ]
-    },
-    {
-      label: 'Workouts',
-      icon: 'i-lucide-dumbbell',
-      defaultOpen: true,
-      type: 'trigger' as const,
-      children: [
-        {
-          label: 'Log Workout',
-          to: '/workouts/log',
-          onSelect: close
-        },
-        {
-          label: 'Workout History',
-          to: '/workouts/sessions',
-          onSelect: close
-        },
-        {
-          label: 'Routines',
-          to: '/workouts/routines',
-          onSelect: close
-        },
-        {
-          label: 'Programs',
-          to: '/workouts/programs',
-          onSelect: close
-        },
-        {
-          label: 'Progress',
-          to: '/workouts/progress',
-          onSelect: close
-        },
-        {
-          label: 'Exercises',
-          to: '/workouts/exercises',
-          onSelect: close
-        },
-        {
-          label: 'Timer',
-          to: '/workouts/timer',
-          onSelect: close
-        }
-      ]
-    },
-    {
-      label: 'Nutrition',
-      icon: 'i-lucide-utensils',
-      defaultOpen: true,
-      type: 'trigger' as const,
-      children: [
-        { label: 'Diary', to: '/nutrition/diary/today', badge: diaryBadge.value, onSelect: close },
-        { label: 'Foods', to: '/nutrition/foods', onSelect: close },
-        { label: 'Saved meals', to: '/nutrition/saved-meals', onSelect: close },
-        { label: 'Recipes', to: '/nutrition/recipes', onSelect: close },
-        { label: 'Summary', to: '/nutrition/diary/summary', onSelect: close }
-      ]
-    }
-  ]
-] satisfies NavigationMenuItem[][])
+    ] satisfies NavigationMenuItem[][]
+)
 </script>
 
 <template>

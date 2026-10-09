@@ -8,9 +8,10 @@ export function useExerciseSave() {
 
   async function save(payload: ExerciseFormPayload, editingId: number | null): Promise<Exercise | null> {
     try {
-      const saved = editingId !== null
-        ? await apiFetch<Exercise>(`/api/workouts/exercises/${editingId}`, { method: 'PUT', body: payload })
-        : await apiFetch<Exercise>('/api/workouts/exercises', { method: 'POST', body: payload })
+      const saved =
+        editingId !== null
+          ? await apiFetch<Exercise>(`/api/workouts/exercises/${editingId}`, { method: 'PUT', body: payload })
+          : await apiFetch<Exercise>('/api/workouts/exercises', { method: 'POST', body: payload })
       await invalidateExercises()
       toast.add({ title: 'Saved', color: 'success' })
       return saved

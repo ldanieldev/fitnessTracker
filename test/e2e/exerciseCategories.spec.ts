@@ -2,8 +2,12 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 import type { Exercise, ExerciseCategory } from '../../shared/types/workout'
 
-interface VariationGroup { id: number, name: string, exerciseIds: number[] }
-type ExerciseWithVariations = Exercise & { variations: { id: number, name: string }[] }
+interface VariationGroup {
+  id: number
+  name: string
+  exerciseIds: number[]
+}
+type ExerciseWithVariations = Exercise & { variations: { id: number; name: string }[] }
 
 test('categories and variation groups', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -16,7 +20,8 @@ test('categories and variation groups', async ({ page, goto }) => {
 
   const chest = shared.find((c) => c.key === 'chest')!
   const renamed = await apiFetch<ExerciseCategory>(page, 'PATCH', `/api/workouts/categories/${chest.id}`, {
-    name: 'Pecs', color: 'pink'
+    name: 'Pecs',
+    color: 'pink'
   })
   expect(renamed.json.name).toBe('Pecs')
   expect(renamed.json.shared).toBe(true)
@@ -50,7 +55,8 @@ test('categories and variation groups', async ({ page, goto }) => {
 
   const benches = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=bench%20press')).json.slice(0, 2)
   const group = await apiFetch<VariationGroup>(page, 'POST', '/api/workouts/variations', {
-    name: `${name}Bench`, exerciseIds: benches.map((e) => e.id)
+    name: `${name}Bench`,
+    exerciseIds: benches.map((e) => e.id)
   })
   expect(group.json.exerciseIds).toHaveLength(2)
 
@@ -59,7 +65,8 @@ test('categories and variation groups', async ({ page, goto }) => {
   expect(detail.variations.map((v) => v.id)).toContain(benches[1]!.id)
 
   const other = await apiFetch<{ id: number }>(page, 'POST', '/api/workouts/variations', {
-    name: `${name}Other`, exerciseIds: []
+    name: `${name}Other`,
+    exerciseIds: []
   })
   const moved = await apiFetch<{ exerciseIds: number[] }>(page, 'PATCH', `/api/workouts/variations/${other.json.id}`, {
     addExerciseIds: [benches[0]!.id, benches[0]!.id]
@@ -71,7 +78,9 @@ test('categories and variation groups', async ({ page, goto }) => {
   expect(first.exerciseIds).toEqual([benches[1]!.id])
 
   const custom = await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: `${name}Custom`, categoryId: back.id, trackingType: 'weight_reps'
+    name: `${name}Custom`,
+    categoryId: back.id,
+    trackingType: 'weight_reps'
   })
   await apiFetch(page, 'PATCH', `/api/workouts/variations/${group.json.id}`, { addExerciseIds: [custom.json.id] })
   const groupsWith = (await apiFetch<VariationGroup[]>(page, 'GET', '/api/workouts/variations')).json

@@ -42,9 +42,10 @@ export function rollupFrom(sets: RollupSet[], loadStyle: LoadStyle | null, repCa
   const weighted = sets.filter((s) => s.weight != null)
   const volumes = assisted ? [] : sets.filter((s) => s.weight != null && s.reps != null).map((s) => s.weight! * s.reps!)
   const topWeight = weighted.length ? weighted.map((s) => s.weight!).reduce(better) : null
-  const topWeightReps = topWeight == null
-    ? null
-    : maxOf(weighted.filter((s) => s.weight === topWeight && s.reps != null).map((s) => s.reps!))
+  const topWeightReps =
+    topWeight == null
+      ? null
+      : maxOf(weighted.filter((s) => s.weight === topWeight && s.reps != null).map((s) => s.reps!))
   const weightByReps: Record<string, number> = {}
   for (const s of sets) {
     if (s.weight == null || s.reps == null || s.reps <= 0) continue
@@ -58,7 +59,9 @@ export function rollupFrom(sets: RollupSet[], loadStyle: LoadStyle | null, repCa
         .filter((s) => s.weight != null && s.weight > 0 && s.reps != null && s.reps >= 1 && s.reps <= repCap)
         .map((s) => brzycki(s.weight!, s.reps!))
   const paces = sets
-    .filter((s) => s.distanceMeters != null && s.distanceMeters > 0 && s.durationSeconds != null && s.durationSeconds > 0)
+    .filter(
+      (s) => s.distanceMeters != null && s.distanceMeters > 0 && s.durationSeconds != null && s.durationSeconds > 0
+    )
     .map((s) => s.distanceMeters! / s.durationSeconds!)
 
   return {
@@ -127,14 +130,22 @@ export function metricPrecision(metric: GraphMetric): number {
 
 export function metricValue(row: RollupValues, metric: GraphMetric, reps: number | null): number | null {
   switch (metric) {
-    case 'e1rm': return row.bestE1rm
-    case 'max_weight': return row.topWeight
-    case 'volume': return row.totalVolume
-    case 'total_reps': return row.totalReps
-    case 'weight_at_reps': return reps == null ? null : row.weightByReps[String(reps)] ?? null
-    case 'distance': return row.totalDistanceMeters
-    case 'duration': return row.totalDurationSeconds
-    case 'pace': return row.bestPace
+    case 'e1rm':
+      return row.bestE1rm
+    case 'max_weight':
+      return row.topWeight
+    case 'volume':
+      return row.totalVolume
+    case 'total_reps':
+      return row.totalReps
+    case 'weight_at_reps':
+      return reps == null ? null : (row.weightByReps[String(reps)] ?? null)
+    case 'distance':
+      return row.totalDistanceMeters
+    case 'duration':
+      return row.totalDurationSeconds
+    case 'pace':
+      return row.bestPace
   }
 }
 
@@ -145,7 +156,7 @@ export function metricLowerIsBetter(metric: GraphMetric, loadStyle: LoadStyle | 
 // 28 days approximates a training block for sparse sessions; rollingAverage blanks short ranges, so skip it here.
 export function workoutTrend(points: SeriesPoint[], from: string, to: string): SeriesPoint[] {
   if (points.length === 0 || from > to) return []
-  const sums = new Map<string, { total: number, count: number }>()
+  const sums = new Map<string, { total: number; count: number }>()
   for (const point of points) {
     const entry = sums.get(point.date)
     if (entry) {
@@ -166,12 +177,14 @@ export function workoutTrend(points: SeriesPoint[], from: string, to: string): S
 }
 
 export function latestLoadStyle(
-  rows: Array<{ performedOn: string, sessionId: number, loadStyle: LoadStyle | null }>
+  rows: Array<{ performedOn: string; sessionId: number; loadStyle: LoadStyle | null }>
 ): LoadStyle | null {
   let latest: (typeof rows)[number] | null = null
   for (const row of rows) {
-    const newer = !latest || row.performedOn > latest.performedOn
-      || (row.performedOn === latest.performedOn && row.sessionId > latest.sessionId)
+    const newer =
+      !latest ||
+      row.performedOn > latest.performedOn ||
+      (row.performedOn === latest.performedOn && row.sessionId > latest.sessionId)
     if (newer) latest = row
   }
   return latest?.loadStyle ?? null

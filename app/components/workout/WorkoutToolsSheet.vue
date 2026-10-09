@@ -41,7 +41,9 @@ const exerciseOptions = computed(() => [
 ])
 const exerciseModel = computed({
   get: () => (entryId.value === null ? 'none' : String(entryId.value)),
-  set: (value: string) => { entryId.value = value === 'none' ? null : Number(value) }
+  set: (value: string) => {
+    entryId.value = value === 'none' ? null : Number(value)
+  }
 })
 
 const selected = computed(() => props.entries.find((entry) => entry.id === entryId.value) ?? null)
@@ -68,13 +70,17 @@ const context = computed<ToolContext>(() => {
 
 const exerciseId = computed(() => selected.value?.exerciseId ?? null)
 const oneRepMax = useOneRepMax(exerciseId)
-const override = ref<{ weight: number | null, reps: number | null }>({ weight: null, reps: null })
+const override = ref<{ weight: number | null; reps: number | null }>({ weight: null, reps: null })
 const oneRm = computed(() => effectiveOneRepMax(oneRepMax.result.value, override.value, oneRepMaxRepCap.value))
 
 // Refetched on every visit because the newest logged set may have raised the estimate.
-watch([open, tab, exerciseId], ([isOpen, current]) => {
-  if (isOpen && current !== 'plates') oneRepMax.load()
-}, { immediate: true })
+watch(
+  [open, tab, exerciseId],
+  ([isOpen, current]) => {
+    if (isOpen && current !== 'plates') oneRepMax.load()
+  },
+  { immediate: true }
+)
 
 watch([exerciseId, open], () => {
   override.value = { weight: null, reps: null }
@@ -103,7 +109,7 @@ function useWeight(weight: number) {
           :sizes="context.sizes"
           :bar-editable="selected === null"
           :can-use="selected !== null"
-          @update:bar="(value) => freeBar = value"
+          @update:bar="(value) => (freeBar = value)"
           @use="(weight) => selected && emit('useWeight', selected.id, weight)"
         />
         <WorkoutToolsOneRepMax

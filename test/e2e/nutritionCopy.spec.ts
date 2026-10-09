@@ -32,12 +32,12 @@ test('copying recomputes from the food as it is today', async ({ page, goto }) =
   })
   expect(copyRes.ok).toBe(true)
 
-  const source = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>, description: string | null }> }>(
+  const source = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>; description: string | null }> }>(
     page,
     'GET',
     '/api/nutrition/diary/2026-04-01'
   )
-  const copy = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>, description: string | null }> }>(
+  const copy = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>; description: string | null }> }>(
     page,
     'GET',
     '/api/nutrition/diary/2026-04-02'
@@ -71,7 +71,7 @@ test('copying a quick-add copies its snapshot verbatim', async ({ page, goto }) 
   })
   expect(copyRes.json.ids).toHaveLength(1)
 
-  const copy = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>, unitLabel: string }> }>(
+  const copy = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>; unitLabel: string }> }>(
     page,
     'GET',
     '/api/nutrition/diary/2026-04-04'
@@ -173,7 +173,7 @@ test('a soft-deleted food falls back to the frozen snapshot', async ({ page, got
   const deleted = await apiFetch(page, 'DELETE', `/api/nutrition/foods/${foodId}`)
   expect(deleted.ok).toBe(true)
 
-  const copyRes = await apiFetch<{ ids: number[], fellBackToSnapshot: number[] }>(
+  const copyRes = await apiFetch<{ ids: number[]; fellBackToSnapshot: number[] }>(
     page,
     'POST',
     '/api/nutrition/diary/copy',
@@ -182,7 +182,7 @@ test('a soft-deleted food falls back to the frozen snapshot', async ({ page, got
   expect(copyRes.json.fellBackToSnapshot).toEqual(created.json.ids)
 
   const copy = await apiFetch<{
-    entries: Array<{ nutrients: Record<string, number>, gramsResolved: number | null, foodId: number | null }>
+    entries: Array<{ nutrients: Record<string, number>; gramsResolved: number | null; foodId: number | null }>
   }>(page, 'GET', '/api/nutrition/diary/2026-04-10')
   expect(Number(copy.json.entries[0].nutrients.protein)).toBeCloseTo(10, 6)
   expect(Number(copy.json.entries[0].gramsResolved)).toBe(100)
@@ -198,7 +198,11 @@ test('copying a recipe entry keeps its recipeId and snapshot', async ({ page, go
     name: 'Oats',
     servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 10 } }]
   })
-  const loadedFood = await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${food.json.id}`)
+  const loadedFood = await apiFetch<{ servings: Array<{ id: number }> }>(
+    page,
+    'GET',
+    `/api/nutrition/foods/${food.json.id}`
+  )
 
   const recipe = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/recipes', {
     name: 'Porridge',
@@ -214,14 +218,17 @@ test('copying a recipe entry keeps its recipeId and snapshot', async ({ page, go
     { entryType: 'recipe', recipeId, containerId: containers.json[0].id, quantity: 2, unitLabel: 'Bowls' }
   ])
 
-  interface SnapshotItem { nutrients: Record<string, number> }
+  interface SnapshotItem {
+    nutrients: Record<string, number>
+  }
   interface DiaryEntry {
     entryType: string
     recipeId: number | null
     nutrients: Record<string, number>
     ingredientSnapshot: SnapshotItem[]
   }
-  const sumProtein = (items: SnapshotItem[]) => items.reduce((sum, item) => sum + Number(item.nutrients.protein ?? 0), 0)
+  const sumProtein = (items: SnapshotItem[]) =>
+    items.reduce((sum, item) => sum + Number(item.nutrients.protein ?? 0), 0)
 
   const copyRes = await apiFetch<{ ids: number[] }>(page, 'POST', '/api/nutrition/diary/copy', {
     sourceEntryIds: created.json.ids,
@@ -235,7 +242,10 @@ test('copying a recipe entry keeps its recipeId and snapshot', async ({ page, go
 
   expect(copy.json.entries[0].entryType).toBe('recipe')
   expect(copy.json.entries[0].recipeId).toBe(recipeId)
-  expect(Number(copy.json.entries[0].nutrients.protein)).toBeCloseTo(Number(source.json.entries[0].nutrients.protein), 6)
+  expect(Number(copy.json.entries[0].nutrients.protein)).toBeCloseTo(
+    Number(source.json.entries[0].nutrients.protein),
+    6
+  )
   expect(copy.json.entries[0].ingredientSnapshot).toHaveLength(source.json.entries[0].ingredientSnapshot.length)
 
   const doubledRes = await apiFetch<{ ids: number[] }>(page, 'POST', '/api/nutrition/diary/copy', {
@@ -247,8 +257,14 @@ test('copying a recipe entry keeps its recipeId and snapshot', async ({ page, go
   expect(doubledRes.json.ids).toHaveLength(1)
 
   const doubled = await apiFetch<{ entries: DiaryEntry[] }>(page, 'GET', '/api/nutrition/diary/2026-04-13')
-  expect(Number(doubled.json.entries[0].nutrients.protein)).toBeCloseTo(Number(source.json.entries[0].nutrients.protein) * 2, 6)
-  expect(sumProtein(doubled.json.entries[0].ingredientSnapshot)).toBeCloseTo(Number(doubled.json.entries[0].nutrients.protein), 6)
+  expect(Number(doubled.json.entries[0].nutrients.protein)).toBeCloseTo(
+    Number(source.json.entries[0].nutrients.protein) * 2,
+    6
+  )
+  expect(sumProtein(doubled.json.entries[0].ingredientSnapshot)).toBeCloseTo(
+    Number(doubled.json.entries[0].nutrients.protein),
+    6
+  )
 })
 
 test('copies a day through the dialog with one item excluded and one adjusted', async ({ page, goto }) => {
@@ -287,7 +303,7 @@ test('copies a day through the dialog with one item excluded and one adjusted', 
 
   const target = await apiFetch<{
     totals: Record<string, number>
-    entries: Array<{ foodId: number | null, quantity: number }>
+    entries: Array<{ foodId: number | null; quantity: number }>
   }>(page, 'GET', '/api/nutrition/diary/2026-08-02')
 
   expect(target.json.entries).toHaveLength(1)
@@ -296,10 +312,13 @@ test('copies a day through the dialog with one item excluded and one adjusted', 
   expect(Number(target.json.totals.protein)).toBeCloseTo(40, 6)
 })
 
-test('copying one entry into a different container on the same date refreshes the day view in place', async ({ page, goto }) => {
+test('copying one entry into a different container on the same date refreshes the day view in place', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  const containers = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
   const sourceContainer = containers.json[0]!
   const targetContainer = containers.json[1]!
 
@@ -324,7 +343,11 @@ test('copying one entry into a different container on the same date refreshes th
   await expect(page).toHaveURL(/\/nutrition\/diary\/2026-08-03$/)
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(2)
 
-  const target = await apiFetch<{ entries: Array<{ containerId: number }> }>(page, 'GET', '/api/nutrition/diary/2026-08-03')
+  const target = await apiFetch<{ entries: Array<{ containerId: number }> }>(
+    page,
+    'GET',
+    '/api/nutrition/diary/2026-08-03'
+  )
   expect(target.json.entries).toHaveLength(2)
   expect(target.json.entries.some((e) => e.containerId === targetContainer.id)).toBe(true)
   expect(target.json.entries.some((e) => e.containerId === sourceContainer.id)).toBe(true)

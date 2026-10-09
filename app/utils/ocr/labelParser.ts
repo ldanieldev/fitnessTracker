@@ -7,7 +7,16 @@ export interface ParsedLabel {
 }
 
 const ALL_KEYS: NutrientKey[] = [
-  'energy', 'protein', 'carbohydrate', 'fat', 'fiber', 'sugar', 'saturatedFat', 'cholesterol', 'sodium', 'potassium'
+  'energy',
+  'protein',
+  'carbohydrate',
+  'fat',
+  'fiber',
+  'sugar',
+  'saturatedFat',
+  'cholesterol',
+  'sodium',
+  'potassium'
 ]
 
 const DIGITS = '[0-9lLiIoO]'
@@ -34,7 +43,10 @@ const SERVING_SIZE_LABEL = /serving\s*size/i
 const ENERGY_LABEL = /calories|energy/i
 
 function toNumber(raw: string): number {
-  const normalized = raw.replace(/[lLiI]/g, '1').replace(/[oO]/g, '0').replace(/,/g, '.')
+  const normalized = raw
+    .replace(/[lLiI]/g, '1')
+    .replace(/[oO]/g, '0')
+    .replace(/,/g, '.')
   return Number.parseFloat(normalized)
 }
 
@@ -88,7 +100,16 @@ export function parseNutritionLabel(text: string): ParsedLabel {
   }
 
   set('energy', extractEnergy(lines))
-  for (const key of ['fat', 'saturatedFat', 'carbohydrate', 'fiber', 'sugar', 'protein', 'cholesterol', 'potassium'] as const) {
+  for (const key of [
+    'fat',
+    'saturatedFat',
+    'carbohydrate',
+    'fiber',
+    'sugar',
+    'protein',
+    'cholesterol',
+    'potassium'
+  ] as const) {
     set(key, extractField(lines, LABELS[key]!, MASS_VALUE))
   }
 

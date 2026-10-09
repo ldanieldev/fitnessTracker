@@ -30,16 +30,16 @@ export default defineEventHandler(async (event) => {
 
   const targetRows = profileIds.length
     ? await db
-      .select({
-        profileId: goalProfileTargets.profileId,
-        nutrient: nutrients.key,
-        amount: goalProfileTargets.amount,
-        direction: goalProfileTargets.direction,
-        ratioPercent: goalProfileTargets.ratioPercent
-      })
-      .from(goalProfileTargets)
-      .innerJoin(nutrients, eq(nutrients.id, goalProfileTargets.nutrientId))
-      .where(inArray(goalProfileTargets.profileId, profileIds))
+        .select({
+          profileId: goalProfileTargets.profileId,
+          nutrient: nutrients.key,
+          amount: goalProfileTargets.amount,
+          direction: goalProfileTargets.direction,
+          ratioPercent: goalProfileTargets.ratioPercent
+        })
+        .from(goalProfileTargets)
+        .innerJoin(nutrients, eq(nutrients.id, goalProfileTargets.nutrientId))
+        .where(inArray(goalProfileTargets.profileId, profileIds))
     : []
 
   const targetsByProfile = new Map<number, EchoedTarget[]>()

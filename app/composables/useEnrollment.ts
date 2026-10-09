@@ -12,7 +12,10 @@ export function useEnrollment() {
   )
 
   async function post(path: string, body: Record<string, unknown> = {}) {
-    const result = await apiFetch<Enrollment | null>(`/api/workouts/${path}`, { method: 'POST', body: { today: today.value, ...body } })
+    const result = await apiFetch<Enrollment | null>(`/api/workouts/${path}`, {
+      method: 'POST',
+      body: { today: today.value, ...body }
+    })
     await invalidateWorkouts()
     return result ?? null
   }
@@ -21,7 +24,8 @@ export function useEnrollment() {
     enrollment: fetch.data,
     status: fetch.status,
     today,
-    enroll: (programId: number, when: StartWhen, replace = false) => post(`programs/${programId}/enroll`, { when, replace }),
+    enroll: (programId: number, when: StartWhen, replace = false) =>
+      post(`programs/${programId}/enroll`, { when, replace }),
     pause: () => post('enrollment/pause'),
     resume: (when: StartWhen) => post('enrollment/resume', { when }),
     end: () => post('enrollment/end'),

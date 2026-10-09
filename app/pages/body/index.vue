@@ -30,13 +30,20 @@ async function setHidden(type: MeasurementType, hidden: boolean) {
     await apiFetch(`/api/body/types/${type.id}/prefs`, { method: 'PUT', body: { hidden } })
     await invalidateBody(BODY_KEYS.overview, BODY_KEYS.types, BODY_KEYS.typesAll)
   } catch (error: unknown) {
-    toast.add({ title: 'Update failed', description: errorMessage(error, 'Could not update this measurement'), color: 'error' })
+    toast.add({
+      title: 'Update failed',
+      description: errorMessage(error, 'Could not update this measurement'),
+      color: 'error'
+    })
   }
 }
 
 function menuFor(metric: MetricOverview): DropdownMenuItem[] {
-  const items: DropdownMenuItem[] = [{ label: 'Hide', icon: 'i-lucide-eye-off', onSelect: () => setHidden(metric.type, true) }]
-  if (!metric.type.builtIn) items.unshift({ label: 'Edit…', icon: 'i-lucide-pencil', onSelect: () => openType(metric.type) })
+  const items: DropdownMenuItem[] = [
+    { label: 'Hide', icon: 'i-lucide-eye-off', onSelect: () => setHidden(metric.type, true) }
+  ]
+  if (!metric.type.builtIn)
+    items.unshift({ label: 'Edit…', icon: 'i-lucide-pencil', onSelect: () => openType(metric.type) })
   return items
 }
 </script>
@@ -56,18 +63,37 @@ function menuFor(metric: MetricOverview): DropdownMenuItem[] {
     <template #body>
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">
         <div class="grid gap-3 sm:grid-cols-2">
-          <BodyMetricCard v-for="metric in metrics" :key="metric.type.id" :metric="metric" :menu-items="menuFor(metric)" @log="openLog(metric.type)">
+          <BodyMetricCard
+            v-for="metric in metrics"
+            :key="metric.type.id"
+            :metric="metric"
+            :menu-items="menuFor(metric)"
+            @log="openLog(metric.type)"
+          >
             <template #spark>
               <BodySparkline :points="metric.sparkline" />
             </template>
           </BodyMetricCard>
         </div>
-        <p v-if="metrics.length === 0" class="text-sm text-dimmed" data-test="metrics-empty">Every measurement is hidden</p>
+        <p v-if="metrics.length === 0" class="text-sm text-dimmed" data-test="metrics-empty">
+          Every measurement is hidden
+        </p>
         <section v-if="hiddenTypes.length" class="flex flex-col gap-2" data-test="hidden-types">
           <h2 class="text-xs font-medium uppercase text-dimmed">Hidden</h2>
-          <div v-for="type in hiddenTypes" :key="type.id" class="flex min-h-12 items-center gap-3 rounded-md border border-default px-3">
+          <div
+            v-for="type in hiddenTypes"
+            :key="type.id"
+            class="flex min-h-12 items-center gap-3 rounded-md border border-default px-3"
+          >
             <span class="flex-1 truncate text-sm">{{ type.name }}</span>
-            <UButton label="Show" size="sm" variant="soft" color="neutral" :data-test="`show-type-${type.id}`" @click="setHidden(type, false)" />
+            <UButton
+              label="Show"
+              size="sm"
+              variant="soft"
+              color="neutral"
+              :data-test="`show-type-${type.id}`"
+              @click="setHidden(type, false)"
+            />
           </div>
         </section>
       </div>

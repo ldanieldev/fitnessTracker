@@ -25,7 +25,7 @@ export async function renumberSiblings(
 ): Promise<void> {
   // a SET target must be a bare column name — a qualified reference like ${sortOrderColumn} is rejected by Postgres.
   const sortOrderName = sql.identifier(sortOrderColumn.name)
-  // sequential, not Promise.all: concurrent queries on one transaction client make node-postgres log a deprecation warning.
+  // sequential, not Promise.all: concurrent queries on one transaction client make node-postgres warn.
   for (const [index, id] of ids.entries()) {
     await tx.execute(sql`update ${table} set ${sortOrderName} = ${index} where ${idColumn} = ${id}`)
   }

@@ -20,7 +20,8 @@ const active = computed(() => (props.timer.isRunning.value ? props.timer.totalSe
 const presets = computed(() =>
   [...new Set([...BASE_PRESETS, defaultRestSeconds.value, active.value])]
     .sort((a, b) => a - b)
-    .map((seconds) => ({ label: presetLabel(seconds), seconds })))
+    .map((seconds) => ({ label: presetLabel(seconds), seconds }))
+)
 
 function pick(seconds: number) {
   if (props.timer.isRunning.value) props.timer.start(seconds)
@@ -60,14 +61,7 @@ const strokeDashoffset = computed(() => (props.timer.progress.value / 100) * cir
 
     <div class="relative flex items-center justify-center w-48 h-48">
       <svg class="absolute inset-0 -rotate-90" viewBox="0 0 200 200">
-        <circle
-          cx="100"
-          cy="100"
-          :r="radius"
-          fill="none"
-          class="stroke-elevated"
-          stroke-width="10"
-        />
+        <circle cx="100" cy="100" :r="radius" fill="none" class="stroke-elevated" stroke-width="10" />
         <circle
           cx="100"
           cy="100"
@@ -84,21 +78,9 @@ const strokeDashoffset = computed(() => (props.timer.progress.value / 100) * cir
     </div>
 
     <div class="flex items-center gap-3">
-      <UButton
-        label="-5s"
-        variant="outline"
-        color="neutral"
-        size="sm"
-        @click="adjust(-5)"
-      />
+      <UButton label="-5s" variant="outline" color="neutral" size="sm" @click="adjust(-5)" />
       <template v-if="timer.isRunning.value">
-        <UButton
-          icon="i-lucide-rotate-ccw"
-          label="Reset"
-          variant="soft"
-          color="neutral"
-          @click="timer.reset()"
-        />
+        <UButton icon="i-lucide-rotate-ccw" label="Reset" variant="soft" color="neutral" @click="timer.reset()" />
         <UButton
           icon="i-lucide-skip-forward"
           label="Skip"
@@ -107,20 +89,8 @@ const strokeDashoffset = computed(() => (props.timer.progress.value / 100) * cir
           @click="timer.skip(); emit('skip')"
         />
       </template>
-      <UButton
-        v-else
-        icon="i-lucide-play"
-        label="Start"
-        data-test="timer-start"
-        @click="timer.start(idleSeconds)"
-      />
-      <UButton
-        label="+5s"
-        variant="outline"
-        color="neutral"
-        size="sm"
-        @click="adjust(5)"
-      />
+      <UButton v-else icon="i-lucide-play" label="Start" data-test="timer-start" @click="timer.start(idleSeconds)" />
+      <UButton label="+5s" variant="outline" color="neutral" size="sm" @click="adjust(5)" />
     </div>
   </div>
 </template>

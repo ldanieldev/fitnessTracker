@@ -95,7 +95,7 @@ interface StoredToken {
 
 let pendingToken: Promise<string> | null = null
 
-function requireCredentials(): { clientId: string, clientSecret: string, scope: string } {
+function requireCredentials(): { clientId: string; clientSecret: string; scope: string } {
   const { clientId, clientSecret, scope } = useRuntimeConfig().fatsecret
   if (!clientId || !clientSecret) {
     throw new ExternalSourceError('fatsecret', 'unconfigured', 'NUXT_FATSECRET_CLIENT_ID/_SECRET is not configured')
@@ -103,9 +103,12 @@ function requireCredentials(): { clientId: string, clientSecret: string, scope: 
   return { clientId, clientSecret, scope }
 }
 
-// FatSecret reports API errors (bad params, IP not whitelisted, etc.) as HTTP 200 with an {error: {code, message}} body.
+// FatSecret reports API errors (bad params, IP not whitelisted) as HTTP 200 with an {error: {code, message}} body.
 class FatsecretApiError extends Error {
-  constructor(public readonly code: number, message: string) {
+  constructor(
+    public readonly code: number,
+    message: string
+  ) {
     super(message)
     this.name = 'FatsecretApiError'
   }
@@ -128,7 +131,7 @@ function mapFatsecretError(err: unknown): ExternalSourceError {
 
 async function requestToken(): Promise<string> {
   const { clientId, clientSecret, scope } = requireCredentials()
-  const json = await fetchJson<{ access_token: string, expires_in: number }>(TOKEN_URL, {
+  const json = await fetchJson<{ access_token: string; expires_in: number }>(TOKEN_URL, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
@@ -159,10 +162,9 @@ export function getFatsecretToken(): Promise<string> {
 
 async function fatsecretGet<T>(query: string): Promise<T> {
   const token = await getFatsecretToken()
-  const json = await fetchJson<T & { error?: { code: number, message: string } }>(
-    `${API_URL}?${query}&format=json`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  )
+  const json = await fetchJson<T & { error?: { code: number; message: string } }>(`${API_URL}?${query}&format=json`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
   if (json.error) throw new FatsecretApiError(json.error.code, json.error.message)
   return json
 }

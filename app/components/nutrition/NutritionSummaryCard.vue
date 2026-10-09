@@ -4,12 +4,15 @@ import type { DiaryTargetRow } from '~/composables/useDiaryDay'
 import { evaluateTarget, type TargetState } from '~~/shared/utils/nutritionTargets'
 import { formatAmount, MACRO_CLASS, type MacroKey } from '~/utils/nutrition/macros'
 
-const props = withDefaults(defineProps<{
-  targets: DiaryTargetRow[]
-  totals: Record<string, number>
-  goalName: string | null
-  interactive?: boolean
-}>(), { interactive: true })
+const props = withDefaults(
+  defineProps<{
+    targets: DiaryTargetRow[]
+    totals: Record<string, number>
+    goalName: string | null
+    interactive?: boolean
+  }>(),
+  { interactive: true }
+)
 
 const mode = defineModel<'remaining' | 'consumed'>('mode', { default: 'remaining' })
 const emit = defineEmits<{ 'apply-goal': [] }>()
@@ -27,18 +30,41 @@ interface SummaryRow {
 
 const BAR_KEYS = new Set(['protein', 'carbohydrate', 'fat'])
 const BAR_COLOR: Record<string, 'protein' | 'carb' | 'fat'> = { protein: 'protein', carbohydrate: 'carb', fat: 'fat' }
-const CHIP_COLOR: Record<SummaryRow['state'], 'error' | 'success' | 'neutral'> = { over: 'error', met: 'success', under: 'neutral', none: 'neutral' }
+const CHIP_COLOR: Record<SummaryRow['state'], 'error' | 'success' | 'neutral'> = {
+  over: 'error',
+  met: 'success',
+  under: 'neutral',
+  none: 'neutral'
+}
 
 const rows = computed<SummaryRow[]>(() =>
   props.targets.map((target) => {
     const consumed = props.totals[target.key] ?? 0
 
     if (target.amount === null || target.direction === null) {
-      return { key: target.key, name: target.name, unit: target.unit, state: 'none', consumed, remaining: null, amount: null, progress: null }
+      return {
+        key: target.key,
+        name: target.name,
+        unit: target.unit,
+        state: 'none',
+        consumed,
+        remaining: null,
+        amount: null,
+        progress: null
+      }
     }
 
     const evaluation = evaluateTarget({ consumed, target: target.amount, direction: target.direction })
-    return { key: target.key, name: target.name, unit: target.unit, state: evaluation.state, consumed, remaining: evaluation.remaining, amount: target.amount, progress: evaluation.progress }
+    return {
+      key: target.key,
+      name: target.name,
+      unit: target.unit,
+      state: evaluation.state,
+      consumed,
+      remaining: evaluation.remaining,
+      amount: target.amount,
+      progress: evaluation.progress
+    }
   })
 )
 
@@ -54,7 +80,8 @@ const energyDisplay = computed(() => {
 })
 const energyLabel = computed(() => {
   const row = energyRow.value
-  if (row && mode.value === 'remaining' && row.state === 'over') return formatAmount('energy', Math.abs(row.remaining ?? 0))
+  if (row && mode.value === 'remaining' && row.state === 'over')
+    return formatAmount('energy', Math.abs(row.remaining ?? 0))
   return formatAmount('energy', row ? energyDisplay.value : null)
 })
 const energySub = computed(() => {
@@ -88,12 +115,24 @@ function totalFigure(row: SummaryRow): string {
   return `${formatAmount(row.key, row.consumed)} ${row.unit}`
 }
 
-const menuTrigger = computed(() => `${props.goalName ?? 'No goal'} · ${mode.value === 'remaining' ? 'Remaining' : 'Consumed'}`)
+const menuTrigger = computed(
+  () => `${props.goalName ?? 'No goal'} · ${mode.value === 'remaining' ? 'Remaining' : 'Consumed'}`
+)
 
 const menu = computed<DropdownMenuItem[][]>(() => [
   [
-    { label: 'Remaining', type: 'checkbox', checked: mode.value === 'remaining', onUpdateChecked: () => (mode.value = 'remaining') },
-    { label: 'Consumed', type: 'checkbox', checked: mode.value === 'consumed', onUpdateChecked: () => (mode.value = 'consumed') }
+    {
+      label: 'Remaining',
+      type: 'checkbox',
+      checked: mode.value === 'remaining',
+      onUpdateChecked: () => (mode.value = 'remaining')
+    },
+    {
+      label: 'Consumed',
+      type: 'checkbox',
+      checked: mode.value === 'consumed',
+      onUpdateChecked: () => (mode.value = 'consumed')
+    }
   ],
   [{ label: 'Apply goal profile…', icon: 'i-lucide-target', onSelect: () => emit('apply-goal') }]
 ])
@@ -103,7 +142,14 @@ const menu = computed<DropdownMenuItem[][]>(() => [
   <UCard>
     <div class="flex flex-wrap items-center gap-4">
       <div class="flex flex-col items-center gap-1">
-        <NutritionMacroRing :value="energyRow?.consumed ?? 0" :max="energyRow?.amount ?? null" :label="energyLabel" :sub="energySub" :size="100" :color="energyColor" />
+        <NutritionMacroRing
+          :value="energyRow?.consumed ?? 0"
+          :max="energyRow?.amount ?? null"
+          :label="energyLabel"
+          :sub="energySub"
+          :size="100"
+          :color="energyColor"
+        />
         <span class="text-xs text-dimmed" data-test="total-energy">{{ energyTotalText }}</span>
         <span data-test="energy-value" class="sr-only">{{ energyLabel }}</span>
         <span data-test="energy-state" class="sr-only">{{ energyRow?.state ?? 'none' }}</span>
@@ -137,7 +183,14 @@ const menu = computed<DropdownMenuItem[][]>(() => [
 
     <template v-if="interactive" #footer>
       <UDropdownMenu :items="menu">
-        <UButton :label="menuTrigger" trailing-icon="i-lucide-chevron-down" color="neutral" variant="soft" size="sm" data-test="summary-goal-menu" />
+        <UButton
+          :label="menuTrigger"
+          trailing-icon="i-lucide-chevron-down"
+          color="neutral"
+          variant="soft"
+          size="sm"
+          data-test="summary-goal-menu"
+        />
       </UDropdownMenu>
     </template>
   </UCard>

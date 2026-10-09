@@ -5,9 +5,22 @@ import type { DiaryEntry } from '../../app/composables/useDiaryDay'
 
 function entry(over: Partial<DiaryEntry>): DiaryEntry {
   return {
-    id: 1, containerId: 1, entryType: 'food', foodId: 3, foodServingId: 30, recipeId: null, quantity: 100, unitLabel: 'g',
-    gramsResolved: 100, description: 'Bread', brandSnapshot: null, loggedAt: new Date(2026, 8, 2, 8, 0).toISOString(),
-    notes: null, ingredientSnapshot: null, nutrients: { energy: 260 }, ...over
+    id: 1,
+    containerId: 1,
+    entryType: 'food',
+    foodId: 3,
+    foodServingId: 30,
+    recipeId: null,
+    quantity: 100,
+    unitLabel: 'g',
+    gramsResolved: 100,
+    description: 'Bread',
+    brandSnapshot: null,
+    loggedAt: new Date(2026, 8, 2, 8, 0).toISOString(),
+    notes: null,
+    ingredientSnapshot: null,
+    nutrients: { energy: 260 },
+    ...over
   }
 }
 

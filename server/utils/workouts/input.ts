@@ -1,16 +1,29 @@
 import { z } from 'zod'
-import { GRAPH_METRIC_VALUES, LOAD_STYLE_VALUES, POINTER_CHOICE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
+import {
+  GRAPH_METRIC_VALUES,
+  LOAD_STYLE_VALUES,
+  POINTER_CHOICE_VALUES,
+  TRACKING_TYPE_VALUES
+} from '~~/shared/types/workout'
 import { CATEGORY_COLORS } from '~~/shared/utils/categoryColors'
 import { START_WHEN_VALUES } from '~~/shared/types/program'
 import { plateSizesSchema } from '~~/shared/utils/plates'
 
 // Regex alone lets 2026-02-30 through, which throws downstream and again in Postgres as an unhandled 500.
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((raw) => {
-  const day = new Date(`${raw}T00:00:00Z`)
-  return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === raw
-}, 'Invalid date')
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((raw) => {
+    const day = new Date(`${raw}T00:00:00Z`)
+    return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === raw
+  }, 'Invalid date')
 
-const csv = z.string().transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean))
+const csv = z.string().transform((v) =>
+  v
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+)
 const flag = z.enum(['1', 'true', '0', 'false']).transform((v) => v === '1' || v === 'true')
 
 export const exerciseQuerySchema = z.object({
@@ -106,7 +119,10 @@ export const sessionStartSchema = z.object({
 export const sessionPatchSchema = z.object({
   name: z.string().trim().max(255).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
-  performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  performedOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   startedAt: z.iso.datetime().optional(),
   endedAt: z.iso.datetime().nullable().optional(),
   finish: z.boolean().optional()
@@ -127,7 +143,10 @@ const sessionFilterShape = {
   minReps: z.coerce.number().int().min(1).max(1000).optional()
 }
 
-function checkSessionFilter(filter: { from?: string, to?: string, exerciseId?: number, minWeight?: number, minReps?: number }, ctx: z.RefinementCtx) {
+function checkSessionFilter(
+  filter: { from?: string; to?: string; exerciseId?: number; minWeight?: number; minReps?: number },
+  ctx: z.RefinementCtx
+) {
   if (filter.from && filter.to && filter.from > filter.to) {
     ctx.addIssue({ code: 'custom', path: ['from'], message: 'from must not be after to' })
   }

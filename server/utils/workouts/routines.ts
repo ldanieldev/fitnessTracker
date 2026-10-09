@@ -1,9 +1,22 @@
 import { and, asc, eq, inArray, ne } from 'drizzle-orm'
 import type { Routine, RoutineDay, RoutineEntry, RoutineSummary } from '~~/shared/types/routine'
-import { exercisePrefs, exercises, programs, routines, workoutTemplateEntries, workoutTemplates } from '~~/server/db/schema'
+import {
+  exercisePrefs,
+  exercises,
+  programs,
+  routines,
+  workoutTemplateEntries,
+  workoutTemplates
+} from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
 import type { RoutineCreateInput, RoutinePatchInput } from '~~/server/utils/workouts/input'
-import { pauseLiveEnrollment, programControllingRoutine, programsUsingRoutine, syncEnrollment, utcToday } from '~~/server/utils/workouts/enrollments'
+import {
+  pauseLiveEnrollment,
+  programControllingRoutine,
+  programsUsingRoutine,
+  syncEnrollment,
+  utcToday
+} from '~~/server/utils/workouts/enrollments'
 import { targetColumns, toEntryTarget } from '~~/server/utils/workouts/targets'
 import { dueDayId, skipPointer } from '~~/shared/utils/routineCycle'
 
@@ -30,9 +43,14 @@ export async function lockRoutine(tx: DbClient, userId: number, id: number) {
   return row
 }
 
-// Sibling active-flag writes take every routine in id order first; NO KEY UPDATE so phase inserts' FK KEY SHARE locks never join a cycle.
+// Active-flag writes lock every routine in id order; NO KEY UPDATE keeps phase inserts' KEY SHARE out of a cycle.
 export async function lockUserRoutines(tx: DbClient, userId: number) {
-  await tx.select({ id: routines.id }).from(routines).where(eq(routines.userId, userId)).orderBy(asc(routines.id)).for('no key update')
+  await tx
+    .select({ id: routines.id })
+    .from(routines)
+    .where(eq(routines.userId, userId))
+    .orderBy(asc(routines.id))
+    .for('no key update')
 }
 
 export async function cycleDays(routineId: number, client: DbClient = db) {
@@ -54,7 +72,12 @@ export async function listRoutines(userId: number): Promise<RoutineSummary[]> {
       floating: workoutTemplates.floating
     })
     .from(workoutTemplates)
-    .where(inArray(workoutTemplates.routineId, rows.map((row) => row.id)))
+    .where(
+      inArray(
+        workoutTemplates.routineId,
+        rows.map((row) => row.id)
+      )
+    )
     .orderBy(asc(workoutTemplates.sortOrder), asc(workoutTemplates.id))
 
   return rows
@@ -105,7 +128,12 @@ export async function loadRoutine(userId: number, id: number): Promise<Routine> 
           exercisePrefs,
           and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, workoutTemplateEntries.exerciseId))
         )
-        .where(inArray(workoutTemplateEntries.templateId, days.map((day) => day.id)))
+        .where(
+          inArray(
+            workoutTemplateEntries.templateId,
+            days.map((day) => day.id)
+          )
+        )
         .orderBy(asc(workoutTemplateEntries.sortOrder), asc(workoutTemplateEntries.id))
     : []
 
@@ -173,8 +201,11 @@ export async function patchRoutine(userId: number, id: number, patch: RoutinePat
       const live = await programControllingRoutine(tx, userId, today)
       if (live) {
         if (!patch.pauseProgram) {
-          const program = await tx.select({ id: programs.id, name: programs.name }).from(programs)
-            .where(eq(programs.id, live.programId)).then((r) => r[0]!)
+          const program = await tx
+            .select({ id: programs.id, name: programs.name })
+            .from(programs)
+            .where(eq(programs.id, live.programId))
+            .then((r) => r[0]!)
           throw createError({
             statusCode: 409,
             statusMessage: `${program.name} controls your active routine`,
@@ -187,7 +218,10 @@ export async function patchRoutine(userId: number, id: number, patch: RoutinePat
     if (patch.active === true) {
       if (!days.length)
         throw createError({ statusCode: 400, statusMessage: 'Add a day before making this routine active' })
-      await tx.update(routines).set({ active: false }).where(and(eq(routines.userId, userId), ne(routines.id, id)))
+      await tx
+        .update(routines)
+        .set({ active: false })
+        .where(and(eq(routines.userId, userId), ne(routines.id, id)))
     }
     if (patch.active !== undefined) values.active = patch.active
     if (Object.keys(values).length) await tx.update(routines).set(values).where(eq(routines.id, id))
@@ -214,7 +248,10 @@ export async function skipRoutineDay(userId: number, id: number): Promise<Routin
   await db.transaction(async (tx) => {
     const row = await lockRoutine(tx, userId, id)
     const days = await cycleDays(id, tx)
-    await tx.update(routines).set({ nextDayId: skipPointer(days, row.nextDayId) }).where(eq(routines.id, id))
+    await tx
+      .update(routines)
+      .set({ nextDayId: skipPointer(days, row.nextDayId) })
+      .where(eq(routines.id, id))
   })
   return loadRoutine(userId, id)
 }

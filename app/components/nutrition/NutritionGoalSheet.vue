@@ -3,7 +3,7 @@ import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
   date: string
-  profiles: Array<{ id: number, name: string, isDefault: boolean }>
+  profiles: Array<{ id: number; name: string; isDefault: boolean }>
   currentId: number | null
 }>()
 const open = defineModel<boolean>('open', { default: false })
@@ -26,7 +26,11 @@ async function apply() {
     await apiFetch(`/api/nutrition/diary/${props.date}/goal`, { method: 'PUT', body: { profileId: selected.value } })
     await invalidateNutrition(NUTRITION_KEYS.day(props.date))
   } catch (error: unknown) {
-    toast.add({ title: 'Apply failed', description: errorMessage(error, 'Could not apply this goal profile'), color: 'error' })
+    toast.add({
+      title: 'Apply failed',
+      description: errorMessage(error, 'Could not apply this goal profile'),
+      color: 'error'
+    })
     return
   } finally {
     applying.value = false
@@ -61,7 +65,15 @@ async function apply() {
           <UBadge v-if="profile.id === currentId" color="neutral" variant="subtle">Current</UBadge>
           <UBadge v-if="profile.isDefault" color="primary" variant="subtle">Default</UBadge>
         </button>
-        <UButton v-if="profiles.length > 0" label="Apply" block :loading="applying" :disabled="!canApply || applying" data-test="goal-apply" @click="apply" />
+        <UButton
+          v-if="profiles.length > 0"
+          label="Apply"
+          block
+          :loading="applying"
+          :disabled="!canApply || applying"
+          data-test="goal-apply"
+          @click="apply"
+        />
       </div>
     </template>
   </AppSheet>

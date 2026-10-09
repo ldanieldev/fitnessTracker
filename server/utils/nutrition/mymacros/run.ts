@@ -1,5 +1,13 @@
 import { and, eq, isNull, max } from 'drizzle-orm'
-import { diaryEntries, foodNutrients, foods, foodServings, foodSources, importJobs, mealContainers } from '~~/server/db/schema'
+import {
+  diaryEntries,
+  foodNutrients,
+  foods,
+  foodServings,
+  foodSources,
+  importJobs,
+  mealContainers
+} from '~~/server/db/schema'
 import type { ImportResult, ImportWarning } from '~~/shared/types/nutrition'
 import type { RootDbClient } from '../../db'
 import { inngest } from '../../inngest/client'
@@ -18,7 +26,7 @@ const NUTRIENT_KEYS = { energy: 'energy', protein: 'protein', carbohydrate: 'car
 
 export function toServingInputs(
   food: PlannedFood,
-  nutrientKeys: { energy: string, protein: string, carbohydrate: string, fat: string }
+  nutrientKeys: { energy: string; protein: string; carbohydrate: string; fat: string }
 ): ServingInput[] {
   return food.servings.map((serving) => ({
     kind: serving.kind,
@@ -39,7 +47,12 @@ async function lookupOwnedFood(db: RootDbClient, userId: number, sourceId: numbe
     .select({ id: foods.id })
     .from(foods)
     .where(
-      and(eq(foods.createdByUserId, userId), eq(foods.sourceId, sourceId), eq(foods.externalId, externalId), isNull(foods.deletedAt))
+      and(
+        eq(foods.createdByUserId, userId),
+        eq(foods.sourceId, sourceId),
+        eq(foods.externalId, externalId),
+        isNull(foods.deletedAt)
+      )
     )
     .limit(1)
     .then((r) => r[0] ?? null)
@@ -52,7 +65,12 @@ async function selectLiveServings(db: RootDbClient, foodId: number) {
     .where(and(eq(foodServings.foodId, foodId), isNull(foodServings.deletedAt)))
 }
 
-async function addMissingServings(db: RootDbClient, foodId: number, missing: PlannedFood, nutrientIds: Map<string, number>) {
+async function addMissingServings(
+  db: RootDbClient,
+  foodId: number,
+  missing: PlannedFood,
+  nutrientIds: Map<string, number>
+) {
   const inputs = toServingInputs(missing, NUTRIENT_KEYS)
   const prepared = buildServingRows(inputs, nutrientIds).map((s) => ({ ...s, origin: 'import' as const }))
 
@@ -82,7 +100,13 @@ async function addMissingServings(db: RootDbClient, foodId: number, missing: Pla
       if (serving.nutrients.length) {
         await tx
           .insert(foodNutrients)
-          .values(serving.nutrients.map((n) => ({ foodServingId: row.id, nutrientId: n.nutrientId, amount: String(n.amount) })))
+          .values(
+            serving.nutrients.map((n) => ({
+              foodServingId: row.id,
+              nutrientId: n.nutrientId,
+              amount: String(n.amount)
+            }))
+          )
       }
     }
 
@@ -91,7 +115,11 @@ async function addMissingServings(db: RootDbClient, foodId: number, missing: Pla
 }
 
 // meal_container_user_name_unique keeps this get-or-create correct if two imports race.
-async function ensureContainer(db: RootDbClient, userId: number, name: string): Promise<{ id: number, created: boolean }> {
+async function ensureContainer(
+  db: RootDbClient,
+  userId: number,
+  name: string
+): Promise<{ id: number; created: boolean }> {
   const existing = await db
     .select({ id: mealContainers.id })
     .from(mealContainers)
@@ -123,8 +151,12 @@ async function ensureContainer(db: RootDbClient, userId: number, name: string): 
   }
 }
 
-async function performImport(db: RootDbClient, userId: number, payload: Array<{ name: string, text: string }>): Promise<ImportResult> {
-  const failedFiles: Array<{ fileName: string, error: string }> = []
+async function performImport(
+  db: RootDbClient,
+  userId: number,
+  payload: Array<{ name: string; text: string }>
+): Promise<ImportResult> {
+  const failedFiles: Array<{ fileName: string; error: string }> = []
   const parsed: ParsedDay[] = []
   const indexByDate = new Map<string, number>()
   const warnings: ImportWarning[] = []
@@ -140,7 +172,11 @@ async function performImport(db: RootDbClient, userId: number, payload: Array<{ 
     }
     const existingIndex = indexByDate.get(day.date)
     if (existingIndex !== undefined) {
-      warnings.push({ date: day.date, code: 'duplicate_date', message: `Duplicate date ${day.date}; keeping ${file.name}` })
+      warnings.push({
+        date: day.date,
+        code: 'duplicate_date',
+        message: `Duplicate date ${day.date}; keeping ${file.name}`
+      })
       parsed[existingIndex] = day
     } else {
       indexByDate.set(day.date, parsed.length)
@@ -157,7 +193,11 @@ async function performImport(db: RootDbClient, userId: number, payload: Array<{ 
   const carbId = nutrientIds.get('carbohydrate')!
   const fatId = nutrientIds.get('fat')!
 
-  const mymacrosSource = await db.select({ id: foodSources.id }).from(foodSources).where(eq(foodSources.key, 'mymacros')).then((r) => r[0])
+  const mymacrosSource = await db
+    .select({ id: foodSources.id })
+    .from(foodSources)
+    .where(eq(foodSources.key, 'mymacros'))
+    .then((r) => r[0])
   if (!mymacrosSource) throw new Error('food_sources row for mymacros is missing — run migrations')
 
   let foodsCreated = 0
@@ -175,7 +215,9 @@ async function performImport(db: RootDbClient, userId: number, payload: Array<{ 
       const liveServings = await selectLiveServings(db, foodId)
       const liveLabels = new Set(liveServings.map((s) => s.label))
       const hasWeight = liveServings.some((s) => s.kind === 'weight')
-      const missingServings = food.servings.filter((s) => !liveLabels.has(s.label) && !(s.kind === 'weight' && hasWeight))
+      const missingServings = food.servings.filter(
+        (s) => !liveLabels.has(s.label) && !(s.kind === 'weight' && hasWeight)
+      )
       if (missingServings.length) {
         await addMissingServings(db, foodId, { ...food, servings: missingServings }, nutrientIds)
       }
@@ -241,19 +283,21 @@ async function performImport(db: RootDbClient, userId: number, payload: Array<{ 
 
         const containerId = containerIdByName.get(entry.container)!
         const cached = nextSortOrder.get(containerId)
-        const sortOrder = cached === undefined
-          ? await tx
-              .select({ max: max(diaryEntries.sortOrder) })
-              .from(diaryEntries)
-              .where(and(eq(diaryEntries.dayId, day.id), eq(diaryEntries.containerId, containerId)))
-              .then((r) => (r[0]?.max ?? -1) + 1)
-          : cached
+        const sortOrder =
+          cached === undefined
+            ? await tx
+                .select({ max: max(diaryEntries.sortOrder) })
+                .from(diaryEntries)
+                .where(and(eq(diaryEntries.dayId, day.id), eq(diaryEntries.containerId, containerId)))
+                .then((r) => (r[0]?.max ?? -1) + 1)
+            : cached
         nextSortOrder.set(containerId, sortOrder + 1)
 
         const foodId = entry.kind === 'food' ? foodIdByKey.get(entry.foodKey!)! : null
-        const foodServingId = entry.kind === 'food' && entry.servingLabel
-          ? servingIdByLabelByFoodKey.get(entry.foodKey!)?.get(entry.servingLabel) ?? null
-          : null
+        const foodServingId =
+          entry.kind === 'food' && entry.servingLabel
+            ? (servingIdByLabelByFoodKey.get(entry.foodKey!)?.get(entry.servingLabel) ?? null)
+            : null
 
         await writeEntry(tx, {
           dayId: day.id,
@@ -302,13 +346,17 @@ async function performImport(db: RootDbClient, userId: number, payload: Array<{ 
 }
 
 export async function runMyMacrosImport(db: RootDbClient, jobId: number): Promise<ImportResult> {
-  const job = await db.select().from(importJobs).where(eq(importJobs.id, jobId)).then((r) => r[0])
+  const job = await db
+    .select()
+    .from(importJobs)
+    .where(eq(importJobs.id, jobId))
+    .then((r) => r[0])
   if (!job) throw new Error(`Import job ${jobId} not found`)
 
   await db.update(importJobs).set({ status: 'running' }).where(eq(importJobs.id, jobId))
 
   try {
-    const result = await performImport(db, job.userId, job.payload as Array<{ name: string, text: string }>)
+    const result = await performImport(db, job.userId, job.payload as Array<{ name: string; text: string }>)
     await db.update(importJobs).set({ status: 'done', result }).where(eq(importJobs.id, jobId))
     return result
   } catch (err) {

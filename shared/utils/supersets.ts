@@ -20,7 +20,8 @@ export function normalizeGroups<T extends GroupItem>(items: T[]): T[] {
     if (item.supersetGroup !== null) counts.set(item.supersetGroup, (counts.get(item.supersetGroup) ?? 0) + 1)
   }
   return items.map((item) =>
-    item.supersetGroup !== null && counts.get(item.supersetGroup)! < 2 ? { ...item, supersetGroup: null } : item)
+    item.supersetGroup !== null && counts.get(item.supersetGroup)! < 2 ? { ...item, supersetGroup: null } : item
+  )
 }
 
 function contiguous<T extends GroupItem>(items: T[]): T[] {
@@ -41,7 +42,8 @@ function contiguous<T extends GroupItem>(items: T[]): T[] {
 export function groupItems<T extends GroupItem>(items: T[], ids: number[]): T[] {
   const pickedGroups = new Set(items.filter((item) => ids.includes(item.id)).map((item) => item.supersetGroup))
   const picked = new Set(
-    items.filter((item) => ids.includes(item.id) || (item.supersetGroup !== null && pickedGroups.has(item.supersetGroup)))
+    items
+      .filter((item) => ids.includes(item.id) || (item.supersetGroup !== null && pickedGroups.has(item.supersetGroup)))
       .map((item) => item.id)
   )
   const anchor = items.findIndex((item) => picked.has(item.id))
@@ -117,7 +119,8 @@ export function supersetLabel(items: GroupItem[], id: number): string | null {
 }
 
 const hasSetsLeft = (entry: FlowEntry) => entry.targetSets === null || entry.setCount < entry.targetSets
-const unfinished = (entry: FlowEntry) => (entry.targetSets !== null ? entry.setCount < entry.targetSets : entry.setCount === 0)
+const unfinished = (entry: FlowEntry) =>
+  entry.targetSets !== null ? entry.setCount < entry.targetSets : entry.setCount === 0
 
 export function nextAfterSet(entries: FlowEntry[], loggedEntryId: number): SetFlow {
   const index = entries.findIndex((entry) => entry.id === loggedEntryId)

@@ -22,12 +22,22 @@ function stateError(message: string) {
 }
 
 async function userWeekStart(client: DbClient, userId: number): Promise<0 | 1> {
-  const row = await client.select({ weekStart: users.weekStart }).from(users).where(eq(users.id, userId)).then((r) => r[0])
+  const row = await client
+    .select({ weekStart: users.weekStart })
+    .from(users)
+    .where(eq(users.id, userId))
+    .then((r) => r[0])
   return row?.weekStart === 0 ? 0 : 1
 }
 
-export async function liveEnrollment(client: DbClient, userId: number, lock = false): Promise<EnrollmentRow | undefined> {
-  const query = client.select().from(userProgramEnrollments)
+export async function liveEnrollment(
+  client: DbClient,
+  userId: number,
+  lock = false
+): Promise<EnrollmentRow | undefined> {
+  const query = client
+    .select()
+    .from(userProgramEnrollments)
     .where(and(eq(userProgramEnrollments.userId, userId), inArray(userProgramEnrollments.status, [...LIVE])))
   // FOR NO KEY UPDATE: serialises two syncs, yet leaves a session insert's FK KEY SHARE on enrollment_id unblocked.
   const rows = lock ? await query.for('no key update') : await query
@@ -46,18 +56,29 @@ function positionAt<P extends PhaseSpan>(row: EnrollmentRow, weekStart: 0 | 1, t
 
 async function applyPhaseRoutine(client: DbClient, userId: number, routineId: number | null, resetPointer: boolean) {
   const mine = eq(routines.userId, userId)
-  const active = await client.select({ id: routines.id }).from(routines).where(and(mine, eq(routines.active, true)))
+  const active = await client
+    .select({ id: routines.id })
+    .from(routines)
+    .where(and(mine, eq(routines.active, true)))
   if (routineId === null) {
     if (!active.length) return
     await lockUserRoutines(client, userId)
-    await client.update(routines).set({ active: false }).where(and(mine, eq(routines.active, true)))
+    await client
+      .update(routines)
+      .set({ active: false })
+      .where(and(mine, eq(routines.active, true)))
     return
   }
   if (!resetPointer && active.length === 1 && active[0]!.id === routineId) return
   await lockUserRoutines(client, userId)
   // routine_one_active is a partial unique index, so the others must go inactive before this one turns on.
-  await client.update(routines).set({ active: false }).where(and(mine, eq(routines.active, true), ne(routines.id, routineId)))
-  await client.update(routines).set(resetPointer ? { active: true, nextDayId: null } : { active: true })
+  await client
+    .update(routines)
+    .set({ active: false })
+    .where(and(mine, eq(routines.active, true), ne(routines.id, routineId)))
+  await client
+    .update(routines)
+    .set(resetPointer ? { active: true, nextDayId: null } : { active: true })
     .where(and(eq(routines.id, routineId), mine))
 }
 
@@ -77,7 +98,8 @@ export async function syncEnrollment(client: DbClient, userId: number, today: st
   const previous = phases.find((p) => p.id === row.currentPhaseId)
   const resetPointer = rollover && (!previous || previous.routineId !== phase.routineId)
   await applyPhaseRoutine(client, userId, phase.routineId, resetPointer)
-  if (rollover) await client.update(userProgramEnrollments).set({ currentPhaseId: phase.id, notice: 'phase' }).where(where)
+  if (rollover)
+    await client.update(userProgramEnrollments).set({ currentPhaseId: phase.id, notice: 'phase' }).where(where)
 }
 
 export async function pauseLiveEnrollment(client: DbClient, userId: number, today: string): Promise<void> {
@@ -86,7 +108,8 @@ export async function pauseLiveEnrollment(client: DbClient, userId: number, toda
   if (!row || row.status !== 'active') throw stateError('No program is running')
   const phases = await programPhaseRows(client, row.programId)
   const position = positionAt(row, await userWeekStart(client, userId), today, phases)
-  await client.update(userProgramEnrollments)
+  await client
+    .update(userProgramEnrollments)
     .set({ status: 'paused', pausedWeek: position.week, notice: null })
     .where(eq(userProgramEnrollments.id, row.id))
 }
@@ -95,12 +118,21 @@ export async function programControllingRoutine(client: DbClient, userId: number
   await syncEnrollment(client, userId, today)
   const row = await liveEnrollment(client, userId)
   if (!row || row.status !== 'active') return undefined
-  const position = positionAt(row, await userWeekStart(client, userId), today, await programPhaseRows(client, row.programId))
+  const position = positionAt(
+    row,
+    await userWeekStart(client, userId),
+    today,
+    await programPhaseRows(client, row.programId)
+  )
   return position.state === 'current' ? row : undefined
 }
 
 async function nextDayOf(routineId: number) {
-  const routine = await db.select({ nextDayId: routines.nextDayId }).from(routines).where(eq(routines.id, routineId)).then((r) => r[0])
+  const routine = await db
+    .select({ nextDayId: routines.nextDayId })
+    .from(routines)
+    .where(eq(routines.id, routineId))
+    .then((r) => r[0])
   if (!routine) return null
   const days = await cycleDays(routineId)
   const due = days.find((day) => day.id === dueDayId(days, routine.nextDayId))
@@ -109,25 +141,39 @@ async function nextDayOf(routineId: number) {
 
 export async function loadEnrollment(userId: number, today = utcToday()): Promise<Enrollment | null> {
   await db.transaction((tx) => syncEnrollment(tx, userId, today))
-  const row = await db.select().from(userProgramEnrollments)
-    .where(and(
-      eq(userProgramEnrollments.userId, userId),
-      or(inArray(userProgramEnrollments.status, [...LIVE]), isNotNull(userProgramEnrollments.notice))
-    ))
+  const row = await db
+    .select()
+    .from(userProgramEnrollments)
+    .where(
+      and(
+        eq(userProgramEnrollments.userId, userId),
+        or(inArray(userProgramEnrollments.status, [...LIVE]), isNotNull(userProgramEnrollments.notice))
+      )
+    )
     .orderBy(desc(userProgramEnrollments.id))
     .limit(1)
     .then((r) => r[0])
   if (!row) return null
 
-  const program = await db.select({ id: programs.id, name: programs.name }).from(programs)
-    .where(eq(programs.id, row.programId)).then((r) => r[0]!)
+  const program = await db
+    .select({ id: programs.id, name: programs.name })
+    .from(programs)
+    .where(eq(programs.id, row.programId))
+    .then((r) => r[0]!)
   const phaseRows = await programPhaseRows(db, row.programId)
   const phases = await toProgramPhases(db, phaseRows)
   const weekStart = await userWeekStart(db, userId)
   // A paused enrollment is frozen at its paused week, so it is positioned as if re-anchored on this week.
-  const position = row.status === 'paused'
-    ? programPosition({ anchorDate: weekStartOf(today, weekStart), anchorWeek: row.pausedWeek ?? row.anchorWeek, weekStart, today, phases: phaseRows })
-    : positionAt(row, weekStart, today, phaseRows)
+  const position =
+    row.status === 'paused'
+      ? programPosition({
+          anchorDate: weekStartOf(today, weekStart),
+          anchorWeek: row.pausedWeek ?? row.anchorWeek,
+          weekStart,
+          today,
+          phases: phaseRows
+        })
+      : positionAt(row, weekStart, today, phaseRows)
   const state = row.status === 'paused' ? 'paused' : row.status === 'completed' ? 'finished' : position.state
   const phase = phases[position.phaseIndex] ?? null
 
@@ -149,8 +195,11 @@ export async function loadEnrollment(userId: number, today = utcToday()): Promis
 }
 
 async function existsError(client: DbClient, programId: number) {
-  const running = await client.select({ id: programs.id, name: programs.name }).from(programs)
-    .where(eq(programs.id, programId)).then((r) => r[0]!)
+  const running = await client
+    .select({ id: programs.id, name: programs.name })
+    .from(programs)
+    .where(eq(programs.id, programId))
+    .then((r) => r[0]!)
   return createError({
     statusCode: 409,
     statusMessage: `You're already running ${running.name}`,
@@ -164,11 +213,15 @@ async function enrollInTransaction(userId: number, programId: number, input: Enr
     // Checked after the sync's locks: a program delete that held them first must read as gone, not as phaseless.
     await ownedProgram(userId, programId, tx)
     const phases = await programPhaseRows(tx, programId)
-    if (!phases.length) throw createError({ statusCode: 400, statusMessage: 'Add a phase before starting this program' })
+    if (!phases.length)
+      throw createError({ statusCode: 400, statusMessage: 'Add a phase before starting this program' })
     const live = await liveEnrollment(tx, userId)
     if (live && !input.replace) throw await existsError(tx, live.programId)
-    if (live) await tx.update(userProgramEnrollments).set({ status: 'abandoned' }).where(eq(userProgramEnrollments.id, live.id))
-    await tx.update(userProgramEnrollments).set({ notice: null })
+    if (live)
+      await tx.update(userProgramEnrollments).set({ status: 'abandoned' }).where(eq(userProgramEnrollments.id, live.id))
+    await tx
+      .update(userProgramEnrollments)
+      .set({ notice: null })
       .where(and(eq(userProgramEnrollments.userId, userId), isNotNull(userProgramEnrollments.notice)))
     const now = input.when === 'now'
     await tx.insert(userProgramEnrollments).values({
@@ -206,12 +259,15 @@ export async function resumeEnrollment(userId: number, input: EnrollmentResumeIn
   await db.transaction(async (tx) => {
     const row = await lockLiveEnrollment(tx, userId)
     if (!row || row.status !== 'paused') throw stateError('No program is paused')
-    await tx.update(userProgramEnrollments).set({
-      status: 'active',
-      anchorDate: anchorFor(input.when, today, await userWeekStart(tx, userId)),
-      anchorWeek: row.pausedWeek ?? row.anchorWeek,
-      pausedWeek: null
-    }).where(eq(userProgramEnrollments.id, row.id))
+    await tx
+      .update(userProgramEnrollments)
+      .set({
+        status: 'active',
+        anchorDate: anchorFor(input.when, today, await userWeekStart(tx, userId)),
+        anchorWeek: row.pausedWeek ?? row.anchorWeek,
+        pausedWeek: null
+      })
+      .where(eq(userProgramEnrollments.id, row.id))
     await syncEnrollment(tx, userId, today)
   })
   return loadEnrollment(userId, today)
@@ -226,7 +282,10 @@ export async function endEnrollment(userId: number, today = utcToday()): Promise
       if (before) return
       throw stateError('No program is running')
     }
-    await tx.update(userProgramEnrollments).set({ status: 'abandoned', notice: null }).where(eq(userProgramEnrollments.id, row.id))
+    await tx
+      .update(userProgramEnrollments)
+      .set({ status: 'abandoned', notice: null })
+      .where(eq(userProgramEnrollments.id, row.id))
   })
   return null
 }
@@ -234,7 +293,9 @@ export async function endEnrollment(userId: number, today = utcToday()): Promise
 export async function dismissEnrollmentNotice(userId: number, today = utcToday()): Promise<Enrollment | null> {
   await db.transaction(async (tx) => {
     await lockUserRoutines(tx, userId)
-    await tx.update(userProgramEnrollments).set({ notice: null })
+    await tx
+      .update(userProgramEnrollments)
+      .set({ notice: null })
       .where(and(eq(userProgramEnrollments.userId, userId), isNotNull(userProgramEnrollments.notice)))
   })
   return loadEnrollment(userId, today)

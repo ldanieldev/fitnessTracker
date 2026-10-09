@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  durationLabel, elapsedLabel, fromLocalInput, toLocalInput, totalTimeLabel
+  durationLabel,
+  elapsedLabel,
+  fromLocalInput,
+  toLocalInput,
+  totalTimeLabel
 } from '../../shared/utils/workoutTime'
 
 const start = '2026-09-18T10:00:00.000Z'

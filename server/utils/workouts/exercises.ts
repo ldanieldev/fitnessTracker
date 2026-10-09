@@ -88,7 +88,7 @@ async function rescueSearch(userId: number, q: string, ctx: RescueContext): Prom
   )
 }
 
-async function loadVariations(userId: number, exerciseId: number): Promise<{ id: number, name: string }[]> {
+async function loadVariations(userId: number, exerciseId: number): Promise<{ id: number; name: string }[]> {
   const membership = await db
     .select({ groupId: exerciseVariationMembers.groupId })
     .from(exerciseVariationMembers)

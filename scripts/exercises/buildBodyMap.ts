@@ -30,7 +30,7 @@ interface Diagram {
   viewBox: string
   centerX: number
   outline: string[]
-  muscles: { id: string, group: string, side: string, d: string }[]
+  muscles: { id: string; group: string; side: string; d: string }[]
 }
 
 function toDiagram(source: BodyDiagram): Diagram {

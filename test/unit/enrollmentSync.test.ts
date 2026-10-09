@@ -32,6 +32,9 @@ describe('enrollment row lock', () => {
     const { syncEnrollment } = await import('../../server/utils/workouts/enrollments')
     const { client, locks } = fakeClient()
     await syncEnrollment(client, 1, '2026-01-05')
-    expect(locks).toEqual([['routines', 'no key update'], ['user_program_enrollments', 'no key update']])
+    expect(locks).toEqual([
+      ['routines', 'no key update'],
+      ['user_program_enrollments', 'no key update']
+    ])
   })
 })

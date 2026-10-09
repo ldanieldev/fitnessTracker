@@ -4,7 +4,7 @@ import { resolveByLabel } from '~~/app/utils/nutrition/resolveByLabel'
 
 const props = defineProps<{
   food: FoodForResolve
-  modelValue: { quantity: number, unitLabel: string }
+  modelValue: { quantity: number; unitLabel: string }
   nutrientKeys?: Record<number, string>
   disabled?: boolean
   quantityTest?: string
@@ -12,7 +12,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: { quantity: number, unitLabel: string }]
+  'update:modelValue': [value: { quantity: number; unitLabel: string }]
 }>()
 
 const units = computed(() => availableUnits(props.food))
@@ -57,7 +57,14 @@ const preview = computed<Partial<Record<PreviewKey, number>> | null>(() => {
 <template>
   <div class="flex flex-col gap-2">
     <div class="grid grid-cols-2 gap-2 w-full">
-      <AppNumberInput v-model="quantity" :min="0" :disabled="disabled" class="w-full" aria-label="Amount" :data-test="quantityTest" />
+      <AppNumberInput
+        v-model="quantity"
+        :min="0"
+        :disabled="disabled"
+        class="w-full"
+        aria-label="Amount"
+        :data-test="quantityTest"
+      />
       <USelect v-model="unitLabel" :items="units" :disabled="disabled" class="w-full" :data-test="unitTest" />
     </div>
     <NutritionMacroText v-if="preview" :nutrients="preview" with-energy size="xs" data-test="amount-preview" />

@@ -4,17 +4,20 @@ import type { FoodDetail, FoodHit, PickedFood } from '~/types/nutrition'
 import { defaultUnit } from '~/composables/useFoodUnits'
 import { errorMessage } from '~/utils/apiError'
 
-const props = withDefaults(defineProps<{
-  multiple?: boolean
-  needsNutritionFoodId?: number | null
-  source?: 'recent' | 'favorites' | 'mine'
-  scanTo?: string
-}>(), {
-  multiple: true,
-  needsNutritionFoodId: null,
-  source: 'recent',
-  scanTo: undefined
-})
+const props = withDefaults(
+  defineProps<{
+    multiple?: boolean
+    needsNutritionFoodId?: number | null
+    source?: 'recent' | 'favorites' | 'mine'
+    scanTo?: string
+  }>(),
+  {
+    multiple: true,
+    needsNutritionFoodId: null,
+    source: 'recent',
+    scanTo: undefined
+  }
+)
 
 const picked = defineModel<PickedFood[]>({ default: () => [] })
 
@@ -38,7 +41,7 @@ interface MineRow {
   id: number
   name: string
   brand: string | null
-  defaultServing: { label: string, quantity: number } | null
+  defaultServing: { label: string; quantity: number } | null
   energy: number | null
   perDefault: FoodHit['perDefault']
 }
@@ -56,7 +59,15 @@ function mineHit(row: MineRow): FoodHit {
 }
 
 function pickedHit(p: PickedFood): FoodHit {
-  return { id: p.foodId, name: p.name, brand: p.brand, isFavorite: false, logCount: 0, energyDensity: null, perDefault: null }
+  return {
+    id: p.foodId,
+    name: p.name,
+    brand: p.brand,
+    isFavorite: false,
+    logCount: 0,
+    energyDensity: null,
+    perDefault: null
+  }
 }
 
 function hitNutrients(hit: FoodHit): Record<string, number | null | undefined> | null {
@@ -66,8 +77,13 @@ function hitNutrients(hit: FoodHit): Record<string, number | null | undefined> |
 }
 
 async function fetchRecent(favorites: boolean) {
-  const rows = await apiFetch<Array<Omit<FoodHit, 'energyDensity'>>>('/api/nutrition/foods/recent', { query: favorites ? { favorites: '1' } : {} })
-  return { hits: rows.map((row) => ({ ...row, energyDensity: null, perDefault: row.perDefault ?? null })), degraded: false }
+  const rows = await apiFetch<Array<Omit<FoodHit, 'energyDensity'>>>('/api/nutrition/foods/recent', {
+    query: favorites ? { favorites: '1' } : {}
+  })
+  return {
+    hits: rows.map((row) => ({ ...row, energyDensity: null, perDefault: row.perDefault ?? null })),
+    degraded: false
+  }
 }
 
 async function fetchMine(q: string) {
@@ -76,9 +92,15 @@ async function fetchMine(q: string) {
 }
 
 async function fetchSearch(q: string) {
-  const result = await apiFetch<{ hits: FoodHit[], degraded: boolean }>('/api/nutrition/foods/search', { query: { q, limit: 25 } })
-  const hits = result.hits.map((hit) => ({ ...hit, energyDensity: hit.energyDensity ?? null, perDefault: hit.perDefault ?? null }))
-  // The search endpoint isn't favorites-scoped, so the ★ tab filters client-side to keep non-favourites from appearing under it.
+  const result = await apiFetch<{ hits: FoodHit[]; degraded: boolean }>('/api/nutrition/foods/search', {
+    query: { q, limit: 25 }
+  })
+  const hits = result.hits.map((hit) => ({
+    ...hit,
+    energyDensity: hit.energyDensity ?? null,
+    perDefault: hit.perDefault ?? null
+  }))
+  // Search isn't favorites-scoped, so the ★ tab filters client-side to keep non-favourites out of it.
   return { hits: props.source === 'favorites' ? hits.filter((hit) => hit.isFavorite) : hits, degraded: result.degraded }
 }
 
@@ -87,9 +109,12 @@ async function runSearch() {
   const seq = ++requestSeq
   const trimmed = query.value.trim()
   try {
-    const result = props.source === 'mine'
-      ? await fetchMine(trimmed)
-      : trimmed ? await fetchSearch(trimmed) : await fetchRecent(props.source === 'favorites')
+    const result =
+      props.source === 'mine'
+        ? await fetchMine(trimmed)
+        : trimmed
+          ? await fetchSearch(trimmed)
+          : await fetchRecent(props.source === 'favorites')
     // drop stale responses: a slower recents/search fetch can resolve after a newer one and clobber its hits
     if (seq !== requestSeq) return
     // a picked food must stay on screen even when the fresh list (recents cap, search miss) does not contain it
@@ -148,14 +173,21 @@ async function toggle(id: number, value: boolean) {
   try {
     const food = await loadDetail(id)
     if (!food) return
-    const entry: PickedFood = { foodId: id, name: food.name, brand: food.brand, quantity: 1, unitLabel: defaultUnit(food), food }
+    const entry: PickedFood = {
+      foodId: id,
+      name: food.name,
+      brand: food.brand,
+      quantity: 1,
+      unitLabel: defaultUnit(food),
+      food
+    }
     picked.value = props.multiple ? [...picked.value, entry] : [entry]
   } finally {
     pendingToggles.delete(id)
   }
 }
 
-function setAmount(id: number, value: { quantity: number, unitLabel: string }) {
+function setAmount(id: number, value: { quantity: number; unitLabel: string }) {
   picked.value = picked.value.map((p) => (p.foodId === id ? { ...p, ...value } : p))
 }
 
@@ -163,7 +195,10 @@ async function select(id: number) {
   const food = await loadDetail(id)
   if (!food) return
   if (!hits.value.some((hit) => hit.id === id)) {
-    hits.value = [{ id, name: food.name, brand: food.brand, isFavorite: false, logCount: 0, energyDensity: null, perDefault: null }, ...hits.value]
+    hits.value = [
+      { id, name: food.name, brand: food.brand, isFavorite: false, logCount: 0, energyDensity: null, perDefault: null },
+      ...hits.value
+    ]
   }
   await toggle(id, true)
   // A caller driving select() before mount's own runSearch resolves would otherwise still see the loading skeleton.
@@ -177,7 +212,11 @@ async function toggleFavorite(hit: FoodHit) {
     await apiFetch(`/api/nutrition/foods/${hit.id}/favorite`, { method: hit.isFavorite ? 'DELETE' : 'PUT' })
     await runSearch()
   } catch (error: unknown) {
-    toast.add({ title: 'Favourite failed', description: errorMessage(error, 'Could not update favourites'), color: 'error' })
+    toast.add({
+      title: 'Favourite failed',
+      description: errorMessage(error, 'Could not update favourites'),
+      color: 'error'
+    })
   }
 }
 
@@ -186,20 +225,32 @@ async function removeFromRecents(hit: FoodHit) {
     await apiFetch(`/api/nutrition/foods/${hit.id}/recent`, { method: 'DELETE' })
     await runSearch()
   } catch (error: unknown) {
-    toast.add({ title: 'Remove failed', description: errorMessage(error, 'Could not remove this food from recents'), color: 'error' })
+    toast.add({
+      title: 'Remove failed',
+      description: errorMessage(error, 'Could not remove this food from recents'),
+      color: 'error'
+    })
   }
 }
 
 function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
   const items: DropdownMenuItem[] = [{ label: 'View food', icon: 'i-lucide-info', to: `/nutrition/foods/${hit.id}` }]
-  if (props.source === 'recent') items.push({ label: 'Remove from recents', icon: 'i-lucide-eye-off', onSelect: () => removeFromRecents(hit) })
+  if (props.source === 'recent')
+    items.push({ label: 'Remove from recents', icon: 'i-lucide-eye-off', onSelect: () => removeFromRecents(hit) })
   return [items]
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
-    <UInput v-model="query" placeholder="Search foods" aria-label="Search foods" icon="i-lucide-search" class="w-full" data-test="food-search-input">
+    <UInput
+      v-model="query"
+      placeholder="Search foods"
+      aria-label="Search foods"
+      icon="i-lucide-search"
+      class="w-full"
+      data-test="food-search-input"
+    >
       <template v-if="scanTo" #trailing>
         <UButton icon="i-lucide-scan-barcode" variant="ghost" size="xs" :to="scanTo" data-test="scan-button" />
       </template>
@@ -207,14 +258,22 @@ function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
 
     <slot name="actions" />
 
-    <UAlert v-if="degraded" color="warning" variant="soft" title="Search is running in basic mode" data-test="degraded-hint" />
+    <UAlert
+      v-if="degraded"
+      color="warning"
+      variant="soft"
+      title="Search is running in basic mode"
+      data-test="degraded-hint"
+    />
 
     <UAlert
       v-if="needsNutritionFoodId !== null"
       color="warning"
       variant="soft"
       title="Imported without nutrition"
-      :actions="[{ label: 'Add nutrition', to: `/nutrition/foods/${needsNutritionFoodId}`, color: 'warning', variant: 'outline' }]"
+      :actions="[
+        { label: 'Add nutrition', to: `/nutrition/foods/${needsNutritionFoodId}`, color: 'warning', variant: 'outline' }
+      ]"
       data-test="needs-nutrition-alert"
     />
 
@@ -246,10 +305,23 @@ function hitMenu(hit: FoodHit): DropdownMenuItem[][] {
             @click.stop="toggleFavorite(hit)"
           >
             <!-- lucide paths carry fill="none" as an attribute, so the fill must target the path itself -->
-            <UIcon name="i-lucide-star" mode="svg" class="size-5" :class="hit.isFavorite ? '[&_path]:fill-current' : ''" data-test="favorite-icon" />
+            <UIcon
+              name="i-lucide-star"
+              mode="svg"
+              class="size-5"
+              :class="hit.isFavorite ? '[&_path]:fill-current' : ''"
+              data-test="favorite-icon"
+            />
           </UButton>
           <UDropdownMenu :items="hitMenu(hit)">
-            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" size="sm" aria-label="Food actions" @click.stop />
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              aria-label="Food actions"
+              @click.stop
+            />
           </UDropdownMenu>
         </template>
         <template v-if="pickedById.get(hit.id)" #default>

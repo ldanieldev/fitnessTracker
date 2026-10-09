@@ -23,13 +23,14 @@ export default defineEventHandler(async (event) => {
 
     const nextSortOrderFor = async (containerId: number) => {
       const cached = nextSortOrder.get(containerId)
-      const sortOrder = cached === undefined
-        ? await tx
-            .select({ max: max(diaryEntries.sortOrder) })
-            .from(diaryEntries)
-            .where(and(eq(diaryEntries.dayId, day.id), eq(diaryEntries.containerId, containerId)))
-            .then((r) => (r[0]?.max ?? -1) + 1)
-        : cached
+      const sortOrder =
+        cached === undefined
+          ? await tx
+              .select({ max: max(diaryEntries.sortOrder) })
+              .from(diaryEntries)
+              .where(and(eq(diaryEntries.dayId, day.id), eq(diaryEntries.containerId, containerId)))
+              .then((r) => (r[0]?.max ?? -1) + 1)
+          : cached
       nextSortOrder.set(containerId, sortOrder + 1)
       return sortOrder
     }

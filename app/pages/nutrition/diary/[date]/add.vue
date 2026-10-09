@@ -3,8 +3,20 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import NutritionFoodPicker from '~/components/nutrition/NutritionFoodPicker.vue'
 import type { DiaryEntryInput } from '~/composables/useDiaryDay'
 
-interface RecipeRow { id: number, name: string, servings: number, servingName: string, perServing: Record<string, number>, broken: boolean }
-interface MealRow { id: number, name: string, itemCount: number, total: Record<string, number> }
+interface RecipeRow {
+  id: number
+  name: string
+  servings: number
+  servingName: string
+  perServing: Record<string, number>
+  broken: boolean
+}
+interface MealRow {
+  id: number
+  name: string
+  itemCount: number
+  total: Record<string, number>
+}
 
 const route = useRoute()
 const date = computed(() => String(route.params.date))
@@ -14,21 +26,39 @@ const queryNumber = (value: unknown) => {
 }
 
 const { logEntries } = useDiaryDay(date)
-const { data: containers } = await useNutritionFetch<Array<{ id: number, name: string }>>(NUTRITION_KEYS.containers, '/api/nutrition/meal-containers')
-const { data: recipes, refresh: refreshRecipes } = await useNutritionFetch<RecipeRow[]>(NUTRITION_KEYS.recipes, '/api/nutrition/recipes')
-const { data: meals, refresh: refreshMeals } = await useNutritionFetch<MealRow[]>(NUTRITION_KEYS.savedMeals, '/api/nutrition/saved-meals')
+const { data: containers } = await useNutritionFetch<Array<{ id: number; name: string }>>(
+  NUTRITION_KEYS.containers,
+  '/api/nutrition/meal-containers'
+)
+const { data: recipes, refresh: refreshRecipes } = await useNutritionFetch<RecipeRow[]>(
+  NUTRITION_KEYS.recipes,
+  '/api/nutrition/recipes'
+)
+const { data: meals, refresh: refreshMeals } = await useNutritionFetch<MealRow[]>(
+  NUTRITION_KEYS.savedMeals,
+  '/api/nutrition/saved-meals'
+)
 
 const { idToKey } = useNutrientCatalog()
 const tray = useAddTray(idToKey, date.value)
 const containerId = ref<number | undefined>()
-watch(containers, (list) => {
-  if (containerId.value !== undefined || !list?.length) return
-  const wanted = queryNumber(route.query.containerId)
-  containerId.value = list.some((c) => c.id === wanted) ? wanted : list[0]!.id
-}, { immediate: true })
+watch(
+  containers,
+  (list) => {
+    if (containerId.value !== undefined || !list?.length) return
+    const wanted = queryNumber(route.query.containerId)
+    containerId.value = list.some((c) => c.id === wanted) ? wanted : list[0]!.id
+  },
+  { immediate: true }
+)
 const containerName = computed(() => containers.value?.find((c) => c.id === containerId.value)?.name ?? '')
 const containerMenuItems = computed<DropdownMenuItem[][]>(() => [
-  (containers.value ?? []).map((c) => ({ label: c.name, onSelect: () => { containerId.value = c.id } }))
+  (containers.value ?? []).map((c) => ({
+    label: c.name,
+    onSelect: () => {
+      containerId.value = c.id
+    }
+  }))
 ])
 
 type AddSource = 'recent' | 'favorites' | 'mine'
@@ -46,7 +76,9 @@ const tabItems = [
 
 const FOOD_TABS: AddTab[] = ['recent', 'favorites', 'mine']
 const showFoodPicker = computed(() => FOOD_TABS.includes(activeTab.value))
-const pickerSource = computed<AddSource>(() => (activeTab.value === 'favorites' || activeTab.value === 'mine') ? activeTab.value : 'recent')
+const pickerSource = computed<AddSource>(() =>
+  activeTab.value === 'favorites' || activeTab.value === 'mine' ? activeTab.value : 'recent'
+)
 
 const picker = ref<InstanceType<typeof NutritionFoodPicker>>()
 const needsNutritionFoodId = ref<number | null>(null)
@@ -60,11 +92,15 @@ onMounted(async () => {
   document.querySelector(`[data-test="food-hit"][data-food-id="${foodId}"]`)?.scrollIntoView({ block: 'center' })
 })
 
-watch(() => tray.state.foods.map((f) => f.foodId), (ids) => {
-  if (needsNutritionFoodId.value !== null && !ids.includes(needsNutritionFoodId.value)) needsNutritionFoodId.value = null
-})
+watch(
+  () => tray.state.foods.map((f) => f.foodId),
+  (ids) => {
+    if (needsNutritionFoodId.value !== null && !ids.includes(needsNutritionFoodId.value))
+      needsNutritionFoodId.value = null
+  }
+)
 
-async function onImported({ id, needsNutrition }: { id: number, needsNutrition: boolean }) {
+async function onImported({ id, needsNutrition }: { id: number; needsNutrition: boolean }) {
   activeTab.value = 'recent'
   await nextTick()
   await picker.value?.select(id)
@@ -72,8 +108,18 @@ async function onImported({ id, needsNutrition }: { id: number, needsNutrition: 
 }
 
 const trayItems = computed(() => [
-  ...tray.state.foods.map((f) => ({ kind: 'food' as const, id: f.foodId, label: f.name, detail: `${f.quantity} ${f.unitLabel}` })),
-  ...tray.state.recipes.map((r) => ({ kind: 'recipe' as const, id: r.recipeId, label: r.name, detail: `${r.servings} ${r.servingName}` })),
+  ...tray.state.foods.map((f) => ({
+    kind: 'food' as const,
+    id: f.foodId,
+    label: f.name,
+    detail: `${f.quantity} ${f.unitLabel}`
+  })),
+  ...tray.state.recipes.map((r) => ({
+    kind: 'recipe' as const,
+    id: r.recipeId,
+    label: r.name,
+    detail: `${r.servings} ${r.servingName}`
+  })),
   ...tray.state.meals.map((m) => ({ kind: 'meal' as const, id: m.savedMealId, label: m.name, detail: 'saved meal' }))
 ])
 
@@ -104,7 +150,14 @@ async function onQuickAdd(input: DiaryEntryInput) {
     <template #header>
       <UDashboardNavbar>
         <template #leading>
-          <UButton icon="i-lucide-chevron-left" variant="ghost" color="neutral" aria-label="Back" class="lg:hidden" :to="`/nutrition/diary/${date}`" />
+          <UButton
+            icon="i-lucide-chevron-left"
+            variant="ghost"
+            color="neutral"
+            aria-label="Back"
+            class="lg:hidden"
+            :to="`/nutrition/diary/${date}`"
+          />
           <UDashboardSidebarCollapse class="hidden lg:flex" />
         </template>
         <template #title>
@@ -147,8 +200,23 @@ async function onQuickAdd(input: DiaryEntryInput) {
           >
             <template #actions>
               <div class="flex gap-2 overflow-x-auto">
-                <UButton icon="i-lucide-zap" label="Quick add" size="sm" variant="soft" color="neutral" data-test="toggle-quick-add" @click="quickAddOpen = true" />
-                <UButton icon="i-lucide-plus" label="New food" size="sm" variant="soft" color="neutral" :to="`/nutrition/diary/${date}/foods/new`" />
+                <UButton
+                  icon="i-lucide-zap"
+                  label="Quick add"
+                  size="sm"
+                  variant="soft"
+                  color="neutral"
+                  data-test="toggle-quick-add"
+                  @click="quickAddOpen = true"
+                />
+                <UButton
+                  icon="i-lucide-plus"
+                  label="New food"
+                  size="sm"
+                  variant="soft"
+                  color="neutral"
+                  :to="`/nutrition/diary/${date}/foods/new`"
+                />
               </div>
             </template>
           </NutritionFoodPicker>
@@ -164,7 +232,11 @@ async function onQuickAdd(input: DiaryEntryInput) {
         </div>
 
         <div v-show="activeTab === 'meals'" class="mt-4">
-          <NutritionAddMeals :meals="meals ?? []" :selected="tray.state.meals" @toggle="(meal, on) => tray.toggleMeal(meal, on)" />
+          <NutritionAddMeals
+            :meals="meals ?? []"
+            :selected="tray.state.meals"
+            @toggle="(meal, on) => tray.toggleMeal(meal, on)"
+          />
         </div>
 
         <div v-show="activeTab === 'online'" class="mt-4">
@@ -184,7 +256,11 @@ async function onQuickAdd(input: DiaryEntryInput) {
 
       <AppSheet v-model:open="quickAddOpen" title="Quick add">
         <template #body>
-          <LazyNutritionQuickAddForm :containers="containers ?? []" :default-container-id="containerId" @submit="onQuickAdd" />
+          <LazyNutritionQuickAddForm
+            :containers="containers ?? []"
+            :default-container-id="containerId"
+            @submit="onQuickAdd"
+          />
         </template>
       </AppSheet>
     </template>

@@ -75,7 +75,9 @@ describe('WorkoutSessionHeader sheets', () => {
   async function pick(wrapper: Awaited<ReturnType<typeof mountSuspended>>, label: string) {
     await wrapper.find('[data-test="session-menu"]').trigger('click')
     await nextTick()
-    const item = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.trim() === label)!
+    const item = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      (el) => el.textContent?.trim() === label
+    )!
     item.click()
     await nextTick()
     await nextTick()
@@ -88,9 +90,13 @@ describe('WorkoutSessionHeader sheets', () => {
   }
 
   it('opens the comment sheet with the saved notes and emits the trimmed text, or null when cleared', async () => {
-    const wrapper = await mountSuspended(WorkoutSessionHeader, { props: { session: makeSession({ notes: 'old note' }) } })
+    const wrapper = await mountSuspended(WorkoutSessionHeader, {
+      props: { session: makeSession({ notes: 'old note' }) }
+    })
     await pick(wrapper, 'Comment')
-    expect(document.body.querySelector<HTMLTextAreaElement>('[data-test="session-comment-input"]')!.value).toBe('old note')
+    expect(document.body.querySelector<HTMLTextAreaElement>('[data-test="session-comment-input"]')!.value).toBe(
+      'old note'
+    )
     typeComment('  felt strong  ')
     await nextTick()
     document.body.querySelector<HTMLElement>('[data-test="session-comment-save"]')!.click()

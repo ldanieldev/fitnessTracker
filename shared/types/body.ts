@@ -17,7 +17,13 @@ export interface MeasurementType {
 }
 
 // measuredAt is an ISO instant, measuredOn is YYYY-MM-DD
-export interface MeasurementEntry { id: number, typeId: number, value: number, measuredAt: string, measuredOn: string }
+export interface MeasurementEntry {
+  id: number
+  typeId: number
+  value: number
+  measuredAt: string
+  measuredOn: string
+}
 
 export interface MeasurementGoal {
   typeId: number
@@ -45,4 +51,8 @@ export interface MetricSeries {
   points: SeriesPoint[]
 }
 
-export interface GoalOverview { type: MeasurementType, goal: MeasurementGoal, latest: MeasurementEntry | null }
+export interface GoalOverview {
+  type: MeasurementType
+  goal: MeasurementGoal
+  latest: MeasurementEntry | null
+}

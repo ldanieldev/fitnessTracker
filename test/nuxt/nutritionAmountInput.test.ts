@@ -6,17 +6,24 @@ import type { FoodForResolve } from '../../shared/types/nutrition'
 
 const sliceOnly: FoodForResolve = {
   id: 2,
-  servings: [{ id: 20, kind: 'named', label: 'slice', quantity: 1, basisGrams: null,
-    hasOwnNutrition: true, nutrients: { 1: 3 } }]
+  servings: [
+    { id: 20, kind: 'named', label: 'slice', quantity: 1, basisGrams: null, hasOwnNutrition: true, nutrients: { 1: 3 } }
+  ]
 }
 
 const withWeight: FoodForResolve = {
   id: 1,
   servings: [
-    { id: 10, kind: 'named', label: 'slice', quantity: 1, basisGrams: null,
-      hasOwnNutrition: true, nutrients: { 1: 3 } },
-    { id: 11, kind: 'weight', label: 'g', quantity: 100, basisGrams: 100,
-      hasOwnNutrition: true, nutrients: { 1: 1 } }
+    {
+      id: 10,
+      kind: 'named',
+      label: 'slice',
+      quantity: 1,
+      basisGrams: null,
+      hasOwnNutrition: true,
+      nutrients: { 1: 3 }
+    },
+    { id: 11, kind: 'weight', label: 'g', quantity: 100, basisGrams: 100, hasOwnNutrition: true, nutrients: { 1: 1 } }
   ]
 }
 

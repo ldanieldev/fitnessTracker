@@ -12,7 +12,14 @@ export default defineEventHandler(async (event) => {
   try {
     const row = await db
       .insert(measurementTypes)
-      .values({ userId, key: null, name: body.name, unit: body.unit, precision: body.precision, direction: body.direction })
+      .values({
+        userId,
+        key: null,
+        name: body.name,
+        unit: body.unit,
+        precision: body.precision,
+        direction: body.direction
+      })
       .returning()
       .then((r) => r[0]!)
     return toMeasurementType(row)

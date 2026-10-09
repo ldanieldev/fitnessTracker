@@ -1,9 +1,12 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
 
-// Account deletion cascades from users; foods/recipes cascade too but the entry and item references back to them are NO ACTION,
+// Account deletion cascades from users; foods/recipes cascade too but entry/item references to them are NO ACTION,
 // so a user who ever logged their own food used to trip the constraint inside the cascade and never get deleted.
-test('deleting an account removes every logged own food, recipe, saved meal, and body reading', async ({ page, goto }) => {
+test('deleting an account removes every logged own food, recipe, saved meal, and body reading', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const session = await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')
@@ -16,7 +19,8 @@ test('deleting an account removes every logged own food, recipe, saved meal, and
     servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 12 } }]
   })
   const foodId = food.json.id
-  const servingId = (await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${foodId}`)).json.servings[0]!.id
+  const servingId = (await apiFetch<{ servings: Array<{ id: number }> }>(page, 'GET', `/api/nutrition/foods/${foodId}`))
+    .json.servings[0]!.id
 
   const recipe = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/recipes', {
     name: 'Oat Bowl',
@@ -36,8 +40,17 @@ test('deleting an account removes every logged own food, recipe, saved meal, and
   ])
   expect(entries.ok).toBe(true)
 
-  const type = await apiFetch<{ id: number }>(page, 'POST', '/api/body/types', { name: 'Waist', unit: 'in', precision: 1, direction: 'lower' })
-  const reading = await apiFetch(page, 'POST', '/api/body/entries', { typeId: type.json.id, value: 44.2, measuredOn: '2026-09-01' })
+  const type = await apiFetch<{ id: number }>(page, 'POST', '/api/body/types', {
+    name: 'Waist',
+    unit: 'in',
+    precision: 1,
+    direction: 'lower'
+  })
+  const reading = await apiFetch(page, 'POST', '/api/body/entries', {
+    typeId: type.json.id,
+    value: 44.2,
+    measuredOn: '2026-09-01'
+  })
   expect(type.ok && reading.ok).toBe(true)
 
   const del = await apiFetch(page, 'DELETE', `/api/users/${userId}`)

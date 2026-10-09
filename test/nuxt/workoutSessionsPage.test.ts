@@ -8,13 +8,23 @@ const { calls } = vi.hoisted(() => ({ calls: [] as Array<Record<string, string>>
 
 // The global auth middleware runs on the test navigation, so the session must read as signed in.
 mockNuxtImport('useUserSession', () => () => ({
-  loggedIn: { value: true }, user: { value: { id: 1, weekStart: 1 } }, fetch: vi.fn(), clear: vi.fn()
+  loggedIn: { value: true },
+  user: { value: { id: 1, weekStart: 1 } },
+  fetch: vi.fn(),
+  clear: vi.fn()
 }))
 
 const TOTAL = 25
 const summary = (id: number) => ({
-  id, name: `W${id}`, performedOn: '2026-09-01', startedAt: '2026-09-01T15:00:00.000Z', endedAt: '2026-09-01T16:00:00.000Z',
-  exerciseCount: 1, setCount: 3, categories: [], program: null
+  id,
+  name: `W${id}`,
+  performedOn: '2026-09-01',
+  startedAt: '2026-09-01T15:00:00.000Z',
+  endedAt: '2026-09-01T16:00:00.000Z',
+  exerciseCount: 1,
+  setCount: 3,
+  categories: [],
+  program: null
 })
 registerEndpoint('/api/workouts/sessions', {
   method: 'GET',
@@ -75,7 +85,10 @@ describe('workouts/sessions page', () => {
   })
 
   it('pages by twenty, stops at the end, and starts over at one page when the filter changes', async () => {
-    const wrapper = await mountSuspended(SessionsPage, { route: '/workouts/sessions?view=list', attachTo: document.body })
+    const wrapper = await mountSuspended(SessionsPage, {
+      route: '/workouts/sessions?view=list',
+      attachTo: document.body
+    })
     await settle()
     expect(document.querySelectorAll('[data-test="session-row"]')).toHaveLength(20)
     q('session-load-more')!.click()
@@ -113,7 +126,10 @@ describe('workouts/sessions page', () => {
         return null
       }
     })
-    const wrapper = await mountSuspended(SessionsPage, { route: '/workouts/sessions?view=list', attachTo: document.body })
+    const wrapper = await mountSuspended(SessionsPage, {
+      route: '/workouts/sessions?view=list',
+      attachTo: document.body
+    })
     await settle()
 
     await wrapper.find('[data-test="session-menu-1"]').trigger('click')

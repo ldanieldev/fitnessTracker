@@ -14,7 +14,7 @@ const weekStart = computed(() => user.value?.weekStart ?? 1)
 const dots = computed(() => calendarDots(props.sessions))
 
 const phasesByDay = computed(() => {
-  const map = new Map<string, Array<{ phaseId: number, index: number, color: string }>>()
+  const map = new Map<string, Array<{ phaseId: number; index: number; color: string }>>()
   for (const s of props.sessions) {
     const tag = s.program
     if (!tag) continue
@@ -69,7 +69,9 @@ const selected = computed({
             :class="CATEGORY_DOT_CLASS[dot.color] ?? CATEGORY_DOT_CLASS.fallback"
             data-test="calendar-dot"
           />
-          <span v-if="dots.get(cell.toString())?.more" class="text-[9px] leading-none" data-test="calendar-dot-more">+</span>
+          <span v-if="dots.get(cell.toString())?.more" class="text-[9px] leading-none" data-test="calendar-dot-more"
+            >+</span
+          >
         </span>
         <span class="flex h-0.5 w-4 gap-px">
           <span

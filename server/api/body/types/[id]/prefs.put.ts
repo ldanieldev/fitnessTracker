@@ -19,7 +19,9 @@ export default defineEventHandler(async (event) => {
       target: [measurementTypePrefs.userId, measurementTypePrefs.typeId],
       set: {
         ...(body.hidden !== undefined ? { hidden: body.hidden } : { hidden: sql`${measurementTypePrefs.hidden}` }),
-        ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : { sortOrder: sql`${measurementTypePrefs.sortOrder}` })
+        ...(body.sortOrder !== undefined
+          ? { sortOrder: body.sortOrder }
+          : { sortOrder: sql`${measurementTypePrefs.sortOrder}` })
       }
     })
     .returning()

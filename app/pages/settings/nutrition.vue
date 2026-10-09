@@ -29,7 +29,10 @@ interface CatalogEntry {
   defaultDirection: 'min' | 'max' | 'target'
 }
 
-const { data: containers } = useNutritionFetch<Container[]>(NUTRITION_KEYS.containersAll, '/api/nutrition/meal-containers?includeArchived=1')
+const { data: containers } = useNutritionFetch<Container[]>(
+  NUTRITION_KEYS.containersAll,
+  '/api/nutrition/meal-containers?includeArchived=1'
+)
 const { data: profiles } = useNutritionFetch<Profile[]>(NUTRITION_KEYS.profiles, '/api/nutrition/goal-profiles')
 const { data: catalog } = useNutritionFetch<CatalogEntry[]>(NUTRITION_KEYS.catalog, '/api/nutrition/nutrients')
 const { tracked } = useTrackedNutrients()

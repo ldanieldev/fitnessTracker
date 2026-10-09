@@ -1,7 +1,10 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { makeUser, registerViaApi } from './helpers'
 
-test('shows the viewfinder or a permission notice, and the manual path lands on the new-food page prefilled', async ({ page, goto }) => {
+test('shows the viewfinder or a permission notice, and the manual path lands on the new-food page prefilled', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 

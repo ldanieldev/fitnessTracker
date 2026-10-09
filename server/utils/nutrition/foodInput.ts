@@ -28,13 +28,10 @@ export interface PreparedServing {
   hasOwnNutrition: boolean
   origin: 'user' | 'import'
   sortOrder: number
-  nutrients: Array<{ nutrientId: number, amount: number }>
+  nutrients: Array<{ nutrientId: number; amount: number }>
 }
 
-export function buildServingRows(
-  inputs: ServingInput[],
-  nutrientIds: Map<string, number>
-): PreparedServing[] {
+export function buildServingRows(inputs: ServingInput[], nutrientIds: Map<string, number>): PreparedServing[] {
   if (inputs.filter((s) => s.kind === 'weight').length > 1) {
     throw new Error('A food may have at most one weight serving')
   }
@@ -77,7 +74,15 @@ export function buildServingRows(
       return { nutrientId, amount }
     })
 
-    return { kind: input.kind, label, quantity: input.quantity, basisGrams, hasOwnNutrition,
-      origin: 'user' as const, sortOrder, nutrients }
+    return {
+      kind: input.kind,
+      label,
+      quantity: input.quantity,
+      basisGrams,
+      hasOwnNutrition,
+      origin: 'user' as const,
+      sortOrder,
+      nutrients
+    }
   })
 }

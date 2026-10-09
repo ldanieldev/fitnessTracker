@@ -106,7 +106,7 @@ onUnmounted(() => {
         aria-label="Scan nutrition label photo"
         data-test="ocr-file"
         @change="handleFileChange"
-      >
+      />
     </UFormField>
 
     <p data-test="ocr-status" class="text-sm text-dimmed">{{ statusText }}</p>

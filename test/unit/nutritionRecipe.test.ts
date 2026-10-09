@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest'
 describe('sumIngredients', () => {
   it('adds matching nutrients across ingredients', async () => {
     const { sumIngredients } = await import('../../shared/utils/nutritionRecipe')
-    expect(sumIngredients([
-      { nutrients: { 1: 100, 2: 10 }, gramsResolved: null },
-      { nutrients: { 1: 50, 3: 5 }, gramsResolved: null }
-    ])).toEqual({ 1: 150, 2: 10, 3: 5 })
+    expect(
+      sumIngredients([
+        { nutrients: { 1: 100, 2: 10 }, gramsResolved: null },
+        { nutrients: { 1: 50, 3: 5 }, gramsResolved: null }
+      ])
+    ).toEqual({ 1: 150, 2: 10, 3: 5 })
   })
 
   it('returns an empty object for no ingredients', async () => {

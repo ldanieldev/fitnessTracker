@@ -33,7 +33,14 @@ describe('chartModel', () => {
       { date: '2026-03-10', value: 198 }
     ]
     const m = buildChartModel({
-      points, trend: [], goal: 100, from: '2026-03-01', to: '2026-03-10', width: 320, height: 200, gapDays: 10
+      points,
+      trend: [],
+      goal: 100,
+      from: '2026-03-01',
+      to: '2026-03-10',
+      width: 320,
+      height: 200,
+      gapDays: 10
     })
     expect(m.y.domain[0]).toBeGreaterThan(100)
     expect(m.y.domain[1]).toBeLessThan(210)
@@ -91,8 +98,17 @@ describe('chartModel', () => {
   it('anchors the y axis at zero when asked', async () => {
     const { buildChartModel } = await import('../../shared/utils/chartModel')
     const input = {
-      points: [{ date: '2026-03-01', value: 200 }, { date: '2026-03-02', value: 210 }],
-      trend: [], goal: null, from: '2026-03-01', to: '2026-03-02', width: 320, height: 200, gapDays: 10
+      points: [
+        { date: '2026-03-01', value: 200 },
+        { date: '2026-03-02', value: 210 }
+      ],
+      trend: [],
+      goal: null,
+      from: '2026-03-01',
+      to: '2026-03-02',
+      width: 320,
+      height: 200,
+      gapDays: 10
     }
     expect(buildChartModel(input).y.domain[0]).toBeGreaterThan(0)
     expect(buildChartModel({ ...input, zeroBased: true }).y.domain[0]).toBe(0)

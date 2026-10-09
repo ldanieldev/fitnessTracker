@@ -12,12 +12,16 @@ export const BODY_KEYS = {
   seriesRange: (typeId: number, range: BodyRange) => `body:series:${typeId}:${range}`
 } as const
 
-// Delegates so body reads share the nutrition helpers' 401 hook; dedupe: 'defer' shares one mount-time in-flight fetch across callers (invalidateBody below forces a fresh one regardless).
-export function useBodyFetch<T>(key: string | (() => string), url: string | (() => string), opts: UseFetchOptions<T> = {}) {
+// Delegates for the shared 401 hook; dedupe 'defer' shares one mount-time fetch (invalidateBody forces a fresh one).
+export function useBodyFetch<T>(
+  key: string | (() => string),
+  url: string | (() => string),
+  opts: UseFetchOptions<T> = {}
+) {
   return useNutritionFetch<T>(key, url, { dedupe: 'defer', ...opts })
 }
 
-// Executes each target directly with dedupe: 'cancel' instead of delegating to invalidateNutrition/refreshNuxtData, whose default dedupe ('defer', from useBodyFetch) would just hand back a mutation-invalidated key's stale in-flight promise.
+// Runs targets with dedupe 'cancel': useBodyFetch's 'defer' would return an invalidated key's stale in-flight promise.
 export async function invalidateBody(...keys: string[]) {
   const exact = keys.filter((k) => !k.endsWith(':'))
   const prefixes = keys.filter((k) => k.endsWith(':'))

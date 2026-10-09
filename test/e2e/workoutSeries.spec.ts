@@ -10,19 +10,22 @@ test('workout series: metrics, validation and incremental rollups matching a reb
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const first = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
-    performedOn: '2026-01-05'
-  })).json
-  const firstEntry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${first.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
+  const first = (
+    await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
+      performedOn: '2026-01-05'
+    })
+  ).json
+  const firstEntry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${first.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${firstEntry.id}/sets`, { weight: 185, reps: 8 })
   await apiFetch(page, 'POST', `/api/workouts/entries/${firstEntry.id}/sets`, { weight: 205, reps: 5 })
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${first.id}`, { finish: true })
 
-  const url = (metric: string, extra = '') => (
+  const url = (metric: string, extra = '') =>
     `/api/workouts/exercises/${bench.id}/series?metric=${metric}&from=2026-01-01&to=${today}${extra}`
-  )
 
   const volume = (await apiFetch<ExerciseSeries>(page, 'GET', url('volume'))).json
   expect(volume.points).toEqual([{ date: '2026-01-05', value: 185 * 8 + 205 * 5 }])
@@ -55,22 +58,29 @@ test('workout series: metrics, validation and incremental rollups matching a reb
   expect((await apiFetch<ExerciseSeries>(page, 'GET', url('volume'))).json.points).toEqual([])
 })
 
-test('workout series: duplicate entries for one exercise in one session aggregate and survive a partial delete', async (
-  { page, goto }
-) => {
+test('workout series: duplicate entries for one exercise in one session aggregate and survive a partial delete', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
-    performedOn: '2026-02-01'
-  })).json
-  const entryA = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
-  const entryB = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[1]!
+  const session = (
+    await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
+      performedOn: '2026-02-01'
+    })
+  ).json
+  const entryA = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
+  const entryB = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[1]!
 
   await apiFetch(page, 'POST', `/api/workouts/entries/${entryA.id}/sets`, { weight: 135, reps: 10 })
   await apiFetch(page, 'POST', `/api/workouts/entries/${entryB.id}/sets`, { weight: 145, reps: 6 })
@@ -89,12 +99,16 @@ test('workout series: raising the rep cap rebuilds the stored e1rm', async ({ pa
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
-    performedOn: '2026-03-01'
-  })).json
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
+  const session = (
+    await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
+      performedOn: '2026-03-01'
+    })
+  ).json
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 100, reps: 12 })
 
   const url = `/api/workouts/exercises/${bench.id}/series?metric=e1rm&from=2026-01-01&to=${today}`
@@ -114,21 +128,26 @@ test('workout series: a weight_at_reps goal only draws when the requested reps m
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
-    performedOn: '2026-04-01'
-  })).json
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
+  const session = (
+    await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
+      performedOn: '2026-04-01'
+    })
+  ).json
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 185, reps: 5 })
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${session.id}`, { finish: true })
   await apiFetch(page, 'PUT', `/api/workouts/exercises/${bench.id}/goal`, {
-    metric: 'weight_at_reps', targetValue: 200, targetReps: 5
+    metric: 'weight_at_reps',
+    targetValue: 200,
+    targetReps: 5
   })
 
-  const url = (reps: number) => (
+  const url = (reps: number) =>
     `/api/workouts/exercises/${bench.id}/series?metric=weight_at_reps&reps=${reps}&from=2026-01-01&to=${today}`
-  )
 
   const atGoalReps = (await apiFetch<ExerciseSeries>(page, 'GET', url(5))).json
   expect(atGoalReps.goal?.targetReps).toBe(5)

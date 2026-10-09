@@ -19,7 +19,14 @@ const KEYS = ['energy', 'protein', 'carbohydrate', 'fat'] as const
 export function perDefaultOf(food: FoodForResolve, idToKey: Map<number, string>): PerDefault | null {
   const serving = defaultServing(food)
   if (!serving) return null
-  const out: PerDefault = { label: serving.label, quantity: serving.quantity, energy: null, protein: null, carbohydrate: null, fat: null }
+  const out: PerDefault = {
+    label: serving.label,
+    quantity: serving.quantity,
+    energy: null,
+    protein: null,
+    carbohydrate: null,
+    fat: null
+  }
   try {
     const resolved = resolveNutrition(food, { type: 'serving', servingId: serving.id }, serving.quantity)
     for (const [id, amount] of Object.entries(resolved.nutrients)) {

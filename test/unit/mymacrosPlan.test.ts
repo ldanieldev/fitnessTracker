@@ -23,7 +23,15 @@ describe('planImport', () => {
     const { planImport } = await import('../../server/utils/nutrition/mymacros/plan')
     const plan = planImport(await load(['2026-09-04.txt']), 1)
     const egg = plan.foods.find((f) => f.name === 'Large Egg')!
-    expect(egg.servings).toEqual([{ kind: 'named', label: 'egg', quantity: 1, basisGrams: null, perUnit: { kcal: 69, protein: 6, carbs: 0, fat: 5 } }])
+    expect(egg.servings).toEqual([
+      {
+        kind: 'named',
+        label: 'egg',
+        quantity: 1,
+        basisGrams: null,
+        perUnit: { kcal: 69, protein: 6, carbs: 0, fat: 5 }
+      }
+    ])
   })
   it('merges a compound Serving (113 g) row into the same food as its gram rows', async () => {
     const { planImport } = await import('../../server/utils/nutrition/mymacros/plan')
@@ -37,15 +45,32 @@ describe('planImport', () => {
     const { planImport } = await import('../../server/utils/nutrition/mymacros/plan')
     const plan = planImport(await load(['2026-09-05.txt']), 1)
     const silk = plan.foods.find((f) => f.name === 'Silk Vanilla Almond Milk')!
-    expect(silk.servings).toEqual([{ kind: 'named', label: 'fl oz', quantity: 1, basisGrams: null, perUnit: { kcal: 3.3125, protein: 0.125, carbs: 0, fat: 0.3125 } }])
+    expect(silk.servings).toEqual([
+      {
+        kind: 'named',
+        label: 'fl oz',
+        quantity: 1,
+        basisGrams: null,
+        perUnit: { kcal: 3.3125, protein: 0.125, carbs: 0, fat: 0.3125 }
+      }
+    ])
     const entry = plan.entries.find((e) => e.foodKey === silk.key && e.quantity === 8.47)!
-    expect(entry).toMatchObject({ unitLabel: 'fl oz', gramsResolved: null, nutrients: { kcal: 28.06, protein: 1.06, carbs: 0, fat: 2.6468751 } })
-    expect(plan.warnings.some((w) => w.code === 'oz_as_fluid' && w.message.includes('Silk Vanilla Almond Milk'))).toBe(true)
+    expect(entry).toMatchObject({
+      unitLabel: 'fl oz',
+      gramsResolved: null,
+      nutrients: { kcal: 28.06, protein: 1.06, carbs: 0, fat: 2.6468751 }
+    })
+    expect(plan.warnings.some((w) => w.code === 'oz_as_fluid' && w.message.includes('Silk Vanilla Almond Milk'))).toBe(
+      true
+    )
   })
   it('treats ounces as mass when gram rows of the same food agree', async () => {
     const { planImport } = await import('../../server/utils/nutrition/mymacros/plan')
     const { parseMyMacrosExport } = await import('../../server/utils/nutrition/mymacros/parse')
-    const text = fixture('2026-09-05.txt').replace('Jasmine Rice (dry)\nServing Size: 50.00 Grams\nTotal Calories: 172.00', 'Jasmine Rice (dry)\nServing Size: 1.7637 Ounces\nTotal Calories: 172.00')
+    const text = fixture('2026-09-05.txt').replace(
+      'Jasmine Rice (dry)\nServing Size: 50.00 Grams\nTotal Calories: 172.00',
+      'Jasmine Rice (dry)\nServing Size: 1.7637 Ounces\nTotal Calories: 172.00'
+    )
     const plan = planImport([parseMyMacrosExport(text, 'x'), ...(await load(['2026-09-04.txt']))], 1)
     const rice = plan.foods.find((f) => f.name === 'Jasmine Rice (dry)')!
     expect(rice.servings.map((s) => s.kind)).toEqual(['weight'])
@@ -180,7 +205,11 @@ describe('planImport', () => {
     expect(plan.foods.find((f) => f.name === 'Mystery Bar')).toBeUndefined()
     const entry = plan.entries.find((e) => e.description === 'Mystery Bar')!
     expect(entry.kind).toBe('quick_add')
-    expect(plan.warnings).toContainEqual({ date: '2026-09-06', code: 'unsupported_unit', message: 'Mystery Bar: unit "" is not supported' })
+    expect(plan.warnings).toContainEqual({
+      date: '2026-09-06',
+      code: 'unsupported_unit',
+      message: 'Mystery Bar: unit "" is not supported'
+    })
   })
 
   it('keeps the disagreement wording for oz_as_fluid when gram rows exist but disagree', async () => {
@@ -230,8 +259,12 @@ describe('planImport', () => {
   it('uses the no-gram-rows wording for oz_as_fluid on an ounce-only food', async () => {
     const { planImport } = await import('../../server/utils/nutrition/mymacros/plan')
     const plan = planImport(await load(['2026-09-05.txt']), 1)
-    const warning = plan.warnings.find((w) => w.code === 'oz_as_fluid' && w.message.includes('Silk Vanilla Almond Milk'))!
-    expect(warning.message).toBe('Silk Vanilla Almond Milk: ounces imported as fluid ounces (no gram rows to compare against)')
+    const warning = plan.warnings.find(
+      (w) => w.code === 'oz_as_fluid' && w.message.includes('Silk Vanilla Almond Milk')
+    )!
+    expect(warning.message).toBe(
+      'Silk Vanilla Almond Milk: ounces imported as fluid ounces (no gram rows to compare against)'
+    )
   })
 
   it('emits deterministic import keys and the containers in first-seen order', async () => {

@@ -4,7 +4,10 @@ import { programPhases, programs, routines, userProgramEnrollments, workoutTempl
 import { db, type DbClient } from '~~/server/utils/db'
 import { lockLiveEnrollment } from '~~/server/utils/workouts/enrollments'
 import type {
-  ProgramCreateInput, ProgramPatchInput, ProgramPhaseCreateInput, ProgramPhasePatchInput
+  ProgramCreateInput,
+  ProgramPatchInput,
+  ProgramPhaseCreateInput,
+  ProgramPhasePatchInput
 } from '~~/server/utils/workouts/input'
 import { renumberSiblings, siblingIds } from '~~/server/utils/workouts/sortOrder'
 
@@ -12,16 +15,23 @@ const PROGRAM_NOT_FOUND = { statusCode: 404, statusMessage: 'Program not found' 
 const PHASE_NOT_FOUND = { statusCode: 404, statusMessage: 'Phase not found' } as const
 
 export async function ownedProgram(userId: number, id: number, client: DbClient = db) {
-  const row = await client.select().from(programs)
-    .where(and(eq(programs.id, id), eq(programs.userId, userId))).then((r) => r[0])
+  const row = await client
+    .select()
+    .from(programs)
+    .where(and(eq(programs.id, id), eq(programs.userId, userId)))
+    .then((r) => r[0])
   if (!row) throw createError(PROGRAM_NOT_FOUND)
   return row
 }
 
 // Locking the parent program serialises count-then-insert and renumbering across concurrent phase edits.
 async function lockOwnedProgram(client: DbClient, userId: number, id: number) {
-  const row = await client.select({ id: programs.id }).from(programs)
-    .where(and(eq(programs.id, id), eq(programs.userId, userId))).for('update').then((r) => r[0])
+  const row = await client
+    .select({ id: programs.id })
+    .from(programs)
+    .where(and(eq(programs.id, id), eq(programs.userId, userId)))
+    .for('update')
+    .then((r) => r[0])
   if (!row) throw createError(PROGRAM_NOT_FOUND)
 }
 
@@ -45,8 +55,12 @@ async function lockPhaseProgram(tx: DbClient, userId: number, phaseId: number) {
 async function assertOwnRoutine(userId: number, routineId: number | null | undefined, client: DbClient) {
   if (routineId == null) return
   // KEY SHARE makes a phase write queue behind a routine delete and see it gone, instead of failing the FK with a 500.
-  const row = await client.select({ id: routines.id }).from(routines)
-    .where(and(eq(routines.id, routineId), eq(routines.userId, userId))).for('key share').then((r) => r[0])
+  const row = await client
+    .select({ id: routines.id })
+    .from(routines)
+    .where(and(eq(routines.id, routineId), eq(routines.userId, userId)))
+    .for('key share')
+    .then((r) => r[0])
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Routine not found' })
 }
 
@@ -65,7 +79,10 @@ export async function programPhaseRows(client: DbClient, programId: number) {
     .orderBy(asc(programPhases.sortOrder), asc(programPhases.id))
 }
 
-export async function toProgramPhases(client: DbClient, rows: Awaited<ReturnType<typeof programPhaseRows>>): Promise<ProgramPhase[]> {
+export async function toProgramPhases(
+  client: DbClient,
+  rows: Awaited<ReturnType<typeof programPhaseRows>>
+): Promise<ProgramPhase[]> {
   const routineIds = [...new Set(rows.map((row) => row.routineId).filter((id): id is number => id !== null))]
   const routineRows = routineIds.length
     ? await client
@@ -89,12 +106,20 @@ export async function toProgramPhases(client: DbClient, rows: Awaited<ReturnType
 }
 
 export async function listPrograms(userId: number): Promise<ProgramSummary[]> {
-  const rows = await db.select({ id: programs.id, name: programs.name }).from(programs).where(eq(programs.userId, userId))
+  const rows = await db
+    .select({ id: programs.id, name: programs.name })
+    .from(programs)
+    .where(eq(programs.userId, userId))
   if (!rows.length) return []
   const phases = await db
     .select({ programId: programPhases.programId, weeks: programPhases.weeks })
     .from(programPhases)
-    .where(inArray(programPhases.programId, rows.map((row) => row.id)))
+    .where(
+      inArray(
+        programPhases.programId,
+        rows.map((row) => row.id)
+      )
+    )
   const live = await db
     .select({ programId: userProgramEnrollments.programId })
     .from(userProgramEnrollments)
@@ -126,9 +151,11 @@ export async function loadProgram(userId: number, id: number): Promise<Program> 
 }
 
 export async function createProgram(userId: number, input: ProgramCreateInput): Promise<Program> {
-  const row = await db.insert(programs)
+  const row = await db
+    .insert(programs)
     .values({ userId, name: input.name, description: input.description || null })
-    .returning({ id: programs.id }).then((r) => r[0]!)
+    .returning({ id: programs.id })
+    .then((r) => r[0]!)
   return loadProgram(userId, row.id)
 }
 
@@ -143,7 +170,7 @@ export async function patchProgram(userId: number, id: number, patch: ProgramPat
 
 export async function deleteProgram(userId: number, id: number): Promise<void> {
   await db.transaction(async (tx) => {
-    // The cascade rewrites the enrollment and phases, so take the global order first or a concurrent sync deadlocks with it.
+    // The cascade rewrites the enrollment and phases; take the global order first or a concurrent sync deadlocks.
     await lockLiveEnrollment(tx, userId)
     await lockOwnedProgram(tx, userId, id)
     await tx.delete(programs).where(eq(programs.id, id))
@@ -155,24 +182,35 @@ export async function duplicateProgram(userId: number, id: number): Promise<Prog
     const source = await ownedProgram(userId, id, tx)
     const phases = await programPhaseRows(tx, id)
     const routineIds = [...new Set(phases.flatMap((phase) => (phase.routineId === null ? [] : [phase.routineId])))]
-    // Key-share locked so no routine is deleted before the copy references it; one deleted meanwhile is skipped, as its set-null FK would.
+    // Key-share locked so no routine is deleted before the copy references it; a deleted one is skipped (set-null FK).
     const live = routineIds.length
-      ? new Set((await tx.select({ id: routines.id }).from(routines)
-          .where(and(inArray(routines.id, routineIds), eq(routines.userId, userId)))
-          .orderBy(asc(routines.id)).for('key share')).map((row) => row.id))
+      ? new Set(
+          (
+            await tx
+              .select({ id: routines.id })
+              .from(routines)
+              .where(and(inArray(routines.id, routineIds), eq(routines.userId, userId)))
+              .orderBy(asc(routines.id))
+              .for('key share')
+          ).map((row) => row.id)
+        )
       : new Set<number>()
-    const copy = await tx.insert(programs)
+    const copy = await tx
+      .insert(programs)
       .values({ userId, name: `${source.name} (copy)`.slice(0, 255), description: source.description })
-      .returning({ id: programs.id }).then((r) => r[0]!)
+      .returning({ id: programs.id })
+      .then((r) => r[0]!)
     if (phases.length) {
-      await tx.insert(programPhases).values(phases.map((phase) => ({
-        programId: copy.id,
-        name: phase.name,
-        sortOrder: phase.sortOrder,
-        weeks: phase.weeks,
-        deload: phase.deload,
-        routineId: phase.routineId !== null && live.has(phase.routineId) ? phase.routineId : null
-      })))
+      await tx.insert(programPhases).values(
+        phases.map((phase) => ({
+          programId: copy.id,
+          name: phase.name,
+          sortOrder: phase.sortOrder,
+          weeks: phase.weeks,
+          deload: phase.deload,
+          routineId: phase.routineId !== null && live.has(phase.routineId) ? phase.routineId : null
+        }))
+      )
     }
     return copy.id
   })
@@ -182,7 +220,11 @@ export async function duplicateProgram(userId: number, id: number): Promise<Prog
 const phaseSiblings = (tx: DbClient, programId: number) =>
   siblingIds(tx, programPhases, programPhases.id, programPhases.sortOrder, programPhases.programId, programId)
 
-export async function addProgramPhase(userId: number, programId: number, input: ProgramPhaseCreateInput): Promise<Program> {
+export async function addProgramPhase(
+  userId: number,
+  programId: number,
+  input: ProgramPhaseCreateInput
+): Promise<Program> {
   await db.transaction(async (tx) => {
     await lockOwnedProgram(tx, userId, programId)
     await assertOwnRoutine(userId, input.routineId, tx)
@@ -199,7 +241,11 @@ export async function addProgramPhase(userId: number, programId: number, input: 
   return loadProgram(userId, programId)
 }
 
-export async function patchProgramPhase(userId: number, phaseId: number, patch: ProgramPhasePatchInput): Promise<Program> {
+export async function patchProgramPhase(
+  userId: number,
+  phaseId: number,
+  patch: ProgramPhasePatchInput
+): Promise<Program> {
   const phase = await db.transaction(async (tx) => {
     const owned = await lockPhaseProgram(tx, userId, phaseId)
     await assertOwnRoutine(userId, patch.routineId, tx)
@@ -223,7 +269,13 @@ export async function deleteProgramPhase(userId: number, phaseId: number): Promi
   const phase = await db.transaction(async (tx) => {
     const owned = await lockPhaseProgram(tx, userId, phaseId)
     await tx.delete(programPhases).where(eq(programPhases.id, phaseId))
-    await renumberSiblings(tx, programPhases, programPhases.id, programPhases.sortOrder, await phaseSiblings(tx, owned.programId))
+    await renumberSiblings(
+      tx,
+      programPhases,
+      programPhases.id,
+      programPhases.sortOrder,
+      await phaseSiblings(tx, owned.programId)
+    )
     return owned
   })
   return loadProgram(userId, phase.programId)

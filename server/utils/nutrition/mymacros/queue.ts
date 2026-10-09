@@ -8,7 +8,10 @@ export async function queueImportJob(db: RootDbClient, jobId: number, userId: nu
     await inngest.send({ name: 'import/mymacros.requested', data: { jobId, userId } })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    await db.update(importJobs).set({ status: 'failed', error: `Could not queue the import job: ${message}` }).where(eq(importJobs.id, jobId))
+    await db
+      .update(importJobs)
+      .set({ status: 'failed', error: `Could not queue the import job: ${message}` })
+      .where(eq(importJobs.id, jobId))
     throw err
   }
 }

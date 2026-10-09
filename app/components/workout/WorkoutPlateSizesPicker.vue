@@ -66,7 +66,12 @@ function add() {
     </div>
     <div class="flex items-center gap-2">
       <div class="min-w-0 flex-1">
-        <AppNumberInput v-model="draft" placeholder="Add a size (lb)" data-test="plate-add-input" :ui="{ base: 'min-h-10' }" />
+        <AppNumberInput
+          v-model="draft"
+          placeholder="Add a size (lb)"
+          data-test="plate-add-input"
+          :ui="{ base: 'min-h-10' }"
+        />
       </div>
       <UButton
         label="Add"

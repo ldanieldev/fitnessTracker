@@ -115,7 +115,9 @@ export const diaryEntries = appSchema.table(
   (table) => [
     check('entry_quantity_positive', sql`quantity > 0`),
     index('diary_entry_day_container_order').on(table.dayId, table.containerId, table.sortOrder),
-    uniqueIndex('diary_entry_import_key_unique').on(table.importKey).where(sql`import_key is not null`)
+    uniqueIndex('diary_entry_import_key_unique')
+      .on(table.importKey)
+      .where(sql`import_key is not null`)
   ]
 )
 

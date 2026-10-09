@@ -20,7 +20,7 @@ import { moveWithGroupsTo, normalizeGroups, ungroupItem } from '~~/shared/utils/
 
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Entry not found' } as const
 
-async function loadSetRows(entryIds: number[]): Promise<{ entryId: number, set: WorkoutSet }[]> {
+async function loadSetRows(entryIds: number[]): Promise<{ entryId: number; set: WorkoutSet }[]> {
   if (!entryIds.length) return []
   const rows = await db
     .select({
@@ -67,13 +67,17 @@ export async function loadEntries(userId: number, session: SessionAnchor): Promi
       })
       .from(workoutEntries)
       .innerJoin(exercises, eq(exercises.id, workoutEntries.exerciseId))
-      .leftJoin(exercisePrefs, and(
-        eq(exercisePrefs.userId, userId),
-        eq(exercisePrefs.exerciseId, workoutEntries.exerciseId)
-      ))
+      .leftJoin(
+        exercisePrefs,
+        and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, workoutEntries.exerciseId))
+      )
       .where(eq(workoutEntries.sessionId, session.id))
       .orderBy(workoutEntries.sortOrder, workoutEntries.id),
-    db.select({ plateSizes: users.plateSizes }).from(users).where(eq(users.id, userId)).then((r) => r[0])
+    db
+      .select({ plateSizes: users.plateSizes })
+      .from(users)
+      .where(eq(users.id, userId))
+      .then((r) => r[0])
   ])
   const defaultPlates = owner?.plateSizes ?? DEFAULT_PLATE_SIZES.map(String)
 
@@ -124,12 +128,18 @@ export async function loadEntries(userId: number, session: SessionAnchor): Promi
 export async function addEntry(userId: number, sessionId: number, exerciseId: number): Promise<WorkoutSession> {
   await db.transaction(async (tx) => {
     // Session row first: it queues behind a session delete and other adds even when the workout has no entries yet.
-    const owned = await tx.select({ id: workoutSessions.id }).from(workoutSessions)
-      .where(and(eq(workoutSessions.id, sessionId), eq(workoutSessions.userId, userId))).for('no key update')
+    const owned = await tx
+      .select({ id: workoutSessions.id })
+      .from(workoutSessions)
+      .where(and(eq(workoutSessions.id, sessionId), eq(workoutSessions.userId, userId)))
+      .for('no key update')
     if (!owned.length) throw createError({ statusCode: 404, statusMessage: 'Workout not found' })
     await lockGroupRows(tx, SESSION_ENTRY_GROUPS, sessionId)
     const exercise = await loadExerciseSettings(userId, exerciseId)
-    const entries = await tx.select({ n: count() }).from(workoutEntries).where(eq(workoutEntries.sessionId, sessionId))
+    const entries = await tx
+      .select({ n: count() })
+      .from(workoutEntries)
+      .where(eq(workoutEntries.sessionId, sessionId))
       .then((r) => r[0]!.n)
     await tx.insert(workoutEntries).values({
       sessionId,
@@ -169,9 +179,10 @@ export async function patchEntry(
 
   await db.transaction(async (tx) => {
     // A regroup locks in id order; the notes write must not take this row out of that order first.
-    const locked = patch.supersetGroup === null || patch.sortOrder !== undefined
-      ? await lockGroupRows(tx, SESSION_ENTRY_GROUPS, entry.sessionId)
-      : null
+    const locked =
+      patch.supersetGroup === null || patch.sortOrder !== undefined
+        ? await lockGroupRows(tx, SESSION_ENTRY_GROUPS, entry.sessionId)
+        : null
     const current = locked?.find((row) => row.id === entryId)
     if (locked && !current) throw createError(NOT_FOUND_ERROR)
     if (patch.notes !== undefined) {
@@ -183,7 +194,8 @@ export async function patchEntry(
     if (patch.sortOrder !== undefined && patch.sortOrder !== current!.sortOrder) {
       const target = patch.sortOrder
       await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, (items) =>
-        moveWithGroupsTo(items, entryId, Math.min(target, items.length - 1)))
+        moveWithGroupsTo(items, entryId, Math.min(target, items.length - 1))
+      )
     }
   })
 

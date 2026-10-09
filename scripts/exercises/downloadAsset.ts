@@ -2,7 +2,7 @@ import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { dirname, resolve, sep } from 'node:path'
 
 export async function downloadAsset(
-  item: { path: string, url: string },
+  item: { path: string; url: string },
   outDir: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<string | null> {

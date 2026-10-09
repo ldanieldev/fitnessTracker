@@ -11,10 +11,28 @@ describe('useBodySeries', () => {
   it('refetches only when useToday() resolves to a day different from the SSR default', async () => {
     clearNuxtData(BODY_KEYS.seriesRange(1, '3m'))
     let calls = 0
-    const typeShape = { id: 1, key: 'bodyweight', name: 'Bodyweight', unit: 'lbs', precision: 1, direction: 'neutral', builtIn: true, hidden: false, sortOrder: null }
+    const typeShape = {
+      id: 1,
+      key: 'bodyweight',
+      name: 'Bodyweight',
+      unit: 'lbs',
+      precision: 1,
+      direction: 'neutral',
+      builtIn: true,
+      hidden: false,
+      sortOrder: null
+    }
     registerEndpoint('/api/body/types/1/series', () => {
       calls += 1
-      return { type: typeShape, goal: null, latest: null, granularity: 'day', from: '2026-06-01', to: todayDate(), points: [] }
+      return {
+        type: typeShape,
+        goal: null,
+        latest: null,
+        granularity: 'day',
+        from: '2026-06-01',
+        to: todayDate(),
+        points: []
+      }
     })
 
     useToday().value = null

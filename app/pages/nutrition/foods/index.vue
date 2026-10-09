@@ -3,7 +3,7 @@ interface ListedFood {
   id: number
   name: string
   brand: string | null
-  defaultServing: { label: string, quantity: number } | null
+  defaultServing: { label: string; quantity: number } | null
   energy: number | null
 }
 
@@ -18,7 +18,9 @@ watch(query, (value) => {
   }, 250)
 })
 
-const { data: foods } = await useNutritionFetch<ListedFood[]>(NUTRITION_KEYS.foods, '/api/nutrition/foods', { query: { q: debouncedQuery } })
+const { data: foods } = await useNutritionFetch<ListedFood[]>(NUTRITION_KEYS.foods, '/api/nutrition/foods', {
+  query: { q: debouncedQuery }
+})
 
 function amountText(food: ListedFood) {
   return food.defaultServing ? `${food.defaultServing.quantity} ${food.defaultServing.label}` : null
@@ -39,7 +41,13 @@ function amountText(food: ListedFood) {
     </template>
     <template #body>
       <div class="flex flex-col gap-3 max-w-2xl mx-auto w-full">
-        <UInput v-model="query" icon="i-lucide-search" placeholder="Search my foods" class="w-full" data-test="my-food-search" />
+        <UInput
+          v-model="query"
+          icon="i-lucide-search"
+          placeholder="Search my foods"
+          class="w-full"
+          data-test="my-food-search"
+        />
         <NutritionResultRow
           v-for="food in foods ?? []"
           :key="food.id"
@@ -51,8 +59,12 @@ function amountText(food: ListedFood) {
           chevron
           @open="navigateTo(`/nutrition/foods/${food.id}`)"
         />
-        <p v-if="(foods ?? []).length === 0 && query.trim()" class="text-sm text-dimmed">No matches for "{{ query }}"</p>
-        <p v-else-if="(foods ?? []).length === 0" class="text-sm text-dimmed">No foods yet — foods you create or copy appear here</p>
+        <p v-if="(foods ?? []).length === 0 && query.trim()" class="text-sm text-dimmed">
+          No matches for "{{ query }}"
+        </p>
+        <p v-else-if="(foods ?? []).length === 0" class="text-sm text-dimmed">
+          No foods yet — foods you create or copy appear here
+        </p>
       </div>
     </template>
   </UDashboardPanel>

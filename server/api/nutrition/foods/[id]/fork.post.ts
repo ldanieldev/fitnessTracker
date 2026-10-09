@@ -13,7 +13,12 @@ export default defineEventHandler(async (event) => {
   if (!source) throw createError({ statusCode: 404, statusMessage: 'Food not found' })
 
   return db.transaction(async (tx) => {
-    const head = await tx.select().from(foods).where(eq(foods.id, sourceId)).limit(1).then((r) => r[0]!)
+    const head = await tx
+      .select()
+      .from(foods)
+      .where(eq(foods.id, sourceId))
+      .limit(1)
+      .then((r) => r[0]!)
 
     const copy = await tx
       .insert(foods)
@@ -51,15 +56,12 @@ export default defineEventHandler(async (event) => {
         .returning()
         .then((r) => r[0]!)
 
-      const nutrientRows = await tx
-        .select()
-        .from(foodNutrients)
-        .where(eq(foodNutrients.foodServingId, serving.id))
+      const nutrientRows = await tx.select().from(foodNutrients).where(eq(foodNutrients.foodServingId, serving.id))
 
       if (nutrientRows.length) {
-        await tx.insert(foodNutrients).values(
-          nutrientRows.map((n) => ({ foodServingId: row.id, nutrientId: n.nutrientId, amount: n.amount }))
-        )
+        await tx
+          .insert(foodNutrients)
+          .values(nutrientRows.map((n) => ({ foodServingId: row.id, nutrientId: n.nutrientId, amount: n.amount })))
       }
     }
 

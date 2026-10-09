@@ -3,7 +3,7 @@ import { clockLabel, parseClock } from '~~/shared/utils/cardioUnits'
 
 defineOptions({ inheritAttrs: false })
 
-const props = withDefaults(defineProps<{ step?: number, placeholder?: string, disabled?: boolean }>(), {
+const props = withDefaults(defineProps<{ step?: number; placeholder?: string; disabled?: boolean }>(), {
   step: undefined,
   placeholder: '',
   disabled: false
@@ -34,7 +34,16 @@ function stepBy(direction: 1 | -1) {
 
 <template>
   <div class="flex w-full items-center gap-1" data-test="duration-input">
-    <UButton v-if="step !== undefined" icon="i-lucide-minus" variant="soft" color="neutral" class="size-10 shrink-0" aria-label="Decrease" :disabled="disabled" @click="stepBy(-1)" />
+    <UButton
+      v-if="step !== undefined"
+      icon="i-lucide-minus"
+      variant="soft"
+      color="neutral"
+      class="size-10 shrink-0"
+      aria-label="Decrease"
+      :disabled="disabled"
+      @click="stepBy(-1)"
+    />
     <UInput
       :model-value="text"
       type="text"
@@ -48,6 +57,15 @@ function stepBy(direction: 1 | -1) {
       @focus="focused = true"
       @blur="onBlur"
     />
-    <UButton v-if="step !== undefined" icon="i-lucide-plus" variant="soft" color="neutral" class="size-10 shrink-0" aria-label="Increase" :disabled="disabled" @click="stepBy(1)" />
+    <UButton
+      v-if="step !== undefined"
+      icon="i-lucide-plus"
+      variant="soft"
+      color="neutral"
+      class="size-10 shrink-0"
+      aria-label="Increase"
+      :disabled="disabled"
+      @click="stepBy(1)"
+    />
   </div>
 </template>

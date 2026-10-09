@@ -55,8 +55,15 @@ describe('NutritionBarcodeScanner', () => {
       return {
         found: 'off',
         external: {
-          source: 'off', externalId: '3017624010701', name: 'Nutella', brand: 'Ferrero', barcode: '3017624010701',
-          per100g: null, servingGrams: null, servingLabel: null, attribution: null
+          source: 'off',
+          externalId: '3017624010701',
+          name: 'Nutella',
+          brand: 'Ferrero',
+          barcode: '3017624010701',
+          per100g: null,
+          servingGrams: null,
+          servingLabel: null,
+          attribution: null
         }
       }
     })
@@ -86,8 +93,15 @@ describe('NutritionBarcodeScanner', () => {
     registerEndpoint('/api/nutrition/foods/barcode/3017624010701', () => ({
       found: 'off',
       external: {
-        source: 'off', externalId: '3017624010701', name: 'Nutella', brand: 'Ferrero', barcode: '3017624010701',
-        per100g: null, servingGrams: null, servingLabel: null, attribution: null
+        source: 'off',
+        externalId: '3017624010701',
+        name: 'Nutella',
+        brand: 'Ferrero',
+        barcode: '3017624010701',
+        per100g: null,
+        servingGrams: null,
+        servingLabel: null,
+        attribution: null
       }
     }))
     registerEndpoint('/api/nutrition/foods/import', {
@@ -114,7 +128,10 @@ describe('NutritionBarcodeScanner', () => {
       throw createError({
         statusCode: 404,
         statusMessage: 'Barcode not found',
-        data: { barcode: '3017624010701', errors: [{ source: 'usda', kind: 'rate_limited', message: 'too many requests' }] }
+        data: {
+          barcode: '3017624010701',
+          errors: [{ source: 'usda', kind: 'rate_limited', message: 'too many requests' }]
+        }
       })
     })
 
@@ -130,7 +147,7 @@ describe('NutritionBarcodeScanner', () => {
     expect(navigateToMock).toHaveBeenCalledWith('/nutrition/diary/2026-01-01/foods/new?barcode=3017624010701')
   })
 
-  // Drives the race via manual entry (a controllable lookup promise) rather than the camera frame loop, which happy-dom can't exercise.
+  // Drives the race via manual entry (controllable lookup promise); happy-dom can't run the camera frame loop.
   it('does not navigate if the component unmounts while the lookup is still in flight', async () => {
     stubSecureContext(false)
     let resolveLookup: (value: unknown) => void = () => {}

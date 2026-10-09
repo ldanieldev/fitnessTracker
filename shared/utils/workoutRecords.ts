@@ -27,13 +27,15 @@ function maxRecord(
 function weightRepsRecord(set: HistorySet, history: HistorySet[], assisted: boolean): SetRecord | null {
   const { weight, reps } = set
   if (weight == null || reps == null) return null
-  const earlier = history.filter((h): h is HistorySet & { weight: number, reps: number } => h.weight != null && h.reps != null)
+  const earlier = history.filter(
+    (h): h is HistorySet & { weight: number; reps: number } => h.weight != null && h.reps != null
+  )
   const loadWins = (earlierWeight: number) => (assisted ? earlierWeight <= weight : earlierWeight >= weight)
   if (earlier.some((h) => loadWins(h.weight) && h.reps >= reps)) return null
   const loadBeaten = (earlierWeight: number) => (assisted ? earlierWeight >= weight : earlierWeight <= weight)
-  const beatsEarlier = earlier.some((h) => (
-    loadBeaten(h.weight) && h.reps <= reps && (h.weight !== weight || h.reps < reps)
-  ))
+  const beatsEarlier = earlier.some(
+    (h) => loadBeaten(h.weight) && h.reps <= reps && (h.weight !== weight || h.reps < reps)
+  )
   if (!beatsEarlier) return null
   const candidates = earlier.filter((h) => h.reps >= reps).map((h) => h.weight)
   if (candidates.length === 0) return { kind: 'weight_reps', previous: null }
@@ -43,7 +45,11 @@ function weightRepsRecord(set: HistorySet, history: HistorySet[], assisted: bool
 function paceRecord(set: HistorySet, history: HistorySet[]): SetRecord | null {
   const pace = paceOf(set)
   if (pace == null) return null
-  return maxRecord(pace, history.map((h) => paceOf(h)), 'pace')
+  return maxRecord(
+    pace,
+    history.map((h) => paceOf(h)),
+    'pace'
+  )
 }
 
 export function recordsFor(
@@ -62,12 +68,20 @@ export function recordsFor(
   }
 
   if (measures.length === 1 && measures[0] === 'reps') {
-    const record = maxRecord(set.reps, others.map((h) => h.reps), 'reps')
+    const record = maxRecord(
+      set.reps,
+      others.map((h) => h.reps),
+      'reps'
+    )
     if (record) records.push(record)
   }
 
   if (measures.includes('distance')) {
-    const record = maxRecord(set.distanceMeters, others.map((h) => h.distanceMeters), 'distance')
+    const record = maxRecord(
+      set.distanceMeters,
+      others.map((h) => h.distanceMeters),
+      'distance'
+    )
     if (record) records.push(record)
   }
 

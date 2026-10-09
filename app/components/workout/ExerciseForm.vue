@@ -5,7 +5,10 @@ import { LOAD_STYLE_LABELS, TRACKING_TYPE_LABELS, WEIGHT_TRACKING_TYPES } from '
 import ExerciseChipGroup from './ExerciseChipGroup.vue'
 
 // Narrower than MuscleRow (drops categoryKey/bodyMapGroups) since the form only renders key + name chips.
-interface MuscleOption { key: string, name: string }
+interface MuscleOption {
+  key: string
+  name: string
+}
 
 export interface ExerciseFormPayload {
   name: string
@@ -134,9 +137,12 @@ const secondaryDisabled = (key: string) =>
 
 const clientError = ref<string | null>(null)
 const serverError = ref<string | null>(props.nameError ?? null)
-watch(() => props.nameError, (value) => {
-  serverError.value = value ?? null
-})
+watch(
+  () => props.nameError,
+  (value) => {
+    serverError.value = value ?? null
+  }
+)
 const nameFieldError = computed(() => clientError.value ?? serverError.value)
 
 function buildPayload(): ExerciseFormPayload {

@@ -4,7 +4,7 @@ import type { SQL } from 'drizzle-orm'
 import type { DbClient } from '../../server/utils/db'
 import { regroup, ROUTINE_ENTRY_GROUPS } from '../../server/utils/workouts/groups'
 
-type Row = { id: number, sort_order: number, superset_group: number | null }
+type Row = { id: number; sort_order: number; superset_group: number | null }
 
 function fakeTx(rows: Row[]) {
   const execute = vi.fn(async (_query: SQL) => ({ rows }))
@@ -34,7 +34,10 @@ describe('regroup', () => {
   })
 
   it('closes a gap in the stored order', async () => {
-    const { tx, execute } = fakeTx([{ id: 1, sort_order: 0, superset_group: null }, { id: 2, sort_order: 5, superset_group: null }])
+    const { tx, execute } = fakeTx([
+      { id: 1, sort_order: 0, superset_group: null },
+      { id: 2, sort_order: 5, superset_group: null }
+    ])
     await regroup(tx, ROUTINE_ENTRY_GROUPS, 7, (items) => items)
     expect(execute).toHaveBeenCalledTimes(2)
   })
@@ -47,7 +50,10 @@ describe('regroup', () => {
   })
 
   it('reads positions by sort order even though the rows arrive in id order', async () => {
-    const { tx, execute } = fakeTx([{ id: 1, sort_order: 1, superset_group: null }, { id: 2, sort_order: 0, superset_group: null }])
+    const { tx, execute } = fakeTx([
+      { id: 1, sort_order: 1, superset_group: null },
+      { id: 2, sort_order: 0, superset_group: null }
+    ])
     const seen: number[] = []
     await regroup(tx, ROUTINE_ENTRY_GROUPS, 7, (items) => {
       seen.push(...items.map((item) => item.id))

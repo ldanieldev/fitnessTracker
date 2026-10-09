@@ -133,7 +133,10 @@ describe('ExerciseSettingsPanel', () => {
   it('leaves barWeight out of the patch when it was and stays null', async () => {
     const back = { ...exercise.category, id: 2, key: 'back', name: 'Back' }
     const wrapper = await mountSuspended(ExerciseSettingsPanel, {
-      props: { exercise: { ...exercise, loadStyle: 'plain' as const, barWeight: null }, categories: [exercise.category, back] }
+      props: {
+        exercise: { ...exercise, loadStyle: 'plain' as const, barWeight: null },
+        categories: [exercise.category, back]
+      }
     })
     // data-test lands on USelect's inner trigger, not the wrapper root VTU sees, so match by item count.
     const selects = wrapper.findAllComponents(USelect) as unknown as SelectProbe[]

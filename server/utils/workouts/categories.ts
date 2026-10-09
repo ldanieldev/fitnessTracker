@@ -44,11 +44,13 @@ export async function loadCategoriesByIds(
   const rows = await client
     .select(CATEGORY_COLUMNS)
     .from(exerciseCategories)
-    .where(and(
-      inArray(exerciseCategories.id, unique),
-      isNull(exerciseCategories.deletedAt),
-      or(isNull(exerciseCategories.userId), eq(exerciseCategories.userId, userId))
-    ))
+    .where(
+      and(
+        inArray(exerciseCategories.id, unique),
+        isNull(exerciseCategories.deletedAt),
+        or(isNull(exerciseCategories.userId), eq(exerciseCategories.userId, userId))
+      )
+    )
   const prefs = await client
     .select()
     .from(exerciseCategoryPrefs)
@@ -60,7 +62,11 @@ export async function loadCategoriesByIds(
 // Callers that already hold the catalogue pass it in: it is a ~900 KB cache read, so a request must not do it twice.
 export async function listCategoriesForUser(
   userId: number,
-  { includeHidden = false, catalogue, client = db }: { includeHidden?: boolean, catalogue?: Catalogue, client?: DbClient } = {}
+  {
+    includeHidden = false,
+    catalogue,
+    client = db
+  }: { includeHidden?: boolean; catalogue?: Catalogue; client?: DbClient } = {}
 ): Promise<ExerciseCategory[]> {
   // The two client reads stay sequential (the client may be a transaction); the catalogue read uses its own connection.
   const [shared, [own, prefs]] = await Promise.all([

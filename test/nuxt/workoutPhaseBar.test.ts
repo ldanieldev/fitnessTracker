@@ -18,7 +18,9 @@ describe('WorkoutPhaseBar', () => {
   it('sizes each segment by its weeks', async () => {
     const wrapper = await mountSuspended(WorkoutPhaseBar, { props: { phases, weeksDone: 0 } })
     expect(wrapper.findAll('[data-test="enrollment-segment"]').map((s) => s.attributes('style'))).toEqual([
-      'flex-grow: 4; flex-basis: 0px;', 'flex-grow: 1; flex-basis: 0px;', 'flex-grow: 2; flex-basis: 0px;'
+      'flex-grow: 4; flex-basis: 0px;',
+      'flex-grow: 1; flex-basis: 0px;',
+      'flex-grow: 2; flex-basis: 0px;'
     ])
   })
 

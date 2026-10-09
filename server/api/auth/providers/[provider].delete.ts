@@ -25,12 +25,7 @@ export default defineEventHandler(async (event) => {
 
   await db
     .delete(authProviders)
-    .where(
-      and(
-        eq(authProviders.userId, sessionUser.id),
-        eq(authProviders.provider, provider)
-      )
-    )
+    .where(and(eq(authProviders.userId, sessionUser.id), eq(authProviders.provider, provider)))
 
   return { success: true }
 })

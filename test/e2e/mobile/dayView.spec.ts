@@ -6,7 +6,10 @@ test('the day header navigates by the week strip and the date sheet, and the FAB
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   await apiFetch(page, 'POST', '/api/nutrition/goal-profiles', {
-    name: 'Phone Cut', inputMode: 'grams', isDefault: true, targets: [{ nutrient: 'energy', amount: 1900, direction: 'max' }]
+    name: 'Phone Cut',
+    inputMode: 'grams',
+    isDefault: true,
+    targets: [{ nutrient: 'energy', amount: 1900, direction: 'max' }]
   })
 
   await goto('/nutrition/diary/2026-09-10', { waitUntil: 'hydration' })
@@ -49,8 +52,22 @@ test('the meal header shows the derived time, then an edited and reset time', as
 
   const firstEntryLoggedAt = '2026-09-11T09:00:00.000Z'
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-11/entries', [
-    { entryType: 'food', containerId, foodId: food.json.id, quantity: 100, unitLabel: 'g', loggedAt: '2026-09-11T12:00:00.000Z' },
-    { entryType: 'food', containerId, foodId: food.json.id, quantity: 100, unitLabel: 'g', loggedAt: firstEntryLoggedAt }
+    {
+      entryType: 'food',
+      containerId,
+      foodId: food.json.id,
+      quantity: 100,
+      unitLabel: 'g',
+      loggedAt: '2026-09-11T12:00:00.000Z'
+    },
+    {
+      entryType: 'food',
+      containerId,
+      foodId: food.json.id,
+      quantity: 100,
+      unitLabel: 'g',
+      loggedAt: firstEntryLoggedAt
+    }
   ])
 
   await goto('/nutrition/diary/2026-09-11', { waitUntil: 'hydration' })

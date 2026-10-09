@@ -41,7 +41,7 @@ export interface ImportPlan {
 
 const MACRO_KEYS: (keyof MacroSet)[] = ['kcal', 'protein', 'carbs', 'fat']
 
-type ResolvedUnit = { kind: 'food', servingLabel: string | null } | { kind: 'quick_add' }
+type ResolvedUnit = { kind: 'food'; servingLabel: string | null } | { kind: 'quick_add' }
 
 interface DatedRow {
   row: ParsedRow
@@ -60,11 +60,18 @@ export function foodKey(name: string): string {
 }
 
 export function importKey(userId: number, row: ParsedRow, date: string): string {
-  return createHash('sha256').update(`mymacros|${userId}|${date}|${row.container}|${row.ordinal}|${row.raw}`).digest('hex')
+  return createHash('sha256')
+    .update(`mymacros|${userId}|${date}|${row.container}|${row.ordinal}|${row.raw}`)
+    .digest('hex')
 }
 
 function perUnitOfRow(row: ParsedRow): MacroSet {
-  return { kcal: row.kcal / row.quantity, protein: row.protein / row.quantity, carbs: row.carbs / row.quantity, fat: row.fat / row.quantity }
+  return {
+    kcal: row.kcal / row.quantity,
+    protein: row.protein / row.quantity,
+    carbs: row.carbs / row.quantity,
+    fat: row.fat / row.quantity
+  }
 }
 
 function perGramOf(row: ParsedRow, grams: number): MacroSet {
@@ -82,7 +89,12 @@ function weightAliasUnit(unit: string): MassUnit | null {
 }
 
 function scale(macro: MacroSet, factor: number): MacroSet {
-  return { kcal: macro.kcal * factor, protein: macro.protein * factor, carbs: macro.carbs * factor, fat: macro.fat * factor }
+  return {
+    kcal: macro.kcal * factor,
+    protein: macro.protein * factor,
+    carbs: macro.carbs * factor,
+    fat: macro.fat * factor
+  }
 }
 
 function isConsistent(perUnitSet: MacroSet[]): boolean {
@@ -143,7 +155,9 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
 
     const gItems = group.rowsByUnit.get('g')
     const ozItems = group.rowsByUnit.get('oz')
-    const extraWeightUnits = [...group.rowsByUnit.keys()].filter((unit) => unit !== 'g' && unit !== 'oz' && weightAliasUnit(unit) !== null)
+    const extraWeightUnits = [...group.rowsByUnit.keys()].filter(
+      (unit) => unit !== 'g' && unit !== 'oz' && weightAliasUnit(unit) !== null
+    )
 
     let ozMode: 'mass' | 'fluid' | null = null
     if (ozItems && consistency.get('oz')) {
@@ -156,8 +170,9 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
       }
     }
 
-    const weightRows: Array<{ perGram: MacroSet, grams: number }> = []
-    if (gItems) for (const item of gItems) weightRows.push({ perGram: perUnitOfRow(item.row), grams: item.row.quantity })
+    const weightRows: Array<{ perGram: MacroSet; grams: number }> = []
+    if (gItems)
+      for (const item of gItems) weightRows.push({ perGram: perUnitOfRow(item.row), grams: item.row.quantity })
     for (const unit of extraWeightUnits) {
       const massUnit = weightAliasUnit(unit)!
       for (const item of group.rowsByUnit.get(unit)!) {
@@ -171,15 +186,29 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
         const weightBasisPerGram = weightRows.reduce((a, b) => (b.grams > a.grams ? b : a)).perGram
         if (gItems) group.resolvedUnits.set('g', { kind: 'food', servingLabel: null })
         for (const unit of extraWeightUnits) group.resolvedUnits.set(unit, { kind: 'food', servingLabel: null })
-        servings.push({ kind: 'weight', label: 'g', quantity: 100, basisGrams: 100, perUnit: scale(weightBasisPerGram, 100) })
+        servings.push({
+          kind: 'weight',
+          label: 'g',
+          quantity: 100,
+          basisGrams: 100,
+          perUnit: scale(weightBasisPerGram, 100)
+        })
       } else {
         if (gItems) {
           group.resolvedUnits.set('g', { kind: 'quick_add' })
-          warnings.push({ date: gItems[0]!.date, code: 'inconsistent_group', message: `${group.name} (g) has inconsistent per-unit nutrition` })
+          warnings.push({
+            date: gItems[0]!.date,
+            code: 'inconsistent_group',
+            message: `${group.name} (g) has inconsistent per-unit nutrition`
+          })
         }
         for (const unit of extraWeightUnits) {
           group.resolvedUnits.set(unit, { kind: 'quick_add' })
-          warnings.push({ date: group.rowsByUnit.get(unit)![0]!.date, code: 'inconsistent_group', message: `${group.name} (${unit}) has inconsistent per-unit nutrition` })
+          warnings.push({
+            date: group.rowsByUnit.get(unit)![0]!.date,
+            code: 'inconsistent_group',
+            message: `${group.name} (${unit}) has inconsistent per-unit nutrition`
+          })
         }
       }
     }
@@ -189,14 +218,22 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
 
       if (unit.trim() === '') {
         group.resolvedUnits.set(unit, { kind: 'quick_add' })
-        warnings.push({ date: items[0]!.date, code: 'unsupported_unit', message: `${group.name}: unit "" is not supported` })
+        warnings.push({
+          date: items[0]!.date,
+          code: 'unsupported_unit',
+          message: `${group.name}: unit "" is not supported`
+        })
         continue
       }
 
       const consistent = consistency.get(unit)!
       if (!consistent) {
         group.resolvedUnits.set(unit, { kind: 'quick_add' })
-        warnings.push({ date: items[0]!.date, code: 'inconsistent_group', message: `${group.name} (${unit}) has inconsistent per-unit nutrition` })
+        warnings.push({
+          date: items[0]!.date,
+          code: 'inconsistent_group',
+          message: `${group.name} (${unit}) has inconsistent per-unit nutrition`
+        })
         continue
       }
 
@@ -205,7 +242,13 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
           group.resolvedUnits.set(unit, { kind: 'food', servingLabel: null })
         } else {
           group.resolvedUnits.set(unit, { kind: 'food', servingLabel: 'fl oz' })
-          servings.push({ kind: 'named', label: 'fl oz', quantity: 1, basisGrams: null, perUnit: chosenPerUnit.get('oz')! })
+          servings.push({
+            kind: 'named',
+            label: 'fl oz',
+            quantity: 1,
+            basisGrams: null,
+            perUnit: chosenPerUnit.get('oz')!
+          })
           const message = gItems
             ? `${group.name} ounces do not match its gram servings; treating as fluid ounces`
             : `${group.name}: ounces imported as fluid ounces (no gram rows to compare against)`
@@ -259,7 +302,12 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
 
   for (const day of days) {
     const sum = day.rows.reduce(
-      (acc, row) => ({ kcal: acc.kcal + row.kcal, protein: acc.protein + row.protein, carbs: acc.carbs + row.carbs, fat: acc.fat + row.fat }),
+      (acc, row) => ({
+        kcal: acc.kcal + row.kcal,
+        protein: acc.protein + row.protein,
+        carbs: acc.carbs + row.carbs,
+        fat: acc.fat + row.fat
+      }),
       { kcal: 0, protein: 0, carbs: 0, fat: 0 }
     )
     const dKcal = Math.abs(sum.kcal - day.dailyTotals.kcal)

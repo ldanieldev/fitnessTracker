@@ -1,34 +1,37 @@
 <script setup lang="ts">
-const props = withDefaults(defineProps<{
-  title: string
-  subtitle?: string | null
-  nutrients?: Record<string, number | null | undefined> | null
-  amountText?: string | null
-  energy?: number | null
-  selectable?: boolean
-  selected?: boolean
-  chevron?: boolean
-  disabled?: boolean
-  dataTest?: string
-  checkboxTest?: string
-  macroTestPrefix?: string
-  rootClass?: string
-}>(), {
-  subtitle: null,
-  nutrients: null,
-  amountText: null,
-  energy: null,
-  selectable: false,
-  selected: false,
-  chevron: false,
-  disabled: false,
-  dataTest: 'result-row',
-  checkboxTest: undefined,
-  macroTestPrefix: 'macro',
-  rootClass: ''
-})
+const props = withDefaults(
+  defineProps<{
+    title: string
+    subtitle?: string | null
+    nutrients?: Record<string, number | null | undefined> | null
+    amountText?: string | null
+    energy?: number | null
+    selectable?: boolean
+    selected?: boolean
+    chevron?: boolean
+    disabled?: boolean
+    dataTest?: string
+    checkboxTest?: string
+    macroTestPrefix?: string
+    rootClass?: string
+  }>(),
+  {
+    subtitle: null,
+    nutrients: null,
+    amountText: null,
+    energy: null,
+    selectable: false,
+    selected: false,
+    chevron: false,
+    disabled: false,
+    dataTest: 'result-row',
+    checkboxTest: undefined,
+    macroTestPrefix: 'macro',
+    rootClass: ''
+  }
+)
 
-const emit = defineEmits<{ toggle: [on: boolean], open: [] }>()
+const emit = defineEmits<{ toggle: [on: boolean]; open: [] }>()
 
 const checkboxHook = computed(() => props.checkboxTest ?? `${props.dataTest}-checkbox`)
 
@@ -41,13 +44,23 @@ function onTap() {
 
 <template>
   <div class="rounded-xl bg-elevated" :class="rootClass" :data-test="dataTest">
-    <!-- The row itself is a plain click target: a button role here would nest the checkbox and action buttons inside a button. -->
+    <!-- A plain click target: a button role would nest the checkbox and action buttons inside a button. -->
     <div
       class="flex items-center gap-3 px-3 py-2 min-h-14"
-      :class="[(selectable || chevron) && !disabled ? 'cursor-pointer active:bg-accented' : '', disabled ? 'opacity-60' : '']"
+      :class="[
+        (selectable || chevron) && !disabled ? 'cursor-pointer active:bg-accented' : '',
+        disabled ? 'opacity-60' : ''
+      ]"
       @click="onTap"
     >
-      <UCheckbox v-if="selectable" :model-value="selected" :disabled="disabled" :data-test="checkboxHook" @click.stop @update:model-value="(v) => emit('toggle', Boolean(v))" />
+      <UCheckbox
+        v-if="selectable"
+        :model-value="selected"
+        :disabled="disabled"
+        :data-test="checkboxHook"
+        @click.stop
+        @update:model-value="(v) => emit('toggle', Boolean(v))"
+      />
       <div class="min-w-0 flex-1">
         <button
           v-if="selectable || chevron"
@@ -68,7 +81,11 @@ function onTap() {
         </div>
         <slot name="meta" />
       </div>
-      <div v-if="energy !== null" class="text-right tabular-nums leading-tight" :data-test="`${macroTestPrefix}-energy`">
+      <div
+        v-if="energy !== null"
+        class="text-right tabular-nums leading-tight"
+        :data-test="`${macroTestPrefix}-energy`"
+      >
         <div class="font-semibold">{{ Math.round(energy) }}</div>
         <div class="text-[10px] text-dimmed">kcal</div>
       </div>

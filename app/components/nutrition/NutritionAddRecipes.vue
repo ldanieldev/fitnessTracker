@@ -16,7 +16,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  toggle: [recipe: { id: number, name: string, servingName: string, perServing: Record<string, number> }, on: boolean]
+  toggle: [recipe: { id: number; name: string; servingName: string; perServing: Record<string, number> }, on: boolean]
   servings: [recipeId: number, servings: number]
 }>()
 
@@ -31,7 +31,14 @@ const selectedById = computed(() => new Map(props.selected.map((r) => [r.recipeI
 
 <template>
   <div class="flex flex-col gap-3">
-    <UInput v-model="query" icon="i-lucide-search" placeholder="Search recipes" aria-label="Search recipes" class="w-full" data-test="recipe-search" />
+    <UInput
+      v-model="query"
+      icon="i-lucide-search"
+      placeholder="Search recipes"
+      aria-label="Search recipes"
+      class="w-full"
+      data-test="recipe-search"
+    />
     <div class="flex flex-col gap-2">
       <NutritionResultRow
         v-for="row in filtered"
@@ -44,7 +51,10 @@ const selectedById = computed(() => new Map(props.selected.map((r) => [r.recipeI
         selectable
         :selected="selectedById.has(row.id)"
         :disabled="row.broken"
-        @toggle="(on) => emit('toggle', { id: row.id, name: row.name, servingName: row.servingName, perServing: row.perServing }, on)"
+        @toggle="
+          (on) =>
+            emit('toggle', { id: row.id, name: row.name, servingName: row.servingName, perServing: row.perServing }, on)
+        "
       >
         <template v-if="row.broken" #actions>
           <ULink :to="`/nutrition/recipes/${row.id}`" class="text-xs" data-test="recipe-fix-link">

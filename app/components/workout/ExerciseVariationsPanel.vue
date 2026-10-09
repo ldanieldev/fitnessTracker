@@ -2,7 +2,11 @@
 import type { ExerciseDetail } from '~~/shared/types/workout'
 import ExerciseVariationPicker from './ExerciseVariationPicker.vue'
 
-interface VariationGroup { id: number, name: string, exerciseIds: number[] }
+interface VariationGroup {
+  id: number
+  name: string
+  exerciseIds: number[]
+}
 
 const props = defineProps<{ exercise: ExerciseDetail }>()
 const fail = useFailToast()
@@ -11,7 +15,7 @@ const { data: groups } = useExerciseFetch<VariationGroup[]>(EXERCISE_KEYS.variat
 const group = computed(() => groups.value?.find((g) => g.exerciseIds.includes(props.exercise.id)))
 const pickerOpen = ref(false)
 
-async function onLink(payload: { groupId?: number, name?: string, exerciseId: number }) {
+async function onLink(payload: { groupId?: number; name?: string; exerciseId: number }) {
   try {
     if (payload.name) {
       await apiFetch('/api/workouts/variations', {

@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
         lte(measurements.measuredOn, to)
       )
     )
-    .orderBy(desc(measurements.measuredOn), desc(measurements.measuredAt), desc(measurements.id)) // id breaks same-minute measuredAt ties deterministically
+    // id breaks same-minute measuredAt ties deterministically
+    .orderBy(desc(measurements.measuredOn), desc(measurements.measuredAt), desc(measurements.id))
 
   return rows.map(toEntry)
 })

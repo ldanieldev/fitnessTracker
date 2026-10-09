@@ -2,10 +2,14 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 import type { Exercise, ExerciseDetail } from '../../shared/types/workout'
 
-interface Reference { categories: { id: number, key: string }[] }
+interface Reference {
+  categories: { id: number; key: string }[]
+}
 
 test('one exercise resolves visibility, prefs and hidden categories without the catalogue', async ({
-  page, goto, browser
+  page,
+  goto,
+  browser
 }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
@@ -13,9 +17,13 @@ test('one exercise resolves visibility, prefs and hidden categories without the 
   const core = reference.categories.find((c) => c.key === 'core')!
   const back = reference.categories.find((c) => c.key === 'back')!
 
-  const mine = (await apiFetch<ExerciseDetail>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('Detail '), categoryId: core.id, trackingType: 'reps'
-  })).json
+  const mine = (
+    await apiFetch<ExerciseDetail>(page, 'POST', '/api/workouts/exercises', {
+      name: uniquePrefix('Detail '),
+      categoryId: core.id,
+      trackingType: 'reps'
+    })
+  ).json
   expect(mine).toMatchObject({ shared: false, instructions: [], variations: [], category: { key: 'core' } })
 
   const hits = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json
@@ -33,8 +41,9 @@ test('one exercise resolves visibility, prefs and hidden categories without the 
   const oneRm = await apiFetch(page, 'GET', `/api/workouts/exercises/${shared.id}/one-rep-max?on=2026-01-05`)
   expect(oneRm.json).toEqual({ estimate: null, source: null, assisted: true })
   expect((await apiFetch(page, 'GET', `/api/workouts/exercises/${shared.id}/series?metric=e1rm`)).status).toBe(400)
-  expect((await apiFetch(page, 'GET', `/api/workouts/exercises/${shared.id}/series?metric=max_weight`)).status)
-    .toBe(200)
+  expect((await apiFetch(page, 'GET', `/api/workouts/exercises/${shared.id}/series?metric=max_weight`)).status).toBe(
+    200
+  )
 
   const other = await browser.newContext()
   const otherPage = await other.newPage()
@@ -91,7 +100,10 @@ test('the workout settings labels bind to their inputs in the built app', async 
   await registerViaApi(page, makeUser())
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
   await goto(`/workouts/exercises/${bench.id}?tab=settings`, { waitUntil: 'hydration' })
-  await expect(page.getByLabel('Weight increment', { exact: true })).toHaveAttribute('data-test', 'setting-weight-increment')
+  await expect(page.getByLabel('Weight increment', { exact: true })).toHaveAttribute(
+    'data-test',
+    'setting-weight-increment'
+  )
   await expect(page.getByLabel('Rest (seconds)', { exact: true })).toHaveAttribute('data-test', 'setting-rest-seconds')
   await expect(page.getByRole('group', { name: 'Plates' })).toBeVisible()
 })

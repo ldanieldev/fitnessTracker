@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
-import type {
-  ExerciseHistorySession,
-  HistorySessionTotals,
-  SetRecord,
-  SetRecordKind
-} from '~~/shared/types/workout'
+import type { ExerciseHistorySession, HistorySessionTotals, SetRecord, SetRecordKind } from '~~/shared/types/workout'
 
 const props = defineProps<{ exerciseId: number }>()
 
@@ -32,9 +27,13 @@ const { data: sessions, status } = useWorkoutFetch<ExerciseHistorySession[]>(
 
 // Nuxt carries the previous key's rows into a new key while it loads, so track which limit produced what is shown.
 const shownLimit = ref(PAGE_SIZE)
-watch([status, limit], ([value]) => {
-  if (value === 'success') shownLimit.value = limit.value
-}, { immediate: true })
+watch(
+  [status, limit],
+  ([value]) => {
+    if (value === 'success') shownLimit.value = limit.value
+  },
+  { immediate: true }
+)
 
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
 const loadingMore = computed(() => loading.value && shownLimit.value < limit.value)
@@ -49,9 +48,12 @@ const sentinelVisible = ref(false)
 let observer: IntersectionObserver | undefined
 onMounted(() => {
   if (typeof IntersectionObserver === 'undefined') return
-  observer = new IntersectionObserver((entries) => {
-    sentinelVisible.value = entries.some((entry) => entry.isIntersecting)
-  }, { rootMargin: '200px' })
+  observer = new IntersectionObserver(
+    (entries) => {
+      sentinelVisible.value = entries.some((entry) => entry.isIntersecting)
+    },
+    { rootMargin: '200px' }
+  )
   if (sentinel.value) observer.observe(sentinel.value)
 })
 watch(sentinel, (element, previous) => {

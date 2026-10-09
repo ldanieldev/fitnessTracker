@@ -9,7 +9,10 @@ describe('useNutritionData', () => {
       calls += 1
       return [{ id: calls, name: `Meal ${calls}` }]
     })
-    const { data } = await useNutritionFetch<Array<{ id: number }>>(NUTRITION_KEYS.containers, '/api/nutrition/meal-containers')
+    const { data } = await useNutritionFetch<Array<{ id: number }>>(
+      NUTRITION_KEYS.containers,
+      '/api/nutrition/meal-containers'
+    )
     expect(data.value?.[0]?.id).toBe(1)
     await invalidateNutrition(NUTRITION_KEYS.containers)
     expect(data.value?.[0]?.id).toBe(2)
@@ -21,7 +24,10 @@ describe('useNutritionData', () => {
       calls += 1
       return { dates: [] }
     })
-    await useNutritionFetch(NUTRITION_KEYS.logged('2026-09-07'), '/api/nutrition/diary/logged?from=2026-09-07&to=2026-09-13')
+    await useNutritionFetch(
+      NUTRITION_KEYS.logged('2026-09-07'),
+      '/api/nutrition/diary/logged?from=2026-09-07&to=2026-09-13'
+    )
     await invalidateNutrition('nutrition:logged:')
     expect(calls).toBe(2)
   })

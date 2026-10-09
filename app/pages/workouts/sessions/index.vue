@@ -19,16 +19,24 @@ const filterOpen = ref(false)
 const exportOpen = ref(false)
 
 const view = computed<'month' | 'list'>(() => (route.query.view === 'list' ? 'list' : 'month'))
-const { data: programList, status: programsStatus } = useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs', { lazy: true })
+const { data: programList, status: programsStatus } = useWorkoutFetch<ProgramSummary[]>(
+  WORKOUT_KEYS.programs,
+  '/api/workouts/programs',
+  { lazy: true }
+)
 const filter = computed(() => {
   const { programId, phaseId, ...rest } = filterFromRoute(route.query)
-  const stale = programId !== undefined && programList.value !== undefined && !programList.value.some((p) => p.id === programId)
+  const stale =
+    programId !== undefined && programList.value !== undefined && !programList.value.some((p) => p.id === programId)
   return stale ? rest : { ...rest, programId, phaseId }
 })
 // A prog id can only be judged stale once the program list settles, so history fetches wait for it.
-const filterReady = computed(() => (
-  filterFromRoute(route.query).programId === undefined || programsStatus.value === 'success' || programsStatus.value === 'error'
-))
+const filterReady = computed(
+  () =>
+    filterFromRoute(route.query).programId === undefined ||
+    programsStatus.value === 'success' ||
+    programsStatus.value === 'error'
+)
 const filterQuery = computed(() => sessionFilterParams(filter.value))
 const filterCount = computed(() => activeFilterCount(filter.value))
 const month = computed(() => {
@@ -42,7 +50,7 @@ const day = computed(() => {
 
 let pendingQuery: Record<string, string | undefined> | null = null
 
-// Same-tick patches merge on one microtask because route.query is stale until the replace lands; replace, not push, keeps Back clean.
+// Same-tick patches merge on a microtask as route.query is stale until replace lands; replace keeps Back clean.
 function setQuery(patch: Record<string, string | undefined>) {
   if (!pendingQuery) {
     pendingQuery = {}
@@ -65,40 +73,64 @@ function changeMonth(value: string) {
 }
 
 function applyFilter(next: SessionFilter) {
-  const cleared = { cat: undefined, match: undefined, ex: undefined, w: undefined, r: undefined, prog: undefined, phase: undefined }
+  const cleared = {
+    cat: undefined,
+    match: undefined,
+    ex: undefined,
+    w: undefined,
+    r: undefined,
+    prog: undefined,
+    phase: undefined
+  }
   setQuery({ ...cleared, ...filterToRoute(next) })
 }
 
 // Also runs on a URL change and at setup: the list may already be loaded, so it never changes to trigger this.
-watch([programList, () => filterFromRoute(route.query).programId], ([list, programId]) => {
-  if (list && programId !== undefined && !list.some((p) => p.id === programId)) setQuery({ prog: undefined, phase: undefined })
-}, { immediate: true })
+watch(
+  [programList, () => filterFromRoute(route.query).programId],
+  ([list, programId]) => {
+    if (list && programId !== undefined && !list.some((p) => p.id === programId))
+      setQuery({ prog: undefined, phase: undefined })
+  },
+  { immediate: true }
+)
 
 // Pages count only under the filter they were loaded for, so a filter change asks for one page in the same tick.
 const paging = ref({ filter: '', pages: 1 })
 const pages = computed(() => (paging.value.filter === filterQuery.value ? paging.value.pages : 1))
 const limit = computed(() => Math.min(pages.value * PAGE_SIZE, MAX_LIMIT))
 
-const { data: sessions, status, error: listError, execute: executeList } = useWorkoutFetch<WorkoutSessionSummary[]>(
+const {
+  data: sessions,
+  status,
+  error: listError,
+  execute: executeList
+} = useWorkoutFetch<WorkoutSessionSummary[]>(
   () => sessionListKey(limit.value, filterQuery.value),
   () => `/api/workouts/sessions?limit=${limit.value}${filterQuery.value ? `&${filterQuery.value}` : ''}`,
   { enabled: () => view.value === 'list' && filterReady.value }
 )
 
 const range = computed(() => monthRange(month.value))
-const { data: monthSessions, status: monthStatus, error: monthError, execute: executeMonth } = useWorkoutFetch<WorkoutSessionSummary[]>(
+const {
+  data: monthSessions,
+  status: monthStatus,
+  error: monthError,
+  execute: executeMonth
+} = useWorkoutFetch<WorkoutSessionSummary[]>(
   () => sessionMonthKey(range.value.from, range.value.to, filterQuery.value),
-  () => `/api/workouts/sessions?limit=1000&from=${range.value.from}&to=${range.value.to}${filterQuery.value ? `&${filterQuery.value}` : ''}`,
+  () =>
+    `/api/workouts/sessions?limit=1000&from=${range.value.from}&to=${range.value.to}${filterQuery.value ? `&${filterQuery.value}` : ''}`,
   { enabled: () => view.value === 'month' && filterReady.value }
 )
 
-// A disabled fetch skips key changes and invalidations, so a view that appears or a filter that becomes ready refetches.
+// A disabled fetch skips key changes and invalidations, so refetch when a view appears or a filter becomes ready.
 watch([view, filterReady], ([value, ready]) => {
   if (ready) void (value === 'list' ? executeList() : executeMonth())
 })
 
 const phaseLegend = computed(() => {
-  const seen = new Map<number, { phaseId: number, name: string, color: string, index: number }>()
+  const seen = new Map<number, { phaseId: number; name: string; color: string; index: number }>()
   for (const s of monthSessions.value ?? []) {
     if (s.program && !seen.has(s.program.phaseId)) {
       seen.set(s.program.phaseId, {
@@ -121,9 +153,13 @@ const dayRows = computed(() => (monthSessions.value ?? []).filter((s) => s.perfo
 
 // Nuxt carries the previous key's rows into a new key while it loads, so track which limit produced what is shown.
 const shownLimit = ref(PAGE_SIZE)
-watch([status, limit], ([value]) => {
-  if (value === 'success') shownLimit.value = limit.value
-}, { immediate: true })
+watch(
+  [status, limit],
+  ([value]) => {
+    if (value === 'success') shownLimit.value = limit.value
+  },
+  { immediate: true }
+)
 
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
 const loadingMore = computed(() => loading.value && shownLimit.value < limit.value)
@@ -139,9 +175,12 @@ const sentinelVisible = ref(false)
 let observer: IntersectionObserver | undefined
 onMounted(() => {
   if (typeof IntersectionObserver === 'undefined') return
-  observer = new IntersectionObserver((entries) => {
-    sentinelVisible.value = entries.some((entry) => entry.isIntersecting)
-  }, { rootMargin: '200px' })
+  observer = new IntersectionObserver(
+    (entries) => {
+      sentinelVisible.value = entries.some((entry) => entry.isIntersecting)
+    },
+    { rootMargin: '200px' }
+  )
   if (sentinel.value) observer.observe(sentinel.value)
 })
 watch(sentinel, (element, previous) => {
@@ -174,7 +213,7 @@ function copySession(id: number) {
   copyOpen.value = true
 }
 
-async function startCopy(body: { copyFromId: number, entryIds: number[] }) {
+async function startCopy(body: { copyFromId: number; entryIds: number[] }) {
   if (await startWorkout(body)) await navigateTo('/workouts/log')
 }
 
@@ -193,7 +232,7 @@ function openDelete(summary: WorkoutSessionSummary) {
   deleteOpen.value = true
 }
 
-async function saveTimes(times: { startedAt: string, endedAt: string | null, performedOn: string }) {
+async function saveTimes(times: { startedAt: string; endedAt: string | null; performedOn: string }) {
   const id = timesTarget.value?.id
   if (!id) return
   try {
@@ -227,7 +266,20 @@ async function confirmDelete() {
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UDropdownMenu :items="[[{ label: 'Export CSV', icon: 'i-lucide-download', testId: 'history-export-open', onSelect: () => { exportOpen = true } }]]">
+          <UDropdownMenu
+            :items="[
+              [
+                {
+                  label: 'Export CSV',
+                  icon: 'i-lucide-download',
+                  testId: 'history-export-open',
+                  onSelect: () => {
+                    exportOpen = true
+                  }
+                }
+              ]
+            ]"
+          >
             <UButton
               icon="i-lucide-ellipsis-vertical"
               variant="ghost"
@@ -248,11 +300,33 @@ async function confirmDelete() {
       <div class="mx-auto flex w-full max-w-2xl flex-col gap-3 pb-4">
         <div class="flex items-center gap-2">
           <div class="flex flex-1 rounded-lg bg-elevated p-1">
-            <UButton label="Month" :variant="view === 'month' ? 'solid' : 'ghost'" color="neutral" class="min-h-10 flex-1 justify-center" data-test="history-view-month" @click="setQuery({ view: undefined })" />
-            <UButton label="List" :variant="view === 'list' ? 'solid' : 'ghost'" color="neutral" class="min-h-10 flex-1 justify-center" data-test="history-view-list" @click="setQuery({ view: 'list' })" />
+            <UButton
+              label="Month"
+              :variant="view === 'month' ? 'solid' : 'ghost'"
+              color="neutral"
+              class="min-h-10 flex-1 justify-center"
+              data-test="history-view-month"
+              @click="setQuery({ view: undefined })"
+            />
+            <UButton
+              label="List"
+              :variant="view === 'list' ? 'solid' : 'ghost'"
+              color="neutral"
+              class="min-h-10 flex-1 justify-center"
+              data-test="history-view-list"
+              @click="setQuery({ view: 'list' })"
+            />
           </div>
           <UChip :show="filterCount > 0" :text="filterCount" size="3xl">
-            <UButton icon="i-lucide-funnel" variant="ghost" color="neutral" class="min-h-10 min-w-10 justify-center" aria-label="Filter workouts" data-test="history-filter-open" @click="filterOpen = true" />
+            <UButton
+              icon="i-lucide-funnel"
+              variant="ghost"
+              color="neutral"
+              class="min-h-10 min-w-10 justify-center"
+              aria-label="Filter workouts"
+              data-test="history-filter-open"
+              @click="filterOpen = true"
+            />
             <template #content>
               <span data-test="history-filter-count">{{ filterCount }}</span>
             </template>
@@ -261,7 +335,16 @@ async function confirmDelete() {
         <div v-if="filterCount > 0">
           <UBadge color="primary" variant="soft" class="min-h-8 gap-1" data-test="history-filter-chip">
             Filtered
-            <UButton icon="i-lucide-x" size="xs" variant="link" color="primary" class="min-h-10 min-w-10 justify-center" aria-label="Clear filter" data-test="history-filter-chip-clear" @click="applyFilter({})" />
+            <UButton
+              icon="i-lucide-x"
+              size="xs"
+              variant="link"
+              color="primary"
+              class="min-h-10 min-w-10 justify-center"
+              aria-label="Clear filter"
+              data-test="history-filter-chip-clear"
+              @click="applyFilter({})"
+            />
           </UBadge>
         </div>
 
@@ -273,7 +356,11 @@ async function confirmDelete() {
             @update:month="changeMonth"
             @update:day="(value) => setQuery({ day: value ?? undefined })"
           />
-          <div v-if="phaseLegend.length" class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted" data-test="calendar-phase-legend">
+          <div
+            v-if="phaseLegend.length"
+            class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted"
+            data-test="calendar-phase-legend"
+          >
             <span v-for="item in phaseLegend" :key="item.phaseId" class="flex items-center gap-1">
               <span class="h-0.5 w-3 rounded-full" :class="item.color" />{{ item.name }}
             </span>
@@ -289,7 +376,13 @@ async function confirmDelete() {
               @times="openTimes"
               @delete="openDelete"
             />
-            <p v-if="monthStatus === 'success' && !dayRows.length" class="text-sm text-dimmed" data-test="history-day-empty">No workouts</p>
+            <p
+              v-if="monthStatus === 'success' && !dayRows.length"
+              class="text-sm text-dimmed"
+              data-test="history-day-empty"
+            >
+              No workouts
+            </p>
           </div>
         </template>
         <template v-else>
@@ -315,7 +408,9 @@ async function confirmDelete() {
                 @delete="openDelete"
               />
             </div>
-            <p v-if="!loading && sessions.length === 0" class="text-sm text-dimmed">{{ filterCount > 0 ? 'No workouts match this filter' : 'No workouts logged yet' }}</p>
+            <p v-if="!loading && sessions.length === 0" class="text-sm text-dimmed">
+              {{ filterCount > 0 ? 'No workouts match this filter' : 'No workouts logged yet' }}
+            </p>
             <div v-if="hasMore" ref="sentinel" class="flex justify-center py-3" data-test="session-list-end">
               <UIcon v-if="loadingMore" name="i-lucide-loader-circle" class="size-6 animate-spin text-dimmed" />
               <UButton
@@ -349,7 +444,14 @@ async function confirmDelete() {
         <template #body>
           <div class="flex flex-col gap-3" data-test="history-delete">
             <p class="text-sm text-muted">This removes the workout and every set logged in it.</p>
-            <UButton label="Delete" color="error" block class="min-h-10" data-test="history-delete-confirm" @click="confirmDelete" />
+            <UButton
+              label="Delete"
+              color="error"
+              block
+              class="min-h-10"
+              data-test="history-delete-confirm"
+              @click="confirmDelete"
+            />
           </div>
         </template>
       </AppSheet>

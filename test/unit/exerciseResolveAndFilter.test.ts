@@ -56,7 +56,10 @@ const prefWithCategory: ExercisePrefRow = {
 describe('resolveAndFilter category resolution', () => {
   it('uses the pref category when it resolves and marks it overridden', () => {
     const prefs = new Map([[row.id, prefWithCategory]])
-    const categoriesById = new Map([[catalogueCategory.id, catalogueCategory], [prefCategory.id, prefCategory]])
+    const categoriesById = new Map([
+      [catalogueCategory.id, catalogueCategory],
+      [prefCategory.id, prefCategory]
+    ])
     const [exercise] = resolveAndFilter([row], prefs, categoriesById, {})
     expect(exercise!.category.key).toBe('back')
     expect(exercise!.overridden.category).toBe(true)
@@ -76,7 +79,11 @@ describe('resolveAndFilter category resolution', () => {
   })
 })
 
-const pref = (over: Partial<ExercisePrefRow> = {}): ExercisePrefRow => ({ ...prefWithCategory, categoryId: null, ...over })
+const pref = (over: Partial<ExercisePrefRow> = {}): ExercisePrefRow => ({
+  ...prefWithCategory,
+  categoryId: null,
+  ...over
+})
 
 describe('effectiveLoadStyle', () => {
   it('inherits the catalogue load style and lets the pref override it', () => {
@@ -95,7 +102,10 @@ describe('resolveAndFilter plate sizes', () => {
     const barbell = resolveAndFilter([row], new Map([[row.id, pref({ plateSizes: ['55', '45'] })]]), categoriesById, {})
     expect(barbell[0]!.plateSizes).toEqual([55, 45])
     const plain = resolveAndFilter(
-      [row], new Map([[row.id, pref({ loadStyle: 'plain', plateSizes: ['55', '45'] })]]), categoriesById, {}
+      [row],
+      new Map([[row.id, pref({ loadStyle: 'plain', plateSizes: ['55', '45'] })]]),
+      categoriesById,
+      {}
     )
     expect(plain[0]!.plateSizes).toBeNull()
   })

@@ -49,7 +49,7 @@ export async function addSet(
   userId: number,
   entryId: number,
   input: SetWriteInput
-): Promise<{ session: WorkoutSession, set: WorkoutSet }> {
+): Promise<{ session: WorkoutSession; set: WorkoutSet }> {
   const entry = await loadOwnedEntry(userId, entryId)
   const measures: SetMeasures = {
     weight: input.weight ?? null,
@@ -85,14 +85,17 @@ export async function patchSet(
   userId: number,
   setId: number,
   patch: SetWriteInput
-): Promise<{ session: WorkoutSession, set: WorkoutSet }> {
+): Promise<{ session: WorkoutSession; set: WorkoutSet }> {
   const existing = await loadOwnedSet(userId, setId)
   const measures: SetMeasures = {
     weight: patch.weight !== undefined ? patch.weight : existing.weight != null ? Number(existing.weight) : null,
     reps: patch.reps !== undefined ? patch.reps : existing.reps,
-    distanceMeters: patch.distanceMeters !== undefined
-      ? patch.distanceMeters
-      : existing.distanceMeters != null ? Number(existing.distanceMeters) : null,
+    distanceMeters:
+      patch.distanceMeters !== undefined
+        ? patch.distanceMeters
+        : existing.distanceMeters != null
+          ? Number(existing.distanceMeters)
+          : null,
     durationSeconds: patch.durationSeconds !== undefined ? patch.durationSeconds : existing.durationSeconds
   }
   const message = validateSetInput(existing.trackingType, measures)

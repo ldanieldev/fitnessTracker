@@ -30,7 +30,7 @@ test('scanning twice keeps the tray and container, and the scanned row lands in 
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const containers = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
   const target = containers.json[1]!
 
   const today = new Date().toISOString().slice(0, 10)

@@ -9,7 +9,7 @@ export interface StampedStore<T> {
   set: (key: string, entry: StampedEntry<T>, ttlSeconds: number) => Promise<void>
 }
 
-// The stamp lives in the value, not the key, so newer history overwrites the entry instead of orphaning it until its TTL.
+// The stamp lives in the value, not the key, so newer history overwrites the entry instead of orphaning it.
 export async function readStamped<T>(
   store: StampedStore<T>,
   key: string,
@@ -24,8 +24,10 @@ export async function readStamped<T>(
   })
   if (hit && hit.stamp === stamp && hit.expiresAt > now()) return hit.value
   const value = await compute()
-  await store.set(key, { stamp, value, expiresAt: now() + maxAgeSeconds * 1000 }, maxAgeSeconds).catch((error: unknown) => {
-    console.error('[cache] write failed', key, error)
-  })
+  await store
+    .set(key, { stamp, value, expiresAt: now() + maxAgeSeconds * 1000 }, maxAgeSeconds)
+    .catch((error: unknown) => {
+      console.error('[cache] write failed', key, error)
+    })
   return value
 }

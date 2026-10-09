@@ -25,6 +25,14 @@ export default defineEventHandler(async (event): Promise<MetricSeries> => {
     .where(and(eq(measurementTypePrefs.userId, userId), eq(measurementTypePrefs.typeId, typeId)))
     .then((r) => r[0])
   const weekStart = await userWeekStart(userId)
-  const [series, latest] = await Promise.all([seriesFor(userId, typeId, query.from ?? null, to, weekStart), latestReading(userId, typeId)])
-  return { type: toMeasurementType(typeRow, pref), goal: await loadGoal(userId, typeId), latest: latest ? toEntry(latest) : null, ...series }
+  const [series, latest] = await Promise.all([
+    seriesFor(userId, typeId, query.from ?? null, to, weekStart),
+    latestReading(userId, typeId)
+  ])
+  return {
+    type: toMeasurementType(typeRow, pref),
+    goal: await loadGoal(userId, typeId),
+    latest: latest ? toEntry(latest) : null,
+    ...series
+  }
 })

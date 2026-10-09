@@ -139,8 +139,9 @@ describe('selectGramBasis — the 2b fallback chain', () => {
       id: 4,
       servings: [serving({ id: 40, label: 'slice', nutrients: { [P]: 3 } })]
     }
-    expect(() => resolveNutrition(noGrams, { type: 'mass', unit: 'g' }, 100))
-      .toThrow(expect.objectContaining({ code: 'NO_WEIGHT_BASIS' }))
+    expect(() => resolveNutrition(noGrams, { type: 'mass', unit: 'g' }, 100)).toThrow(
+      expect.objectContaining({ code: 'NO_WEIGHT_BASIS' })
+    )
   })
 
   it('never picks a derived serving as the gram basis, even at a lower id', async () => {
@@ -202,18 +203,23 @@ describe('resolveNutrition — guards', () => {
       id: 8,
       servings: [serving({ id: 80, kind: 'weight', label: 'g', quantity: 100, basisGrams: 0, nutrients: { [P]: 5 } })]
     }
-    expect(() => resolveNutrition(zero, { type: 'mass', unit: 'g' }, 50))
-      .toThrow(expect.objectContaining({ code: 'NO_WEIGHT_BASIS' }))
+    expect(() => resolveNutrition(zero, { type: 'mass', unit: 'g' }, 50)).toThrow(
+      expect.objectContaining({ code: 'NO_WEIGHT_BASIS' })
+    )
   })
 
   it('reports NO_WEIGHT_BASIS for a derived serving whose gram weight is zero', async () => {
     const { resolveNutrition } = await import('../../shared/utils/nutritionResolve')
     const food: FoodForResolve = {
       ...pizza,
-      servings: [...pizza.servings, serving({ id: 13, label: 'pinch', quantity: 1, basisGrams: 0, hasOwnNutrition: false })]
+      servings: [
+        ...pizza.servings,
+        serving({ id: 13, label: 'pinch', quantity: 1, basisGrams: 0, hasOwnNutrition: false })
+      ]
     }
-    expect(() => resolveNutrition(food, { type: 'serving', servingId: 13 }, 1))
-      .toThrow(expect.objectContaining({ code: 'NO_WEIGHT_BASIS' }))
+    expect(() => resolveNutrition(food, { type: 'serving', servingId: 13 }, 1)).toThrow(
+      expect.objectContaining({ code: 'NO_WEIGHT_BASIS' })
+    )
   })
 
   it('exposes a stable error name', async () => {

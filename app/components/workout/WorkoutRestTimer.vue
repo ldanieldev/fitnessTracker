@@ -6,13 +6,7 @@ defineProps<{ timer: RestTimer }>()
 </script>
 
 <template>
-  <UDrawer
-    v-model:open="open"
-    direction="bottom"
-    handle
-    :dismissible="true"
-    :should-scale-background="false"
-  >
+  <UDrawer v-model:open="open" direction="bottom" handle :dismissible="true" :should-scale-background="false">
     <template #default />
 
     <template #content>

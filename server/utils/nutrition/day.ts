@@ -16,10 +16,7 @@ export function parseDiaryDate(raw: string | undefined): string {
 }
 
 export async function snapshotTargets(tx: DbClient, dayId: number, profileId: number) {
-  const targets = await tx
-    .select()
-    .from(goalProfileTargets)
-    .where(eq(goalProfileTargets.profileId, profileId))
+  const targets = await tx.select().from(goalProfileTargets).where(eq(goalProfileTargets.profileId, profileId))
 
   await tx.delete(diaryDayTargets).where(eq(diaryDayTargets.dayId, dayId))
   if (targets.length) {
@@ -34,7 +31,7 @@ export async function snapshotTargets(tx: DbClient, dayId: number, profileId: nu
   }
 }
 
-// Concurrent first writes to a date race here: the (user_id, date) unique index plus onConflictDoNothing sends the loser to the final select. goalProfileId stays null so the day follows the current default (resolveDayTargets).
+// Racing first writes lose on the (user_id, date) index and re-select; a null goalProfileId follows the default.
 export async function ensureDay(tx: DbClient, userId: number, date: string) {
   const existing = await tx
     .select({ id: diaryDays.id })

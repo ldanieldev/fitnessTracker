@@ -3,10 +3,10 @@ import type { Exercise, ExerciseCategory, LoadStyle, TrackingType } from '~~/sha
 import { LOAD_STYLE_VALUES, TRACKING_TYPE_VALUES } from '~~/shared/types/workout'
 import { LOAD_STYLE_LABELS, TRACKING_TYPE_LABELS, WEIGHT_TRACKING_TYPES } from '~~/shared/utils/exerciseLabels'
 
-const props = withDefaults(defineProps<{ exercise: Exercise, categories?: ExerciseCategory[] }>(), {
+const props = withDefaults(defineProps<{ exercise: Exercise; categories?: ExerciseCategory[] }>(), {
   categories: () => []
 })
-const emit = defineEmits<{ save: [patch: Record<string, unknown>], reset: [field: string] }>()
+const emit = defineEmits<{ save: [patch: Record<string, unknown>]; reset: [field: string] }>()
 const LABEL_UI = { label: 'text-dimmed' }
 
 interface LocalSettings {
@@ -23,12 +23,15 @@ const local = reactive<LocalSettings>({
   barWeight: props.exercise.barWeight
 })
 
-watch(() => props.exercise, (exercise) => {
-  local.categoryId = exercise.category.id
-  local.trackingType = exercise.trackingType
-  local.loadStyle = exercise.loadStyle
-  local.barWeight = exercise.barWeight
-})
+watch(
+  () => props.exercise,
+  (exercise) => {
+    local.categoryId = exercise.category.id
+    local.trackingType = exercise.trackingType
+    local.loadStyle = exercise.loadStyle
+    local.barWeight = exercise.barWeight
+  }
+)
 
 const categoryOptions = computed(() => props.categories.map((c) => ({ label: c.name, value: c.id })))
 const trackingTypeOptions = TRACKING_TYPE_VALUES.map((value) => ({ label: TRACKING_TYPE_LABELS[value], value }))

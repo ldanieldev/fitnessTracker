@@ -8,7 +8,9 @@ import ExerciseGraphPanel from '~/components/workout/ExerciseGraphPanel.vue'
 import ExerciseRecordsPanel from '~/components/workout/ExerciseRecordsPanel.vue'
 import ExerciseVariationsPanel from '~/components/workout/ExerciseVariationsPanel.vue'
 
-interface ReferenceData { categories: ExerciseCategory[] }
+interface ReferenceData {
+  categories: ExerciseCategory[]
+}
 
 function titleCase(key: string) {
   return key.replace(/(^|[\s-])([a-z])/g, (_match, sep, letter) => sep + letter.toUpperCase())
@@ -93,12 +95,18 @@ function normalizeText(value: string): string | null {
 
 const notes = ref(exercise.value?.notes ?? '')
 const link = ref(exercise.value?.link ?? '')
-watch(() => exercise.value?.notes, (value) => {
-  notes.value = value ?? ''
-})
-watch(() => exercise.value?.link, (value) => {
-  link.value = value ?? ''
-})
+watch(
+  () => exercise.value?.notes,
+  (value) => {
+    notes.value = value ?? ''
+  }
+)
+watch(
+  () => exercise.value?.link,
+  (value) => {
+    link.value = value ?? ''
+  }
+)
 
 async function saveNotes() {
   if (!exercise.value) return
@@ -276,12 +284,26 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
           </ol>
 
           <UFormField label="Notes" :ui="{ label: 'text-dimmed' }">
-            <!-- Explicit ids here and on link: useId differs between SSR and client in the prod build, leaving the label's for stale. -->
-            <UTextarea id="detail-notes" v-model="notes" :rows="3" class="w-full" data-test="detail-notes" @blur="saveNotes" />
+            <!-- Explicit ids here and on link: useId differs SSR vs client in prod, so the label's for goes stale. -->
+            <UTextarea
+              id="detail-notes"
+              v-model="notes"
+              :rows="3"
+              class="w-full"
+              data-test="detail-notes"
+              @blur="saveNotes"
+            />
           </UFormField>
 
           <UFormField label="Link" :ui="{ label: 'text-dimmed' }">
-            <UInput id="detail-link" v-model="link" placeholder="https://" class="w-full" data-test="detail-link" @blur="saveLink" />
+            <UInput
+              id="detail-link"
+              v-model="link"
+              placeholder="https://"
+              class="w-full"
+              data-test="detail-link"
+              @blur="saveLink"
+            />
           </UFormField>
 
           <div class="flex gap-2">
@@ -317,7 +339,11 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
         </div>
 
         <div v-if="visitedTabs.has('records')" v-show="activeTab === 'records'">
-          <ExerciseRecordsPanel :exercise-id="id" :tracking-type="exercise.trackingType" :load-style="exercise.loadStyle" />
+          <ExerciseRecordsPanel
+            :exercise-id="id"
+            :tracking-type="exercise.trackingType"
+            :load-style="exercise.loadStyle"
+          />
         </div>
 
         <div v-show="activeTab === 'settings'" class="flex flex-col gap-6">

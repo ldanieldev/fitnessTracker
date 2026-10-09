@@ -1,7 +1,10 @@
 export function useTodaySummary() {
   const today = useToday()
-  const summary = useDaySummary(computed(() => today.value ?? ''), { immediate: false })
-  // Nuxt only re-executes a key change when the fetch was immediate or had data, so the first fetch after today resolves has to be explicit.
+  const summary = useDaySummary(
+    computed(() => today.value ?? ''),
+    { immediate: false }
+  )
+  // Nuxt re-executes on a key change only if immediate or holding data, so the first post-today fetch is explicit.
   watch(
     today,
     (value) => {

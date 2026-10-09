@@ -6,7 +6,7 @@ test('reading an untouched date returns an empty day without persisting one', as
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const day = await apiFetch<{ entries: unknown[], persisted: boolean }>(page, 'GET', '/api/nutrition/diary/2026-01-15')
+  const day = await apiFetch<{ entries: unknown[]; persisted: boolean }>(page, 'GET', '/api/nutrition/diary/2026-01-15')
   expect(day.json.entries).toEqual([])
   expect(day.json.persisted).toBe(false)
 })
@@ -31,7 +31,7 @@ test('writing a note persists the day and it follows the default profile targets
   const day = await apiFetch<{
     persisted: boolean
     notes: string | null
-    targets: Array<{ key: string, amount: number, direction: string }>
+    targets: Array<{ key: string; amount: number; direction: string }>
   }>(page, 'GET', '/api/nutrition/diary/2026-01-16')
   expect(day.json.persisted).toBe(true)
   expect(day.json.notes).toBe('travel day')
@@ -63,7 +63,7 @@ test('editing a goal profile never rewrites a day with an explicitly applied pro
     targets: [{ nutrient: 'energy', amount: 1500, direction: 'max' }]
   })
 
-  const day = await apiFetch<{ targets: Array<{ key: string, amount: number }> }>(
+  const day = await apiFetch<{ targets: Array<{ key: string; amount: number }> }>(
     page,
     'GET',
     '/api/nutrition/diary/2026-01-17'
@@ -99,7 +99,7 @@ test('a deleted default profile is not snapshotted onto new days', async ({ page
 
   await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-03-01/notes', { notes: 'no default anymore' })
 
-  const day = await apiFetch<{ targets: unknown[], goalProfileId: number | null }>(
+  const day = await apiFetch<{ targets: unknown[]; goalProfileId: number | null }>(
     page,
     'GET',
     '/api/nutrition/diary/2026-03-01'
@@ -132,7 +132,7 @@ test('logs by weight and by named serving from independent bases', async ({ page
   expect(res.ok).toBe(true)
 
   const day = await apiFetch<{
-    entries: Array<{ unitLabel: string, nutrients: Record<string, number>, gramsResolved: number | null }>
+    entries: Array<{ unitLabel: string; nutrients: Record<string, number>; gramsResolved: number | null }>
   }>(page, 'GET', '/api/nutrition/diary/2026-02-01')
   const byWeight = day.json.entries.find((e) => e.unitLabel === 'g')!
   const bySlice = day.json.entries.find((e) => e.unitLabel === 'slice')!
@@ -243,7 +243,7 @@ test('editing a quick-add quantity with the same unit echoed back is not a unit 
   })
   expect(patched.ok).toBe(true)
 
-  const day = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>, unitLabel: string }> }>(
+  const day = await apiFetch<{ entries: Array<{ nutrients: Record<string, number>; unitLabel: string }> }>(
     page,
     'GET',
     '/api/nutrition/diary/2026-03-04'

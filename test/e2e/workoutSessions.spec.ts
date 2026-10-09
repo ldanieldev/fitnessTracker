@@ -10,7 +10,10 @@ test('workout sessions: start, resume, finish, move, list and delete', async ({ 
 
   expect((await apiFetch<WorkoutSession | null>(page, 'GET', '/api/workouts/sessions/active')).json).toBe(null)
 
-  const started = await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate(), name })
+  const started = await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
+    performedOn: todayDate(),
+    name
+  })
   expect(started.status).toBe(200)
   expect(started.json.endedAt).toBe(null)
   expect(started.json.entries).toEqual([])
@@ -18,7 +21,9 @@ test('workout sessions: start, resume, finish, move, list and delete', async ({ 
 
   expect((await apiFetch<WorkoutSession>(page, 'GET', '/api/workouts/sessions/active')).json.id).toBe(id)
 
-  const second = await apiFetch<{ data: { session: WorkoutSession } }>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })
+  const second = await apiFetch<{ data: { session: WorkoutSession } }>(page, 'POST', '/api/workouts/sessions', {
+    performedOn: todayDate()
+  })
   expect(second.status).toBe(409)
 
   const moved = await apiFetch<WorkoutSession>(page, 'PATCH', `/api/workouts/sessions/${id}`, {
@@ -49,7 +54,8 @@ test('workout sessions: change the start and end times (LG-R21)', async ({ page,
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const id = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json.id
+  const id = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
+    .id
   const startedAt = '2026-01-02T15:00:00.000Z'
   const endedAt = '2026-01-02T16:30:00.000Z'
 
@@ -62,11 +68,17 @@ test('workout sessions: change the start and end times (LG-R21)', async ({ page,
   expect(read.startedAt).toBe(startedAt)
   expect(read.endedAt).toBe(endedAt)
 
-  const reversed = await apiFetch(page, 'PATCH', `/api/workouts/sessions/${id}`, { startedAt: endedAt, endedAt: startedAt })
+  const reversed = await apiFetch(page, 'PATCH', `/api/workouts/sessions/${id}`, {
+    startedAt: endedAt,
+    endedAt: startedAt
+  })
   expect(reversed.status).toBe(400)
 
   const future = new Date(Date.now() + 86_400_000).toISOString()
-  const finishedBeforeStart = await apiFetch(page, 'PATCH', `/api/workouts/sessions/${id}`, { startedAt: future, finish: true })
+  const finishedBeforeStart = await apiFetch(page, 'PATCH', `/api/workouts/sessions/${id}`, {
+    startedAt: future,
+    finish: true
+  })
   expect(finishedBeforeStart.status).toBe(400)
 
   const reopened = await apiFetch<WorkoutSession>(page, 'PATCH', `/api/workouts/sessions/${id}`, { endedAt: null })
@@ -77,15 +89,24 @@ test('workout sessions: change the start and end times (LG-R21)', async ({ page,
 test('a second open workout is refused with the open one, from start and from reopen', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  const first = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-02-02' })).json
+  const first = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-02-02' }))
+    .json
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${first.id}`, { finish: true })
-  const second = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-02-03' })).json
+  const second = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-02-03' }))
+    .json
 
-  const started = await apiFetch<{ data: { session: WorkoutSession } }>(page, 'POST', '/api/workouts/sessions', { performedOn: '2026-02-03' })
+  const started = await apiFetch<{ data: { session: WorkoutSession } }>(page, 'POST', '/api/workouts/sessions', {
+    performedOn: '2026-02-03'
+  })
   expect(started.status).toBe(409)
   expect(started.json.data.session.id).toBe(second.id)
 
-  const reopened = await apiFetch<{ data: { session: WorkoutSession } }>(page, 'PATCH', `/api/workouts/sessions/${first.id}`, { endedAt: null })
+  const reopened = await apiFetch<{ data: { session: WorkoutSession } }>(
+    page,
+    'PATCH',
+    `/api/workouts/sessions/${first.id}`,
+    { endedAt: null }
+  )
   expect(reopened.status).toBe(409)
   expect(reopened.json.data.session.id).toBe(second.id)
 

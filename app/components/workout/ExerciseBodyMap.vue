@@ -4,7 +4,7 @@ import bodyMap from '~/assets/bodyMap.json'
 
 type BodyMapMuscle = Pick<MuscleRow, 'key' | 'name' | 'bodyMapGroups'>
 
-const props = defineProps<{ muscles: BodyMapMuscle[], selected: string[], available: string[], pending?: boolean }>()
+const props = defineProps<{ muscles: BodyMapMuscle[]; selected: string[]; available: string[]; pending?: boolean }>()
 const emit = defineEmits<{ toggle: [key: string] }>()
 
 const view = ref<'front' | 'back'>('front')
@@ -19,7 +19,11 @@ const keyByGroup = computed(() => {
 const nameByKey = computed(() => new Map(props.muscles.map((muscle) => [muscle.key, muscle.name])))
 
 const surfaces = computed(() =>
-  diagram.value.muscles.map((muscle) => ({ id: muscle.id, d: muscle.d, key: keyByGroup.value.get(muscle.group) ?? null }))
+  diagram.value.muscles.map((muscle) => ({
+    id: muscle.id,
+    d: muscle.d,
+    key: keyByGroup.value.get(muscle.group) ?? null
+  }))
 )
 
 function isSelected(key: string) {
@@ -83,10 +87,16 @@ function toggle(key: string) {
         class="transition-opacity"
         :class="[
           surface.key
-            ? isSelected(surface.key) ? 'fill-primary' : 'fill-neutral-400 dark:fill-neutral-600'
+            ? isSelected(surface.key)
+              ? 'fill-primary'
+              : 'fill-neutral-400 dark:fill-neutral-600'
             : 'fill-neutral-300 dark:fill-neutral-700 pointer-events-none',
           surface.key && isAvailable(surface.key) ? 'cursor-pointer' : '',
-          surface.key && !isAvailable(surface.key) ? (pending ? 'pointer-events-none' : 'opacity-40 pointer-events-none') : ''
+          surface.key && !isAvailable(surface.key)
+            ? pending
+              ? 'pointer-events-none'
+              : 'opacity-40 pointer-events-none'
+            : ''
         ]"
         @click="surface.key && toggle(surface.key)"
         @keydown.enter.prevent="surface.key && toggle(surface.key)"

@@ -9,7 +9,10 @@ import {
 } from '../../shared/utils/workoutMetrics'
 
 const set = (weight: number | null, reps: number | null) => ({
-  weight, reps, distanceMeters: null, durationSeconds: null
+  weight,
+  reps,
+  distanceMeters: null,
+  durationSeconds: null
 })
 
 describe('rollupFrom', () => {
@@ -41,10 +44,14 @@ describe('rollupFrom', () => {
   })
 
   it('rolls up a cardio session', () => {
-    const rollup = rollupFrom([
-      { weight: null, reps: null, distanceMeters: 5000, durationSeconds: 1500 },
-      { weight: null, reps: null, distanceMeters: 1000, durationSeconds: 200 }
-    ], null, 10)
+    const rollup = rollupFrom(
+      [
+        { weight: null, reps: null, distanceMeters: 5000, durationSeconds: 1500 },
+        { weight: null, reps: null, distanceMeters: 1000, durationSeconds: 200 }
+      ],
+      null,
+      10
+    )
     expect(rollup.totalDistanceMeters).toBe(6000)
     expect(rollup.totalDurationSeconds).toBe(1700)
     expect(rollup.bestPace).toBeCloseTo(5, 3)
@@ -65,9 +72,7 @@ describe('rollupFrom', () => {
 
 describe('metricsFor', () => {
   it('offers the strength metrics for weight and reps', () => {
-    expect(metricsFor('weight_reps', 'plain')).toEqual([
-      'e1rm', 'max_weight', 'volume', 'total_reps', 'weight_at_reps'
-    ])
+    expect(metricsFor('weight_reps', 'plain')).toEqual(['e1rm', 'max_weight', 'volume', 'total_reps', 'weight_at_reps'])
   })
 
   it('drops the estimate and volume for an assisted exercise', () => {
@@ -139,11 +144,13 @@ describe('metricLowerIsBetter', () => {
 
 describe('latestLoadStyle', () => {
   it('reads the most recent session, breaking same-day ties by session id', () => {
-    expect(latestLoadStyle([
-      { performedOn: '2026-03-09', sessionId: 4, loadStyle: 'plain' },
-      { performedOn: '2026-03-10', sessionId: 2, loadStyle: 'assisted' },
-      { performedOn: '2026-03-10', sessionId: 1, loadStyle: 'plain' }
-    ])).toBe('assisted')
+    expect(
+      latestLoadStyle([
+        { performedOn: '2026-03-09', sessionId: 4, loadStyle: 'plain' },
+        { performedOn: '2026-03-10', sessionId: 2, loadStyle: 'assisted' },
+        { performedOn: '2026-03-10', sessionId: 1, loadStyle: 'plain' }
+      ])
+    ).toBe('assisted')
   })
 
   it('is null without rows', () => {

@@ -21,9 +21,27 @@ function migrationRows() {
 describe('seed_food_sources migration', () => {
   it('seeds exactly the five sources with their licence, attribution and persistence flags', () => {
     expect(migrationRows()).toEqual([
-      { key: 'off', name: 'Open Food Facts', licenseNotice: 'ODbL — https://opendatacommons.org/licenses/odbl/', attributionRequired: true, persistable: true },
-      { key: 'usda', name: 'USDA FoodData Central', licenseNotice: 'Public domain (CC0)', attributionRequired: false, persistable: true },
-      { key: 'fatsecret', name: 'FatSecret', licenseNotice: 'Commercial — fetch-only', attributionRequired: true, persistable: false },
+      {
+        key: 'off',
+        name: 'Open Food Facts',
+        licenseNotice: 'ODbL — https://opendatacommons.org/licenses/odbl/',
+        attributionRequired: true,
+        persistable: true
+      },
+      {
+        key: 'usda',
+        name: 'USDA FoodData Central',
+        licenseNotice: 'Public domain (CC0)',
+        attributionRequired: false,
+        persistable: true
+      },
+      {
+        key: 'fatsecret',
+        name: 'FatSecret',
+        licenseNotice: 'Commercial — fetch-only',
+        attributionRequired: true,
+        persistable: false
+      },
       { key: 'user', name: 'User created', licenseNotice: null, attributionRequired: false, persistable: true },
       { key: 'mymacros', name: 'My Macros+ import', licenseNotice: null, attributionRequired: false, persistable: true }
     ])

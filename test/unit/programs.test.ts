@@ -41,7 +41,12 @@ describe('programPosition', () => {
 
   it('is between weeks before the anchor date', () => {
     expect(programPosition({ ...base, today: '2026-09-27' })).toMatchObject({
-      state: 'between', week: 1, phase: phases[0], phaseIndex: 0, weekInPhase: 1, totalWeeks: 6
+      state: 'between',
+      week: 1,
+      phase: phases[0],
+      phaseIndex: 0,
+      weekInPhase: 1,
+      totalWeeks: 6
     })
   })
 
@@ -52,19 +57,41 @@ describe('programPosition', () => {
   })
 
   it('maps weeks onto phases at the boundary', () => {
-    expect(programPosition({ ...base, today: '2026-10-11' })).toMatchObject({ week: 2, phase: phases[0], weekInPhase: 2 })
-    expect(programPosition({ ...base, today: '2026-10-12' })).toMatchObject({ week: 3, phase: phases[1], phaseIndex: 1, weekInPhase: 1 })
-    expect(programPosition({ ...base, today: '2026-10-19' })).toMatchObject({ week: 4, phase: phases[2], phaseIndex: 2, weekInPhase: 1 })
+    expect(programPosition({ ...base, today: '2026-10-11' })).toMatchObject({
+      week: 2,
+      phase: phases[0],
+      weekInPhase: 2
+    })
+    expect(programPosition({ ...base, today: '2026-10-12' })).toMatchObject({
+      week: 3,
+      phase: phases[1],
+      phaseIndex: 1,
+      weekInPhase: 1
+    })
+    expect(programPosition({ ...base, today: '2026-10-19' })).toMatchObject({
+      week: 4,
+      phase: phases[2],
+      phaseIndex: 2,
+      weekInPhase: 1
+    })
   })
 
   it('finishes after the last week', () => {
     expect(programPosition({ ...base, today: '2026-11-08' })).toMatchObject({ state: 'current', week: 6 })
-    expect(programPosition({ ...base, today: '2026-11-09' })).toMatchObject({ state: 'finished', week: 7, phase: null, phaseIndex: -1 })
+    expect(programPosition({ ...base, today: '2026-11-09' })).toMatchObject({
+      state: 'finished',
+      week: 7,
+      phase: null,
+      phaseIndex: -1
+    })
   })
 
   it('resumes mid-program from a later anchor week', () => {
-    expect(programPosition({ ...base, anchorDate: '2027-01-04', anchorWeek: 4, today: '2027-01-06' }))
-      .toMatchObject({ state: 'current', week: 4, phase: phases[2] })
+    expect(programPosition({ ...base, anchorDate: '2027-01-04', anchorWeek: 4, today: '2027-01-06' })).toMatchObject({
+      state: 'current',
+      week: 4,
+      phase: phases[2]
+    })
   })
 
   it('sunday-start week boundary', () => {
@@ -74,7 +101,10 @@ describe('programPosition', () => {
   })
 
   it('is finished with no phases', () => {
-    expect(programPosition({ ...base, phases: [], today: '2026-09-28' })).toMatchObject({ state: 'finished', totalWeeks: 0 })
+    expect(programPosition({ ...base, phases: [], today: '2026-09-28' })).toMatchObject({
+      state: 'finished',
+      totalWeeks: 0
+    })
   })
 
   it('survives a DST change inside the span', () => {

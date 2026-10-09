@@ -11,12 +11,18 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-const routines = [{ id: 7, name: 'Upper Lower' }, { id: 9, name: 'Push Pull' }] as RoutineSummary[]
-const phase = (routine: { id: number, name: string, dayCount: number } | null) =>
+const routines = [
+  { id: 7, name: 'Upper Lower' },
+  { id: 9, name: 'Push Pull' }
+] as RoutineSummary[]
+const phase = (routine: { id: number; name: string; dayCount: number } | null) =>
   ({ id: 1, name: 'Base', weeks: 3, deload: false, sortOrder: 0, routine }) as unknown as ProgramPhase
 
-async function mountSheet(props: { phase: ProgramPhase | null, routines: RoutineSummary[] }) {
-  const wrapper = await mountSuspended(WorkoutProgramPhaseSheet, { attachTo: document.body, props: { open: true, ...props } })
+async function mountSheet(props: { phase: ProgramPhase | null; routines: RoutineSummary[] }) {
+  const wrapper = await mountSuspended(WorkoutProgramPhaseSheet, {
+    attachTo: document.body,
+    props: { open: true, ...props }
+  })
   await flushPromises()
   return wrapper
 }

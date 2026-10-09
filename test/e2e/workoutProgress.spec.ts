@@ -12,9 +12,11 @@ test('history, graph, records and progress from the UI', async ({ page, goto }) 
   const today = todayDate()
   const log = async (performedOn: string, weight: number) => {
     const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn })).json
-    const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-      exerciseId: bench.id
-    })).json.entries[0]!
+    const entry = (
+      await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+        exerciseId: bench.id
+      })
+    ).json.entries[0]!
     await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight, reps: 5 })
     await apiFetch(page, 'PATCH', `/api/workouts/sessions/${session.id}`, { finish: true })
   }

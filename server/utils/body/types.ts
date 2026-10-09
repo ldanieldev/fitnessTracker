@@ -5,7 +5,10 @@ import { db } from '~~/server/utils/db'
 
 export type MeasurementTypeRow = typeof measurementTypes.$inferSelect
 
-export function toMeasurementType(row: MeasurementTypeRow, pref?: { hidden: boolean, sortOrder: number | null }): MeasurementType {
+export function toMeasurementType(
+  row: MeasurementTypeRow,
+  pref?: { hidden: boolean; sortOrder: number | null }
+): MeasurementType {
   return {
     id: row.id,
     key: row.key,
@@ -30,10 +33,16 @@ export function compareTypes(a: MeasurementType, b: MeasurementType): number {
 }
 
 function visibleTo(userId: number) {
-  return and(isNull(measurementTypes.deletedAt), or(isNull(measurementTypes.userId), eq(measurementTypes.userId, userId)))
+  return and(
+    isNull(measurementTypes.deletedAt),
+    or(isNull(measurementTypes.userId), eq(measurementTypes.userId, userId))
+  )
 }
 
-export async function listTypesForUser(userId: number, opts: { includeHidden?: boolean } = {}): Promise<MeasurementType[]> {
+export async function listTypesForUser(
+  userId: number,
+  opts: { includeHidden?: boolean } = {}
+): Promise<MeasurementType[]> {
   const rows = await db
     .select({ type: measurementTypes, hidden: measurementTypePrefs.hidden, sortOrder: measurementTypePrefs.sortOrder })
     .from(measurementTypes)

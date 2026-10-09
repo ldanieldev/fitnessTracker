@@ -32,7 +32,7 @@ function queryDate(value: unknown, fallback: string) {
   return typeof value === 'string' && DATE_RE.test(value) ? value : fallback
 }
 
-// `from`/`to` fall back independently to the last-14-days-ending-today default, so a range isn't buildable until today resolves unless the query already supplies both.
+// `from`/`to` default independently to the 14 days ending today, so a range waits on today unless both are given.
 function buildRange(end: string | null): Range | null {
   const from = queryDate(route.query.from, end ? shiftDate(end, -13) : '')
   const to = queryDate(route.query.to, end ?? '')
@@ -96,7 +96,9 @@ const menu = computed<DropdownMenuItem[][]>(() => [
   windowItems.map((w) => ({
     label: `${w.label} average`,
     icon: windowSize.value === w.value ? 'i-lucide-check' : undefined,
-    onSelect: () => { windowSize.value = w.value }
+    onSelect: () => {
+      windowSize.value = w.value
+    }
   })),
   [
     { label: 'Export CSV', icon: 'i-lucide-download', onSelect: () => openExport('csv') },
@@ -116,7 +118,13 @@ const menu = computed<DropdownMenuItem[][]>(() => [
         <template #right>
           <DashboardDateRangePicker v-if="range" v-model="range" :months="narrow ? 1 : 2" />
           <UDropdownMenu :items="menu">
-            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" aria-label="Summary actions" data-test="summary-menu" />
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              color="neutral"
+              aria-label="Summary actions"
+              data-test="summary-menu"
+            />
           </UDropdownMenu>
         </template>
       </UDashboardNavbar>
@@ -137,7 +145,9 @@ const menu = computed<DropdownMenuItem[][]>(() => [
               <template v-for="nutrient in trackedNutrients" :key="nutrient.key">
                 <span class="text-dimmed">{{ nutrient.name }}</span>
                 <span :data-test="`summary-${nutrient.key}-total-${day.date}`">{{ totalCell(day, nutrient.key) }}</span>
-                <span class="text-dimmed" :data-test="`summary-${nutrient.key}-avg-${day.date}`">{{ rollingCell(day, nutrient.key) }}</span>
+                <span class="text-dimmed" :data-test="`summary-${nutrient.key}-avg-${day.date}`">{{
+                  rollingCell(day, nutrient.key)
+                }}</span>
               </template>
             </div>
           </UCard>
@@ -156,15 +166,24 @@ const menu = computed<DropdownMenuItem[][]>(() => [
             </tr>
           </thead>
           <tbody>
-            <tr v-for="day in summary?.days ?? []" :key="day.date" class="border-b border-default" :data-test="`summary-row-${day.date}`">
+            <tr
+              v-for="day in summary?.days ?? []"
+              :key="day.date"
+              class="border-b border-default"
+              :data-test="`summary-row-${day.date}`"
+            >
               <td class="py-2 pr-4 font-medium">{{ day.date }}</td>
               <td class="py-2 pr-4">
                 <UIcon v-if="day.logged" name="i-lucide-check" class="text-success size-4" />
                 <span v-else class="text-dimmed">—</span>
               </td>
               <template v-for="nutrient in trackedNutrients" :key="nutrient.key">
-                <td class="py-2 pr-4" :data-test="`summary-${nutrient.key}-total-${day.date}`">{{ totalCell(day, nutrient.key) }}</td>
-                <td class="py-2 pr-4" :data-test="`summary-${nutrient.key}-avg-${day.date}`">{{ rollingCell(day, nutrient.key) }}</td>
+                <td class="py-2 pr-4" :data-test="`summary-${nutrient.key}-total-${day.date}`">
+                  {{ totalCell(day, nutrient.key) }}
+                </td>
+                <td class="py-2 pr-4" :data-test="`summary-${nutrient.key}-avg-${day.date}`">
+                  {{ rollingCell(day, nutrient.key) }}
+                </td>
               </template>
             </tr>
           </tbody>

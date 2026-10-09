@@ -90,9 +90,17 @@ export default defineEventHandler(async (event) => {
   })
 
   const reranked = rerank(candidates, { favorites, usage }).slice(0, query.limit)
-  const perDefaults = await perDefaultByFood(db, reranked.map((h) => h.id))
+  const perDefaults = await perDefaultByFood(
+    db,
+    reranked.map((h) => h.id)
+  )
 
-  const hits = reranked.map((hit) => ({ ...hit, brand: rowById.get(hit.id)!.brand, energyDensity: densityByFood.get(hit.id) ?? null, perDefault: perDefaults.get(hit.id) ?? null }))
+  const hits = reranked.map((hit) => ({
+    ...hit,
+    brand: rowById.get(hit.id)!.brand,
+    energyDensity: densityByFood.get(hit.id) ?? null,
+    perDefault: perDefaults.get(hit.id) ?? null
+  }))
 
   return { hits, degraded }
 })

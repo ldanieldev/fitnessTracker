@@ -58,9 +58,9 @@ describe('getFatsecretToken', () => {
 
   it('sends Basic auth of clientId:clientSecret and the configured scope', async () => {
     vi.stubGlobal('useRuntimeConfig', () => config)
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 })
-    )
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     const { getFatsecretToken } = await import('../../server/utils/nutrition/external/fatsecret')
     await getFatsecretToken()
@@ -75,7 +75,9 @@ describe('getFatsecretToken', () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ fatsecret: { clientId: '', clientSecret: '', scope: 'basic' } }))
     const { getFatsecretToken } = await import('../../server/utils/nutrition/external/fatsecret')
     await expect(getFatsecretToken()).rejects.toMatchObject({
-      name: 'ExternalSourceError', source: 'fatsecret', kind: 'unconfigured'
+      name: 'ExternalSourceError',
+      source: 'fatsecret',
+      kind: 'unconfigured'
     })
   })
 })
@@ -132,7 +134,9 @@ describe('fatsecretFoodToExternal', () => {
     const external = fatsecretFoodToExternal({
       food_id: '1',
       food_name: 'Liquid',
-      servings: { serving: { metric_serving_amount: '240', metric_serving_unit: 'ml', calories: '100', is_default: '1' } }
+      servings: {
+        serving: { metric_serving_amount: '240', metric_serving_unit: 'ml', calories: '100', is_default: '1' }
+      }
     })
     expect(external.per100g).toBeNull()
     expect(external.servingGrams).toBeNull()
@@ -153,9 +157,18 @@ describe('fatsecretById', () => {
       if (url.startsWith('https://oauth.fatsecret.com')) {
         return Promise.resolve(new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 }))
       }
-      return Promise.resolve(new Response(JSON.stringify({
-        food: { food_id: '33691', food_name: 'Cheddar', servings: { serving: { metric_serving_amount: '100', metric_serving_unit: 'g', calories: '393' } } }
-      }), { status: 200 }))
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            food: {
+              food_id: '33691',
+              food_name: 'Cheddar',
+              servings: { serving: { metric_serving_amount: '100', metric_serving_unit: 'g', calories: '393' } }
+            }
+          }),
+          { status: 200 }
+        )
+      )
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fatsecretById } = await import('../../server/utils/nutrition/external/fatsecret')
@@ -183,7 +196,9 @@ describe('fatsecretById', () => {
       if (url.startsWith('https://oauth.fatsecret.com')) {
         return Promise.resolve(new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 }))
       }
-      return Promise.resolve(new Response(JSON.stringify({ error: { code: 21, message: 'Invalid IP address detected' } }), { status: 200 }))
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: { code: 21, message: 'Invalid IP address detected' } }), { status: 200 })
+      )
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fatsecretById } = await import('../../server/utils/nutrition/external/fatsecret')
@@ -218,14 +233,33 @@ describe('fatsecretSearch', () => {
         return Promise.resolve(new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 }))
       }
       if (url.includes('method=foods.search')) {
-        return Promise.resolve(new Response(JSON.stringify({
-          foods: { food: [{ food_id: '1', food_name: 'A' }, { food_id: '2', food_name: 'B' }] }
-        }), { status: 200 }))
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              foods: {
+                food: [
+                  { food_id: '1', food_name: 'A' },
+                  { food_id: '2', food_name: 'B' }
+                ]
+              }
+            }),
+            { status: 200 }
+          )
+        )
       }
       const foodId = new URL(url).searchParams.get('food_id')
-      return Promise.resolve(new Response(JSON.stringify({
-        food: { food_id: foodId, food_name: `Food ${foodId}`, servings: { serving: { metric_serving_amount: '100', metric_serving_unit: 'g', calories: '100' } } }
-      }), { status: 200 }))
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            food: {
+              food_id: foodId,
+              food_name: `Food ${foodId}`,
+              servings: { serving: { metric_serving_amount: '100', metric_serving_unit: 'g', calories: '100' } }
+            }
+          }),
+          { status: 200 }
+        )
+      )
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fatsecretSearch } = await import('../../server/utils/nutrition/external/fatsecret')
@@ -241,9 +275,14 @@ describe('fatsecretSearch', () => {
         return Promise.resolve(new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 }))
       }
       if (url.includes('method=foods.search')) {
-        return Promise.resolve(new Response(JSON.stringify({
-          foods: { food: [{ food_id: '1', food_name: 'A' }] }
-        }), { status: 200 }))
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              foods: { food: [{ food_id: '1', food_name: 'A' }] }
+            }),
+            { status: 200 }
+          )
+        )
       }
       return Promise.resolve(new Response('too many requests', { status: 429 }))
     })
@@ -264,9 +303,14 @@ describe('fatsecretByBarcode', () => {
         expect(url).toContain('barcode=0094395000172')
         return Promise.resolve(new Response(JSON.stringify({ food_id: { value: '33691' } }), { status: 200 }))
       }
-      return Promise.resolve(new Response(JSON.stringify({
-        food: { food_id: '33691', food_name: 'Cheddar' }
-      }), { status: 200 }))
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            food: { food_id: '33691', food_name: 'Cheddar' }
+          }),
+          { status: 200 }
+        )
+      )
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fatsecretByBarcode } = await import('../../server/utils/nutrition/external/fatsecret')

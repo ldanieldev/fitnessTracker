@@ -2,7 +2,11 @@ import { and, eq } from 'drizzle-orm'
 import type { Routine } from '~~/shared/types/routine'
 import { routines, workoutTemplateEntries, workoutTemplates } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
-import type { RoutineDayCreateInput, RoutineDayPatchInput, RoutineEntryPatchInput } from '~~/server/utils/workouts/input'
+import type {
+  RoutineDayCreateInput,
+  RoutineDayPatchInput,
+  RoutineEntryPatchInput
+} from '~~/server/utils/workouts/input'
 import { loadExerciseSettings } from '~~/server/utils/workouts/exercises'
 import { loadRoutine, lockRoutine } from '~~/server/utils/workouts/routines'
 import { groupOrThrow, regroup, ROUTINE_ENTRY_GROUPS } from '~~/server/utils/workouts/groups'
@@ -47,7 +51,14 @@ async function ownedRoutineEntry(userId: number, entryId: number, client: DbClie
 }
 
 const daySiblings = (tx: DbClient, routineId: number) =>
-  siblingIds(tx, workoutTemplates, workoutTemplates.id, workoutTemplates.sortOrder, workoutTemplates.routineId, routineId)
+  siblingIds(
+    tx,
+    workoutTemplates,
+    workoutTemplates.id,
+    workoutTemplates.sortOrder,
+    workoutTemplates.routineId,
+    routineId
+  )
 
 // Routine row before any day or entry row, the same order startSession takes, so routine writes never deadlock.
 async function lockedRoutineDay(tx: DbClient, userId: number, dayId: number) {
@@ -99,7 +110,13 @@ export async function deleteRoutineDay(userId: number, dayId: number): Promise<R
   const day = await db.transaction(async (tx) => {
     const day = await lockedRoutineDay(tx, userId, dayId)
     await tx.delete(workoutTemplates).where(eq(workoutTemplates.id, dayId))
-    await renumberSiblings(tx, workoutTemplates, workoutTemplates.id, workoutTemplates.sortOrder, await daySiblings(tx, day.routineId))
+    await renumberSiblings(
+      tx,
+      workoutTemplates,
+      workoutTemplates.id,
+      workoutTemplates.sortOrder,
+      await daySiblings(tx, day.routineId)
+    )
     return day
   })
   return loadRoutine(userId, day.routineId)
@@ -110,21 +127,33 @@ export async function addRoutineEntry(userId: number, dayId: number, exerciseId:
   await loadExerciseSettings(userId, exerciseId)
   const day = await db.transaction(async (tx) => {
     const day = await lockedRoutineDay(tx, userId, dayId)
-    const count = (await siblingIds(
-      tx, workoutTemplateEntries, workoutTemplateEntries.id, workoutTemplateEntries.sortOrder,
-      workoutTemplateEntries.templateId, dayId
-    )).length
+    const count = (
+      await siblingIds(
+        tx,
+        workoutTemplateEntries,
+        workoutTemplateEntries.id,
+        workoutTemplateEntries.sortOrder,
+        workoutTemplateEntries.templateId,
+        dayId
+      )
+    ).length
     await tx.insert(workoutTemplateEntries).values({ templateId: dayId, exerciseId, sortOrder: count, targetSets: 3 })
     return day
   })
   return loadRoutine(userId, day.routineId)
 }
 
-export async function patchRoutineEntry(userId: number, entryId: number, patch: RoutineEntryPatchInput): Promise<Routine> {
+export async function patchRoutineEntry(
+  userId: number,
+  entryId: number,
+  patch: RoutineEntryPatchInput
+): Promise<Routine> {
   const entry = await db.transaction(async (tx) => {
     const entry = await lockedRoutineEntry(tx, userId, entryId)
-    const low = patch.targetLow !== undefined ? patch.targetLow : entry.targetLow === null ? null : Number(entry.targetLow)
-    const high = patch.targetHigh !== undefined ? patch.targetHigh : entry.targetHigh === null ? null : Number(entry.targetHigh)
+    const low =
+      patch.targetLow !== undefined ? patch.targetLow : entry.targetLow === null ? null : Number(entry.targetLow)
+    const high =
+      patch.targetHigh !== undefined ? patch.targetHigh : entry.targetHigh === null ? null : Number(entry.targetHigh)
     if (low !== null && high !== null && low > high) {
       throw createError({ statusCode: 400, statusMessage: 'The range must run low to high' })
     }
@@ -132,7 +161,8 @@ export async function patchRoutineEntry(userId: number, entryId: number, patch: 
     if (patch.targetSets !== undefined) values.targetSets = patch.targetSets
     if (patch.targetLow !== undefined) values.targetLow = patch.targetLow === null ? null : String(patch.targetLow)
     if (patch.targetHigh !== undefined) values.targetHigh = patch.targetHigh === null ? null : String(patch.targetHigh)
-    if (patch.targetWeight !== undefined) values.targetWeight = patch.targetWeight === null ? null : String(patch.targetWeight)
+    if (patch.targetWeight !== undefined)
+      values.targetWeight = patch.targetWeight === null ? null : String(patch.targetWeight)
     if (patch.optional !== undefined) values.optional = patch.optional
     if (patch.restSeconds !== undefined) values.restSeconds = patch.restSeconds
     if (patch.notes !== undefined) values.notes = patch.notes || null
@@ -145,7 +175,8 @@ export async function patchRoutineEntry(userId: number, entryId: number, patch: 
     if (patch.sortOrder !== undefined) {
       const target = patch.sortOrder
       await regroup(tx, ROUTINE_ENTRY_GROUPS, entry.templateId, (items) =>
-        moveWithGroupsTo(items, entryId, Math.min(target, items.length - 1)))
+        moveWithGroupsTo(items, entryId, Math.min(target, items.length - 1))
+      )
     }
     return entry
   })

@@ -5,11 +5,22 @@ import { getQuery, readBody } from 'h3'
 import ExerciseCategoryEditor from '../../app/components/workout/ExerciseCategoryEditor.vue'
 
 const category = (id: number, name: string, sortOrder: number, shared: boolean) => ({
-  id, key: shared ? name.toLowerCase() : null, name, color: 'rose', sortOrder, shared, hidden: false
+  id,
+  key: shared ? name.toLowerCase() : null,
+  name,
+  color: 'rose',
+  sortOrder,
+  shared,
+  hidden: false
 })
 const categories = [category(1, 'Chest', 0, true), category(2, 'Back', 1, true), category(3, 'Grip', 2, false)]
 
-interface Call { method: string, id: number, body: unknown, query: Record<string, unknown> }
+interface Call {
+  method: string
+  id: number
+  body: unknown
+  query: Record<string, unknown>
+}
 let calls: Call[] = []
 
 registerEndpoint('/api/workouts/categories', { method: 'GET', handler: () => categories })
@@ -65,7 +76,10 @@ describe('ExerciseCategoryEditor', () => {
     expect(find('[data-test="category-up-1"]').attributes('disabled')).toBeDefined()
     await find('[data-test="category-down-1"]').trigger('click')
     await vi.waitFor(() => expect(calls).toHaveLength(2))
-    expect(calls.map((c) => [c.id, c.body])).toEqual([[2, { sortOrder: 0 }], [1, { sortOrder: 1 }]])
+    expect(calls.map((c) => [c.id, c.body])).toEqual([
+      [2, { sortOrder: 0 }],
+      [1, { sortOrder: 1 }]
+    ])
   })
 
   it('offers hide for shared categories and delete for custom ones', async () => {
@@ -80,7 +94,9 @@ describe('ExerciseCategoryEditor', () => {
     await find('[data-test="category-delete-3"]').trigger('click')
     expect(document.body.textContent).toContain('Move exercises in "Grip" to:')
     await find('[data-test="category-delete-confirm"]').trigger('click')
-    await vi.waitFor(() => expect(calls).toEqual([{ method: 'DELETE', id: 3, body: undefined, query: { moveTo: '1' } }]))
+    await vi.waitFor(() =>
+      expect(calls).toEqual([{ method: 'DELETE', id: 3, body: undefined, query: { moveTo: '1' } }])
+    )
   })
 
   it('sets a new colour and ignores the current one', async () => {
@@ -92,7 +108,9 @@ describe('ExerciseCategoryEditor', () => {
   it('creates a category with the typed name and the default colour', async () => {
     await find('[data-test="category-new-name"]').setValue('  Carries  ')
     await find('[data-test="category-new-save"]').trigger('click')
-    await vi.waitFor(() => expect(calls).toEqual([{ method: 'POST', id: 0, body: { name: 'Carries', color: 'rose' }, query: {} }]))
+    await vi.waitFor(() =>
+      expect(calls).toEqual([{ method: 'POST', id: 0, body: { name: 'Carries', color: 'rose' }, query: {} }])
+    )
     await vi.waitFor(() => expect((find('[data-test="category-new-name"]').element as HTMLInputElement).value).toBe(''))
   })
 })

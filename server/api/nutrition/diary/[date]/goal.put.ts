@@ -16,13 +16,7 @@ export default defineEventHandler(async (event) => {
   const profile = await db
     .select({ id: goalProfiles.id })
     .from(goalProfiles)
-    .where(
-      and(
-        eq(goalProfiles.id, body.profileId),
-        eq(goalProfiles.userId, userId),
-        isNull(goalProfiles.deletedAt)
-      )
-    )
+    .where(and(eq(goalProfiles.id, body.profileId), eq(goalProfiles.userId, userId), isNull(goalProfiles.deletedAt)))
     .then((r) => r[0])
   if (!profile) throw createError({ statusCode: 404, statusMessage: 'Goal profile not found' })
 

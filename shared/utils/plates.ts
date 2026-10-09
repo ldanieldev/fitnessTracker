@@ -6,10 +6,16 @@ export const DEFAULT_BAR_WEIGHT = 45
 export const MAX_PLATE_SIZES = 12
 
 // Two decimals keeps the loadable-weight search on an integer grid of hundredths of a pound.
-const plateSize = z.number().positive().max(100)
+const plateSize = z
+  .number()
+  .positive()
+  .max(100)
   .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'At most two decimals')
 
-export const plateSizesSchema = z.array(plateSize).min(1).max(MAX_PLATE_SIZES)
+export const plateSizesSchema = z
+  .array(plateSize)
+  .min(1)
+  .max(MAX_PLATE_SIZES)
   .refine((sizes) => new Set(sizes).size === sizes.length, 'Each plate size once')
 
 export function normalizePlateSizes(sizes: number[]): number[] {

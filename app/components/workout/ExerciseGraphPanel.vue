@@ -7,10 +7,12 @@ import { metricLabel, metricPrecision, metricUnit, metricsFor } from '~~/shared/
 
 const props = defineProps<{ exercise: Exercise }>()
 
-const options = computed(() => (
-  metricsFor(props.exercise.trackingType, props.exercise.loadStyle)
-    .map((value) => ({ value, label: metricLabel(value, props.exercise.loadStyle) }))
-))
+const options = computed(() =>
+  metricsFor(props.exercise.trackingType, props.exercise.loadStyle).map((value) => ({
+    value,
+    label: metricLabel(value, props.exercise.loadStyle)
+  }))
+)
 
 const metric = ref<GraphMetric>(
   props.exercise.defaultGraph && options.value.some((o) => o.value === props.exercise.defaultGraph)
@@ -18,9 +20,13 @@ const metric = ref<GraphMetric>(
     : options.value[0]!.value
 )
 const reps = ref<number | null>(null)
-watch(metric, (value) => {
-  if (value === 'weight_at_reps' && reps.value === null) reps.value = 5
-}, { immediate: true })
+watch(
+  metric,
+  (value) => {
+    if (value === 'weight_at_reps' && reps.value === null) reps.value = 5
+  },
+  { immediate: true }
+)
 
 const range = useState<ChartRange>('workouts:range', () => 'mtd')
 const { series, trend, fetch } = useExerciseSeries(() => props.exercise.id, metric, reps, range)
@@ -36,7 +42,9 @@ function shown(points: SeriesPoint[]): SeriesPoint[] {
   const display = cardio.value
   if (!display) return points
   // Rollups written before zero-distance sets were excluded hold a 0 m/s pace, which displays as an infinite min/mi.
-  return points.map((point) => ({ ...point, value: display.toDisplay(point.value) })).filter((point) => Number.isFinite(point.value))
+  return points
+    .map((point) => ({ ...point, value: display.toDisplay(point.value) }))
+    .filter((point) => Number.isFinite(point.value))
 }
 
 const points = computed(() => shown(series.value?.points ?? []))
@@ -89,7 +97,7 @@ async function makeDefault() {
         <AppRangeTabs v-model="range" class="w-full sm:w-auto" />
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <!-- AppNumberInput's root is w-full, so the width has to sit on a wrapper or the unit gets pushed across the row -->
+        <!-- AppNumberInput's root is w-full; width goes on a wrapper or the unit is pushed across the row -->
         <div v-if="metric === 'weight_at_reps'" class="w-36 shrink-0">
           <AppNumberInput v-model="reps" :min="1" :max="30" :step="1" data-test="graph-reps" />
         </div>

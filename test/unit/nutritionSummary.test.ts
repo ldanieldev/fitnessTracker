@@ -3,20 +3,17 @@ import { describe, expect, it } from 'vitest'
 describe('enumerateDates', () => {
   it('returns an inclusive range', async () => {
     const { enumerateDates } = await import('../../shared/utils/nutritionSummary')
-    expect(enumerateDates('2026-01-01', '2026-01-04'))
-      .toEqual(['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04'])
+    expect(enumerateDates('2026-01-01', '2026-01-04')).toEqual(['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04'])
   })
 
   it('crosses a month boundary', async () => {
     const { enumerateDates } = await import('../../shared/utils/nutritionSummary')
-    expect(enumerateDates('2026-01-30', '2026-02-02'))
-      .toEqual(['2026-01-30', '2026-01-31', '2026-02-01', '2026-02-02'])
+    expect(enumerateDates('2026-01-30', '2026-02-02')).toEqual(['2026-01-30', '2026-01-31', '2026-02-01', '2026-02-02'])
   })
 
   it('handles a leap day', async () => {
     const { enumerateDates } = await import('../../shared/utils/nutritionSummary')
-    expect(enumerateDates('2028-02-28', '2028-03-01'))
-      .toEqual(['2028-02-28', '2028-02-29', '2028-03-01'])
+    expect(enumerateDates('2028-02-28', '2028-03-01')).toEqual(['2028-02-28', '2028-02-29', '2028-03-01'])
   })
 
   it('rejects a reversed range', async () => {

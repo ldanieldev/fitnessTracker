@@ -46,9 +46,12 @@ async function submit() {
     body.servingName = servingName.value
   }
 
-  let result: { id: number, skippedQuickAdds: number, flattenedRecipes: number }
+  let result: { id: number; skippedQuickAdds: number; flattenedRecipes: number }
   try {
-    result = await apiFetch<{ id: number, skippedQuickAdds: number, flattenedRecipes: number }>(path, { method: 'POST', body })
+    result = await apiFetch<{ id: number; skippedQuickAdds: number; flattenedRecipes: number }>(path, {
+      method: 'POST',
+      body
+    })
     await invalidateNutrition(props.kind === 'recipe' ? NUTRITION_KEYS.recipes : NUTRITION_KEYS.savedMeals)
   } catch (error: unknown) {
     toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this meal'), color: 'error' })
@@ -83,7 +86,14 @@ async function submit() {
             <UInput v-model="servingName" class="w-full" data-test="save-meal-serving-name" />
           </UFormField>
         </template>
-        <UButton label="Save" block :loading="saving" :disabled="!canSubmit || saving" data-test="save-meal-submit" @click="submit" />
+        <UButton
+          label="Save"
+          block
+          :loading="saving"
+          :disabled="!canSubmit || saving"
+          data-test="save-meal-submit"
+          @click="submit"
+        />
       </div>
     </template>
   </AppSheet>

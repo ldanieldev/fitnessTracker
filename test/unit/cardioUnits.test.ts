@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
-  cardioMetricDisplay, clockLabel, metersToMiles, milesLabel, milesToMeters, paceFromSecondsPerMile, parseClock,
+  cardioMetricDisplay,
+  clockLabel,
+  metersToMiles,
+  milesLabel,
+  milesToMeters,
+  paceFromSecondsPerMile,
+  parseClock,
   secondsPerMile
 } from '../../shared/utils/cardioUnits'
 

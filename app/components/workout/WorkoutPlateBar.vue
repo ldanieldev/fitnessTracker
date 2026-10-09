@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ plates: number[], heaviest: number }>()
+const props = defineProps<{ plates: number[]; heaviest: number }>()
 
 const WIDTH = 320
 const HEIGHT = 120
@@ -16,19 +16,27 @@ function plateHeight(size: number) {
   return 30 + 80 * (size / props.heaviest)
 }
 
-const rects = computed(() => props.plates.flatMap((size, i) => {
-  const offset = i * (thickness.value + GAP) + GAP
-  const height = plateHeight(size)
-  const y = MID - height / 2
-  return [
-    { key: `r${i}`, size, x: COLLAR_RIGHT + offset, y, height },
-    { key: `l${i}`, size, x: COLLAR_LEFT - offset - thickness.value, y, height }
-  ]
-}))
+const rects = computed(() =>
+  props.plates.flatMap((size, i) => {
+    const offset = i * (thickness.value + GAP) + GAP
+    const height = plateHeight(size)
+    const y = MID - height / 2
+    return [
+      { key: `r${i}`, size, x: COLLAR_RIGHT + offset, y, height },
+      { key: `l${i}`, size, x: COLLAR_LEFT - offset - thickness.value, y, height }
+    ]
+  })
+)
 </script>
 
 <template>
-  <svg :viewBox="`0 0 ${WIDTH} ${HEIGHT}`" class="mx-auto block w-full max-w-sm" role="img" :aria-label="label" data-test="plate-bar">
+  <svg
+    :viewBox="`0 0 ${WIDTH} ${HEIGHT}`"
+    class="mx-auto block w-full max-w-sm"
+    role="img"
+    :aria-label="label"
+    data-test="plate-bar"
+  >
     <rect x="4" :y="MID - 3" :width="WIDTH - 8" height="6" rx="3" class="fill-(--ui-bg-accented)" />
     <rect :x="COLLAR_LEFT - 2" :y="MID - 9" width="4" height="18" class="fill-(--ui-text-dimmed)" />
     <rect :x="COLLAR_RIGHT - 2" :y="MID - 9" width="4" height="18" class="fill-(--ui-text-dimmed)" />
@@ -52,7 +60,9 @@ const rects = computed(() => props.plates.flatMap((size, i) => {
         font-size="9"
         font-weight="600"
         class="fill-(--ui-text-inverted)"
-      >{{ rect.size }}</text>
+      >
+        {{ rect.size }}
+      </text>
     </g>
   </svg>
 </template>

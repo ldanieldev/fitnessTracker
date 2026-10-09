@@ -18,9 +18,7 @@ export type NutrientKey =
   | 'sodium'
   | 'potassium'
 
-export type NormalizedUnit =
-  | { kind: 'weight', unit: MassUnit }
-  | { kind: 'named', label: string }
+export type NormalizedUnit = { kind: 'weight'; unit: MassUnit } | { kind: 'named'; label: string }
 
 export interface ServingBasis {
   id: number
@@ -37,16 +35,14 @@ export interface FoodForResolve {
   servings: ServingBasis[]
 }
 
-export type UnitSelection =
-  | { type: 'mass', unit: MassUnit }
-  | { type: 'serving', servingId: number }
+export type UnitSelection = { type: 'mass'; unit: MassUnit } | { type: 'serving'; servingId: number }
 
 export interface ResolveResult {
   nutrients: Record<number, number>
   gramsResolved: number | null
 }
 
-export type MacroSet = { kcal: number, protein: number, carbs: number, fat: number }
+export type MacroSet = { kcal: number; protein: number; carbs: number; fat: number }
 
 export interface ImportWarning {
   date: string
@@ -62,5 +58,5 @@ export interface ImportResult {
   foodsReused: number
   containersCreated: number
   warnings: ImportWarning[]
-  failedFiles: Array<{ fileName: string, error: string }>
+  failedFiles: Array<{ fileName: string; error: string }>
 }

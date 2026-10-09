@@ -42,9 +42,8 @@ export function goalProgress(
   if (latest === null) return { remaining: null, percent: null, reached: false }
   const span = goal.targetValue - goal.startValue
   const remaining = goal.targetValue - latest
-  const reached = span === 0
-    ? latest === goal.targetValue
-    : span > 0 ? latest >= goal.targetValue : latest <= goal.targetValue
+  const reached =
+    span === 0 ? latest === goal.targetValue : span > 0 ? latest >= goal.targetValue : latest <= goal.targetValue
   const percent = span === 0 ? (reached ? 1 : 0) : Math.min(1, Math.max(0, (latest - goal.startValue) / span))
   return { remaining, percent, reached }
 }

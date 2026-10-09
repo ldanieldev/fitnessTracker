@@ -31,12 +31,16 @@ export function macroDonutSlices(nutrients: Record<string, number>): DonutSlice[
   const raw = keys.map((key) => (calories[key] / total) * 100)
   const floored = raw.map(Math.floor)
   const remainder = 100 - floored.reduce((sum, n) => sum + n, 0)
-  // Largest-remainder method: hand the leftover percentage points to the slices closest to rounding up, so shares sum to exactly 100.
-  const byRemainder = raw
-    .map((p, i) => ({ i, frac: p - floored[i]! }))
-    .sort((a, b) => b.frac - a.frac)
+  // Largest-remainder: give leftover points to the slices closest to rounding up so shares sum to exactly 100.
+  const byRemainder = raw.map((p, i) => ({ i, frac: p - floored[i]! })).sort((a, b) => b.frac - a.frac)
   const percents = [...floored]
   for (let n = 0; n < remainder; n++) percents[byRemainder[n]!.i]! += 1
 
-  return keys.map((key, i) => ({ key, label: LABELS[key], grams: grams[key], percent: percents[i]!, cls: MACRO_CLASS[key] }))
+  return keys.map((key, i) => ({
+    key,
+    label: LABELS[key],
+    grams: grams[key],
+    percent: percents[i]!,
+    cls: MACRO_CLASS[key]
+  }))
 }

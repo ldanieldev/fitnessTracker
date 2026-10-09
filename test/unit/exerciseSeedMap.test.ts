@@ -65,12 +65,28 @@ describe('exercise seed mapping', () => {
 
   it('files every dataset muscle under a category', () => {
     const muscles = [
-      'abdominals', 'abductors', 'adductors', 'biceps', 'calves', 'chest', 'forearms', 'glutes', 'hamstrings',
-      'lats', 'lower back', 'middle back', 'neck', 'quadriceps', 'shoulders', 'traps', 'triceps'
+      'abdominals',
+      'abductors',
+      'adductors',
+      'biceps',
+      'calves',
+      'chest',
+      'forearms',
+      'glutes',
+      'hamstrings',
+      'lats',
+      'lower back',
+      'middle back',
+      'neck',
+      'quadriceps',
+      'shoulders',
+      'traps',
+      'triceps'
     ]
     for (const m of muscles) {
-      expect(categoryKeyFor(entry({ primaryMuscles: [m] })), m)
-        .toMatch(/^(chest|back|shoulders|arms|legs|core|neck|cardio)$/)
+      expect(categoryKeyFor(entry({ primaryMuscles: [m] })), m).toMatch(
+        /^(chest|back|shoulders|arms|legs|core|neck|cardio)$/
+      )
     }
   })
 })

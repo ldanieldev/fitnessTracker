@@ -3,7 +3,7 @@ import type { ToolContext } from '~/components/workout/WorkoutToolsSheet.vue'
 import { roundTenth } from '~~/shared/utils/oneRepMax'
 import { loadPlan, roundToIncrement, roundToLoadable } from '~/utils/plateCalculator'
 
-const props = defineProps<{ oneRm: number | null, pending: boolean, context: ToolContext }>()
+const props = defineProps<{ oneRm: number | null; pending: boolean; context: ToolContext }>()
 const emit = defineEmits<{ use: [weight: number] }>()
 
 const QUICK = [65, 75, 85, 90, 95]
@@ -29,7 +29,9 @@ const plates = computed(() => {
 
 <template>
   <div class="flex flex-col gap-3">
-    <p v-if="context.loadStyle === 'assisted'" class="text-center text-sm text-dimmed">Not available for assisted exercises.</p>
+    <p v-if="context.loadStyle === 'assisted'" class="text-center text-sm text-dimmed">
+      Not available for assisted exercises.
+    </p>
     <div
       v-else-if="pending && oneRm === null"
       class="flex flex-col items-center gap-2"
@@ -39,11 +41,7 @@ const plates = computed(() => {
       <USkeleton class="h-9 w-40 rounded-lg" />
       <USkeleton class="h-4 w-56 rounded" />
     </div>
-    <p
-      v-else-if="oneRm === null"
-      class="text-center text-sm text-dimmed"
-      data-test="set-calc-empty"
-    >
+    <p v-else-if="oneRm === null" class="text-center text-sm text-dimmed" data-test="set-calc-empty">
       Needs a 1RM — log a set or enter one on the 1RM tab.
     </p>
     <template v-else>
@@ -64,18 +62,10 @@ const plates = computed(() => {
         <span class="text-sm font-medium text-dimmed">Percent</span>
         <AppNumberInput v-model="percent" :min="1" data-test="set-calc-percent" />
       </div>
-      <p
-        v-if="raw !== null"
-        class="text-center text-sm text-dimmed"
-        data-test="set-calc-raw"
-      >
+      <p v-if="raw !== null" class="text-center text-sm text-dimmed" data-test="set-calc-raw">
         {{ percent }}% = {{ raw }} lb
       </p>
-      <p
-        v-if="loadable !== null"
-        class="text-center text-3xl font-bold tabular-nums"
-        data-test="set-calc-loadable"
-      >
+      <p v-if="loadable !== null" class="text-center text-3xl font-bold tabular-nums" data-test="set-calc-loadable">
         {{ loadable }} lb
       </p>
       <p v-if="plates" class="text-center text-sm font-medium" data-test="set-calc-plates">{{ plates }}</p>

@@ -29,9 +29,9 @@ async function create() {
 }
 
 const whenOpen = ref(false)
-const whenMode = ref<{ kind: 'enroll', program: ProgramSummary } | { kind: 'resume' } | null>(null)
+const whenMode = ref<{ kind: 'enroll'; program: ProgramSummary } | { kind: 'resume' } | null>(null)
 const replaceOpen = ref(false)
-const pendingStart = ref<{ program: ProgramSummary, when: StartWhen } | null>(null)
+const pendingStart = ref<{ program: ProgramSummary; when: StartWhen } | null>(null)
 
 function askEnroll(program: ProgramSummary) {
   whenMode.value = { kind: 'enroll', program }
@@ -136,28 +136,54 @@ const deleteDescription = computed(() =>
 )
 
 function menu(program: ProgramSummary): DropdownMenuItem[][] {
-  return [[
-    { label: 'Start', icon: 'i-lucide-play', disabled: program.enrolled || program.phaseCount === 0, testId: `program-enroll-${program.id}`, onSelect: () => askEnroll(program) },
-    { label: 'Duplicate', icon: 'i-lucide-copy', testId: `program-duplicate-${program.id}`, onSelect: () => duplicate(program) },
-    { label: 'Export', icon: 'i-lucide-download', testId: `program-export-${program.id}`, onSelect: () => exportProgram(program) }
-  ], [
-    {
-      label: 'Delete',
-      icon: 'i-lucide-trash-2',
-      color: 'error',
-      testId: `program-delete-${program.id}`,
-      onSelect: () => {
-        deleting.value = program
-        deleteOpen.value = true
+  return [
+    [
+      {
+        label: 'Start',
+        icon: 'i-lucide-play',
+        disabled: program.enrolled || program.phaseCount === 0,
+        testId: `program-enroll-${program.id}`,
+        onSelect: () => askEnroll(program)
+      },
+      {
+        label: 'Duplicate',
+        icon: 'i-lucide-copy',
+        testId: `program-duplicate-${program.id}`,
+        onSelect: () => duplicate(program)
+      },
+      {
+        label: 'Export',
+        icon: 'i-lucide-download',
+        testId: `program-export-${program.id}`,
+        onSelect: () => exportProgram(program)
       }
-    }
-  ]]
+    ],
+    [
+      {
+        label: 'Delete',
+        icon: 'i-lucide-trash-2',
+        color: 'error',
+        testId: `program-delete-${program.id}`,
+        onSelect: () => {
+          deleting.value = program
+          deleteOpen.value = true
+        }
+      }
+    ]
+  ]
 }
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const headerMenu: DropdownMenuItem[][] = [[
-  { label: 'Import program', icon: 'i-lucide-upload', testId: 'program-import', onSelect: () => fileInput.value?.click() }
-]]
+const headerMenu: DropdownMenuItem[][] = [
+  [
+    {
+      label: 'Import program',
+      icon: 'i-lucide-upload',
+      testId: 'program-import',
+      onSelect: () => fileInput.value?.click()
+    }
+  ]
+]
 const importResult = ref<ProgramImportResult | null>(null)
 const importOpen = ref(false)
 async function onImportFile(event: Event) {
@@ -181,7 +207,9 @@ async function onImportFile(event: Event) {
   }
 }
 
-const whenTitle = computed(() => (whenMode.value?.kind === 'enroll' ? `Start ${clipName(whenMode.value.program.name)}` : 'Resume program'))
+const whenTitle = computed(() =>
+  whenMode.value?.kind === 'enroll' ? `Start ${clipName(whenMode.value.program.name)}` : 'Resume program'
+)
 const whenWeek = computed(() => (whenMode.value?.kind === 'resume' ? (enrollment.value?.week ?? 1) : 1))
 const phaseLabel = (n: number) => `${n} ${n === 1 ? 'phase' : 'phases'}`
 const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
@@ -195,14 +223,35 @@ const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UButton label="New" icon="i-lucide-plus" size="sm" aria-label="New program" data-test="program-new" @click="newOpen = true" />
+          <UButton
+            label="New"
+            icon="i-lucide-plus"
+            size="sm"
+            aria-label="New program"
+            data-test="program-new"
+            @click="newOpen = true"
+          />
           <UDropdownMenu :items="headerMenu">
-            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" class="min-h-10 min-w-10 justify-center" aria-label="Program options" data-test="programs-menu" />
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              color="neutral"
+              class="min-h-10 min-w-10 justify-center"
+              aria-label="Program options"
+              data-test="programs-menu"
+            />
             <template #item-label="{ item }">
               <span :data-test="item.testId">{{ item.label }}</span>
             </template>
           </UDropdownMenu>
-          <input ref="fileInput" type="file" accept=".json,application/json" class="hidden" data-test="program-import-file" @change="onImportFile">
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".json,application/json"
+            class="hidden"
+            data-test="program-import-file"
+            @change="onImportFile"
+          />
         </template>
       </UDashboardNavbar>
     </template>
@@ -219,18 +268,36 @@ const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
           @dismiss="run(dismiss, 'Couldn\'t dismiss program', 'Could not dismiss this')"
         />
         <p v-if="!programs.length" class="text-sm text-dimmed" data-test="programs-empty">
-          No programs yet. A program runs your routines in phases over weeks, like 8 weeks of Upper / Lower then a deload.
+          No programs yet. A program runs your routines in phases over weeks, like 8 weeks of Upper / Lower then a
+          deload.
         </p>
-        <div v-for="program in programs" :key="program.id" class="flex items-center gap-2 rounded-lg border border-default bg-default px-3 py-2">
-          <NuxtLink :to="`/workouts/programs/${program.id}`" class="flex min-h-10 min-w-0 flex-1 flex-col justify-center" :data-test="`program-row-${program.id}`">
+        <div
+          v-for="program in programs"
+          :key="program.id"
+          class="flex items-center gap-2 rounded-lg border border-default bg-default px-3 py-2"
+        >
+          <NuxtLink
+            :to="`/workouts/programs/${program.id}`"
+            class="flex min-h-10 min-w-0 flex-1 flex-col justify-center"
+            :data-test="`program-row-${program.id}`"
+          >
             <span class="flex items-center gap-2">
               <span class="truncate font-medium text-highlighted">{{ program.name }}</span>
               <UBadge v-if="program.enrolled" label="Running" color="primary" variant="subtle" size="sm" />
             </span>
-            <span class="truncate text-xs text-dimmed">{{ phaseLabel(program.phaseCount) }} · {{ weekLabel(program.totalWeeks) }}</span>
+            <span class="truncate text-xs text-dimmed"
+              >{{ phaseLabel(program.phaseCount) }} · {{ weekLabel(program.totalWeeks) }}</span
+            >
           </NuxtLink>
           <UDropdownMenu :items="menu(program)">
-            <UButton icon="i-lucide-ellipsis-vertical" variant="ghost" color="neutral" class="size-10 justify-center" aria-label="Program actions" :data-test="`program-menu-${program.id}`" />
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              color="neutral"
+              class="size-10 justify-center"
+              aria-label="Program actions"
+              :data-test="`program-menu-${program.id}`"
+            />
             <template #item-label="{ item }">
               <span :data-test="item.testId">{{ item.label }}</span>
             </template>
@@ -241,13 +308,31 @@ const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
       <AppSheet v-model:open="newOpen" title="New program">
         <template #body>
           <form class="flex flex-col gap-3" @submit.prevent="create">
-            <UInput v-model="newName" placeholder="e.g. Bigger Leaner Stronger" autofocus data-test="program-new-name" />
-            <UButton type="submit" label="Create" block class="min-h-10" :disabled="!newName.trim()" data-test="program-new-save" />
+            <UInput
+              v-model="newName"
+              placeholder="e.g. Bigger Leaner Stronger"
+              autofocus
+              data-test="program-new-name"
+            />
+            <UButton
+              type="submit"
+              label="Create"
+              block
+              class="min-h-10"
+              :disabled="!newName.trim()"
+              data-test="program-new-save"
+            />
           </form>
         </template>
       </AppSheet>
 
-      <WorkoutProgramWhenSheet v-model:open="whenOpen" :title="whenTitle" :week="whenWeek" :today="today" @choose="chooseWhen" />
+      <WorkoutProgramWhenSheet
+        v-model:open="whenOpen"
+        :title="whenTitle"
+        :week="whenWeek"
+        :today="today"
+        @choose="chooseWhen"
+      />
 
       <WorkoutProgramReplacePrompt
         v-model:open="replaceOpen"
@@ -256,31 +341,66 @@ const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
         @confirm="confirmReplace"
       />
 
-      <UModal v-model:open="endOpen" :title="`End ${clipName(enrollment?.program.name ?? 'program')}?`" description="Your routines and logged workouts stay." :ui="{ title: 'wrap-anywhere', description: 'wrap-anywhere', footer: 'justify-end' }">
+      <UModal
+        v-model:open="endOpen"
+        :title="`End ${clipName(enrollment?.program.name ?? 'program')}?`"
+        description="Your routines and logged workouts stay."
+        :ui="{ title: 'wrap-anywhere', description: 'wrap-anywhere', footer: 'justify-end' }"
+      >
         <template #footer>
           <UButton label="Cancel" color="neutral" variant="outline" class="min-h-10" @click="endOpen = false" />
-          <UButton label="End program" color="error" class="min-h-10" data-test="enrollment-end-confirm" @click="confirmEnd" />
+          <UButton
+            label="End program"
+            color="error"
+            class="min-h-10"
+            data-test="enrollment-end-confirm"
+            @click="confirmEnd"
+          />
         </template>
       </UModal>
 
-      <UModal v-model:open="deleteOpen" :title="`Delete ${clipName(deleting?.name ?? 'program')}?`" :description="deleteDescription" :ui="{ title: 'wrap-anywhere', description: 'wrap-anywhere', footer: 'justify-end' }">
+      <UModal
+        v-model:open="deleteOpen"
+        :title="`Delete ${clipName(deleting?.name ?? 'program')}?`"
+        :description="deleteDescription"
+        :ui="{ title: 'wrap-anywhere', description: 'wrap-anywhere', footer: 'justify-end' }"
+      >
         <template #footer>
           <UButton label="Cancel" color="neutral" variant="outline" class="min-h-10" @click="deleteOpen = false" />
-          <UButton label="Delete" color="error" class="min-h-10" data-test="program-delete-confirm" @click="confirmDelete" />
+          <UButton
+            label="Delete"
+            color="error"
+            class="min-h-10"
+            data-test="program-delete-confirm"
+            @click="confirmDelete"
+          />
         </template>
       </UModal>
 
       <AppSheet v-model:open="importOpen" title="Program imported">
         <template #body>
           <div class="flex flex-col gap-3 text-sm" data-test="program-import-summary">
-            <p>{{ importResult?.exercises.matched ?? 0 }} {{ (importResult?.exercises.matched ?? 0) === 1 ? 'exercise' : 'exercises' }} matched your library.</p>
+            <p>
+              {{ importResult?.exercises.matched ?? 0 }}
+              {{ (importResult?.exercises.matched ?? 0) === 1 ? 'exercise' : 'exercises' }} matched your library.
+            </p>
             <div v-if="importResult?.exercises.created.length">
-              <p>Created {{ importResult.exercises.created.length }} new {{ importResult.exercises.created.length === 1 ? 'exercise' : 'exercises' }}:</p>
+              <p>
+                Created {{ importResult.exercises.created.length }} new
+                {{ importResult.exercises.created.length === 1 ? 'exercise' : 'exercises' }}:
+              </p>
               <ul class="list-disc ps-5 text-muted">
                 <li v-for="name in importResult.exercises.created" :key="name">{{ name }}</li>
               </ul>
             </div>
-            <UButton label="Open program" block class="min-h-10" :to="`/workouts/programs/${importResult?.programId}`" data-test="program-import-open" @click="importOpen = false" />
+            <UButton
+              label="Open program"
+              block
+              class="min-h-10"
+              :to="`/workouts/programs/${importResult?.programId}`"
+              data-test="program-import-open"
+              @click="importOpen = false"
+            />
           </div>
         </template>
       </AppSheet>

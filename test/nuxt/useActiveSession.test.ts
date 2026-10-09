@@ -16,7 +16,7 @@ const Probe = defineComponent({
   async setup(_, { expose }) {
     const { session, status, refresh } = await useActiveSession()
     expose({ refresh })
-    return () => h('p', `${status.value}:${session.value === null ? 'null' : session.value?.id ?? 'undefined'}`)
+    return () => h('p', `${status.value}:${session.value === null ? 'null' : (session.value?.id ?? 'undefined')}`)
   }
 })
 

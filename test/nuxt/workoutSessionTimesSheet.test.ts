@@ -30,7 +30,7 @@ describe('WorkoutSessionTimesSheet', () => {
     ;(document.querySelector('[data-test="session-times-save"]') as HTMLButtonElement).click()
     await flushPromises()
 
-    const saved = wrapper.emitted('save')![0]![0] as { startedAt: string, endedAt: string | null, performedOn: string }
+    const saved = wrapper.emitted('save')![0]![0] as { startedAt: string; endedAt: string | null; performedOn: string }
     expect(saved.performedOn).toBe('2026-01-02')
     expect(saved.startedAt).toBe(new Date('2026-01-02T18:30').toISOString())
     expect(saved.endedAt).toBeNull()
@@ -39,13 +39,15 @@ describe('WorkoutSessionTimesSheet', () => {
 
   it('prefills both inputs from the session and sends the ended time when one is set', async () => {
     const wrapper = await mountSheet()
-    expect((document.querySelector('input[data-test="session-start-input"]') as HTMLInputElement).value).toBe('2026-09-18T17:00')
+    expect((document.querySelector('input[data-test="session-start-input"]') as HTMLInputElement).value).toBe(
+      '2026-09-18T17:00'
+    )
     setInput('input[data-test="session-end-input"]', '2026-09-18T18:15')
     await flushPromises()
     ;(document.querySelector('[data-test="session-times-save"]') as HTMLButtonElement).click()
     await flushPromises()
 
-    const saved = wrapper.emitted('save')![0]![0] as { endedAt: string | null, performedOn: string }
+    const saved = wrapper.emitted('save')![0]![0] as { endedAt: string | null; performedOn: string }
     expect(saved.endedAt).toBe(new Date('2026-09-18T18:15').toISOString())
     expect(saved.performedOn).toBe('2026-09-18')
     wrapper.unmount()

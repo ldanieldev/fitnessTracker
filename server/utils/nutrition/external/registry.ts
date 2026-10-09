@@ -66,8 +66,8 @@ function toSearchResult(food: ExternalFood): ExternalSearchResult {
 }
 
 export function aggregateExternalResults(
-  settled: Array<{ source: ExternalSourceKey, result: PromiseSettledResult<ExternalFood[]> }>
-): { results: ExternalSearchResult[], errors: ExternalSearchErrorEntry[] } {
+  settled: Array<{ source: ExternalSourceKey; result: PromiseSettledResult<ExternalFood[]> }>
+): { results: ExternalSearchResult[]; errors: ExternalSearchErrorEntry[] } {
   const results: ExternalSearchResult[] = []
   const errors: ExternalSearchErrorEntry[] = []
 

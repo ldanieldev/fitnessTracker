@@ -28,22 +28,30 @@ describe('bestEstimate', () => {
   const on = '2026-09-18'
 
   it('picks the best qualifying set and reports it', () => {
-    const best = bestEstimate([
-      { weight: 200, reps: 3, performedOn: '2026-09-01' },
-      { weight: 225, reps: 5, performedOn: '2026-09-02' }
-    ], on)
+    const best = bestEstimate(
+      [
+        { weight: 200, reps: 3, performedOn: '2026-09-01' },
+        { weight: 225, reps: 5, performedOn: '2026-09-02' }
+      ],
+      on
+    )
     expect(best).toEqual({ estimate: 253.1, source: { weight: 225, reps: 5, performedOn: '2026-09-02' } })
   })
 
   it('ignores sets outside the window, over 10 reps, weightless or incomplete', () => {
-    expect(bestEstimate([
-      { weight: 300, reps: 5, performedOn: '2026-06-20' },
-      { weight: 300, reps: 5, performedOn: '2026-09-19' },
-      { weight: 300, reps: 11, performedOn: '2026-09-01' },
-      { weight: 0, reps: 5, performedOn: '2026-09-01' },
-      { weight: null, reps: 5, performedOn: '2026-09-01' },
-      { weight: 300, reps: null, performedOn: '2026-09-01' }
-    ], on)).toBeNull()
+    expect(
+      bestEstimate(
+        [
+          { weight: 300, reps: 5, performedOn: '2026-06-20' },
+          { weight: 300, reps: 5, performedOn: '2026-09-19' },
+          { weight: 300, reps: 11, performedOn: '2026-09-01' },
+          { weight: 0, reps: 5, performedOn: '2026-09-01' },
+          { weight: null, reps: 5, performedOn: '2026-09-01' },
+          { weight: 300, reps: null, performedOn: '2026-09-01' }
+        ],
+        on
+      )
+    ).toBeNull()
   })
 
   it('keeps the window edges', () => {
@@ -52,10 +60,13 @@ describe('bestEstimate', () => {
   })
 
   it('prefers the newer set on a tie', () => {
-    const best = bestEstimate([
-      { weight: 100, reps: 1, performedOn: '2026-09-01' },
-      { weight: 100, reps: 1, performedOn: '2026-09-10' }
-    ], on)
+    const best = bestEstimate(
+      [
+        { weight: 100, reps: 1, performedOn: '2026-09-01' },
+        { weight: 100, reps: 1, performedOn: '2026-09-10' }
+      ],
+      on
+    )
     expect(best?.source.performedOn).toBe('2026-09-10')
   })
 })

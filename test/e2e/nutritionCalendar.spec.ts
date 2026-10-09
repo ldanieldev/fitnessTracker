@@ -7,6 +7,9 @@ test('the month title opens a real calendar on desktop and picking a day navigat
   await goto('/nutrition/diary/2026-09-10', { waitUntil: 'hydration' })
   await page.locator('[data-test="diary-date"]').click()
   await expect(page.locator('[data-test="day-calendar"]')).toBeVisible()
-  await page.locator('[data-test="day-calendar"]').getByRole('button', { name: /September 3,/ }).click()
+  await page
+    .locator('[data-test="day-calendar"]')
+    .getByRole('button', { name: /September 3,/ })
+    .click()
   await expect(page).toHaveURL(/\/nutrition\/diary\/2026-09-03$/)
 })

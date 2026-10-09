@@ -2,7 +2,7 @@
 import type { PickedFood } from '~/types/nutrition'
 import NutritionFoodPicker from '~/components/nutrition/NutritionFoodPicker.vue'
 
-withDefaults(defineProps<{ title?: string, multiple?: boolean }>(), { title: 'Add foods', multiple: true })
+withDefaults(defineProps<{ title?: string; multiple?: boolean }>(), { title: 'Add foods', multiple: true })
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ confirm: [picked: PickedFood[]] }>()
 

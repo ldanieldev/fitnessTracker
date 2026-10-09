@@ -15,7 +15,7 @@ export function traceContextMixin() {
   return { trace_id: ctx.traceId, span_id: ctx.spanId }
 }
 
-// NOTE: each multistream entry has its OWN level defaulting to 'info', so stamp `level` on every one or LOG_LEVEL=debug is dropped here.
+// NOTE: each multistream entry has its OWN level (default 'info'); stamp `level` on each or LOG_LEVEL=debug is lost.
 const level = (process.env.LOG_LEVEL || 'info') as pino.Level
 const isProduction = process.env.NODE_ENV === 'production'
 

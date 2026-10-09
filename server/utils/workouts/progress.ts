@@ -44,9 +44,10 @@ interface SeriesQuery {
 }
 
 export async function earliestRollup(userId: number, exerciseId?: number): Promise<string | null> {
-  const scope = exerciseId === undefined
-    ? eq(workoutExerciseRollups.userId, userId)
-    : and(eq(workoutExerciseRollups.userId, userId), eq(workoutExerciseRollups.exerciseId, exerciseId))
+  const scope =
+    exerciseId === undefined
+      ? eq(workoutExerciseRollups.userId, userId)
+      : and(eq(workoutExerciseRollups.userId, userId), eq(workoutExerciseRollups.exerciseId, exerciseId))
   const row = await db
     .select({ first: min(workoutExerciseRollups.performedOn) })
     .from(workoutExerciseRollups)
@@ -70,12 +71,14 @@ export async function exerciseSeries(userId: number, exerciseId: number, query: 
   const rows = await db
     .select()
     .from(workoutExerciseRollups)
-    .where(and(
-      eq(workoutExerciseRollups.userId, userId),
-      eq(workoutExerciseRollups.exerciseId, exerciseId),
-      gte(workoutExerciseRollups.performedOn, from),
-      lte(workoutExerciseRollups.performedOn, to)
-    ))
+    .where(
+      and(
+        eq(workoutExerciseRollups.userId, userId),
+        eq(workoutExerciseRollups.exerciseId, exerciseId),
+        gte(workoutExerciseRollups.performedOn, from),
+        lte(workoutExerciseRollups.performedOn, to)
+      )
+    )
     .orderBy(asc(workoutExerciseRollups.performedOn))
 
   const reps = query.reps ?? null
@@ -116,7 +119,7 @@ export async function exerciseRecords(userId: number, exerciseId: number): Promi
     pick: (values: RollupValues) => number | null,
     lowerIsBetter = false
   ): RecordHighlight => {
-    let hit: { row: typeof rows[number], value: number } | null = null
+    let hit: { row: (typeof rows)[number]; value: number } | null = null
     for (const row of rows) {
       const value = pick(toRollupValues(row))
       if (value == null) continue
@@ -134,7 +137,7 @@ export async function exerciseRecords(userId: number, exerciseId: number): Promi
 
   const repMax: RepMaxRow[] = []
   for (let reps = 1; reps <= REP_MAX_TABLE_REPS; reps++) {
-    let hit: { row: typeof rows[number], weight: number } | null = null
+    let hit: { row: (typeof rows)[number]; weight: number } | null = null
     for (const row of rows) {
       const weight = row.weightByReps[String(reps)]
       if (weight == null) continue
@@ -207,11 +210,13 @@ export async function exerciseHistory(
     db
       .select()
       .from(workoutExerciseRollups)
-      .where(and(
-        eq(workoutExerciseRollups.userId, userId),
-        eq(workoutExerciseRollups.exerciseId, exerciseId),
-        inArray(workoutExerciseRollups.sessionId, sessionIds)
-      )),
+      .where(
+        and(
+          eq(workoutExerciseRollups.userId, userId),
+          eq(workoutExerciseRollups.exerciseId, exerciseId),
+          inArray(workoutExerciseRollups.sessionId, sessionIds)
+        )
+      ),
     historyForExercise(userId, exerciseId)
   ])
 
@@ -271,13 +276,15 @@ export async function workoutProgress(userId: number, from: string, to: string):
           (${workoutSessions.endedAt} - ${workoutSessions.startedAt}))), 0)`.mapWith(Number)
       })
       .from(workoutSessions)
-      .where(and(
-        eq(workoutSessions.userId, userId),
-        gte(workoutSessions.performedOn, from),
-        lte(workoutSessions.performedOn, to),
-        isNotNull(workoutSessions.endedAt),
-        sql`exists (select 1 from ${workoutExerciseRollups} r where r.session_id = ${workoutSessions.id})`
-      ))
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          gte(workoutSessions.performedOn, from),
+          lte(workoutSessions.performedOn, to),
+          isNotNull(workoutSessions.endedAt),
+          sql`exists (select 1 from ${workoutExerciseRollups} r where r.session_id = ${workoutSessions.id})`
+        )
+      )
       .then((r) => r[0]!),
     db
       .select({
@@ -287,10 +294,10 @@ export async function workoutProgress(userId: number, from: string, to: string):
         sets: sql<number>`coalesce(sum(${workoutExerciseRollups.setCount}), 0)`.mapWith(Number)
       })
       .from(workoutExerciseRollups)
-      .innerJoin(exerciseMuscles, and(
-        eq(exerciseMuscles.exerciseId, workoutExerciseRollups.exerciseId),
-        eq(exerciseMuscles.isPrimary, true)
-      ))
+      .innerJoin(
+        exerciseMuscles,
+        and(eq(exerciseMuscles.exerciseId, workoutExerciseRollups.exerciseId), eq(exerciseMuscles.isPrimary, true))
+      )
       .innerJoin(musclesTable, eq(musclesTable.id, exerciseMuscles.muscleId))
       .where(inRange)
       .groupBy(musclesTable.key, musclesTable.name)
@@ -303,15 +310,14 @@ export async function workoutProgress(userId: number, from: string, to: string):
     ? await db
         .select()
         .from(workoutExerciseRollups)
-        .where(and(
-          eq(workoutExerciseRollups.userId, userId),
-          inArray(workoutExerciseRollups.exerciseId, goalExerciseIds)
-        ))
+        .where(
+          and(eq(workoutExerciseRollups.userId, userId), inArray(workoutExerciseRollups.exerciseId, goalExerciseIds))
+        )
     : []
   const noRollupIds = goalExerciseIds.filter((id) => !goalRows.some((row) => row.exerciseId === id))
-  const liveLoadStyles = new Map(await Promise.all(noRollupIds.map(
-    async (id) => [id, (await loadExerciseSettings(userId, id)).loadStyle] as const
-  )))
+  const liveLoadStyles = new Map(
+    await Promise.all(noRollupIds.map(async (id) => [id, (await loadExerciseSettings(userId, id)).loadStyle] as const))
+  )
 
   return {
     from,
@@ -326,7 +332,10 @@ export async function workoutProgress(userId: number, from: string, to: string):
     muscles,
     goals: goals.map((goal) => {
       const rows = goalRows.filter((row) => row.exerciseId === goal.exerciseId)
-      const lowerIsBetter = metricLowerIsBetter(goal.metric, latestLoadStyle(rows) ?? liveLoadStyles.get(goal.exerciseId) ?? null)
+      const lowerIsBetter = metricLowerIsBetter(
+        goal.metric,
+        latestLoadStyle(rows) ?? liveLoadStyles.get(goal.exerciseId) ?? null
+      )
       const values = rows
         .map((row) => metricValue(toRollupValues(row), goal.metric, goal.targetReps))
         .filter((value): value is number => value != null)

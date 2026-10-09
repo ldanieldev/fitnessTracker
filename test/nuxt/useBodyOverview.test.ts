@@ -10,7 +10,25 @@ describe('useBodyOverview', () => {
     let calls = 0
     registerEndpoint('/api/body/overview', () => {
       calls += 1
-      return [{ type: { id: 1, key: 'bodyweight', name: 'Bodyweight', unit: 'lbs', precision: 1, direction: 'neutral', builtIn: true, hidden: false, sortOrder: null }, latest: null, previous: null, goal: null, sparkline: [] }]
+      return [
+        {
+          type: {
+            id: 1,
+            key: 'bodyweight',
+            name: 'Bodyweight',
+            unit: 'lbs',
+            precision: 1,
+            direction: 'neutral',
+            builtIn: true,
+            hidden: false,
+            sortOrder: null
+          },
+          latest: null,
+          previous: null,
+          goal: null,
+          sparkline: []
+        }
+      ]
     })
     const a = useBodyOverview()
     const b = useBodyOverview()
@@ -23,13 +41,23 @@ describe('useBodyOverview', () => {
   })
 
   it('forces a fresh fetch when invalidateBody fires mid-flight, and discards a stale late response', async () => {
-    clearNuxtData(BODY_KEYS.overview) // the prior test leaves this key's asyncData status 'success', which would skip the initial fetch below
+    // The prior test leaves this key's asyncData status 'success', which would skip the initial fetch below
+    clearNuxtData(BODY_KEYS.overview)
     let calls = 0
     let resolveFirst: (value: unknown) => void = () => {}
     const first = new Promise((resolve) => {
       resolveFirst = resolve
     })
-    const typeShape = { id: 1, key: 'bodyweight', unit: 'lbs', precision: 1, direction: 'neutral', builtIn: true, hidden: false, sortOrder: null }
+    const typeShape = {
+      id: 1,
+      key: 'bodyweight',
+      unit: 'lbs',
+      precision: 1,
+      direction: 'neutral',
+      builtIn: true,
+      hidden: false,
+      sortOrder: null
+    }
     registerEndpoint('/api/body/overview', () => {
       calls += 1
       if (calls === 1) return first

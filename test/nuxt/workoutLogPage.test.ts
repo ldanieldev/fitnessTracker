@@ -6,15 +6,28 @@ import WorkoutSessionEditor from '../../app/components/workout/WorkoutSessionEdi
 import { useRestTimer } from '../../app/composables/useRestTimer'
 
 mockNuxtImport('useUserSession', () => () => ({
-  loggedIn: { value: true }, user: { value: { id: 1, weekStart: 1 } }, fetch: vi.fn(), clear: vi.fn()
+  loggedIn: { value: true },
+  user: { value: { id: 1, weekStart: 1 } },
+  fetch: vi.fn(),
+  clear: vi.fn()
 }))
 
 const open = {
-  id: 8, name: null, performedOn: '2026-10-07', startedAt: '2026-10-07T15:00:00.000Z', endedAt: null, notes: null,
-  routineDayId: null, deload: false, entries: []
+  id: 8,
+  name: null,
+  performedOn: '2026-10-07',
+  startedAt: '2026-10-07T15:00:00.000Z',
+  endedAt: null,
+  notes: null,
+  routineDayId: null,
+  deload: false,
+  entries: []
 }
 registerEndpoint('/api/workouts/sessions/active', () => open)
-registerEndpoint('/api/workouts/sessions/8', { method: 'PATCH', handler: () => ({ ...open, endedAt: '2026-10-07T16:00:00.000Z' }) })
+registerEndpoint('/api/workouts/sessions/8', {
+  method: 'PATCH',
+  handler: () => ({ ...open, endedAt: '2026-10-07T16:00:00.000Z' })
+})
 registerEndpoint('/api/workouts/sessions/8', { method: 'DELETE', handler: () => null })
 registerEndpoint('/api/workouts/routines', () => [])
 

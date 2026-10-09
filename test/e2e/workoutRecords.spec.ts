@@ -3,7 +3,9 @@ import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, ExerciseRecords, WorkoutSession } from '../../shared/types/workout'
 
-interface Reference { categories: { id: number, key: string }[] }
+interface Reference {
+  categories: { id: number; key: string }[]
+}
 
 test('workout records: headlines and the rep-max table', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -15,10 +17,13 @@ test('workout records: headlines and the rep-max table', async ({ page, goto }) 
   expect(empty.repMax).toHaveLength(15)
   expect(empty.repMax[0]!.weight).toBeNull()
 
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 185, reps: 8 })
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 225, reps: 3 })
 
@@ -42,10 +47,13 @@ test('workout records: the rep cap suppresses the estimate on a row that actuall
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 100, reps: 8 })
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 100, reps: 12 })
 
@@ -66,17 +74,22 @@ test('workout records: an assisted exercise inverts "better" and never carries a
 
   const reference = (await apiFetch<Reference>(page, 'GET', '/api/workouts/reference')).json
   const core = reference.categories.find((c) => c.key === 'core')!
-  const assisted = (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: uniquePrefix('Assisted Dip '),
-    categoryId: core.id,
-    trackingType: 'weight_reps',
-    loadStyle: 'assisted'
-  })).json
+  const assisted = (
+    await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+      name: uniquePrefix('Assisted Dip '),
+      categoryId: core.id,
+      trackingType: 'weight_reps',
+      loadStyle: 'assisted'
+    })
+  ).json
 
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: assisted.id
-  })).json.entries[0]!
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: assisted.id
+    })
+  ).json.entries[0]!
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 40, reps: 6 })
   await apiFetch(page, 'POST', `/api/workouts/entries/${entry.id}/sets`, { weight: 20, reps: 5 })
 

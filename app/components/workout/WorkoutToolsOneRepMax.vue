@@ -3,8 +3,8 @@ import { format } from 'date-fns'
 import type { OneRepMaxResult } from '~~/shared/types/workout'
 import { effectiveOneRepMax, repMaxTable } from '~~/shared/utils/oneRepMax'
 
-const props = defineProps<{ result: OneRepMaxResult | null, pending: boolean, failed: boolean, hasExercise: boolean }>()
-const override = defineModel<{ weight: number | null, reps: number | null }>('override', { required: true })
+const props = defineProps<{ result: OneRepMaxResult | null; pending: boolean; failed: boolean; hasExercise: boolean }>()
+const override = defineModel<{ weight: number | null; reps: number | null }>('override', { required: true })
 const emit = defineEmits<{ retry: [] }>()
 
 const { oneRepMaxRepCap } = useWorkoutPrefs()
@@ -26,7 +26,7 @@ watch(override, (value) => {
   latest = value
 })
 
-function patchOverride(patch: Partial<{ weight: number | null, reps: number | null }>) {
+function patchOverride(patch: Partial<{ weight: number | null; reps: number | null }>) {
   latest = { ...latest, ...patch }
   override.value = latest
 }
@@ -44,7 +44,14 @@ function setReps(reps: number | null) {
   <div class="flex flex-col gap-3">
     <div v-if="failed && !loading" class="flex items-center gap-2" data-test="one-rep-max-error">
       <span class="min-w-0 flex-1 text-sm text-error">Couldn't load your history</span>
-      <UButton label="Retry" variant="soft" color="error" class="min-h-10" data-test="one-rep-max-retry" @click="emit('retry')" />
+      <UButton
+        label="Retry"
+        variant="soft"
+        color="error"
+        class="min-h-10"
+        data-test="one-rep-max-retry"
+        @click="emit('retry')"
+      />
     </div>
     <div v-if="loading" class="flex flex-col gap-2" data-test="one-rep-max-skeleton" aria-busy="true">
       <USkeleton class="h-9 w-40 rounded-lg" />
@@ -61,17 +68,29 @@ function setReps(reps: number | null) {
     <p v-else-if="hasExercise && !failed" class="text-sm text-dimmed" data-test="one-rep-max-empty">
       No sets of 1–10 reps in the last 90 days.
     </p>
-    <p v-else-if="!hasExercise" class="text-sm text-dimmed" data-test="one-rep-max-no-exercise">Enter a set to estimate your 1RM.</p>
+    <p v-else-if="!hasExercise" class="text-sm text-dimmed" data-test="one-rep-max-no-exercise">
+      Enter a set to estimate your 1RM.
+    </p>
 
     <div class="flex items-end gap-2">
       <div class="min-w-0 flex-1">
         <span class="text-sm font-medium text-dimmed">Weight</span>
-        <AppNumberInput :model-value="override.weight" placeholder="lb" data-test="override-weight" @update:model-value="setWeight" />
+        <AppNumberInput
+          :model-value="override.weight"
+          placeholder="lb"
+          data-test="override-weight"
+          @update:model-value="setWeight"
+        />
       </div>
       <span class="pb-2 text-dimmed">×</span>
       <div class="w-24 shrink-0">
         <span class="text-sm font-medium text-dimmed">Reps</span>
-        <AppNumberInput :model-value="override.reps" placeholder="1–10" data-test="override-reps" @update:model-value="setReps" />
+        <AppNumberInput
+          :model-value="override.reps"
+          placeholder="1–10"
+          data-test="override-reps"
+          @update:model-value="setReps"
+        />
       </div>
     </div>
 

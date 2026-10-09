@@ -7,10 +7,15 @@ const props = defineProps<{ filter: SessionFilter }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ apply: [filter: SessionFilter] }>()
 
-const { data: reference } = useExerciseFetch<{ categories: ExerciseCategory[] }>(EXERCISE_KEYS.reference, '/api/workouts/reference')
+const { data: reference } = useExerciseFetch<{ categories: ExerciseCategory[] }>(
+  EXERCISE_KEYS.reference,
+  '/api/workouts/reference'
+)
 
 const ANY = -1
-const { data: programList } = useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs', { lazy: true })
+const { data: programList } = useWorkoutFetch<ProgramSummary[]>(WORKOUT_KEYS.programs, '/api/workouts/programs', {
+  lazy: true
+})
 const programId = ref(ANY)
 const phaseId = ref(ANY)
 const programDetail = ref<Program | null>(null)
@@ -41,10 +46,18 @@ watch(programId, async (id) => {
   }
 })
 
-const programItems = computed(() => [{ label: 'Any program', value: ANY }, ...(programList.value ?? []).map((p) => ({ label: p.name, value: p.id }))])
-const phaseItems = computed(() => phasesLoading.value
-  ? [{ label: 'Loading phases…', value: phaseId.value }]
-  : [{ label: 'Any phase', value: ANY }, ...(programDetail.value?.phases ?? []).map((p) => ({ label: p.name, value: p.id }))])
+const programItems = computed(() => [
+  { label: 'Any program', value: ANY },
+  ...(programList.value ?? []).map((p) => ({ label: p.name, value: p.id }))
+])
+const phaseItems = computed(() =>
+  phasesLoading.value
+    ? [{ label: 'Loading phases…', value: phaseId.value }]
+    : [
+        { label: 'Any phase', value: ANY },
+        ...(programDetail.value?.phases ?? []).map((p) => ({ label: p.name, value: p.id }))
+      ]
+)
 
 const categories = ref<number[]>([])
 const match = ref<SessionFilterMatch>('any')
@@ -73,30 +86,38 @@ function pickExercise(id: number) {
   void loadExercise(id)
 }
 
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  categories.value = [...(props.filter.categories ?? [])]
-  match.value = props.filter.match ?? 'any'
-  minWeight.value = props.filter.minWeight ?? null
-  minReps.value = props.filter.minReps ?? null
-  exercise.value = null
-  const requested = props.filter.programId ?? ANY
-  const savedProgram = isKnownProgram(requested) ? requested : ANY
-  restoring = savedProgram !== programId.value
-  programId.value = savedProgram
-  phaseId.value = savedProgram === ANY ? ANY : props.filter.phaseId ?? ANY
-  exerciseId.value = props.filter.exerciseId ?? null
-  if (props.filter.exerciseId) void loadExercise(props.filter.exerciseId)
-}, { immediate: true })
+watch(
+  open,
+  (isOpen) => {
+    if (!isOpen) return
+    categories.value = [...(props.filter.categories ?? [])]
+    match.value = props.filter.match ?? 'any'
+    minWeight.value = props.filter.minWeight ?? null
+    minReps.value = props.filter.minReps ?? null
+    exercise.value = null
+    const requested = props.filter.programId ?? ANY
+    const savedProgram = isKnownProgram(requested) ? requested : ANY
+    restoring = savedProgram !== programId.value
+    programId.value = savedProgram
+    phaseId.value = savedProgram === ANY ? ANY : (props.filter.phaseId ?? ANY)
+    exerciseId.value = props.filter.exerciseId ?? null
+    if (props.filter.exerciseId) void loadExercise(props.filter.exerciseId)
+  },
+  { immediate: true }
+)
 
 function toggle(id: number) {
-  categories.value = categories.value.includes(id) ? categories.value.filter((c) => c !== id) : [...categories.value, id]
+  categories.value = categories.value.includes(id)
+    ? categories.value.filter((c) => c !== id)
+    : [...categories.value, id]
 }
 
 const chips = computed<Array<Pick<ExerciseCategory, 'id' | 'name' | 'color'>>>(() => {
   if (!reference.value) return []
   const known = new Set(reference.value.categories.map((c) => c.id))
-  const unknown = categories.value.filter((id) => !known.has(id)).map((id) => ({ id, name: 'Unknown category', color: 'fallback' }))
+  const unknown = categories.value
+    .filter((id) => !known.has(id))
+    .map((id) => ({ id, name: 'Unknown category', color: 'fallback' }))
   return [...reference.value.categories, ...unknown]
 })
 
@@ -151,13 +172,30 @@ function clear() {
               :data-test="`filter-category-${category.id}`"
               @click="toggle(category.id)"
             >
-              <span class="size-2 rounded-full" :class="CATEGORY_DOT_CLASS[category.color] ?? CATEGORY_DOT_CLASS.fallback" />
+              <span
+                class="size-2 rounded-full"
+                :class="CATEGORY_DOT_CLASS[category.color] ?? CATEGORY_DOT_CLASS.fallback"
+              />
               {{ category.name }}
             </UButton>
           </div>
           <div v-if="categories.length > 1" class="flex gap-2">
-            <UButton label="Any" :variant="match === 'any' ? 'solid' : 'outline'" color="neutral" class="min-h-10" data-test="filter-match-any" @click="match = 'any'" />
-            <UButton label="All" :variant="match === 'all' ? 'solid' : 'outline'" color="neutral" class="min-h-10" data-test="filter-match-all" @click="match = 'all'" />
+            <UButton
+              label="Any"
+              :variant="match === 'any' ? 'solid' : 'outline'"
+              color="neutral"
+              class="min-h-10"
+              data-test="filter-match-any"
+              @click="match = 'any'"
+            />
+            <UButton
+              label="All"
+              :variant="match === 'all' ? 'solid' : 'outline'"
+              color="neutral"
+              class="min-h-10"
+              data-test="filter-match-all"
+              @click="match = 'all'"
+            />
           </div>
         </section>
 
@@ -185,10 +223,23 @@ function clear() {
           </div>
           <div class="grid grid-cols-2 gap-2">
             <UFormField :label="weightLabel">
-              <AppNumberInput v-model="minWeight" :min="0" :max="2000" :disabled="!exerciseId" data-test="filter-min-weight" />
+              <AppNumberInput
+                v-model="minWeight"
+                :min="0"
+                :max="2000"
+                :disabled="!exerciseId"
+                data-test="filter-min-weight"
+              />
             </UFormField>
             <UFormField label="Min reps">
-              <AppNumberInput v-model="minReps" :min="1" :max="1000" :step="1" :disabled="!exerciseId" data-test="filter-min-reps" />
+              <AppNumberInput
+                v-model="minReps"
+                :min="1"
+                :max="1000"
+                :step="1"
+                :disabled="!exerciseId"
+                data-test="filter-min-reps"
+              />
             </UFormField>
           </div>
         </section>
@@ -196,11 +247,25 @@ function clear() {
         <section v-if="programList?.length" class="flex flex-col gap-2">
           <h3 class="text-sm font-medium text-highlighted">Program</h3>
           <USelect v-model="programId" :items="programItems" class="w-full" data-test="filter-program" />
-          <USelect v-if="programId !== ANY" v-model="phaseId" :items="phaseItems" :disabled="phasesLoading" class="w-full" data-test="filter-phase" />
+          <USelect
+            v-if="programId !== ANY"
+            v-model="phaseId"
+            :items="phaseItems"
+            :disabled="phasesLoading"
+            class="w-full"
+            data-test="filter-phase"
+          />
         </section>
 
         <div class="flex gap-2">
-          <UButton label="Clear" variant="outline" color="neutral" class="min-h-10 flex-1 justify-center" data-test="filter-clear" @click="clear" />
+          <UButton
+            label="Clear"
+            variant="outline"
+            color="neutral"
+            class="min-h-10 flex-1 justify-center"
+            data-test="filter-clear"
+            @click="clear"
+          />
           <UButton label="Apply" class="min-h-10 flex-1 justify-center" data-test="filter-apply" @click="apply" />
         </div>
       </div>

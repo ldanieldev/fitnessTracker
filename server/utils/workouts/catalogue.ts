@@ -1,11 +1,5 @@
 import { and, count, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm'
-import type {
-  CatalogueExerciseRow,
-  CategoryRow,
-  EquipmentRow,
-  ExerciseRow,
-  MuscleRow
-} from '~~/shared/types/workout'
+import type { CatalogueExerciseRow, CategoryRow, EquipmentRow, ExerciseRow, MuscleRow } from '~~/shared/types/workout'
 import {
   equipment,
   exerciseCategories,

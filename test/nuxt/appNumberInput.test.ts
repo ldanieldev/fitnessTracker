@@ -34,7 +34,9 @@ describe('AppNumberInput', () => {
   })
 
   it('clamps typed text to min and max on blur, not while typing', async () => {
-    const wrapper = await mountSuspended(AppNumberInput, { props: { modelValue: 50, min: 10, max: 100, 'data-test': 'qty' } })
+    const wrapper = await mountSuspended(AppNumberInput, {
+      props: { modelValue: 50, min: 10, max: 100, 'data-test': 'qty' }
+    })
     const input = wrapper.find('input[data-test="qty"]')
     await input.trigger('focus')
     await input.setValue('5')

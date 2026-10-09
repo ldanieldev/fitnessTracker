@@ -12,7 +12,9 @@ test('the muscle facet lists the muscles left under every filter but muscles', a
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
   await apiFetch(page, 'PUT', `/api/workouts/exercises/${bench.id}/favorite`)
-  const favourites = (await apiFetch<string[]>(page, 'GET', '/api/workouts/exercises/muscles?favorites=1&muscles=calves')).json
+  const favourites = (
+    await apiFetch<string[]>(page, 'GET', '/api/workouts/exercises/muscles?favorites=1&muscles=calves')
+  ).json
   expect(favourites).toEqual([...new Set([...bench.primaryMuscles, ...bench.secondaryMuscles])].sort())
 
   const everything = (await apiFetch<string[]>(page, 'GET', '/api/workouts/exercises/muscles')).json

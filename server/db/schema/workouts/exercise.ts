@@ -29,7 +29,9 @@ export const exerciseCategories = appSchema.table(
     deletedAt: timestamp('deleted_at').default(sql`null`)
   },
   (table) => [
-    uniqueIndex('exercise_category_shared_key').on(table.key).where(sql`user_id is null`),
+    uniqueIndex('exercise_category_shared_key')
+      .on(table.key)
+      .where(sql`user_id is null`),
     uniqueIndex('exercise_category_user_name')
       .on(table.userId, sql`lower(name)`)
       .where(sql`user_id is not null and deleted_at is null`)
@@ -43,7 +45,10 @@ export const muscles = appSchema.table(
     key: varchar('key', { length: 64 }).notNull(),
     name: varchar('name', { length: 64 }).notNull(),
     categoryKey: varchar('category_key', { length: 64 }).notNull(),
-    bodyMapGroups: jsonb('body_map_groups').$type<string[]>().notNull().default(sql`'[]'::jsonb`)
+    bodyMapGroups: jsonb('body_map_groups')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`)
   },
   (table) => [uniqueIndex('muscle_key').on(table.key)]
 )
@@ -70,8 +75,13 @@ export const exercises = appSchema.table(
     loadStyle: varchar('load_style', { enum: LOAD_STYLE_VALUES }).default(sql`null`),
     barWeight: numeric('bar_weight').default(sql`null`),
     difficulty: varchar('difficulty', { enum: ['beginner', 'intermediate', 'advanced'] }).default(sql`null`),
-    instructions: jsonb('instructions').$type<string[]>().default(sql`null`),
-    images: jsonb('images').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    instructions: jsonb('instructions')
+      .$type<string[]>()
+      .default(sql`null`),
+    images: jsonb('images')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     externalId: varchar('external_id', { length: 128 }).default(sql`null`),
     createdByUserId: integer('created_by_user_id')
       .default(sql`null`)
@@ -79,7 +89,9 @@ export const exercises = appSchema.table(
     deletedAt: timestamp('deleted_at').default(sql`null`)
   },
   (table) => [
-    uniqueIndex('exercise_external_id').on(table.externalId).where(sql`created_by_user_id is null`),
+    uniqueIndex('exercise_external_id')
+      .on(table.externalId)
+      .where(sql`created_by_user_id is null`),
     uniqueIndex('exercise_user_name')
       .on(table.createdByUserId, sql`lower(name)`)
       .where(sql`created_by_user_id is not null and deleted_at is null`),

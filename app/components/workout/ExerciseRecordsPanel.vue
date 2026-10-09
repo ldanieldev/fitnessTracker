@@ -4,7 +4,7 @@ import type { ExerciseRecords, GraphMetric, LoadStyle, RecordKind, TrackingType 
 import { metricLabel, metricUnit, metricsFor } from '~~/shared/utils/workoutMetrics'
 import { measuresFor } from '~~/shared/utils/setRules'
 
-const props = defineProps<{ exerciseId: number, trackingType: TrackingType, loadStyle: LoadStyle | null }>()
+const props = defineProps<{ exerciseId: number; trackingType: TrackingType; loadStyle: LoadStyle | null }>()
 
 const { data: records } = useWorkoutFetch<ExerciseRecords>(
   () => WORKOUT_KEYS.records(props.exerciseId),
@@ -15,9 +15,9 @@ const noRecords = computed(() => records.value?.highlights.every((h) => h.value 
 const unit = computed(() => metricUnit('max_weight'))
 
 const WEIGHT_METRICS: GraphMetric[] = ['max_weight', 'e1rm', 'volume', 'weight_at_reps']
-const hasWeightMetric = computed(() => (
+const hasWeightMetric = computed(() =>
   metricsFor(props.trackingType, props.loadStyle).some((m) => WEIGHT_METRICS.includes(m))
-))
+)
 
 const MEASURE_WORD: Record<string, string> = { weight: 'weight', reps: 'reps', distance: 'distance', duration: 'time' }
 const noWeightMessage = computed(() => {
@@ -60,8 +60,10 @@ function recordDate(performedOn: string) {
             <span class="text-lg font-semibold text-highlighted">
               <template v-if="highlight.value == null">—</template>
               <template v-else>
-                {{ highlight.value }} {{ unit }}<template v-if="highlight.kind === 'max_weight' && highlight.reps != null">
-                  &times; {{ highlight.reps }}</template>
+                {{ highlight.value }} {{ unit
+                }}<template v-if="highlight.kind === 'max_weight' && highlight.reps != null">
+                  &times; {{ highlight.reps }}</template
+                >
               </template>
             </span>
             <NuxtLink
@@ -76,7 +78,11 @@ function recordDate(performedOn: string) {
 
         <table class="w-full text-sm">
           <caption class="pb-2 text-left text-xs text-dimmed">
-            Estimates use sets up to {{ records.repCap }} reps
+            Estimates use sets up to
+            {{
+              records.repCap
+            }}
+            reps
           </caption>
           <thead>
             <tr class="text-left text-xs text-dimmed">

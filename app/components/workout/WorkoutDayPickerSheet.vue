@@ -5,7 +5,7 @@ import { needsPointerChoice } from '~~/shared/utils/routineCycle'
 import WorkoutPointerPrompt from '~/components/workout/WorkoutPointerPrompt.vue'
 
 const open = defineModel<boolean>('open', { default: false })
-const emit = defineEmits<{ start: [body: { routineDayId: number, pointer?: PointerChoice }] }>()
+const emit = defineEmits<{ start: [body: { routineDayId: number; pointer?: PointerChoice }] }>()
 const fail = useFailToast()
 
 const summaries = ref<RoutineSummary[]>([])
@@ -66,11 +66,21 @@ function choose(choice: PointerChoice) {
           @click="pickRoutine(summary.id)"
         >
           <span class="truncate font-medium text-highlighted">{{ summary.name }}</span>
-          <span class="truncate text-xs text-dimmed">{{ summary.dayCount }} {{ summary.dayCount === 1 ? 'day' : 'days' }}</span>
+          <span class="truncate text-xs text-dimmed"
+            >{{ summary.dayCount }} {{ summary.dayCount === 1 ? 'day' : 'days' }}</span
+          >
         </button>
       </div>
       <div v-else class="flex flex-col gap-1">
-        <UButton label="All routines" icon="i-lucide-arrow-left" variant="ghost" color="neutral" class="min-h-10 self-start" data-test="day-picker-back" @click="routine = null" />
+        <UButton
+          label="All routines"
+          icon="i-lucide-arrow-left"
+          variant="ghost"
+          color="neutral"
+          class="min-h-10 self-start"
+          data-test="day-picker-back"
+          @click="routine = null"
+        />
         <button
           v-for="day in rotation"
           :key="day.id"
@@ -80,7 +90,14 @@ function choose(choice: PointerChoice) {
           @click="pickDay(day)"
         >
           <span class="min-w-0 flex-1 truncate font-medium text-highlighted">{{ day.name }}</span>
-          <UBadge v-if="day.id === routine.nextDayId" label="next" color="primary" variant="subtle" size="sm" data-test="day-next-badge" />
+          <UBadge
+            v-if="day.id === routine.nextDayId"
+            label="next"
+            color="primary"
+            variant="subtle"
+            size="sm"
+            data-test="day-next-badge"
+          />
         </button>
         <USeparator v-if="floating.length" label="Floating" />
         <button
@@ -96,5 +113,10 @@ function choose(choice: PointerChoice) {
       </div>
     </template>
   </AppSheet>
-  <WorkoutPointerPrompt v-model:open="promptOpen" :day-name="pending?.name ?? ''" :due-name="dueName" @choose="choose" />
+  <WorkoutPointerPrompt
+    v-model:open="promptOpen"
+    :day-name="pending?.name ?? ''"
+    :due-name="dueName"
+    @choose="choose"
+  />
 </template>

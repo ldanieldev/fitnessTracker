@@ -12,8 +12,10 @@ describe('exercise search documents', () => {
   })
 
   it('carries the owner for a user exercise', () => {
-    expect(exerciseToSearchDocument({ id: 9, name: 'Board Press', createdByUserId: 3 }))
-      .toMatchObject({ is_catalog: false, owner_id: 3 })
+    expect(exerciseToSearchDocument({ id: 9, name: 'Board Press', createdByUserId: 3 })).toMatchObject({
+      is_catalog: false,
+      owner_id: 3
+    })
   })
 
   it('filters to catalogue rows or the caller’s own', () => {

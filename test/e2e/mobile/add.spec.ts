@@ -1,12 +1,15 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, rebuildSearchIndex, registerViaApi, uniquePrefix } from '../helpers'
 
-test('adds a food, a recipe, and a saved meal to one meal in one tap, with no tab trigger truncated', async ({ page, goto }) => {
+test('adds a food, a recipe, and a saved meal to one meal in one tap, with no tab trigger truncated', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const p = uniquePrefix()
 
-  const containers = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
   const target = containers.json[1]!
 
   const oats = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
@@ -19,10 +22,17 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap, with no ta
   })
   await apiFetch(page, 'PUT', `/api/nutrition/foods/${egg.json.id}/favorite`)
   await apiFetch(page, 'POST', '/api/nutrition/recipes', {
-    name: `${p} Chili`, servings: 4, servingName: 'bowl', ingredients: [{ foodId: oats.json.id, quantity: 400, unitLabel: 'g' }]
+    name: `${p} Chili`,
+    servings: 4,
+    servingName: 'bowl',
+    ingredients: [{ foodId: oats.json.id, quantity: 400, unitLabel: 'g' }]
   })
   await apiFetch(page, 'POST', '/api/nutrition/saved-meals', {
-    name: `${p} Breakfast`, items: [{ foodId: egg.json.id, quantity: 2, unitLabel: 'egg' }, { foodId: oats.json.id, quantity: 50, unitLabel: 'g' }]
+    name: `${p} Breakfast`,
+    items: [
+      { foodId: egg.json.id, quantity: 2, unitLabel: 'egg' },
+      { foodId: oats.json.id, quantity: 50, unitLabel: 'g' }
+    ]
   })
   await rebuildSearchIndex(page)
 
@@ -32,7 +42,10 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap, with no ta
   const tabs = await page.getByRole('tab').all()
   expect(tabs.length).toBeGreaterThan(0)
   for (const tab of tabs) {
-    const { scrollWidth, clientWidth } = await tab.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }))
+    const { scrollWidth, clientWidth } = await tab.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth
+    }))
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth)
   }
 
@@ -55,27 +68,38 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap, with no ta
   await chiliServings.fill('2')
 
   await page.locator('[data-test="meals-tab"]').click()
-  await page.locator('[data-test="meal-choice"]', { hasText: `${p} Breakfast` }).locator('[data-test="meal-choice-checkbox"]').click()
+  await page
+    .locator('[data-test="meal-choice"]', { hasText: `${p} Breakfast` })
+    .locator('[data-test="meal-choice-checkbox"]')
+    .click()
 
   await expect(page.locator('[data-test="tray-count"]')).toContainText('3 items')
   await page.locator('[data-test="add-selected"]').click()
   await expect(page).toHaveURL(/\/nutrition\/diary\/2026-09-01$/)
 
-  const day = await apiFetch<{ entries: Array<{ containerId: number, entryType: string, quantity: number }> }>(page, 'GET', '/api/nutrition/diary/2026-09-01')
+  const day = await apiFetch<{ entries: Array<{ containerId: number; entryType: string; quantity: number }> }>(
+    page,
+    'GET',
+    '/api/nutrition/diary/2026-09-01'
+  )
   expect(day.json.entries).toHaveLength(4)
   expect(day.json.entries.every((e) => e.containerId === target.id)).toBe(true)
   expect(day.json.entries.find((e) => e.entryType === 'recipe')?.quantity).toBe(2)
 })
 
-test('removing a food from recents hides it there but leaves it searchable and pickable again', async ({ page, goto }) => {
+test('removing a food from recents hides it there but leaves it searchable and pickable again', async ({
+  page,
+  goto
+}) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const p = uniquePrefix()
 
-  const containers = await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
   const target = containers.json[1]!
   const oats = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
-    name: `${p} Oats`, servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    name: `${p} Oats`,
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
   })
   await rebuildSearchIndex(page)
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-02/entries', [

@@ -9,7 +9,7 @@ function titleCase(key: string) {
 
 <script setup lang="ts">
 const props = defineProps<{ exercise: Exercise }>()
-const emit = defineEmits<{ favorite: [id: number], hide: [id: number], edit: [id: number], fork: [id: number] }>()
+const emit = defineEmits<{ favorite: [id: number]; hide: [id: number]; edit: [id: number]; fork: [id: number] }>()
 
 const dotClass = computed(() => CATEGORY_DOT_CLASS[props.exercise.category.color] ?? CATEGORY_DOT_CLASS.fallback)
 

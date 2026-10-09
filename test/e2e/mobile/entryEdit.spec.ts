@@ -2,14 +2,24 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from '../helpers'
 
 interface DayJson {
-  entries: Array<{ id: number, containerId: number, quantity: number, unitLabel: string, loggedAt: string, notes: string | null, nutrients: Record<string, number> }>
+  entries: Array<{
+    id: number
+    containerId: number
+    quantity: number
+    unitLabel: string
+    loggedAt: string
+    notes: string | null
+    nutrients: Record<string, number>
+  }>
 }
 
 test('edits quantity, unit, meal, and note from the entry sheet', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const containers = (await apiFetch<Array<{ id: number, name: string }>>(page, 'GET', '/api/nutrition/meal-containers')).json
+  const containers = (
+    await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  ).json
   const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Sheet Bread',
     servings: [
@@ -27,7 +37,12 @@ test('edits quantity, unit, meal, and note from the entry sheet', async ({ page,
   await page.locator('[data-test="entry-sheet-quantity"]').fill('50')
   await expect(page.locator('[data-test="entry-sheet-preview"]')).toContainText('130')
   await page.locator('[data-test="entry-save"]').click()
-  await expect.poll(async () => (await apiFetch<DayJson>(page, 'GET', '/api/nutrition/diary/2026-09-02')).json.entries[0]!.nutrients.energy).toBeCloseTo(130, 6)
+  await expect
+    .poll(
+      async () =>
+        (await apiFetch<DayJson>(page, 'GET', '/api/nutrition/diary/2026-09-02')).json.entries[0]!.nutrients.energy
+    )
+    .toBeCloseTo(130, 6)
 
   await page.locator('[data-test="entry-row"]').click()
   await page.locator('[data-test="entry-sheet-unit"]').click()
@@ -39,8 +54,10 @@ test('edits quantity, unit, meal, and note from the entry sheet', async ({ page,
   await page.locator('[data-test="entry-sheet-notes"]').fill('toasted')
   await page.locator('[data-test="entry-save"]').click()
 
-  await expect.poll(async () => {
-    const entry = (await apiFetch<DayJson>(page, 'GET', '/api/nutrition/diary/2026-09-02')).json.entries[0]!
-    return [entry.unitLabel, entry.quantity, entry.containerId, entry.notes, Math.round(entry.nutrients.energy!)]
-  }).toEqual(['slice', 2, containers[1]!.id, 'toasted', 180])
+  await expect
+    .poll(async () => {
+      const entry = (await apiFetch<DayJson>(page, 'GET', '/api/nutrition/diary/2026-09-02')).json.entries[0]!
+      return [entry.unitLabel, entry.quantity, entry.containerId, entry.notes, Math.round(entry.nutrients.energy!)]
+    })
+    .toEqual(['slice', 2, containers[1]!.id, 'toasted', 180])
 })

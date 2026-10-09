@@ -8,10 +8,7 @@ const toast = useToast()
 const schema = z.object({
   name: z.string({ message: 'Name is required' }).min(1, 'Name is required'),
   email: z.string({ message: 'Email is required' }).email('Invalid email'),
-  age: z.coerce
-    .number({ message: 'Age is required' })
-    .min(13, 'Must be at least 13 years old')
-    .max(120, 'Invalid age'),
+  age: z.coerce.number({ message: 'Age is required' }).min(13, 'Must be at least 13 years old').max(120, 'Invalid age'),
   sex: z.enum(['m', 'f'], { message: 'Sex is required' }),
   avatarUrl: z.string().url('Invalid URL').optional().or(z.literal(''))
 })
@@ -53,9 +50,10 @@ async function onPreferencesSubmit(payload: FormSubmitEvent<PreferencesSchema>) 
       color: 'success'
     })
   } catch (error: unknown) {
-    const message = error instanceof Error && 'data' in error
-      ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-      : undefined
+    const message =
+      error instanceof Error && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : undefined
     toast.add({
       title: 'Update failed',
       description: message || 'Could not update preferences',
@@ -79,9 +77,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       color: 'success'
     })
   } catch (error: unknown) {
-    const message = error instanceof Error && 'data' in error
-      ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-      : undefined
+    const message =
+      error instanceof Error && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : undefined
     toast.add({
       title: 'Update failed',
       description: message || 'Could not update profile',
@@ -95,18 +94,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
 <template>
   <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12">
-    <UPageCard
-      title="Profile"
-      description="Update your personal information."
-      variant="subtle"
-    >
+    <UPageCard title="Profile" description="Update your personal information." variant="subtle">
       <UForm :schema="schema" :state="state" class="flex flex-col gap-4 max-w-xs" @submit="onSubmit">
         <div class="flex items-center gap-4">
-          <UAvatar
-            :src="state.avatarUrl || undefined"
-            :alt="state.name"
-            size="lg"
-          />
+          <UAvatar :src="state.avatarUrl || undefined" :alt="state.name" size="lg" />
           <UFormField label="Avatar URL" name="avatarUrl" class="flex-1">
             <UInput v-model="state.avatarUrl" placeholder="https://example.com/avatar.jpg" class="w-full" />
           </UFormField>
@@ -121,7 +112,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         </UFormField>
 
         <UFormField label="Age" name="age" required>
-          <UInput v-model="(state.age as string)" type="number" placeholder="Enter your age" class="w-full" />
+          <UInput v-model="state.age as string" type="number" placeholder="Enter your age" class="w-full" />
         </UFormField>
 
         <UFormField label="Sex" name="sex" required>
@@ -140,12 +131,13 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       </UForm>
     </UPageCard>
 
-    <UPageCard
-      title="Preferences"
-      description="Customize how the app behaves for you."
-      variant="subtle"
-    >
-      <UForm :schema="preferencesSchema" :state="preferencesState" class="flex flex-col gap-4 max-w-xs" @submit="onPreferencesSubmit">
+    <UPageCard title="Preferences" description="Customize how the app behaves for you." variant="subtle">
+      <UForm
+        :schema="preferencesSchema"
+        :state="preferencesState"
+        class="flex flex-col gap-4 max-w-xs"
+        @submit="onPreferencesSubmit"
+      >
         <UFormField label="Week starts on" name="weekStart" required>
           <USelect
             v-model="preferencesState.weekStart"

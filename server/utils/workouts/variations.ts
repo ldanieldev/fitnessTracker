@@ -51,10 +51,12 @@ async function upsertMembers(tx: DbClient, userId: number, groupId: number, exer
 
 export async function listVariationGroups(userId: number): Promise<VariationGroup[]> {
   const [groups, members] = await Promise.all([
-    db.select({ id: exerciseVariationGroups.id, name: exerciseVariationGroups.name })
+    db
+      .select({ id: exerciseVariationGroups.id, name: exerciseVariationGroups.name })
       .from(exerciseVariationGroups)
       .where(eq(exerciseVariationGroups.userId, userId)),
-    db.select({ groupId: exerciseVariationMembers.groupId, exerciseId: exerciseVariationMembers.exerciseId })
+    db
+      .select({ groupId: exerciseVariationMembers.groupId, exerciseId: exerciseVariationMembers.exerciseId })
       .from(exerciseVariationMembers)
       .innerJoin(exercises, eq(exercises.id, exerciseVariationMembers.exerciseId))
       .where(and(eq(exerciseVariationMembers.userId, userId), isNull(exercises.deletedAt)))

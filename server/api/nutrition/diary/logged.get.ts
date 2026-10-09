@@ -6,7 +6,10 @@ import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 import { enumerateDates } from '~~/shared/utils/nutritionSummary'
 
-const querySchema = z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })
+const querySchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+})
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

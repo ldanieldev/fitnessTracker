@@ -6,11 +6,11 @@ test('a container added in settings appears on the Add screen without a reload',
   const user = await registerViaApi(page, makeUser())
   const name = `${uniquePrefix('C')} Snack`
 
-  // One hard nav establishes the SPA; every step after this is client-side, keeping the Add screen's first containers fetch in the same realm as the settings mutation.
+  // One hard nav sets up the SPA; later steps stay client-side so the Add containers fetch shares the mutation's realm.
   await goto('/nutrition/diary/2026-09-08', { waitUntil: 'hydration' })
   await page.locator('[data-test="fab-add"]').click()
   await page.waitForURL('**/nutrition/diary/2026-09-08/add')
-  // The sidebar auto-closes on its own route-settle watcher; wait for that to fire before opening it ourselves, or our own open loses the race.
+  // The sidebar auto-closes on its route-settle watcher; wait for that before opening it, or our open loses the race.
   await page.waitForLoadState('networkidle')
 
   await page.getByRole('button', { name: 'Open sidebar' }).click()
@@ -40,13 +40,14 @@ test('a recipe saved from a meal appears in the Add screen\'s Recipes tab withou
   const p = uniquePrefix()
   const containers = (await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')).json
   const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
-    name: `${p} Oats`, servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    name: `${p} Oats`,
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
   })
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-08/entries', [
     { entryType: 'food', containerId: containers[0]!.id, foodId: food.json.id, quantity: 100, unitLabel: 'g' }
   ])
 
-  // One hard nav establishes the SPA; the FAB/back round trip afterward stays in the same realm as the mutation that must invalidate the recipes fetch asserted empty below.
+  // One hard nav sets up the SPA; the FAB/back trip stays in the realm of the mutation that invalidates recipes.
   await goto('/nutrition/diary/2026-09-08', { waitUntil: 'hydration' })
   await page.locator('[data-test="fab-add"]').click()
   await page.waitForURL('**/nutrition/diary/2026-09-08/add')

@@ -2,11 +2,14 @@ import type { MaybeRefOrGetter } from 'vue'
 import { evaluateTarget } from '~~/shared/utils/nutritionTargets'
 import type { DiaryTargetRow } from '~/composables/useDiaryDay'
 
-// Non-blocking: no internal await, so callers (e.g. the shared layout) don't stall SSR/hydration on nutrition data. Callers that need the data settled can await the returned `*Fetch` handles themselves.
+// Non-blocking so callers (e.g. the layout) don't stall SSR; await the returned `*Fetch` handles to settle the data.
 export function useDaySummary(date: MaybeRefOrGetter<string>, opts: { immediate?: boolean } = {}) {
   const { day, updateEntry, deleteEntry, fetch: dayFetch } = useDiaryDay(date, opts)
   const { tracked, fetch: trackedFetch } = useTrackedNutrients()
-  const profilesFetch = useNutritionFetch<Array<{ id: number, name: string, isDefault: boolean }>>(NUTRITION_KEYS.profiles, '/api/nutrition/goal-profiles')
+  const profilesFetch = useNutritionFetch<Array<{ id: number; name: string; isDefault: boolean }>>(
+    NUTRITION_KEYS.profiles,
+    '/api/nutrition/goal-profiles'
+  )
   const profiles = profilesFetch.data
 
   const goalName = computed(() => {
@@ -28,13 +31,29 @@ export function useDaySummary(date: MaybeRefOrGetter<string>, opts: { immediate?
 
   const totals = computed(() => day.value?.totals ?? {})
 
-  const subtotalNutrients = computed(() => (tracked.value ?? []).map((n) => ({ key: n.key, name: n.name, unit: n.unit })))
+  const subtotalNutrients = computed(() =>
+    (tracked.value ?? []).map((n) => ({ key: n.key, name: n.name, unit: n.unit }))
+  )
 
   const energyLeft = computed(() => {
     const energy = targets.value.find((t) => t.key === 'energy')
     if (!energy || energy.amount === null || energy.direction === null) return null
-    return evaluateTarget({ consumed: totals.value.energy ?? 0, target: energy.amount, direction: energy.direction }).remaining
+    return evaluateTarget({ consumed: totals.value.energy ?? 0, target: energy.amount, direction: energy.direction })
+      .remaining
   })
 
-  return { day, profiles, updateEntry, deleteEntry, goalName, targets, totals, subtotalNutrients, energyLeft, dayFetch, trackedFetch, profilesFetch }
+  return {
+    day,
+    profiles,
+    updateEntry,
+    deleteEntry,
+    goalName,
+    targets,
+    totals,
+    subtotalNutrients,
+    energyLeft,
+    dayFetch,
+    trackedFetch,
+    profilesFetch
+  }
 }

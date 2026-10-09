@@ -2,7 +2,9 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 import type { Exercise } from '../../shared/types/workout'
 
-interface Reference { categories: { id: number, key: string }[] }
+interface Reference {
+  categories: { id: number; key: string }[]
+}
 
 test('a misspelled search is rescued by the search index', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -12,7 +14,9 @@ test('a misspelled search is rescued by the search index', async ({ page, goto }
   const reference = (await apiFetch<Reference>(page, 'GET', '/api/workouts/reference')).json
   const core = reference.categories.find((c) => c.key === 'core')!
   const created = await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name, categoryId: core.id, trackingType: 'reps'
+    name,
+    categoryId: core.id,
+    trackingType: 'reps'
   })
   expect(created.status).toBe(200)
 
@@ -31,9 +35,14 @@ test('the rescue fills only a text miss, favourites first', async ({ page, goto 
   const prefix = uniquePrefix('Rescue')
   const reference = (await apiFetch<Reference>(page, 'GET', '/api/workouts/reference')).json
   const core = reference.categories.find((c) => c.key === 'core')!
-  const make = async (name: string) => (await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
-    name: `${prefix} ${name}`, categoryId: core.id, trackingType: 'reps'
-  })).json
+  const make = async (name: string) =>
+    (
+      await apiFetch<Exercise>(page, 'POST', '/api/workouts/exercises', {
+        name: `${prefix} ${name}`,
+        categoryId: core.id,
+        trackingType: 'reps'
+      })
+    ).json
   const alpha = await make('Zibblequartz Alpha')
   const zulu = await make('Zibblequartz Zulu')
   const press = await make('Zibblequarts Press')

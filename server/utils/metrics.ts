@@ -7,17 +7,15 @@ let requestDuration: Histogram | undefined
 let queryDuration: Histogram | undefined
 
 export function recordRequestDuration(seconds: number, attributes: Record<string, string | number>) {
-  requestDuration ??= metrics.getMeter('my-fitness-journal').createHistogram(
-    'http.server.request.duration',
-    { unit: 's', description: 'Duration of inbound HTTP requests' }
-  )
+  requestDuration ??= metrics
+    .getMeter('my-fitness-journal')
+    .createHistogram('http.server.request.duration', { unit: 's', description: 'Duration of inbound HTTP requests' })
   requestDuration.record(seconds, attributes)
 }
 
 export function recordQueryDuration(seconds: number, attributes: Record<string, string | number>) {
-  queryDuration ??= metrics.getMeter('my-fitness-journal-db').createHistogram(
-    'db.client.operation.duration',
-    { unit: 's', description: 'Duration of database operations' }
-  )
+  queryDuration ??= metrics
+    .getMeter('my-fitness-journal-db')
+    .createHistogram('db.client.operation.duration', { unit: 's', description: 'Duration of database operations' })
   queryDuration.record(seconds, attributes)
 }

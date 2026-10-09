@@ -32,7 +32,7 @@ test('reranks search hits by favourite then log frequency, and flags the degrade
   await rebuildSearchIndex(page)
 
   type SearchResult = ApiResult<{
-    hits: Array<{ id: number, name: string, brand: string | null, energyDensity: number | null }>
+    hits: Array<{ id: number; name: string; brand: string | null; energyDensity: number | null }>
     degraded: boolean
   }>
 
@@ -72,7 +72,7 @@ test('a hit for a food with a weight serving carries its energy density', async 
 
   await rebuildSearchIndex(page)
 
-  type DensimeterResult = ApiResult<{ hits: Array<{ name: string, energyDensity: number | null }> }>
+  type DensimeterResult = ApiResult<{ hits: Array<{ name: string; energyDensity: number | null }> }>
 
   const search = await pollUntil<DensimeterResult>(
     () => apiFetch(page, 'GET', '/api/nutrition/foods/search?q=Densimeter'),

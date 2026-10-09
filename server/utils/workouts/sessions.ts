@@ -13,7 +13,10 @@ const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Workout not found' } 
 
 async function phaseDeload(phaseId: number | null): Promise<boolean> {
   if (phaseId === null) return false
-  const [row] = await db.select({ deload: programPhases.deload }).from(programPhases).where(eq(programPhases.id, phaseId))
+  const [row] = await db
+    .select({ deload: programPhases.deload })
+    .from(programPhases)
+    .where(eq(programPhases.id, phaseId))
   return row?.deload ?? false
 }
 
@@ -86,7 +89,12 @@ export async function listSessions(userId: number, query: SessionListQuery): Pro
     .orderBy(desc(workoutSessions.performedOn), desc(workoutSessions.startedAt), desc(workoutSessions.id))
     .limit(query.limit)
 
-  const dots = sessionCategoryDots(await loadEntryCategories(userId, rows.map((row) => row.id)))
+  const dots = sessionCategoryDots(
+    await loadEntryCategories(
+      userId,
+      rows.map((row) => row.id)
+    )
+  )
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -96,9 +104,10 @@ export async function listSessions(userId: number, query: SessionListQuery): Pro
     exerciseCount: row.exerciseCount,
     setCount: row.setCount,
     categories: dots.get(row.id) ?? [],
-    program: row.programPhaseId !== null && row.phaseName !== null && row.phaseSort !== null && row.programWeek !== null
-      ? { phaseId: row.programPhaseId, phaseName: row.phaseName, phaseIndex: row.phaseSort, week: row.programWeek }
-      : null
+    program:
+      row.programPhaseId !== null && row.phaseName !== null && row.phaseSort !== null && row.programWeek !== null
+        ? { phaseId: row.programPhaseId, phaseName: row.phaseName, phaseIndex: row.phaseSort, week: row.programWeek }
+        : null
   }))
 }
 

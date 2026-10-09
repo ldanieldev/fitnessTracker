@@ -30,7 +30,11 @@ export const routines = appSchema.table(
     active: boolean('active').notNull().default(false),
     nextDayId: integer('next_day_id').references((): AnyPgColumn => workoutTemplates.id, { onDelete: 'set null' })
   },
-  (table) => [uniqueIndex('routine_one_active').on(table.userId).where(sql`active`)]
+  (table) => [
+    uniqueIndex('routine_one_active')
+      .on(table.userId)
+      .where(sql`active`)
+  ]
 )
 
 export const workoutTemplates = appSchema.table(
@@ -87,12 +91,18 @@ export const workoutSessions = appSchema.table(
     endedAt: timestamp('ended_at').default(sql`null`),
     notes: text('notes').default(sql`null`),
     routineDayId: integer('routine_day_id').references(() => workoutTemplates.id, { onDelete: 'set null' }),
-    enrollmentId: integer('enrollment_id').references((): AnyPgColumn => userProgramEnrollments.id, { onDelete: 'set null' }),
-    programPhaseId: integer('program_phase_id').references((): AnyPgColumn => programPhases.id, { onDelete: 'set null' }),
+    enrollmentId: integer('enrollment_id').references((): AnyPgColumn => userProgramEnrollments.id, {
+      onDelete: 'set null'
+    }),
+    programPhaseId: integer('program_phase_id').references((): AnyPgColumn => programPhases.id, {
+      onDelete: 'set null'
+    }),
     programWeek: smallint('program_week').default(sql`null`)
   },
   (table) => [
-    uniqueIndex('workout_session_open').on(table.userId).where(sql`ended_at is null`),
+    uniqueIndex('workout_session_open')
+      .on(table.userId)
+      .where(sql`ended_at is null`),
     index('workout_session_recent').on(table.userId, table.performedOn, table.id)
   ]
 )

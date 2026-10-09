@@ -8,10 +8,13 @@ test('workout rollups: written on every set path and rebuildable', async ({ page
   await registerViaApi(page, makeUser())
 
   const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
-  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() })).json
-  const entry = (await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
-    exerciseId: bench.id
-  })).json.entries[0]!
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entry = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!
 
   expect((await apiFetch<{ rows: number }>(page, 'POST', '/api/workouts/rollups/rebuild')).json.rows).toBe(0)
 

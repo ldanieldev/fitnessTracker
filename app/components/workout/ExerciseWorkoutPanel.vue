@@ -6,7 +6,7 @@ import WorkoutPlateSizesPicker from '~/components/workout/WorkoutPlateSizesPicke
 const LABEL_UI = { label: 'text-dimmed' }
 
 const props = defineProps<{ exercise: Exercise }>()
-const emit = defineEmits<{ save: [patch: Record<string, unknown>], reset: [field: string] }>()
+const emit = defineEmits<{ save: [patch: Record<string, unknown>]; reset: [field: string] }>()
 
 const { plateSizes: defaultPlates } = useWorkoutPrefs()
 
@@ -22,11 +22,14 @@ const local = reactive<LocalSettings>({
   plateSizes: props.exercise.plateSizes ? [...props.exercise.plateSizes] : null
 })
 
-watch(() => props.exercise, (exercise) => {
-  local.weightIncrement = exercise.weightIncrement
-  local.restSeconds = exercise.restSeconds
-  local.plateSizes = exercise.plateSizes ? [...exercise.plateSizes] : null
-})
+watch(
+  () => props.exercise,
+  (exercise) => {
+    local.weightIncrement = exercise.weightIncrement
+    local.restSeconds = exercise.restSeconds
+    local.plateSizes = exercise.plateSizes ? [...exercise.plateSizes] : null
+  }
+)
 
 function samePlates(a: number[] | null, b: number[] | null) {
   return a === b || (a !== null && b !== null && a.length === b.length && a.every((size, i) => size === b[i]))
@@ -49,11 +52,15 @@ function resetPlates() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <p class="text-sm text-dimmed" data-test="workout-help">These apply to this exercise only and override your defaults in <NuxtLink to="/settings/workout" class="underline">Settings → Workout</NuxtLink>. Leave a field empty to use the default.</p>
+    <p class="text-sm text-dimmed" data-test="workout-help">
+      These apply to this exercise only and override your defaults in
+      <NuxtLink to="/settings/workout" class="underline">Settings → Workout</NuxtLink>. Leave a field empty to use the
+      default.
+    </p>
 
     <UFormField label="Weight increment" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
-        <!-- Explicit ids here and on rest: useId differs between SSR and client in the prod build, leaving the label's for stale. -->
+        <!-- Explicit ids here and on rest: useId differs SSR vs client in prod, so the label's for goes stale. -->
         <AppNumberInput
           id="setting-weight-increment"
           v-model="local.weightIncrement"
@@ -116,7 +123,7 @@ function resetPlates() {
         <WorkoutPlateSizesPicker
           :model-value="local.plateSizes"
           :choices="defaultPlates"
-          @update:model-value="(sizes) => local.plateSizes = normalizePlateSizes(sizes)"
+          @update:model-value="(sizes) => (local.plateSizes = normalizePlateSizes(sizes))"
         />
         <UButton
           label="Use default plates"

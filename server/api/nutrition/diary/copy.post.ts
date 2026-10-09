@@ -101,12 +101,15 @@ export default defineEventHandler(async (event) => {
       const sourceSnapshot: Record<number, number> = {}
       for (const row of snapshotRows) sourceSnapshot[row.nutrientId] = Number(row.amount)
 
-      const scaledSnapshot = quantityChanged ? scaleSnapshot(sourceSnapshot, sourceQuantity, item.quantity) : sourceSnapshot
+      const scaledSnapshot = quantityChanged
+        ? scaleSnapshot(sourceSnapshot, sourceQuantity, item.quantity)
+        : sourceSnapshot
       const sourceGrams = source.gramsResolved === null ? null : Number(source.gramsResolved)
       const scaledGrams = sourceGrams === null ? null : quantityChanged ? sourceGrams * ratio : sourceGrams
-      const scaledIngredientSnapshot = quantityChanged && Array.isArray(source.ingredientSnapshot)
-        ? scaleIngredientSnapshot(source.ingredientSnapshot as IngredientSnapshotItem[], ratio)
-        : source.ingredientSnapshot
+      const scaledIngredientSnapshot =
+        quantityChanged && Array.isArray(source.ingredientSnapshot)
+          ? scaleIngredientSnapshot(source.ingredientSnapshot as IngredientSnapshotItem[], ratio)
+          : source.ingredientSnapshot
 
       let args: Omit<WriteEntryArgs, 'dayId' | 'sortOrder'>
 
@@ -185,13 +188,14 @@ export default defineEventHandler(async (event) => {
       }
 
       const cachedSortOrder = nextSortOrder.get(item.containerId)
-      const sortOrder = cachedSortOrder === undefined
-        ? await tx
-            .select({ max: max(diaryEntries.sortOrder) })
-            .from(diaryEntries)
-            .where(and(eq(diaryEntries.dayId, day.id), eq(diaryEntries.containerId, item.containerId)))
-            .then((r) => (r[0]?.max ?? -1) + 1)
-        : cachedSortOrder
+      const sortOrder =
+        cachedSortOrder === undefined
+          ? await tx
+              .select({ max: max(diaryEntries.sortOrder) })
+              .from(diaryEntries)
+              .where(and(eq(diaryEntries.dayId, day.id), eq(diaryEntries.containerId, item.containerId)))
+              .then((r) => (r[0]?.max ?? -1) + 1)
+          : cachedSortOrder
       nextSortOrder.set(item.containerId, sortOrder + 1)
 
       const entry = await writeEntry(tx, { dayId: day.id, sortOrder, ...args })

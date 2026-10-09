@@ -83,7 +83,11 @@ async function handleHit(rawText: string) {
   try {
     code = normalizeGtin(rawText)
   } catch (err: unknown) {
-    toast.add({ title: 'Invalid barcode', description: errorMessage(err, 'Could not read this barcode'), color: 'error' })
+    toast.add({
+      title: 'Invalid barcode',
+      description: errorMessage(err, 'Could not read this barcode'),
+      color: 'error'
+    })
     return
   }
   stopScanning()
@@ -99,7 +103,12 @@ async function handleHit(rawText: string) {
       await navigateTo(`/nutrition/diary/${props.date}/foods/new?barcode=${code}${containerQuery.value}`)
     }
   } catch (err: unknown) {
-    if (!unmounted) toast.add({ title: 'Lookup failed', description: errorMessage(err, 'Could not look up this barcode'), color: 'error' })
+    if (!unmounted)
+      toast.add({
+        title: 'Lookup failed',
+        description: errorMessage(err, 'Could not look up this barcode'),
+        color: 'error'
+      })
   }
 }
 
@@ -131,9 +140,10 @@ async function startCamera() {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
   } catch (err: unknown) {
     const name = typeof err === 'object' && err !== null && 'name' in err ? (err as { name: unknown }).name : undefined
-    permissionError.value = name === 'NotAllowedError'
-      ? 'Camera permission was denied — grant camera permission or use manual entry below'
-      : 'Camera unavailable — use manual entry below'
+    permissionError.value =
+      name === 'NotAllowedError'
+        ? 'Camera permission was denied — grant camera permission or use manual entry below'
+        : 'Camera unavailable — use manual entry below'
     return
   }
   await nextTick()
@@ -157,16 +167,24 @@ async function importExternal() {
   if (!external.value) return
   importing.value = true
   try {
-    const imported = await apiFetch<{ id: number, needsNutrition: boolean, owned: boolean }>('/api/nutrition/foods/import', {
-      method: 'POST',
-      body: { source: external.value.source, externalId: external.value.externalId }
-    })
+    const imported = await apiFetch<{ id: number; needsNutrition: boolean; owned: boolean }>(
+      '/api/nutrition/foods/import',
+      {
+        method: 'POST',
+        body: { source: external.value.source, externalId: external.value.externalId }
+      }
+    )
     await invalidateNutrition(NUTRITION_KEYS.foods)
     if (unmounted) return
     const suffix = imported.needsNutrition ? '&needsNutrition=1' : ''
     await navigateTo(`/nutrition/diary/${props.date}/add?foodId=${imported.id}${suffix}${containerQuery.value}`)
   } catch (err: unknown) {
-    if (!unmounted) toast.add({ title: 'Import failed', description: errorMessage(err, 'Could not import this food'), color: 'error' })
+    if (!unmounted)
+      toast.add({
+        title: 'Import failed',
+        description: errorMessage(err, 'Could not import this food'),
+        color: 'error'
+      })
   } finally {
     importing.value = false
   }
@@ -218,7 +236,13 @@ onUnmounted(() => {
           <span v-if="external.brand" class="text-dimmed text-sm">{{ external.brand }}</span>
           <span v-if="external.attribution" class="text-dimmed text-xs">{{ external.attribution }}</span>
         </div>
-        <UButton label="Import" :loading="importing" :aria-label="`Import ${external.name}`" data-test="scan-import" @click="importExternal" />
+        <UButton
+          label="Import"
+          :loading="importing"
+          :aria-label="`Import ${external.name}`"
+          data-test="scan-import"
+          @click="importExternal"
+        />
       </div>
     </UCard>
 

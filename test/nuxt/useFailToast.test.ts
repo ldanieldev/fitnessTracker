@@ -15,7 +15,11 @@ describe('useFailToast', () => {
     const { useFailToast } = await import('../../app/composables/useFailToast')
     const fail = useFailToast()
     fail('Couldn\'t save workout', serverError('Name taken'), 'Could not save')
-    expect(addMock.mock.lastCall![0]).toEqual({ title: 'Couldn\'t save workout', description: 'Name taken', color: 'error' })
+    expect(addMock.mock.lastCall![0]).toEqual({
+      title: 'Couldn\'t save workout',
+      description: 'Name taken',
+      color: 'error'
+    })
     fail('Couldn\'t save workout', new Error('offline'), 'Could not save')
     expect(addMock.mock.lastCall![0]).toMatchObject({ description: 'Could not save' })
   })
@@ -24,7 +28,7 @@ describe('useFailToast', () => {
     const { useFailToast } = await import('../../app/composables/useFailToast')
     const retry = vi.fn()
     useFailToast()('Couldn\'t create routine', new Error('x'), 'Could not create this routine', retry)
-    const { actions } = addMock.mock.lastCall![0] as { actions: { label: string, onClick: () => void }[] }
+    const { actions } = addMock.mock.lastCall![0] as { actions: { label: string; onClick: () => void }[] }
     expect(actions.map((action) => action.label)).toEqual(['Retry'])
     actions[0]!.onClick()
     expect(retry).toHaveBeenCalledOnce()

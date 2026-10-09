@@ -36,10 +36,7 @@ export async function queryFoodCandidates(
         sql`${foods.name} ilike ${containsPattern} escape '\\'`
       )
     )
-    .orderBy(
-      sql`case when ${foods.name} ilike ${prefixPattern} escape '\\' then 1 else 0.5 end desc`,
-      foods.name
-    )
+    .orderBy(sql`case when ${foods.name} ilike ${prefixPattern} escape '\\' then 1 else 0.5 end desc`, foods.name)
     .limit(Math.min(limit, CANDIDATE_POOL_LIMIT))
 
   return rows.map((r) => ({ id: r.id, relevance: Number(r.relevance) }))

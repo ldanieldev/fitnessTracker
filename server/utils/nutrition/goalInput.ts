@@ -29,10 +29,7 @@ export interface PreparedGoalTarget {
   ratioPercent: number | null
 }
 
-export function buildGoalTargetRows(
-  input: GoalProfileInput,
-  catalog: NutrientCatalogEntry[]
-): PreparedGoalTarget[] {
+export function buildGoalTargetRows(input: GoalProfileInput, catalog: NutrientCatalogEntry[]): PreparedGoalTarget[] {
   const byKey = new Map(catalog.map((n) => [n.key, n]))
 
   let macroGrams: Record<string, number> | null = null
@@ -65,7 +62,13 @@ export function buildGoalTargetRows(
       amount = target.amount
     }
 
-    return { key: entry.key, nutrientId: entry.id, amount, direction: target.direction ?? entry.defaultDirection, ratioPercent }
+    return {
+      key: entry.key,
+      nutrientId: entry.id,
+      amount,
+      direction: target.direction ?? entry.defaultDirection,
+      ratioPercent
+    }
   })
 
   const energyEntry = byKey.get('energy')
@@ -73,7 +76,13 @@ export function buildGoalTargetRows(
 
   const withEnergy = ensureEnergyTarget(
     rows,
-    (amount) => ({ key: 'energy', nutrientId: energyEntry.id, amount, direction: energyEntry.defaultDirection, ratioPercent: null }),
+    (amount) => ({
+      key: 'energy',
+      nutrientId: energyEntry.id,
+      amount,
+      direction: energyEntry.defaultDirection,
+      ratioPercent: null
+    }),
     input.calories
   )
   return withEnergy.map(({ key, ...row }) => row)

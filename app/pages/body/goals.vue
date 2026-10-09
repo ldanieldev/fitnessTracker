@@ -29,9 +29,16 @@ function openEdit(item: GoalOverview) {
         <div class="grid gap-3 sm:grid-cols-2">
           <BodyGoalCard v-for="item in goals" :key="item.type.id" :item="item" :today="today" @edit="openEdit(item)" />
         </div>
-        <p v-if="goals.length === 0" class="text-sm text-dimmed" data-test="goals-empty">No goals yet — open a measurement and tap its Goal tile</p>
+        <p v-if="goals.length === 0" class="text-sm text-dimmed" data-test="goals-empty">
+          No goals yet — open a measurement and tap its Goal tile
+        </p>
       </div>
-      <BodyGoalSheet v-model:open="sheetOpen" :type="editing?.type ?? null" :goal="editing?.goal ?? null" :latest="editing?.latest?.value ?? null" />
+      <BodyGoalSheet
+        v-model:open="sheetOpen"
+        :type="editing?.type ?? null"
+        :goal="editing?.goal ?? null"
+        :latest="editing?.latest?.value ?? null"
+      />
     </template>
   </UDashboardPanel>
 </template>

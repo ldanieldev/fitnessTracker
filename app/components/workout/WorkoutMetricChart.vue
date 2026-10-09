@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import type { SeriesPoint } from '~~/shared/types/series'
 
-const props = withDefaults(defineProps<{
-  points: SeriesPoint[]
-  trend: SeriesPoint[]
-  goal: number | null
-  from: string
-  to: string
-  unit: string
-  precision: number
-  label: string
-  zeroBased?: boolean
-  height?: number
-  format?: (value: number) => string
-}>(), { zeroBased: false, height: 200, format: undefined })
+const props = withDefaults(
+  defineProps<{
+    points: SeriesPoint[]
+    trend: SeriesPoint[]
+    goal: number | null
+    from: string
+    to: string
+    unit: string
+    precision: number
+    label: string
+    zeroBased?: boolean
+    height?: number
+    format?: (value: number) => string
+  }>(),
+  { zeroBased: false, height: 200, format: undefined }
+)
 
 const show = (value: number) => (props.format ? props.format(value) : value.toFixed(props.precision))
 const withUnit = (value: number) => (props.unit ? `${show(value)} ${props.unit}` : show(value))

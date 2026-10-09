@@ -81,15 +81,27 @@ function openEdit(entry: MeasurementEntry) {
           </UCard>
           <UCard :ui="{ body: 'p-3 sm:p-3' }" data-test="tile-pace">
             <p class="text-xs uppercase text-muted">Avg. pace</p>
-            <p class="text-lg font-semibold tabular-nums">{{ pace === null ? '—' : `${formatDelta(pace, type.precision)}/wk` }}</p>
-            <UBadge v-if="track !== null" :color="track ? 'success' : 'error'" variant="subtle" size="sm">{{ track ? 'On track' : 'Behind' }}</UBadge>
+            <p class="text-lg font-semibold tabular-nums">
+              {{ pace === null ? '—' : `${formatDelta(pace, type.precision)}/wk` }}
+            </p>
+            <UBadge v-if="track !== null" :color="track ? 'success' : 'error'" variant="subtle" size="sm">{{
+              track ? 'On track' : 'Behind'
+            }}</UBadge>
           </UCard>
           <button type="button" class="text-left" data-test="tile-goal" @click="goalOpen = true">
             <UCard :ui="{ body: 'p-3 sm:p-3' }" class="h-full active:bg-accented">
               <p class="text-xs uppercase text-muted">Goal</p>
               <template v-if="goal && progress">
                 <p class="text-lg font-semibold tabular-nums">{{ formatValue(goal.targetValue, type.precision) }}</p>
-                <p class="text-xs text-dimmed">{{ progress.reached ? 'Reached' : progress.remaining === null ? '—' : `${formatValue(Math.abs(progress.remaining), type.precision)} ${type.unit} to go` }}</p>
+                <p class="text-xs text-dimmed">
+                  {{
+                    progress.reached
+                      ? 'Reached'
+                      : progress.remaining === null
+                        ? '—'
+                        : `${formatValue(Math.abs(progress.remaining), type.precision)} ${type.unit} to go`
+                  }}
+                </p>
               </template>
               <p v-else class="text-sm text-dimmed">Set a goal</p>
             </UCard>

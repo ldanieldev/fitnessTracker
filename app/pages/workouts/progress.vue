@@ -9,7 +9,7 @@ import { workoutGoalProgress } from '~~/shared/utils/workoutGoals'
 import { totalTimeLabel } from '~~/shared/utils/workoutTime'
 
 const range = useState<ChartRange>('workouts:range', () => 'mtd')
-const custom = ref<{ from: string, to: string } | null>(null)
+const custom = ref<{ from: string; to: string } | null>(null)
 const today = useTodayOrNow()
 
 const to = computed(() => custom.value?.to ?? today.value)
@@ -29,8 +29,9 @@ const customSheetOpen = ref(false)
 const draftFrom = ref('')
 const draftTo = ref('')
 // Dates are YYYY-MM-DD, so string comparison orders them correctly.
-const customRangeInvalid = computed(() =>
-  Boolean(draftFrom.value) && Boolean(draftTo.value) && draftFrom.value > draftTo.value)
+const customRangeInvalid = computed(
+  () => Boolean(draftFrom.value) && Boolean(draftTo.value) && draftFrom.value > draftTo.value
+)
 const canApplyCustom = computed(() => Boolean(draftFrom.value && draftTo.value) && !customRangeInvalid.value)
 
 function openCustomSheet() {
@@ -169,19 +170,27 @@ function goalUnit(metric: GraphMetric) {
               >
                 <div class="flex flex-col gap-1">
                   <div class="flex items-center justify-between gap-2">
-                    <NuxtLink :to="`/workouts/exercises/${goal.exerciseId}`" class="font-medium text-highlighted hover:underline">
+                    <NuxtLink
+                      :to="`/workouts/exercises/${goal.exerciseId}`"
+                      class="font-medium text-highlighted hover:underline"
+                    >
                       {{ goal.exerciseName }}
                     </NuxtLink>
                     <UBadge v-if="goal.reached" label="Reached" color="success" variant="subtle" size="sm" />
                   </div>
-                  <p class="text-sm text-dimmed">{{ metricLabel(goal.metric, goal.lowerIsBetter ? 'assisted' : null) }}</p>
+                  <p class="text-sm text-dimmed">
+                    {{ metricLabel(goal.metric, goal.lowerIsBetter ? 'assisted' : null) }}
+                  </p>
                   <p class="text-sm tabular-nums" data-test="progress-goal-values">
-                    {{ goalAmount(goal.metric, goal.current) }} / {{ goalAmount(goal.metric, goal.targetValue) }} {{ goalUnit(goal.metric) }}
+                    {{ goalAmount(goal.metric, goal.current) }} / {{ goalAmount(goal.metric, goal.targetValue) }}
+                    {{ goalUnit(goal.metric) }}
                   </p>
                   <div class="h-2 w-full overflow-hidden rounded-full bg-elevated">
                     <div
                       class="h-full rounded-full bg-primary"
-                      :style="{ width: `${workoutGoalProgress(goal.current, goal.targetValue, goal.lowerIsBetter) * 100}%` }"
+                      :style="{
+                        width: `${workoutGoalProgress(goal.current, goal.targetValue, goal.lowerIsBetter) * 100}%`
+                      }"
                     />
                   </div>
                   <p v-if="goal.targetDate" class="text-xs text-dimmed">By {{ goalDate(goal.targetDate) }}</p>

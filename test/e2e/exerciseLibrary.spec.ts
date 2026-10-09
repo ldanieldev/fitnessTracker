@@ -2,7 +2,11 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
 import type { Exercise, ExerciseCategory } from '../../shared/types/workout'
 
-interface Reference { categories: ExerciseCategory[], muscles: { key: string }[], equipment: { key: string }[] }
+interface Reference {
+  categories: ExerciseCategory[]
+  muscles: { key: string }[]
+  equipment: { key: string }[]
+}
 
 test('exercise reads: catalogue listing, search, filters and detail', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })

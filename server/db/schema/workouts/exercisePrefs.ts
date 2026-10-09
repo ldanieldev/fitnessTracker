@@ -32,7 +32,9 @@ export const exercisePrefs = appSchema.table(
     barWeight: numeric('bar_weight').default(sql`null`),
     weightIncrement: numeric('weight_increment').default(sql`null`),
     restSeconds: integer('rest_seconds').default(sql`null`),
-    plateSizes: numeric('plate_sizes').array().default(sql`null`),
+    plateSizes: numeric('plate_sizes')
+      .array()
+      .default(sql`null`),
     notes: varchar('notes', { length: 2000 }).default(sql`null`),
     link: varchar('link', { length: 500 }).default(sql`null`),
     defaultGraph: varchar('default_graph', { enum: GRAPH_METRIC_VALUES }).default(sql`null`),

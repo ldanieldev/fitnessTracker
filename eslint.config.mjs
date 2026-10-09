@@ -19,18 +19,23 @@ export default withNuxt(
       '@stylistic/operator-linebreak': 'off',
       '@stylistic/arrow-parens': 'off',
       '@stylistic/member-delimiter-style': 'off',
-      '@stylistic/quote-props': 'off'
+      '@stylistic/quote-props': 'off',
+      '@stylistic/max-len': [
+        'error',
+        { code: 120, ignoreUrls: true, ignoreStrings: true, ignoreTemplateLiterals: true, ignoreRegExpLiterals: true }
+      ]
     }
   },
   {
-    // A raw $fetch call skips the 401 → logout/redirect handling (see app/composables/useSessionGuard.ts); apiFetch is the only sanctioned way to call the API from app code.
+    // A raw $fetch skips apiFetch's 401 → logout/redirect handling (app/composables/useSessionGuard.ts).
     files: ['app/**/*.{ts,vue}'],
     rules: {
       'no-restricted-syntax': [
         'error',
         {
           selector: 'CallExpression[callee.name="$fetch"]',
-          message: 'Use apiFetch from app/composables/useSessionGuard.ts instead of raw $fetch — it handles a stale-session 401 by logging out and redirecting.'
+          message:
+            'Use apiFetch from app/composables/useSessionGuard.ts instead of raw $fetch — it handles a stale-session 401 by logging out and redirecting.'
         }
       ]
     }
@@ -40,5 +45,25 @@ export default withNuxt(
     rules: {
       'no-restricted-syntax': 'off'
     }
+  },
+  {
+    files: ['**/*.vue'],
+    rules: {
+      '@stylistic/max-len': 'off',
+      'vue/max-len': [
+        'error',
+        {
+          code: 120,
+          ignoreUrls: true,
+          ignoreStrings: true,
+          ignoreTemplateLiterals: true,
+          ignoreRegExpLiterals: true,
+          ignoreHTMLAttributeValues: true
+        }
+      ]
+    }
+  },
+  {
+    ignores: ['.superpowers/**']
   }
 )

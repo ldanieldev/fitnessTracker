@@ -41,12 +41,14 @@ describe('forwardLine', () => {
   })
 
   it('also captures an exception when an error record is logged', () => {
-    forwardLine(JSON.stringify({
-      level: 'error',
-      msg: 'GitHub OAuth flow failed',
-      err: { type: 'TypeError', message: 'boom', stack: 'TypeError: boom\n    at x' },
-      provider: 'github'
-    }))
+    forwardLine(
+      JSON.stringify({
+        level: 'error',
+        msg: 'GitHub OAuth flow failed',
+        err: { type: 'TypeError', message: 'boom', stack: 'TypeError: boom\n    at x' },
+        provider: 'github'
+      })
+    )
 
     expect(logger.error).toHaveBeenCalledWith('GitHub OAuth flow failed', { provider: 'github' })
     expect(captureException).toHaveBeenCalledOnce()

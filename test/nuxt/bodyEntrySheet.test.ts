@@ -5,7 +5,17 @@ import { readBody } from 'h3'
 import { useToday } from '../../app/composables/useToday'
 import BodyEntrySheet from '../../app/components/body/BodyEntrySheet.vue'
 
-const type = { id: 1, key: 'bodyweight', name: 'Bodyweight', unit: 'lbs', precision: 1, direction: 'neutral' as const, builtIn: true, hidden: false, sortOrder: null }
+const type = {
+  id: 1,
+  key: 'bodyweight',
+  name: 'Bodyweight',
+  unit: 'lbs',
+  precision: 1,
+  direction: 'neutral' as const,
+  builtIn: true,
+  hidden: false,
+  sortOrder: null
+}
 
 describe('BodyEntrySheet', () => {
   it('defaults the date to today, disables Save until a value is typed, and posts value + local day + instant', async () => {
@@ -18,7 +28,10 @@ describe('BodyEntrySheet', () => {
         return { id: 9, typeId: 1, value: 197, measuredAt: '2026-09-16T08:25:00.000Z', measuredOn: '2026-09-16' }
       }
     })
-    const wrapper = await mountSuspended(BodyEntrySheet, { attachTo: document.body, props: { open: true, type, entry: null } })
+    const wrapper = await mountSuspended(BodyEntrySheet, {
+      attachTo: document.body,
+      props: { open: true, type, entry: null }
+    })
     await flushPromises()
     const date = document.querySelector('input[data-test="entry-date"]') as HTMLInputElement
     expect(date.value).toBe('2026-09-16')
@@ -48,7 +61,11 @@ describe('BodyEntrySheet', () => {
   it('prefills an existing entry and exposes delete behind a confirm', async () => {
     const wrapper = await mountSuspended(BodyEntrySheet, {
       attachTo: document.body,
-      props: { open: true, type, entry: { id: 4, typeId: 1, value: 198.8, measuredAt: '2026-03-03T09:51:00.000Z', measuredOn: '2026-03-03' } }
+      props: {
+        open: true,
+        type,
+        entry: { id: 4, typeId: 1, value: 198.8, measuredAt: '2026-03-03T09:51:00.000Z', measuredOn: '2026-03-03' }
+      }
     })
     await flushPromises()
     expect((document.querySelector('input[data-test="entry-value"]') as HTMLInputElement).value).toBe('198.8')

@@ -4,7 +4,9 @@ import { registerEndpoint } from '@nuxt/test-utils/runtime'
 import { useOneRepMax } from '../../app/composables/useOneRepMax'
 
 const estimate = (value: number) => ({
-  estimate: value, source: { weight: 225, reps: 5, performedOn: '2026-09-02' }, assisted: false
+  estimate: value,
+  source: { weight: 225, reps: 5, performedOn: '2026-09-02' },
+  assisted: false
 })
 
 function gate() {

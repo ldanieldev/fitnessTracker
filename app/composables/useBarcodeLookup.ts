@@ -19,14 +19,14 @@ export interface BarcodeErrorEntry {
 }
 
 export type BarcodeLookupResult =
-  | { kind: 'local', foodId: number }
-  | { kind: 'external', external: ExternalFood }
-  | { kind: 'missing', errors: BarcodeErrorEntry[] }
+  | { kind: 'local'; foodId: number }
+  | { kind: 'external'; external: ExternalFood }
+  | { kind: 'missing'; errors: BarcodeErrorEntry[] }
 
 export function useBarcodeLookup() {
   async function lookup(code: string): Promise<BarcodeLookupResult> {
     try {
-      const result = await apiFetch<{ found: string, foodId?: number, external?: ExternalFood }>(
+      const result = await apiFetch<{ found: string; foodId?: number; external?: ExternalFood }>(
         `/api/nutrition/foods/barcode/${code}`
       )
       if (result.found === 'local') return { kind: 'local', foodId: result.foodId! }

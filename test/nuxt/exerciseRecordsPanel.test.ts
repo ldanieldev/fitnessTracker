@@ -16,9 +16,13 @@ const records = {
     { reps: 1, weight: null, performedOn: null, sessionId: null, estimate: null },
     { reps: 2, weight: null, performedOn: null, sessionId: null, estimate: null },
     { reps: 3, weight: 225, performedOn: '2026-03-08', sessionId: 7, estimate: 245.3 },
-    ...Array.from({ length: 12 }, (_, i) => (
-      { reps: i + 4, weight: null, performedOn: null, sessionId: null, estimate: null }
-    ))
+    ...Array.from({ length: 12 }, (_, i) => ({
+      reps: i + 4,
+      weight: null,
+      performedOn: null,
+      sessionId: null,
+      estimate: null
+    }))
   ]
 }
 

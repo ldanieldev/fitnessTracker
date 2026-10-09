@@ -41,7 +41,7 @@ interface UsdaSearchNutrient {
 
 interface UsdaDetailNutrient {
   amount: number
-  nutrient: { number: string, unitName: string }
+  nutrient: { number: string; unitName: string }
 }
 
 type UsdaFoodNutrient = UsdaSearchNutrient | UsdaDetailNutrient
@@ -61,7 +61,7 @@ interface UsdaSearchResponse {
   foods: UsdaFood[]
 }
 
-function normalizeNutrient(n: UsdaFoodNutrient): { number: string, value: number, unit: string } {
+function normalizeNutrient(n: UsdaFoodNutrient): { number: string; value: number; unit: string } {
   if ('nutrient' in n) return { number: n.nutrient.number, value: n.amount, unit: n.nutrient.unitName }
   return { number: n.nutrientNumber, value: n.value, unit: n.unitName }
 }
@@ -84,9 +84,8 @@ function stripLeadingZeros(code: string): string {
 }
 
 export function usdaHitToExternal(food: UsdaFood): ExternalFood {
-  const servingGrams = food.servingSizeUnit?.toLowerCase() === 'g' && typeof food.servingSize === 'number'
-    ? food.servingSize
-    : null
+  const servingGrams =
+    food.servingSizeUnit?.toLowerCase() === 'g' && typeof food.servingSize === 'number' ? food.servingSize : null
   return {
     source: 'usda',
     externalId: String(food.fdcId),
@@ -109,8 +108,13 @@ function requireApiKey(): string {
 function mapUsdaError(err: unknown): ExternalSourceError {
   if (err instanceof ExternalSourceError) return err
   if (err instanceof HttpStatusError) {
-    if (err.status === 429) return new ExternalSourceError('usda', 'rate_limited', 'USDA FoodData Central rate limit exceeded')
-    return new ExternalSourceError('usda', 'unavailable', `USDA FoodData Central request failed with HTTP ${err.status}`)
+    if (err.status === 429)
+      return new ExternalSourceError('usda', 'rate_limited', 'USDA FoodData Central rate limit exceeded')
+    return new ExternalSourceError(
+      'usda',
+      'unavailable',
+      `USDA FoodData Central request failed with HTTP ${err.status}`
+    )
   }
   if (err instanceof Error && err.name === 'AbortError') {
     return new ExternalSourceError('usda', 'unavailable', 'USDA FoodData Central request timed out')

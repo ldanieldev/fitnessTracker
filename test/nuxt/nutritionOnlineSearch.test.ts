@@ -45,16 +45,18 @@ describe('NutritionOnlineSearch', () => {
 
   it('shows "No nutrition data" and no macros for a result with an empty per100g', async () => {
     registerEndpoint('/api/nutrition/foods/search/external', () => ({
-      results: [{
-        source: 'usda',
-        externalId: '456',
-        name: 'Mystery Bar',
-        brand: null,
-        barcode: null,
-        hasNutrition: false,
-        attribution: null,
-        per100g: {}
-      }],
+      results: [
+        {
+          source: 'usda',
+          externalId: '456',
+          name: 'Mystery Bar',
+          brand: null,
+          barcode: null,
+          hasNutrition: false,
+          attribution: null,
+          per100g: {}
+        }
+      ],
       errors: []
     }))
 

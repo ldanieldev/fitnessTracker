@@ -17,8 +17,9 @@ describe('diary schema invariants', () => {
 
   it('restricts container deletion so history cannot be orphaned', async () => {
     const { diaryEntries } = await import('../../server/db/schema/nutrition/diary')
-    const fk = getTableConfig(diaryEntries).foreignKeys.find((f) =>
-      getTableName(f.reference().foreignTable) === 'meal_containers')
+    const fk = getTableConfig(diaryEntries).foreignKeys.find(
+      (f) => getTableName(f.reference().foreignTable) === 'meal_containers'
+    )
     expect(fk!.onDelete).toBe('restrict')
   })
 })

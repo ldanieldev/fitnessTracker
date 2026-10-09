@@ -6,16 +6,19 @@ import { progressionCopy, type Progression } from '~~/shared/utils/workoutProgre
 import { FIELD, LABEL, measuresFor, type SetMeasure } from '~~/shared/utils/setRules'
 import WorkoutPlateCircles from '~/components/workout/WorkoutPlateCircles.vue'
 
-const props = withDefaults(defineProps<{
-  entry: WorkoutEntry
-  presetWeight?: { weight: number, seq: number } | null
-  progression?: Progression | null
-  choice?: 'apply' | 'stay' | null
-}>(), {
-  presetWeight: null,
-  progression: null,
-  choice: null
-})
+const props = withDefaults(
+  defineProps<{
+    entry: WorkoutEntry
+    presetWeight?: { weight: number; seq: number } | null
+    progression?: Progression | null
+    choice?: 'apply' | 'stay' | null
+  }>(),
+  {
+    presetWeight: null,
+    progression: null,
+    choice: null
+  }
+)
 
 const emit = defineEmits<{
   save: [values: SetMeasures]
@@ -25,24 +28,39 @@ const emit = defineEmits<{
 
 const measures = computed(() => measuresFor(props.entry.trackingType))
 const metric = computed(() => targetMetricFor(props.entry.trackingType))
-const rangeHint = computed(() => (props.entry.target && metric.value ? rangePlaceholder(props.entry.target.low, props.entry.target.high, metric.value) ?? undefined : undefined))
+const rangeHint = computed(() =>
+  props.entry.target && metric.value
+    ? (rangePlaceholder(props.entry.target.low, props.entry.target.high, metric.value) ?? undefined)
+    : undefined
+)
 const setNumber = computed(() => props.entry.sets.length + 1)
-const circles = computed(() =>
-  props.entry.loadStyle === 'barbell' && props.entry.barWeight != null && props.entry.plateSizes != null)
+const circles = computed(
+  () => props.entry.loadStyle === 'barbell' && props.entry.barWeight != null && props.entry.plateSizes != null
+)
 const cardioMeasures = computed(() =>
-  measures.value.filter((measure) => (measure !== 'weight' && measure !== 'reps') || (measure === 'weight' && !circles.value)))
+  measures.value.filter(
+    (measure) => (measure !== 'weight' && measure !== 'reps') || (measure === 'weight' && !circles.value)
+  )
+)
 const showWeightHero = computed(() => measures.value.includes('weight') && circles.value)
 const showReps = computed(() => measures.value.includes('reps'))
 
 const copy = computed(() =>
-  props.progression ? progressionCopy(props.progression, props.entry.loadStyle, props.entry.target) : null)
+  props.progression ? progressionCopy(props.progression, props.entry.loadStyle, props.entry.target) : null
+)
 const pending = computed(() => (props.choice === null ? copy.value : null))
 const CALLOUT = {
   add: {
-    box: 'border-primary/30 bg-primary/10', icon: 'i-lucide-trending-up', text: 'text-primary', button: 'primary'
+    box: 'border-primary/30 bg-primary/10',
+    icon: 'i-lucide-trending-up',
+    text: 'text-primary',
+    button: 'primary'
   },
   drop: {
-    box: 'border-warning/30 bg-warning/10', icon: 'i-lucide-trending-down', text: 'text-warning', button: 'warning'
+    box: 'border-warning/30 bg-warning/10',
+    icon: 'i-lucide-trending-down',
+    text: 'text-warning',
+    button: 'warning'
   }
 } as const
 const tone = computed(() => CALLOUT[props.progression?.kind ?? 'add'])
@@ -55,7 +73,7 @@ function suggestedWeight(choice: 'apply' | 'stay' | null) {
 
 function seed(): SetMeasures {
   const source = prefillFor(props.entry.sets, props.entry.lastSets)
-  const targetWeight = props.entry.sets.length === 0 ? props.entry.target?.weight ?? null : null
+  const targetWeight = props.entry.sets.length === 0 ? (props.entry.target?.weight ?? null) : null
   return {
     weight: suggestedWeight(props.choice) ?? targetWeight ?? source.weight ?? null,
     reps: source.reps ?? null,
@@ -69,37 +87,56 @@ const values = reactive<SetMeasures>({ ...seeded })
 const untouched = () => (Object.keys(seeded) as (keyof SetMeasures)[]).every((key) => values[key] === seeded[key])
 
 // A delete keeps what the user typed; a new set or a changed suggestion always re-seeds.
-watch([() => props.entry.sets.length, () => props.progression?.kind, () => props.progression?.weight], ([length], [previous]) => {
-  if (length < previous && !untouched()) return
-  seeded = seed()
-  Object.assign(values, seeded)
-})
+watch(
+  [() => props.entry.sets.length, () => props.progression?.kind, () => props.progression?.weight],
+  ([length], [previous]) => {
+    if (length < previous && !untouched()) return
+    seeded = seed()
+    Object.assign(values, seeded)
+  }
+)
 
-watch(() => props.choice, (choice) => {
-  if (props.progression && choice) values.weight = suggestedWeight(choice)
-})
+watch(
+  () => props.choice,
+  (choice) => {
+    if (props.progression && choice) values.weight = suggestedWeight(choice)
+  }
+)
 
-watch(() => values.weight, (weight) => emit('weight', weight ?? null), { immediate: true })
+watch(
+  () => values.weight,
+  (weight) => emit('weight', weight ?? null),
+  { immediate: true }
+)
 
 // The seq lets the same weight be applied again after the user edited the field.
-watch(() => props.presetWeight?.seq, () => {
-  if (props.presetWeight && measures.value.includes('weight')) values.weight = props.presetWeight.weight
-}, { immediate: true })
+watch(
+  () => props.presetWeight?.seq,
+  () => {
+    if (props.presetWeight && measures.value.includes('weight')) values.weight = props.presetWeight.weight
+  },
+  { immediate: true }
+)
 
 const UNIT: Record<string, string> = { weight: ' (lb)', distance: ' (mi)', duration: ' (m:ss)' }
-const cardioFields = computed(() => cardioMeasures.value.map((measure: SetMeasure) => {
-  const weight = measure === 'weight'
-  return {
-    measure,
-    key: FIELD[measure],
-    box: weight ? '' : 'w-full max-w-72 sm:w-auto',
-    width: weight ? 'w-48' : 'w-full sm:w-48',
-    base: weight ? 'text-center text-lg font-semibold' : 'text-center',
-    step: weight ? props.entry.weightIncrement ?? 5 : measure === 'distance' ? 0.1 : 30,
-    placeholder: (measure === 'distance' && metric.value === 'distance') || (measure === 'duration' && metric.value === 'time') ? rangeHint.value : undefined,
-    testId: `set-${weight ? 'weight' : measure}-new`
-  }
-}))
+const cardioFields = computed(() =>
+  cardioMeasures.value.map((measure: SetMeasure) => {
+    const weight = measure === 'weight'
+    return {
+      measure,
+      key: FIELD[measure],
+      box: weight ? '' : 'w-full max-w-72 sm:w-auto',
+      width: weight ? 'w-48' : 'w-full sm:w-48',
+      base: weight ? 'text-center text-lg font-semibold' : 'text-center',
+      step: weight ? (props.entry.weightIncrement ?? 5) : measure === 'distance' ? 0.1 : 30,
+      placeholder:
+        (measure === 'distance' && metric.value === 'distance') || (measure === 'duration' && metric.value === 'time')
+          ? rangeHint.value
+          : undefined,
+      testId: `set-${weight ? 'weight' : measure}-new`
+    }
+  })
+)
 
 function logSet() {
   emit('save', { ...values })
@@ -126,7 +163,8 @@ function logSet() {
           {{ pending.title }}
         </p>
         <p class="text-sm text-toned" data-test="set-progression-body">
-          {{ pending.bodyParts.before }}<span class="whitespace-nowrap">{{ pending.bodyParts.range }}</span>{{ pending.bodyParts.after }}
+          {{ pending.bodyParts.before }}<span class="whitespace-nowrap">{{ pending.bodyParts.range }}</span
+          >{{ pending.bodyParts.after }}
         </p>
       </div>
       <div class="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
@@ -170,7 +208,12 @@ function logSet() {
     </div>
 
     <div v-if="cardioFields.length" class="flex flex-wrap justify-center gap-4">
-      <div v-for="field in cardioFields" :key="field.measure" class="flex flex-col items-center gap-1" :class="field.box">
+      <div
+        v-for="field in cardioFields"
+        :key="field.measure"
+        class="flex flex-col items-center gap-1"
+        :class="field.box"
+      >
         <span class="text-sm text-dimmed">{{ LABEL[field.measure] }}{{ UNIT[field.measure] ?? '' }}</span>
         <div :class="field.width">
           <AppMilesInput
@@ -206,14 +249,23 @@ function logSet() {
           v-if="field.measure === 'weight' && entry.loadStyle === 'assisted' && (values.weight ?? 0) > 0"
           class="text-xs text-dimmed"
           data-test="set-assist-new"
-        >{{ `−${values.weight}` }}</span>
+          >{{ `−${values.weight}` }}</span
+        >
       </div>
     </div>
 
     <div v-if="showReps" class="flex flex-col items-center gap-1">
       <span class="text-sm text-dimmed">{{ LABEL.reps }}</span>
       <div class="w-40">
-        <AppNumberInput v-model="values.reps" :min="0" :step="1" aria-label="Reps" :placeholder="metric === 'reps' ? rangeHint : undefined" :ui="{ base: 'text-center' }" data-test="set-reps-new" />
+        <AppNumberInput
+          v-model="values.reps"
+          :min="0"
+          :step="1"
+          aria-label="Reps"
+          :placeholder="metric === 'reps' ? rangeHint : undefined"
+          :ui="{ base: 'text-center' }"
+          data-test="set-reps-new"
+        />
       </div>
     </div>
 

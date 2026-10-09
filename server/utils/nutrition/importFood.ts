@@ -15,12 +15,13 @@ export interface ImportTargetInput {
   persistable: boolean
 }
 
-export type ImportTarget =
-  | { action: 'reuse', id: number }
-  | { action: 'create-catalog' }
-  | { action: 'create-owned' }
+export type ImportTarget = { action: 'reuse'; id: number } | { action: 'create-catalog' } | { action: 'create-owned' }
 
-export function resolveImportTarget({ existingBySource, existingByBarcode, persistable }: ImportTargetInput): ImportTarget {
+export function resolveImportTarget({
+  existingBySource,
+  existingByBarcode,
+  persistable
+}: ImportTargetInput): ImportTarget {
   if (existingBySource) return { action: 'reuse', id: existingBySource.id }
   if (existingByBarcode) return { action: 'reuse', id: existingByBarcode.id }
   return persistable ? { action: 'create-catalog' } : { action: 'create-owned' }
@@ -32,7 +33,7 @@ export interface ImportedFood {
   owned: boolean
 }
 
-// Stored barcodes are GTIN-13 (mapExternalFood normalises on import); look up by the same key or a 12-digit UPC misses its GTIN-13 row.
+// Stored barcodes are GTIN-13 (normalised on import); look up by the same key or a 12-digit UPC misses its row.
 export function importBarcodeKey(external: Pick<ExternalFood, 'barcode'>): string | null {
   return external.barcode ? toGtin13(external.barcode) : null
 }
@@ -53,7 +54,12 @@ export async function insertOrRecover<T>(
 }
 
 async function requireSource(db: DbClient, key: ExternalFood['source']) {
-  const source = await db.select().from(foodSources).where(eq(foodSources.key, key)).limit(1).then((r) => r[0])
+  const source = await db
+    .select()
+    .from(foodSources)
+    .where(eq(foodSources.key, key))
+    .limit(1)
+    .then((r) => r[0])
   if (!source) throw new Error(`Unknown food source: ${key}`)
   return source
 }
@@ -62,7 +68,7 @@ async function findExistingImportedFood(
   db: DbClient,
   userId: number,
   external: ExternalFood,
-  source: { id: number, persistable: boolean }
+  source: { id: number; persistable: boolean }
 ): Promise<ImportedFood | null> {
   const existingBySource = await db
     .select({ id: foods.id })
@@ -79,14 +85,15 @@ async function findExistingImportedFood(
     .then((r) => r[0] ?? null)
 
   const barcodeKey = importBarcodeKey(external)
-  const existingByBarcode = source.persistable && barcodeKey
-    ? await db
-        .select({ id: foods.id })
-        .from(foods)
-        .where(and(eq(foods.barcode, barcodeKey), isNull(foods.createdByUserId), isNull(foods.deletedAt)))
-        .limit(1)
-        .then((r) => r[0] ?? null)
-    : null
+  const existingByBarcode =
+    source.persistable && barcodeKey
+      ? await db
+          .select({ id: foods.id })
+          .from(foods)
+          .where(and(eq(foods.barcode, barcodeKey), isNull(foods.createdByUserId), isNull(foods.deletedAt)))
+          .limit(1)
+          .then((r) => r[0] ?? null)
+      : null
 
   const target = resolveImportTarget({ existingBySource, existingByBarcode, persistable: source.persistable })
   if (target.action !== 'reuse') return null
@@ -98,7 +105,11 @@ async function findExistingImportedFood(
   return { id: target.id, needsNutrition: liveServings.length === 0, owned: !source.persistable }
 }
 
-export async function importExternalFood(db: RootDbClient, userId: number, external: ExternalFood): Promise<ImportedFood> {
+export async function importExternalFood(
+  db: RootDbClient,
+  userId: number,
+  external: ExternalFood
+): Promise<ImportedFood> {
   const source = await requireSource(db, external.source)
 
   const existing = await findExistingImportedFood(db, userId, external, source)
@@ -115,7 +126,7 @@ export async function importExternalFood(db: RootDbClient, userId: number, exter
     throw createError({ statusCode: 400, statusMessage: (err as Error).message })
   }
 
-  // A concurrent import can win the race to this insert; the (source_id, external_id) unique indexes catch it and insertOrRecover returns the winner instead of a 500.
+  // A concurrent import can win this insert; the unique indexes catch it and insertOrRecover returns the winner.
   return insertOrRecover(
     db,
     async (tx) => {
