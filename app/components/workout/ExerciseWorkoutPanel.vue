@@ -60,9 +60,7 @@ function resetPlates() {
 
     <UFormField label="Weight increment" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
-        <!-- Explicit ids here and on rest: useId differs SSR vs client in prod, so the label's for goes stale. -->
         <AppNumberInput
-          id="setting-weight-increment"
           v-model="local.weightIncrement"
           :min="0.5"
           :step="2.5"
@@ -85,7 +83,6 @@ function resetPlates() {
     <UFormField label="Rest (seconds)" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
         <AppNumberInput
-          id="setting-rest-seconds"
           v-model="local.restSeconds"
           :min="5"
           :step="15"

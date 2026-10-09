@@ -140,9 +140,7 @@ function save() {
 
     <UFormField v-if="showBarWeight" label="Bar weight" :ui="LABEL_UI">
       <div class="flex items-center gap-2">
-        <!-- Explicit id: useId differs between SSR and client in the prod build, leaving the label's for stale. -->
         <AppNumberInput
-          id="setting-bar-weight"
           v-model="local.barWeight"
           :min="1"
           :step="5"

@@ -284,9 +284,7 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
           </ol>
 
           <UFormField label="Notes" :ui="{ label: 'text-dimmed' }">
-            <!-- Explicit ids here and on link: useId differs SSR vs client in prod, so the label's for goes stale. -->
             <UTextarea
-              id="detail-notes"
               v-model="notes"
               :rows="3"
               class="w-full"
@@ -297,7 +295,6 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
 
           <UFormField label="Link" :ui="{ label: 'text-dimmed' }">
             <UInput
-              id="detail-link"
               v-model="link"
               placeholder="https://"
               class="w-full"

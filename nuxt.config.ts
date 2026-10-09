@@ -29,7 +29,12 @@ export default defineNuxtConfig({
     '@nuxt/hints',
     '@nuxt/image',
     '@nuxt/test-utils',
-    'nuxt-auth-utils'
+    'nuxt-auth-utils',
+    // Client tree-shaken onServerPrefetch skews useId SSR vs client (nuxt/nuxt#36428); drop after a release has #36430.
+    (_options, nuxt) => {
+      const client = nuxt.options.optimization.treeShake.composables.client
+      if (client.vue) client.vue = client.vue.filter((name) => name !== 'onServerPrefetch')
+    }
   ],
 
   $development: {
