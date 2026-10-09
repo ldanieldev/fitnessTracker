@@ -36,10 +36,11 @@ test('history, graph, records and progress from the UI', async ({ page, goto }) 
   await page.locator('[data-test="exercise-tab-graph"]').click()
   await page.locator('[data-test="range-tabs"]').getByRole('tab', { name: 'All' }).click()
   // A hairline SVG path can be legitimately zero-area, so check it visits 2+ distinct x-coordinates, not toBeVisible().
+  // Polled: until the All fetch lands the MTD path is still drawn, which holds one point on days 9–15 of a month.
   const rawPath = page.locator('[data-test="metric-chart"] [data-test="raw-path"]')
-  await expect(rawPath).toHaveAttribute('d', /M/)
-  const pathXs = [...(await rawPath.getAttribute('d'))!.matchAll(/[ML](-?[\d.]+)/g)].map((m) => Number(m[1]))
-  expect(new Set(pathXs).size).toBeGreaterThanOrEqual(2)
+  const distinctXs = async () =>
+    new Set([...((await rawPath.getAttribute('d')) ?? '').matchAll(/[ML](-?[\d.]+)/g)].map((m) => m[1])).size
+  await expect.poll(distinctXs).toBeGreaterThanOrEqual(2)
 
   await page.locator('[data-test="graph-goal"]').click()
   await page.locator('[data-test="goal-target"]').fill('225')
