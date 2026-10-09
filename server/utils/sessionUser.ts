@@ -13,6 +13,9 @@ type SessionUserRow = Pick<
   | 'defaultRestSeconds'
   | 'plateSizes'
   | 'oneRepMaxRepCap'
+  | 'showBody'
+  | 'showWorkouts'
+  | 'showNutrition'
 >
 
 // Callers must use replaceUserSession: setUserSession defu-merges, which concatenates plateSizes onto the old array.
@@ -27,6 +30,9 @@ export function toSessionUser(user: SessionUserRow): User {
     weekStart: user.weekStart as 0 | 1,
     defaultRestSeconds: user.defaultRestSeconds,
     plateSizes: user.plateSizes.map(Number),
-    oneRepMaxRepCap: user.oneRepMaxRepCap
+    oneRepMaxRepCap: user.oneRepMaxRepCap,
+    showBody: user.showBody,
+    showWorkouts: user.showWorkouts,
+    showNutrition: user.showNutrition
   }
 }

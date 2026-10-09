@@ -7,6 +7,8 @@ const range = shallowRef<Range>({
   end: new Date()
 })
 const period = ref<Period>('daily')
+const modules = useModules()
+const anyModule = computed(() => modules.body.value || modules.workouts.value || modules.nutrition.value)
 </script>
 
 <template>
@@ -30,10 +32,23 @@ const period = ref<Period>('daily')
     </template>
 
     <template #body>
-      <DashboardToday class="mb-4" />
-      <DashboardProgram class="mb-4" />
-      <DashboardBodyMetric class="mb-4" />
-      <DashboardWorkoutStats :period="period" :range="range" />
+      <DashboardToday v-if="modules.nutrition.value" class="mb-4" />
+      <DashboardProgram v-if="modules.workouts.value" class="mb-4" />
+      <DashboardBodyMetric v-if="modules.body.value" class="mb-4" />
+      <DashboardWorkoutStats
+        v-if="modules.workouts.value"
+        :period="period"
+        :range="range"
+        data-test="dashboard-workout-stats"
+      />
+      <UEmpty
+        v-if="!anyModule"
+        icon="i-lucide-eye-off"
+        title="Every section is hidden"
+        description="Turn on Body, Workouts or Nutrition in your preferences."
+        :actions="[{ label: 'Open preferences', to: '/settings/profile' }]"
+        data-test="dashboard-empty"
+      />
     </template>
   </UDashboardPanel>
 </template>

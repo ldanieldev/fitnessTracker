@@ -17,6 +17,7 @@ const close = () => {
 }
 
 const { energyLeft } = useTodaySummary()
+const modules = useModules()
 const diaryBadge = computed(() =>
   loggedIn.value && energyLeft.value !== null ? String(Math.round(energyLeft.value)) : undefined
 )
@@ -31,7 +32,7 @@ const links = computed(
           to: '/',
           onSelect: close
         },
-        {
+        modules.body.value && {
           label: 'Body',
           icon: 'i-lucide-person-standing',
           defaultOpen: true,
@@ -54,7 +55,7 @@ const links = computed(
             }
           ]
         },
-        {
+        modules.workouts.value && {
           label: 'Workouts',
           icon: 'i-lucide-dumbbell',
           defaultOpen: true,
@@ -97,7 +98,7 @@ const links = computed(
             }
           ]
         },
-        {
+        modules.nutrition.value && {
           label: 'Nutrition',
           icon: 'i-lucide-utensils',
           defaultOpen: true,
@@ -110,7 +111,7 @@ const links = computed(
             { label: 'Summary', to: '/nutrition/diary/summary', onSelect: close }
           ]
         }
-      ]
+      ].filter((item) => item !== false)
     ] satisfies NavigationMenuItem[][]
 )
 </script>

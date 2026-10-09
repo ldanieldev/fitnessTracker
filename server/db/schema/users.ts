@@ -19,7 +19,10 @@ export const users = appSchema.table(
       .array()
       .notNull()
       .default(sql`'{45,35,25,10,5,2.5}'::numeric[]`),
-    oneRepMaxRepCap: smallint('one_rep_max_rep_cap').notNull().default(10)
+    oneRepMaxRepCap: smallint('one_rep_max_rep_cap').notNull().default(10),
+    showBody: boolean('show_body').notNull().default(true),
+    showWorkouts: boolean('show_workouts').notNull().default(true),
+    showNutrition: boolean('show_nutrition').notNull().default(true)
   },
   (table) => [
     unique('users_email_unique').on(table.email),

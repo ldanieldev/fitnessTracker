@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-const links = [
+const modules = useModules()
+
+const links = computed(() => [
   [
     {
       label: 'Profile',
@@ -13,18 +15,18 @@ const links = [
       icon: 'i-lucide-lock',
       to: '/settings/security'
     },
-    {
+    modules.workouts.value && {
       label: 'Workout',
       icon: 'i-lucide-dumbbell',
       to: '/settings/workout'
     },
-    {
+    modules.nutrition.value && {
       label: 'Nutrition',
       icon: 'i-lucide-utensils',
       to: '/settings/nutrition'
     }
-  ]
-] satisfies NavigationMenuItem[][]
+  ].filter((item) => item !== false)
+] satisfies NavigationMenuItem[][])
 </script>
 
 <template>

@@ -26,13 +26,19 @@ const state = reactive<Partial<Schema>>({
 const loading = ref(false)
 
 const preferencesSchema = z.object({
-  weekStart: z.union([z.literal(0), z.literal(1)])
+  weekStart: z.union([z.literal(0), z.literal(1)]),
+  showBody: z.boolean(),
+  showWorkouts: z.boolean(),
+  showNutrition: z.boolean()
 })
 
 type PreferencesSchema = z.input<typeof preferencesSchema>
 
 const preferencesState = reactive<Partial<PreferencesSchema>>({
-  weekStart: user.value?.weekStart ?? 1
+  weekStart: user.value?.weekStart ?? 1,
+  showBody: user.value?.showBody ?? true,
+  showWorkouts: user.value?.showWorkouts ?? true,
+  showNutrition: user.value?.showNutrition ?? true
 })
 
 const preferencesLoading = ref(false)
@@ -148,6 +154,14 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
             class="w-full"
           />
         </UFormField>
+
+        <fieldset class="flex flex-col gap-3">
+          <legend class="text-sm font-medium text-default">Sections</legend>
+          <p class="text-sm text-muted">Hidden sections leave the sidebar, dashboard and settings.</p>
+          <USwitch v-model="preferencesState.showBody" label="Body" name="showBody" />
+          <USwitch v-model="preferencesState.showWorkouts" label="Workouts" name="showWorkouts" />
+          <USwitch v-model="preferencesState.showNutrition" label="Nutrition" name="showNutrition" />
+        </fieldset>
 
         <UButton type="submit" label="Save changes" :loading="preferencesLoading" class="w-fit" />
       </UForm>

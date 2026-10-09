@@ -15,7 +15,10 @@ const updateProfileSchema = z.object({
   weekStart: z.union([z.literal(0), z.literal(1)]).optional(),
   defaultRestSeconds: z.number().int().min(10).max(600).optional(),
   plateSizes: plateSizesSchema.optional(),
-  oneRepMaxRepCap: z.number().int().min(1).max(20).optional()
+  oneRepMaxRepCap: z.number().int().min(1).max(20).optional(),
+  showBody: z.boolean().optional(),
+  showWorkouts: z.boolean().optional(),
+  showNutrition: z.boolean().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -71,7 +74,10 @@ export default defineEventHandler(async (event) => {
       weekStart: parsed.data.weekStart,
       defaultRestSeconds: parsed.data.defaultRestSeconds,
       plateSizes: parsed.data.plateSizes ? normalizePlateSizes(parsed.data.plateSizes).map(String) : undefined,
-      oneRepMaxRepCap: parsed.data.oneRepMaxRepCap
+      oneRepMaxRepCap: parsed.data.oneRepMaxRepCap,
+      showBody: parsed.data.showBody,
+      showWorkouts: parsed.data.showWorkouts,
+      showNutrition: parsed.data.showNutrition
     })
     .where(eq(users.id, id))
     .returning(userColumns)

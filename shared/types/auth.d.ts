@@ -10,6 +10,9 @@ declare module '#auth-utils' {
     defaultRestSeconds: number
     plateSizes: number[]
     oneRepMaxRepCap: number
+    showBody: boolean
+    showWorkouts: boolean
+    showNutrition: boolean
   }
 }
 
