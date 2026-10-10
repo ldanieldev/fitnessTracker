@@ -42,7 +42,7 @@ const tone = (delta: number) => deltaTone(delta, props.direction ?? props.type.d
   <div class="flex flex-col gap-3" data-test="entry-list">
     <p v-if="entries.length === 0" class="text-sm text-dimmed">No readings in this range</p>
     <section v-for="group in groups" :key="group.date" class="flex flex-col gap-1">
-      <h3 class="text-xs font-medium uppercase text-dimmed">{{ group.label }}</h3>
+      <h2 class="text-xs font-medium uppercase text-dimmed">{{ group.label }}</h2>
       <button
         v-for="row in group.rows"
         :key="row.entry.id"

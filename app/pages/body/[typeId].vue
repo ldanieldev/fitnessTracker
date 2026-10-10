@@ -88,23 +88,29 @@ function openEdit(entry: MeasurementEntry) {
               track ? 'On track' : 'Behind'
             }}</UBadge>
           </UCard>
-          <button type="button" class="text-left" data-test="tile-goal" @click="goalOpen = true">
-            <UCard :ui="{ body: 'p-3 sm:p-3' }" class="h-full active:bg-accented">
-              <p class="text-xs uppercase text-muted">Goal</p>
-              <template v-if="goal && progress">
-                <p class="text-lg font-semibold tabular-nums">{{ formatValue(goal.targetValue, type.precision) }}</p>
-                <p class="text-xs text-dimmed">
-                  {{
-                    progress.reached
-                      ? 'Reached'
-                      : progress.remaining === null
-                        ? '—'
-                        : `${formatValue(Math.abs(progress.remaining), type.precision)} ${type.unit} to go`
-                  }}
-                </p>
-              </template>
-              <p v-else class="text-sm text-dimmed">Set a goal</p>
-            </UCard>
+          <button
+            type="button"
+            class="flex flex-col rounded-2xl bg-elevated p-3 text-left transition-colors hover:bg-accented
+              active:bg-accented focus-visible:outline-2 focus-visible:outline-primary"
+            data-test="tile-goal"
+            @click="goalOpen = true"
+          >
+            <span class="text-xs uppercase text-muted">Goal</span>
+            <template v-if="goal && progress">
+              <span class="text-lg font-semibold tabular-nums">
+                {{ formatValue(goal.targetValue, type.precision) }}
+              </span>
+              <span class="text-xs text-dimmed">
+                {{
+                  progress.reached
+                    ? 'Reached'
+                    : progress.remaining === null
+                      ? '—'
+                      : `${formatValue(Math.abs(progress.remaining), type.precision)} ${type.unit} to go`
+                }}
+              </span>
+            </template>
+            <span v-else class="text-sm text-dimmed">Set a goal</span>
           </button>
         </div>
         <UCard>
