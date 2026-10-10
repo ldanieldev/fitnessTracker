@@ -7,7 +7,8 @@ import {
   recipes,
   savedMeals,
   users,
-  workoutSessions
+  workoutSessions,
+  workoutTemplates
 } from '../db/schema'
 import { db } from './db'
 
@@ -18,8 +19,9 @@ export async function deleteAccount(userId: number): Promise<void> {
     await tx.delete(recipes).where(eq(recipes.userId, userId))
     await tx.delete(savedMeals).where(eq(savedMeals.userId, userId))
     await tx.delete(exerciseVariationGroups).where(eq(exerciseVariationGroups.userId, userId))
-    // workout_entries.exercise_id is ON DELETE restrict: delete own sessions (and entries) before own exercises.
+    // workout_entries / workout_template_entries.exercise_id are ON DELETE restrict: sessions and templates go first.
     await tx.delete(workoutSessions).where(eq(workoutSessions.userId, userId))
+    await tx.delete(workoutTemplates).where(eq(workoutTemplates.userId, userId))
     // exercises.category_id is ON DELETE restrict: own exercises go before own categories, not by trigger order.
     await tx.delete(exercises).where(eq(exercises.createdByUserId, userId))
     await tx.delete(exerciseCategories).where(eq(exerciseCategories.userId, userId))

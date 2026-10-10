@@ -1,5 +1,5 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
-import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 
 // Account deletion cascades from users; foods/recipes cascade too but entry/item references to them are NO ACTION,
 // so a user who ever logged their own food used to trip the constraint inside the cascade and never get deleted.
@@ -58,4 +58,28 @@ test('deleting an account removes every logged own food, recipe, saved meal, and
 
   await goto('/nutrition/diary/today', { waitUntil: 'hydration' })
   await expect(page).toHaveURL(/\/auth\/login/)
+})
+
+// workout_template_entries.exercise_id is RESTRICT, so a routine day using an own custom exercise blocked deletion.
+test('deleting an account removes routines that use its own custom exercises', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const userId = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
+
+  type Reference = { categories: { id: number; key: string }[] }
+  const reference = await apiFetch<Reference>(page, 'GET', '/api/workouts/reference')
+  const exercise = await apiFetch<{ id: number }>(page, 'POST', '/api/workouts/exercises', {
+    name: uniquePrefix('Own Lift '),
+    categoryId: reference.json.categories.find((c) => c.key === 'core')!.id,
+    trackingType: 'weight_reps'
+  })
+  const routine = await apiFetch<{ id: number }>(page, 'POST', '/api/workouts/routines', { name: 'Own Routine' })
+  const daysUrl = `/api/workouts/routines/${routine.json.id}/days`
+  const withDay = await apiFetch<{ days: { id: number }[] }>(page, 'POST', daysUrl, { name: 'Day A' })
+  const entry = await apiFetch(page, 'POST', `/api/workouts/routine-days/${withDay.json.days[0]!.id}/entries`, {
+    exerciseId: exercise.json.id
+  })
+  expect(exercise.ok && entry.ok).toBe(true)
+
+  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`)).status).toBe(200)
 })
