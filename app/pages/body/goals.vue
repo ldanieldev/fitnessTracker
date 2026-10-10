@@ -27,10 +27,11 @@ function openEdit(item: GoalOverview) {
     <template #body>
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">
         <div class="grid gap-3 sm:grid-cols-2">
+          <BodyStepsGoalCard />
           <BodyGoalCard v-for="item in goals" :key="item.type.id" :item="item" :today="today" @edit="openEdit(item)" />
         </div>
         <p v-if="goals.length === 0" class="text-sm text-dimmed" data-test="goals-empty">
-          No goals yet — open a measurement and tap its Goal tile
+          No measurement goals yet — open a measurement and tap its Goal tile
         </p>
       </div>
       <BodyGoalSheet

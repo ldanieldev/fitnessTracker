@@ -33,6 +33,14 @@ describe('AppNumberInput', () => {
     expect((input.element as HTMLInputElement).value).toBe('0')
   })
 
+  it('shows a value set from outside while focused if nothing was typed yet', async () => {
+    const wrapper = await mountSuspended(AppNumberInput, { props: { modelValue: null, 'data-test': 'qty' } })
+    const input = wrapper.find('input[data-test="qty"]')
+    await input.trigger('focus')
+    await wrapper.setProps({ modelValue: 6100 })
+    expect((input.element as HTMLInputElement).value).toBe('6100')
+  })
+
   it('clamps typed text to min and max on blur, not while typing', async () => {
     const wrapper = await mountSuspended(AppNumberInput, {
       props: { modelValue: 50, min: 10, max: 100, 'data-test': 'qty' }

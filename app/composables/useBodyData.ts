@@ -9,7 +9,10 @@ export const BODY_KEYS = {
   entries: (typeId: number) => `body:entries:${typeId}:`,
   entriesRange: (typeId: number, from: string | null, to: string) => `body:entries:${typeId}:${from ?? ''}:${to}`,
   series: (typeId: number) => `body:series:${typeId}:`,
-  seriesRange: (typeId: number, range: BodyRange) => `body:series:${typeId}:${range}`
+  seriesRange: (typeId: number, range: BodyRange) => `body:series:${typeId}:${range}`,
+  steps: 'body:steps:',
+  stepWeeks: (count: number) => `body:steps:weeks:${count}`,
+  stepTarget: 'body:steps:target'
 } as const
 
 // Delegates for the shared 401 hook; dedupe 'defer' shares one mount-time fetch (invalidateBody forces a fresh one).

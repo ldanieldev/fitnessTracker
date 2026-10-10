@@ -62,6 +62,7 @@ function menuFor(metric: MetricOverview): DropdownMenuItem[] {
     </template>
     <template #body>
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">
+        <BodyStepsCard />
         <div class="grid gap-3 sm:grid-cols-2">
           <BodyMetricCard
             v-for="metric in metrics"

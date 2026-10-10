@@ -17,17 +17,23 @@ const model = defineModel<number | null>({ default: null })
 
 const text = ref(model.value === null ? '' : String(model.value))
 const focused = ref(false)
+const typed = ref(false)
+// While focused, only text the user hasn't touched follows the model, so typing is never reformatted under them.
 watch(model, (value) => {
-  if (!focused.value && parseAmount(text.value) !== value) text.value = value === null ? '' : String(value)
+  if ((!focused.value || !typed.value) && parseAmount(text.value) !== value) {
+    text.value = value === null ? '' : String(value)
+  }
 })
 
 function onInput(value: string | number) {
+  typed.value = true
   text.value = String(value)
   model.value = parseAmount(text.value)
 }
 
 function onFocus() {
   focused.value = true
+  typed.value = false
 }
 
 function clamp(value: number) {

@@ -1,9 +1,9 @@
 import { todayDate } from '~~/shared/utils/nutritionSummary'
 
-// Starts at the SSR-safe local date; moves only if useToday() resolves to another day, so no post-hydration refetch.
+// useState carries the server's day into hydration so a browser in another timezone refetches once useToday() resolves.
 export function useTodayOrNow() {
   const today = useToday()
-  const to = ref(todayDate())
+  const to = useState('todayOrNow', () => todayDate())
   watch(
     today,
     (value) => {

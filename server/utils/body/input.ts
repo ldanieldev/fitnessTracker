@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { STEPS_MAX, STEP_WEEKS_MAX } from '~~/shared/utils/steps'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -47,3 +48,17 @@ export const goalPutSchema = z.object({
   targetValue: z.number(),
   targetDate: isoDate.nullable().optional()
 })
+
+export const stepDayPutSchema = z.object({ steps: z.number().int().min(0).max(STEPS_MAX) })
+
+export const stepTargetPutSchema = z.object({
+  dailyTarget: z.number().int().min(1).max(STEPS_MAX),
+  effectiveFrom: isoDate
+})
+
+export const stepWeeksQuerySchema = z.object({
+  count: z.coerce.number().int().min(1).max(STEP_WEEKS_MAX).default(1),
+  to: isoDate.optional()
+})
+
+export const stepTargetQuerySchema = z.object({ to: isoDate.optional() })

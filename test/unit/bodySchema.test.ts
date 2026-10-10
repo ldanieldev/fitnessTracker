@@ -55,4 +55,27 @@ describe('body schema', () => {
     expect(MEASUREMENT_TYPE_SEED.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist'])
     for (const t of MEASUREMENT_TYPE_SEED) expect(t.userId).toBeNull()
   })
+
+  it('declares the step tables', async () => {
+    const schema = await import('../../server/db/schema')
+    expect(getTableName(schema.stepDays)).toBe('step_days')
+    expect(getTableName(schema.stepTargets)).toBe('step_targets')
+    expect(Object.keys(getTableColumns(schema.stepDays)).sort()).toEqual([
+      'createdAt',
+      'day',
+      'id',
+      'source',
+      'steps',
+      'updatedAt',
+      'userId'
+    ])
+    expect(Object.keys(getTableColumns(schema.stepTargets)).sort()).toEqual([
+      'createdAt',
+      'dailyTarget',
+      'effectiveFrom',
+      'id',
+      'updatedAt',
+      'userId'
+    ])
+  })
 })
