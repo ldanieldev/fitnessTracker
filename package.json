@@ -18,6 +18,7 @@
     "test:e2e:ui": "playwright test --ui",
     "dbml": "tsx ./server/db/dbml.ts",
     "db:seed": "tsx ./server/db/seed/run.ts",
+    "db:clean-test-users": "bun ./scripts/clean-test-users.ts",
     "ocr:assets": "bun scripts/copy-ocr-assets.ts",
     "exercises:seed": "bun scripts/exercises/buildSeed.ts",
     "exercises:assets": "bun scripts/exercises/fetchAssets.ts",
