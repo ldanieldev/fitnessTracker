@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { PointerChoice, WorkoutSession } from '~~/shared/types/workout'
 import type { RoutineSummary } from '~~/shared/types/routine'
 import type { SetFlow } from '~~/shared/utils/supersets'
@@ -129,6 +130,30 @@ function openTools() {
   toolsOpen.value = true
 }
 
+const toolItems = computed<DropdownMenuItem[][]>(() => [
+  [
+    {
+      label: 'Workout tools',
+      icon: 'i-lucide-calculator',
+      testId: 'tools-open',
+      onSelect: () => openTools()
+    },
+    ...(wakeLock.isSupported.value
+      ? [
+          {
+            label: 'Keep screen awake',
+            icon: wakeLock.active.value ? 'i-lucide-sun' : 'i-lucide-sun-dim',
+            type: 'checkbox' as const,
+            checked: wakeLock.active.value,
+            testId: 'wake-lock-toggle',
+            onUpdateChecked: () => toggleWakeLock(),
+            onSelect: (e: Event) => e.preventDefault()
+          }
+        ]
+      : [])
+  ]
+])
+
 function openPlates(entryId: number, weight: number | null) {
   toolsEntryId.value = entryId
   toolsTab.value = 'plates'
@@ -148,38 +173,8 @@ function useWeight(entryId: number, weight: number) {
 <template>
   <UDashboardPanel id="workout-log">
     <template #header>
-      <UDashboardNavbar :ui="{ right: 'gap-1' }">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-
-        <template #title>
-          <span class="font-semibold max-sm:hidden">Current Workout</span>
-        </template>
-
+      <AppNavbar title="Log Workout" :ui="{ right: 'gap-1' }">
         <template #right>
-          <UButton
-            v-if="wakeLock.isSupported.value"
-            :icon="wakeLock.active.value ? 'i-lucide-sun' : 'i-lucide-sun-dim'"
-            :color="wakeLock.active.value ? 'primary' : 'neutral'"
-            :aria-label="wakeLock.active.value ? 'Screen staying awake' : 'Keep screen awake'"
-            :aria-pressed="wakeLock.active.value"
-            variant="ghost"
-            size="sm"
-            class="min-h-10 min-w-10 justify-center"
-            data-test="wake-lock-toggle"
-            @click="toggleWakeLock"
-          />
-          <UButton
-            icon="i-lucide-calculator"
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            aria-label="Workout tools"
-            class="min-h-10 min-w-10 justify-center"
-            data-test="tools-open"
-            @click="openTools"
-          />
           <UButton
             v-if="restTimer.isRunning.value"
             icon="i-lucide-timer"
@@ -216,14 +211,21 @@ function useWeight(entryId: number, weight: number) {
             <span class="sm:hidden">End</span>
             <span class="max-sm:hidden">End Workout</span>
           </UButton>
+          <WorkoutSessionMenu
+            v-if="session"
+            v-model:session="session"
+            :extra-items="toolItems"
+            @delete="deleteSession"
+          />
+          <AppMenuButton v-else :items="toolItems" label="Workout options" test-id="log-menu" />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
       <div
         v-if="loading || (!session && routinesLoading)"
-        class="mx-auto flex w-full max-w-2xl flex-col gap-3"
+        class="mx-auto flex w-full max-w-3xl flex-col gap-3"
         data-test="log-skeleton"
         aria-busy="true"
       >
@@ -232,7 +234,7 @@ function useWeight(entryId: number, weight: number) {
         <USkeleton class="h-28 w-full rounded-xl" />
       </div>
 
-      <div v-else-if="!session" class="mx-auto flex w-full max-w-2xl flex-col gap-3" data-test="session-start">
+      <div v-else-if="!session" class="mx-auto flex w-full max-w-3xl flex-col gap-3" data-test="session-start">
         <p class="text-sm text-muted">No workout in progress.</p>
         <WorkoutProgramStatus />
         <UButton
@@ -291,10 +293,9 @@ function useWeight(entryId: number, weight: number) {
         v-model:session="session"
         plate-button
         :preset-weights="presetWeights"
-        class="mx-auto w-full max-w-2xl pb-4"
+        class="mx-auto w-full max-w-3xl pb-4"
         @set-logged="onSetLogged"
         @open-plates="openPlates"
-        @delete="deleteSession"
       />
 
       <WorkoutCopySheet v-model:open="copyOpen" @start="start" />

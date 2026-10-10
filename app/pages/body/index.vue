@@ -51,14 +51,18 @@ function menuFor(metric: MetricOverview): DropdownMenuItem[] {
 <template>
   <UDashboardPanel id="body">
     <template #header>
-      <UDashboardNavbar title="Measurements">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Measurements">
         <template #right>
-          <UButton icon="i-lucide-plus" label="New" size="sm" data-test="new-type" @click="openType(null)" />
+          <UButton
+            icon="i-lucide-plus"
+            label="New"
+            size="sm"
+            aria-label="New measurement"
+            data-test="new-type"
+            @click="openType(null)"
+          />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
     <template #body>
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">

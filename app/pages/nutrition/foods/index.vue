@@ -30,21 +30,26 @@ function amountText(food: ListedFood) {
 <template>
   <UDashboardPanel id="nutrition-foods">
     <template #header>
-      <UDashboardNavbar title="My Foods">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Foods">
         <template #right>
-          <UButton icon="i-lucide-plus" label="New" size="sm" to="/nutrition/foods/new" data-test="new-food" />
+          <UButton
+            icon="i-lucide-plus"
+            label="New"
+            size="sm"
+            aria-label="New food"
+            to="/nutrition/foods/new"
+            data-test="new-food"
+          />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
     <template #body>
-      <div class="flex flex-col gap-3 max-w-2xl mx-auto w-full">
+      <div class="flex flex-col gap-3 max-w-3xl mx-auto w-full">
         <UInput
           v-model="query"
           icon="i-lucide-search"
           placeholder="Search my foods"
+          aria-label="Search my foods"
           class="w-full"
           data-test="my-food-search"
         />

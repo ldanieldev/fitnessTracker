@@ -27,7 +27,7 @@ async function deleteSession() {
     toast.add({ title: 'Workout deleted', color: 'success' })
     // Naming the keys skips this session's own key, which would 404 now that the row is gone.
     await invalidateWorkouts(WORKOUT_KEYS.sessions, WORKOUT_KEYS.active)
-    await navigateTo('/workouts/sessions')
+    await navigateTo('/workouts/sessions', { replace: true })
   } catch (err: unknown) {
     fail('Couldn\'t delete workout', err, 'Could not delete this workout')
   }
@@ -37,15 +37,15 @@ async function deleteSession() {
 <template>
   <UDashboardPanel id="workout-session">
     <template #header>
-      <UDashboardNavbar title="Workout">
-        <template #leading>
-          <UDashboardSidebarCollapse />
+      <AppNavbar :title="session?.name || 'Workout'" back="/workouts/sessions">
+        <template #right>
+          <WorkoutSessionMenu v-if="session" v-model:session="session" @delete="deleteSession" />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-2xl flex-col gap-3 pb-4">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-3 pb-4">
         <div v-if="!session" class="flex flex-col gap-3" data-test="session-skeleton" aria-busy="true">
           <USkeleton class="h-10 w-full rounded-lg" />
           <USkeleton class="h-28 w-full rounded-xl" />
@@ -64,7 +64,7 @@ async function deleteSession() {
             class="min-h-10"
             data-test="session-continue"
           />
-          <WorkoutSessionEditor v-model:session="session" @delete="deleteSession" />
+          <WorkoutSessionEditor v-model:session="session" />
         </template>
       </div>
     </template>

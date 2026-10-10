@@ -9,14 +9,10 @@ async function onCreated() {
 <template>
   <UDashboardPanel id="nutrition-food-new">
     <template #header>
-      <UDashboardNavbar title="New food">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <AppNavbar title="New food" back="/nutrition/foods" />
     </template>
     <template #body>
-      <div class="max-w-2xl mx-auto w-full">
+      <div class="max-w-3xl mx-auto w-full">
         <NutritionFoodForm @created="onCreated" />
       </div>
     </template>

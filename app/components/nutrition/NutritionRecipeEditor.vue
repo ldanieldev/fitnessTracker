@@ -18,6 +18,7 @@ const toast = useToast()
 const backOrTo = useBackOrTo()
 
 const name = ref('')
+const savedName = ref('')
 const servings = ref<number | null>(1)
 const servingName = ref('serving')
 const notes = ref('')
@@ -51,6 +52,7 @@ onMounted(async () => {
     try {
       const recipe = await apiFetch<RecipeDetail>(`/api/nutrition/recipes/${props.recipeId}`)
       name.value = recipe.name
+      savedName.value = recipe.name
       servings.value = recipe.servings
       servingName.value = recipe.servingName
       notes.value = recipe.notes ?? ''
@@ -92,11 +94,13 @@ async function save() {
     if (props.recipeId === null) {
       await apiFetch<{ id: number }>('/api/nutrition/recipes', { method: 'POST', body })
       baseline.value = snapshot(lines.value)
+      savedName.value = body.name
       await invalidateNutrition(NUTRITION_KEYS.recipes)
       await backOrTo('/nutrition/recipes')
     } else {
       await apiFetch(`/api/nutrition/recipes/${props.recipeId}`, { method: 'PUT', body })
       baseline.value = snapshot(lines.value)
+      savedName.value = body.name
       await invalidateNutrition(NUTRITION_KEYS.recipes)
       toast.add({ title: 'Recipe saved', color: 'success' })
       await backOrTo('/nutrition/recipes')
@@ -144,26 +148,15 @@ const menu = computed<DropdownMenuItem[][]>(() =>
 <template>
   <UDashboardPanel id="nutrition-recipe">
     <template #header>
-      <UDashboardNavbar :title="recipeId === null ? 'New recipe' : 'Recipe'">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar :title="savedName || (recipeId === null ? 'New recipe' : 'Recipe')" back="/nutrition/recipes">
         <template #right>
-          <UDropdownMenu v-if="menu.length" :items="menu">
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              variant="ghost"
-              color="neutral"
-              aria-label="Recipe actions"
-              data-test="recipe-menu"
-            />
-          </UDropdownMenu>
+          <AppMenuButton v-if="menu.length" :items="menu" label="Recipe actions" test-id="recipe-menu" />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div v-if="loaded" class="flex flex-col gap-6 max-w-2xl mx-auto w-full pb-28 lg:pb-0">
+      <div v-if="loaded" class="flex flex-col gap-6 max-w-3xl mx-auto w-full pb-28 lg:pb-0">
         <UFormField label="Name" required>
           <UInput v-model="name" class="w-full" data-test="recipe-name" />
         </UFormField>

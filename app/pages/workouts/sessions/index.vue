@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { ProgramSummary } from '~~/shared/types/program'
 import type { SessionFilter, WorkoutSessionSummary } from '~~/shared/types/workout'
 import WorkoutCopySheet from '~/components/workout/WorkoutCopySheet.vue'
@@ -17,6 +18,18 @@ const router = useRouter()
 const today = useToday()
 const filterOpen = ref(false)
 const exportOpen = ref(false)
+const historyMenu: DropdownMenuItem[][] = [
+  [
+    {
+      label: 'Export CSV',
+      icon: 'i-lucide-download',
+      testId: 'history-export-open',
+      onSelect: () => {
+        exportOpen.value = true
+      }
+    }
+  ]
+]
 
 const view = computed<'month' | 'list'>(() => (route.query.view === 'list' ? 'list' : 'month'))
 const { data: programList, status: programsStatus } = useWorkoutFetch<ProgramSummary[]>(
@@ -262,43 +275,15 @@ async function confirmDelete() {
 <template>
   <UDashboardPanel id="workout-sessions">
     <template #header>
-      <UDashboardNavbar title="Workout History">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Workout History">
         <template #right>
-          <UDropdownMenu
-            :items="[
-              [
-                {
-                  label: 'Export CSV',
-                  icon: 'i-lucide-download',
-                  testId: 'history-export-open',
-                  onSelect: () => {
-                    exportOpen = true
-                  }
-                }
-              ]
-            ]"
-          >
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              variant="ghost"
-              color="neutral"
-              class="min-h-10 min-w-10 justify-center"
-              aria-label="History options"
-              data-test="history-menu"
-            />
-            <template #item-label="{ item }">
-              <span :data-test="item.testId">{{ item.label }}</span>
-            </template>
-          </UDropdownMenu>
+          <AppMenuButton :items="historyMenu" label="History options" test-id="history-menu" />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-2xl flex-col gap-3 pb-4">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-3 pb-4">
         <div class="flex items-center gap-2">
           <div class="flex flex-1 rounded-lg bg-elevated p-1">
             <UButton

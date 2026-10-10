@@ -14,13 +14,7 @@ const anyModule = computed(() => modules.body.value || modules.workouts.value ||
 <template>
   <UDashboardPanel id="home">
     <template #header>
-      <UDashboardNavbar title="Dashboard" :ui="{ right: 'gap-3' }">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-
-        <template #right> </template>
-      </UDashboardNavbar>
+      <AppNavbar title="Dashboard" />
 
       <UDashboardToolbar>
         <template #left>

@@ -75,11 +75,7 @@ function goalUnit(metric: GraphMetric) {
 <template>
   <UDashboardPanel id="workouts-progress">
     <template #header>
-      <UDashboardNavbar title="Progress">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <AppNavbar title="Progress" />
     </template>
     <template #body>
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-5">

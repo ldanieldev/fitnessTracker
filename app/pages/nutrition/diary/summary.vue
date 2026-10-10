@@ -110,24 +110,12 @@ const menu = computed<DropdownMenuItem[][]>(() => [
 <template>
   <UDashboardPanel id="diary-summary">
     <template #header>
-      <UDashboardNavbar title="Summary" :ui="{ right: 'gap-3 min-w-0' }">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-
+      <AppNavbar title="Summary" :ui="{ right: 'gap-3 min-w-0' }">
         <template #right>
           <DashboardDateRangePicker v-if="range" v-model="range" :months="narrow ? 1 : 2" />
-          <UDropdownMenu :items="menu">
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              variant="ghost"
-              color="neutral"
-              aria-label="Summary actions"
-              data-test="summary-menu"
-            />
-          </UDropdownMenu>
+          <AppMenuButton :items="menu" label="Summary actions" test-id="summary-menu" />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>

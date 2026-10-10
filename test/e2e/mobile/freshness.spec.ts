@@ -10,6 +10,8 @@ test('a container added in settings appears on the Add screen without a reload',
   await goto('/nutrition/diary/2026-09-08', { waitUntil: 'hydration' })
   await page.locator('[data-test="fab-add"]').click()
   await page.waitForURL('**/nutrition/diary/2026-09-08/add')
+  await page.locator('[data-test="navbar-back"]').click()
+  await page.waitForURL('**/nutrition/diary/2026-09-08')
   // The sidebar auto-closes on its route-settle watcher; wait for that before opening it, or our open loses the race.
   await page.waitForLoadState('networkidle')
 

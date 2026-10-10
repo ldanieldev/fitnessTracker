@@ -8,8 +8,7 @@ const routines = computed(() => data.value ?? [])
 
 const newOpen = ref(false)
 const newName = ref('')
-const deleting = ref<RoutineSummary | null>(null)
-const deleteOpen = ref(false)
+const { duplicate, deleting, deleteOpen, askDelete, confirmDelete } = useRoutineActions()
 
 const fail = useFailToast()
 
@@ -48,28 +47,6 @@ async function confirmPause() {
   }
 }
 
-async function duplicate(routine: RoutineSummary) {
-  try {
-    const copy = await apiFetch<Routine>(`/api/workouts/routines/${routine.id}/duplicate`, { method: 'POST' })
-    await invalidateWorkouts()
-    await navigateTo(`/workouts/routines/${copy.id}`)
-  } catch (err: unknown) {
-    fail('Couldn\'t duplicate routine', err, 'Could not duplicate this routine', () => duplicate(routine))
-  }
-}
-
-async function confirmDelete() {
-  const routine = deleting.value
-  deleteOpen.value = false
-  if (!routine) return
-  try {
-    await apiFetch(`/api/workouts/routines/${routine.id}`, { method: 'DELETE' })
-    await invalidateWorkouts()
-  } catch (err: unknown) {
-    fail('Couldn\'t delete routine', err, 'Could not delete this routine')
-  }
-}
-
 function menu(routine: RoutineSummary): DropdownMenuItem[][] {
   return [
     [
@@ -93,10 +70,7 @@ function menu(routine: RoutineSummary): DropdownMenuItem[][] {
         icon: 'i-lucide-trash-2',
         color: 'error',
         testId: `routine-delete-${routine.id}`,
-        onSelect: () => {
-          deleting.value = routine
-          deleteOpen.value = true
-        }
+        onSelect: () => askDelete(routine)
       }
     ]
   ]
@@ -110,25 +84,22 @@ function dayCountLabel(count: number) {
 <template>
   <UDashboardPanel id="workout-routines">
     <template #header>
-      <UDashboardNavbar title="Routines">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Routines">
         <template #right>
           <UButton
-            label="New"
             icon="i-lucide-plus"
+            label="New"
             size="sm"
             aria-label="New routine"
             data-test="routine-new"
             @click="newOpen = true"
           />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-2xl flex-col gap-2">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-2">
         <p v-if="!routines.length" class="text-sm text-dimmed" data-test="routines-empty">
           No routines yet. A routine is a set of days you rotate through, like Upper / Lower.
         </p>
@@ -194,9 +165,9 @@ function dayCountLabel(count: number) {
 
       <UModal
         v-model:open="deleteOpen"
-        :title="`Delete ${deleting?.name ?? 'routine'}?`"
+        :title="`Delete ${clipName(deleting?.name ?? 'routine')}?`"
         description="Its days are deleted too. Logged workouts stay."
-        :ui="{ footer: 'justify-end' }"
+        :ui="{ title: 'wrap-anywhere', description: 'wrap-anywhere', footer: 'justify-end' }"
       >
         <template #footer>
           <UButton label="Cancel" color="neutral" variant="outline" class="min-h-10" @click="deleteOpen = false" />
@@ -205,7 +176,7 @@ function dayCountLabel(count: number) {
             color="error"
             class="min-h-10"
             data-test="routine-delete-confirm"
-            @click="confirmDelete"
+            @click="confirmDelete()"
           />
         </template>
       </UModal>

@@ -21,6 +21,13 @@ describe('AppNumberInput', () => {
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([0])
   })
 
+  it('centres the icon inside the fixed-size step buttons', async () => {
+    const wrapper = await mountSuspended(AppNumberInput, { props: { modelValue: 1, step: 1 } })
+    for (const label of ['Decrease', 'Increase']) {
+      expect(wrapper.find(`[aria-label="${label}"]`).classes()).toContain('justify-center')
+    }
+  })
+
   it('keeps a cleared text while focused even if the model resets to 0, and syncs on blur', async () => {
     const wrapper = await mountSuspended(AppNumberInput, { props: { modelValue: 5, 'data-test': 'qty' } })
     const input = wrapper.find('input[data-test="qty"]')

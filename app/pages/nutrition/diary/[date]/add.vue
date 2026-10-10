@@ -148,18 +148,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
 <template>
   <UDashboardPanel id="diary-add">
     <template #header>
-      <UDashboardNavbar>
-        <template #leading>
-          <UButton
-            icon="i-lucide-chevron-left"
-            variant="ghost"
-            color="neutral"
-            aria-label="Back"
-            class="lg:hidden"
-            :to="`/nutrition/diary/${date}`"
-          />
-          <UDashboardSidebarCollapse class="hidden lg:flex" />
-        </template>
+      <AppNavbar :back="`/nutrition/diary/${date}`" back-to-parent>
         <template #title>
           <UDropdownMenu :items="containerMenuItems">
             <UButton
@@ -173,17 +162,17 @@ async function onQuickAdd(input: DiaryEntryInput) {
             />
           </UDropdownMenu>
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div class="max-w-2xl mx-auto w-full pb-24 lg:pb-0">
+      <div class="max-w-3xl mx-auto w-full pb-24 lg:pb-0">
         <UTabs
           v-model="activeTab"
           :items="tabItems"
           :content="false"
           class="w-full"
-          :ui="{ list: 'overflow-x-auto scrollbar-none', trigger: 'shrink-0 text-xs px-2 sm:text-sm sm:px-3' }"
+          :ui="{ list: 'overflow-x-auto scrollbar-none', trigger: 'shrink-0 min-h-10 px-2 text-xs sm:px-3 sm:text-sm' }"
         >
           <template #default="{ item }">
             <span :data-test="item.test">{{ item.label }}</span>

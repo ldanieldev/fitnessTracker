@@ -260,3 +260,23 @@ test('phone: a second tap while a routine change is in flight is ignored', async
   expect(skips).toBe(1)
   expect((await apiFetch<Routine>(page, 'GET', `/api/workouts/routines/${routine.id}`)).json.nextDayId).toBe(dayB)
 })
+
+test('phone: deleting from the detail menu leaves the routine out of history', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const name = uniquePrefix('Phone Del ')
+  const routine = (await apiFetch<Routine>(page, 'POST', '/api/workouts/routines', { name })).json
+
+  await goto('/workouts/routines', { waitUntil: 'hydration' })
+  await page.locator(`[data-test="routine-menu-${routine.id}"]`).waitFor()
+  await page.locator(`a[href="/workouts/routines/${routine.id}"]`).first().click()
+  await page.waitForURL(`**/workouts/routines/${routine.id}`)
+  await pickMenuItem(page, 'routine-menu', 'routine-delete')
+  await page.locator('[data-test="routine-delete-confirm"]').click()
+  await page.waitForURL(/\/workouts\/routines$/)
+  await expect(page.getByText(name)).toHaveCount(0)
+  expect((await apiFetch(page, 'GET', `/api/workouts/routines/${routine.id}`)).status).toBe(404)
+
+  await page.goBack()
+  await expect(page).not.toHaveURL(new RegExp(`/workouts/routines/${routine.id}$`))
+})

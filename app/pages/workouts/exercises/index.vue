@@ -213,10 +213,7 @@ async function onSubmit(payload: ExerciseFormPayload) {
 <template>
   <UDashboardPanel id="exercises">
     <template #header>
-      <UDashboardNavbar title="Exercises">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Exercises">
         <template #right>
           <UButton
             icon="i-lucide-plus"
@@ -227,10 +224,10 @@ async function onSubmit(payload: ExerciseFormPayload) {
             @click="openCreate"
           />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
     <template #body>
-      <div class="mx-auto flex w-full max-w-2xl flex-col gap-3">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">
         <div class="flex items-center gap-2">
           <UInput
             v-model="search"

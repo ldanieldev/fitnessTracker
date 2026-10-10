@@ -8,25 +8,18 @@ const containerId = computed(() => {
 
 async function onCreated() {
   const suffix = containerId.value !== undefined ? `?containerId=${containerId.value}` : ''
-  await navigateTo(`/nutrition/diary/${date.value}/add${suffix}`)
+  await navigateTo(`/nutrition/diary/${date.value}/add${suffix}`, { replace: true })
 }
 </script>
 
 <template>
   <UDashboardPanel id="diary-new-food">
     <template #header>
-      <UDashboardNavbar>
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #title>
-          <span class="font-semibold">New food</span>
-        </template>
-      </UDashboardNavbar>
+      <AppNavbar title="New food" :back="`/nutrition/diary/${date}/add`" />
     </template>
 
     <template #body>
-      <div class="max-w-2xl mx-auto w-full">
+      <div class="max-w-3xl mx-auto w-full">
         <NutritionFoodForm
           :prefill="{ barcode: String(route.query.barcode ?? '') || undefined }"
           @created="onCreated"

@@ -51,14 +51,18 @@ function pick(date: string) {
 <template>
   <UDashboardPanel id="body-steps">
     <template #header>
-      <UDashboardNavbar title="Steps">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Steps">
         <template #right>
-          <UButton icon="i-lucide-plus" label="Log" size="sm" data-test="steps-log" @click="pick(today)" />
+          <UButton
+            icon="i-lucide-plus"
+            label="Log"
+            size="sm"
+            aria-label="Log steps"
+            data-test="steps-log"
+            @click="pick(today)"
+          />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
     <template #body>
       <div v-if="current" class="mx-auto flex w-full max-w-3xl flex-col gap-4">

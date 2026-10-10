@@ -121,27 +121,16 @@ const menu = computed<DropdownMenuItem[][]>(() =>
 <template>
   <UDashboardPanel id="nutrition-food">
     <template #header>
-      <UDashboardNavbar :title="food?.name ?? 'Food'">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar :title="food?.name ?? 'Food'" back="/nutrition/foods">
         <template #right>
           <UButton v-if="isCatalogue" label="Make my copy" size="sm" data-test="food-fork" @click="fork" />
-          <UDropdownMenu v-else-if="menu.length" :items="menu">
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              variant="ghost"
-              color="neutral"
-              aria-label="Food actions"
-              data-test="food-menu"
-            />
-          </UDropdownMenu>
+          <AppMenuButton v-else-if="menu.length" :items="menu" label="Food actions" test-id="food-menu" />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+      <div class="flex flex-col gap-4 max-w-3xl mx-auto w-full">
         <UAlert v-if="notFound" color="error" variant="soft" title="Food not found" data-test="food-not-found" />
 
         <template v-else-if="food && isCatalogue">

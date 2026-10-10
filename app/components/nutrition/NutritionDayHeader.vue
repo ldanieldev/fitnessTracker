@@ -25,10 +25,7 @@ const menu: DropdownMenuItem[][] = [
 </script>
 
 <template>
-  <UDashboardNavbar :ui="{ right: 'gap-1', title: 'min-w-0' }">
-    <template #leading>
-      <UDashboardSidebarCollapse />
-    </template>
+  <AppNavbar :ui="{ right: 'gap-1', title: 'min-w-0' }">
     <template #title>
       <NutritionDatePicker v-if="!narrow" v-model:open="pickerOpen" :date="date" @pick="(d) => emit('navigate', d)">
         <button type="button" class="font-semibold truncate px-1 min-w-0" data-test="diary-date" :data-date="date">
@@ -47,17 +44,9 @@ const menu: DropdownMenuItem[][] = [
       </button>
     </template>
     <template #right>
-      <UDropdownMenu :items="menu">
-        <UButton
-          icon="i-lucide-ellipsis-vertical"
-          variant="ghost"
-          color="neutral"
-          aria-label="Day actions"
-          data-test="day-menu"
-        />
-      </UDropdownMenu>
+      <AppMenuButton :items="menu" label="Day actions" test-id="day-menu" />
     </template>
-  </UDashboardNavbar>
+  </AppNavbar>
 
   <NutritionDatePicker v-if="narrow" v-model:open="pickerOpen" :date="date" @pick="(d) => emit('navigate', d)" />
 </template>

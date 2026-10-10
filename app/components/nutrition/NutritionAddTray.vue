@@ -30,7 +30,7 @@ const sheetOpen = ref(false)
       border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4
     "
   >
-    <div class="max-w-2xl mx-auto w-full flex items-center gap-2">
+    <div class="max-w-3xl mx-auto w-full flex items-center gap-2">
       <UButton
         variant="soft"
         color="neutral"

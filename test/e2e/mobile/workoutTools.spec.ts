@@ -25,6 +25,7 @@ test('phone: a logged set starts the exercise rest in the pill, and tools open f
   await expect(pill).toContainText(/00:(1\d|20)/)
   await expect(page.locator('[data-test="rest-timer"]')).toHaveCount(0)
 
+  await page.locator('[data-test="session-menu"]').click()
   await page.locator('[data-test="tools-open"]').click()
   await expect(page.locator('[data-test="tools-sheet"]')).toBeVisible()
   await page.locator('[data-test="tools-tab-one-rep-max"]').click()

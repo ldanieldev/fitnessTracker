@@ -18,23 +18,21 @@ const filtered = computed(() => {
 <template>
   <UDashboardPanel id="nutrition-saved-meals">
     <template #header>
-      <UDashboardNavbar title="Saved meals">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Saved meals">
         <template #right>
           <UButton
             icon="i-lucide-plus"
             label="New"
             size="sm"
+            aria-label="New saved meal"
             to="/nutrition/saved-meals/new"
             data-test="new-saved-meal"
           />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
     <template #body>
-      <div class="flex flex-col gap-3 max-w-2xl mx-auto w-full">
+      <div class="flex flex-col gap-3 max-w-3xl mx-auto w-full">
         <UInput
           v-model="query"
           icon="i-lucide-search"

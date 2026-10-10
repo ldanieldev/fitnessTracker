@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import LogPage from '../../app/pages/workouts/log.vue'
-import WorkoutSessionEditor from '../../app/components/workout/WorkoutSessionEditor.vue'
+import WorkoutSessionMenu from '../../app/components/workout/WorkoutSessionMenu.vue'
 import { useRestTimer } from '../../app/composables/useRestTimer'
 
 mockNuxtImport('useUserSession', () => () => ({
@@ -57,7 +57,7 @@ describe('workouts/log page', () => {
       timer.start(90)
       expect(timer.isRunning.value).toBe(true)
       if (action === 'finished') await wrapper.find('[data-test="session-finish"]').trigger('click')
-      else wrapper.findComponent(WorkoutSessionEditor).vm.$emit('delete')
+      else wrapper.findComponent(WorkoutSessionMenu).vm.$emit('delete')
       await settle()
       expect(timer.isRunning.value).toBe(false)
     } finally {

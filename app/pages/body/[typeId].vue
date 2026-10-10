@@ -62,14 +62,18 @@ function openEdit(entry: MeasurementEntry) {
 <template>
   <UDashboardPanel :id="`body-${typeId}`">
     <template #header>
-      <UDashboardNavbar :title="type?.name ?? 'Measurement'">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar :title="type?.name ?? 'Measurement'" back="/body">
         <template #right>
-          <UButton icon="i-lucide-plus" label="Log" size="sm" data-test="detail-log" @click="openNew" />
+          <UButton
+            icon="i-lucide-plus"
+            label="Log"
+            size="sm"
+            aria-label="Log measurement"
+            data-test="detail-log"
+            @click="openNew"
+          />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
     <template #body>
       <div v-if="series && type" class="mx-auto flex w-full max-w-3xl flex-col gap-4">

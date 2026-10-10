@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { PointerChoice } from '~~/shared/types/workout'
 import type { Routine, RoutineDay, RoutineEntry, RoutineEntryPatch } from '~~/shared/types/routine'
 import { needsPointerChoice } from '~~/shared/utils/routineCycle'
@@ -257,27 +258,45 @@ function deleteDay() {
   if (deletingDay.value)
     act(call('DELETE', `routine-days/${deletingDay.value.id}`), 'Couldn\'t delete day', 'Could not delete this day')
 }
+
+const { duplicate, deleting, deleteOpen, askDelete, confirmDelete } = useRoutineActions()
+const routineMenu = computed<DropdownMenuItem[][]>(() =>
+  routine.value
+    ? [
+        [
+          {
+            label: 'Duplicate',
+            icon: 'i-lucide-copy',
+            testId: 'routine-duplicate',
+            onSelect: () => duplicate(routine.value!)
+          }
+        ],
+        [
+          {
+            label: 'Delete',
+            icon: 'i-lucide-trash-2',
+            color: 'error',
+            testId: 'routine-delete',
+            onSelect: () => askDelete(routine.value!)
+          }
+        ]
+      ]
+    : []
+)
 </script>
 
 <template>
   <UDashboardPanel id="workout-routine">
     <template #header>
-      <UDashboardNavbar :title="routine?.name ?? 'Routine'">
-        <template #leading>
-          <UButton
-            icon="i-lucide-arrow-left"
-            variant="ghost"
-            color="neutral"
-            class="size-10 justify-center"
-            aria-label="Back to routines"
-            to="/workouts/routines"
-          />
+      <AppNavbar :title="routine?.name ?? 'Routine'" back="/workouts/routines">
+        <template #right>
+          <AppMenuButton v-if="routine" :items="routineMenu" label="Routine options" test-id="routine-menu" />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div v-if="routine" class="mx-auto flex w-full max-w-2xl flex-col gap-3 pb-4">
+      <div v-if="routine" class="mx-auto flex w-full max-w-3xl flex-col gap-3 pb-4">
         <div class="flex items-center gap-3">
           <UInput
             v-model="nameDraft"
@@ -406,6 +425,24 @@ function deleteDay() {
             :disabled="busy"
             data-test="routine-day-delete-confirm"
             @click="deleteDay"
+          />
+        </template>
+      </UModal>
+
+      <UModal
+        v-model:open="deleteOpen"
+        :title="`Delete ${clipName(deleting?.name ?? 'routine')}?`"
+        description="Its days are deleted too. Logged workouts stay."
+        :ui="{ title: 'wrap-anywhere', description: 'wrap-anywhere', footer: 'justify-end' }"
+      >
+        <template #footer>
+          <UButton label="Cancel" color="neutral" variant="outline" class="min-h-10" @click="deleteOpen = false" />
+          <UButton
+            label="Delete"
+            color="error"
+            class="min-h-10"
+            data-test="routine-delete-confirm"
+            @click="confirmDelete(() => navigateTo('/workouts/routines', { replace: true }))"
           />
         </template>
       </UModal>

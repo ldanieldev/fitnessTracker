@@ -150,19 +150,7 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
 <template>
   <UDashboardPanel :id="`exercise-${id}`">
     <template #header>
-      <UDashboardNavbar :title="exercise?.name ?? ''">
-        <template #leading>
-          <UButton
-            icon="i-lucide-chevron-left"
-            variant="ghost"
-            color="neutral"
-            aria-label="Back"
-            class="lg:hidden"
-            to="/workouts/exercises"
-            data-test="detail-back"
-          />
-          <UDashboardSidebarCollapse class="hidden lg:flex" />
-        </template>
+      <AppNavbar :title="exercise?.name ?? ''" back="/workouts/exercises">
         <template #right>
           <UButton
             v-if="exercise"
@@ -176,12 +164,12 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
             @click="toggleFavorite"
           />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
     <template #body>
       <div
         v-if="!exercise"
-        class="mx-auto flex w-full max-w-2xl flex-col gap-4"
+        class="mx-auto flex w-full max-w-3xl flex-col gap-4"
         data-test="detail-skeleton"
         aria-busy="true"
       >
@@ -197,7 +185,7 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
         </div>
         <USkeleton v-for="i in 4" :key="i" class="h-4 w-full" />
       </div>
-      <div v-else class="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <div v-else class="mx-auto flex w-full max-w-3xl flex-col gap-4">
         <div class="flex flex-col gap-2">
           <div class="flex flex-wrap items-center gap-1">
             <UBadge variant="subtle" color="neutral" size="sm" class="gap-1.5" data-test="detail-category">
@@ -239,7 +227,7 @@ const youtubeSearchUrl = computed(() => `https://www.youtube.com/results?search_
           :items="tabItems"
           :content="false"
           class="w-full"
-          :ui="{ list: 'overflow-x-auto scrollbar-none', trigger: 'shrink-0 min-h-10 px-3' }"
+          :ui="{ list: 'overflow-x-auto scrollbar-none', trigger: 'shrink-0 min-h-10 px-2 text-xs sm:px-3 sm:text-sm' }"
         >
           <template #default="{ item }">
             <span :data-test="item.test">{{ item.label }}</span>

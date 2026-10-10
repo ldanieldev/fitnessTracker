@@ -18,11 +18,7 @@ function openEdit(item: GoalOverview) {
 <template>
   <UDashboardPanel id="body-goals">
     <template #header>
-      <UDashboardNavbar title="Goals">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <AppNavbar title="Goals" />
     </template>
     <template #body>
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">

@@ -10,18 +10,11 @@ const containerId = computed(() => {
 <template>
   <UDashboardPanel id="diary-scan">
     <template #header>
-      <UDashboardNavbar>
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #title>
-          <span class="font-semibold">Scan barcode</span>
-        </template>
-      </UDashboardNavbar>
+      <AppNavbar title="Scan barcode" :back="`/nutrition/diary/${date}/add`" />
     </template>
 
     <template #body>
-      <div class="max-w-2xl mx-auto w-full">
+      <div class="max-w-3xl mx-auto w-full">
         <NutritionBarcodeScanner :date="date" :container-id="containerId" />
       </div>
     </template>

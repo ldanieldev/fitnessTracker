@@ -18,7 +18,6 @@ const emit = defineEmits<{
   'update:session': [session: WorkoutSession]
   setLogged: [entryId: number, flow: SetFlow]
   openPlates: [entryId: number, weight: number | null]
-  delete: []
 }>()
 
 const fail = useFailToast()
@@ -42,10 +41,6 @@ function patchSession(body: Record<string, unknown>, title: string, fallback: st
 
 const rename = (name: string | null) =>
   patchSession({ name }, 'Couldn\'t rename workout', 'Could not rename this workout')
-const comment = (notes: string | null) =>
-  patchSession({ notes }, 'Couldn\'t save comment', 'Could not save this comment')
-const changeTimes = (times: { startedAt: string; endedAt: string | null; performedOn: string }) =>
-  patchSession(times, 'Couldn\'t change date and time', 'Could not change the date and time')
 
 function addExercise(exerciseId: number) {
   return applySession(
@@ -227,13 +222,7 @@ function editSet(entryId: number, setId: number, values: SetValues) {
 
 <template>
   <div class="flex flex-col gap-3">
-    <WorkoutSessionHeader
-      :session="session"
-      @rename="rename"
-      @comment="comment"
-      @change-times="changeTimes"
-      @delete="emit('delete')"
-    />
+    <WorkoutSessionHeader :session="session" @rename="rename" />
 
     <WorkoutExerciseCard
       v-for="entry in session.entries"

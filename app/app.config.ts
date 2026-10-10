@@ -6,6 +6,7 @@ export default defineAppConfig({
     },
     button: {
       slots: { base: 'font-semibold' },
+      variants: { square: { true: 'justify-center' } },
       defaultVariants: { size: 'md' }
     },
     card: {

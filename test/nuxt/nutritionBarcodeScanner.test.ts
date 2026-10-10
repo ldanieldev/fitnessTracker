@@ -85,7 +85,10 @@ describe('NutritionBarcodeScanner', () => {
     await flushPromises()
 
     expect(lookupCalls).toBe(2)
-    expect(navigateToMock).toHaveBeenCalledWith('/nutrition/diary/2026-01-01/foods/new?barcode=0000000000000')
+    expect(navigateToMock).toHaveBeenCalledWith(
+      '/nutrition/diary/2026-01-01/foods/new?barcode=0000000000000',
+      { replace: true }
+    )
   })
 
   it('navigates with needsNutrition=1 when importing an external hit needs nutrition (P2-R29)', async () => {
@@ -119,7 +122,10 @@ describe('NutritionBarcodeScanner', () => {
     await wrapper.find('[data-test="scan-import"]').trigger('click')
     await flushPromises()
 
-    expect(navigateToMock).toHaveBeenCalledWith('/nutrition/diary/2026-01-01/add?foodId=55&needsNutrition=1')
+    expect(navigateToMock).toHaveBeenCalledWith(
+      '/nutrition/diary/2026-01-01/add?foodId=55&needsNutrition=1',
+      { replace: true }
+    )
   })
 
   it('toasts once when the missing-barcode lookup carries source errors (P2-R31.5)', async () => {
@@ -144,7 +150,10 @@ describe('NutritionBarcodeScanner', () => {
 
     expect(toastAddMock).toHaveBeenCalledTimes(1)
     expect(toastAddMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Barcode sources unavailable' }))
-    expect(navigateToMock).toHaveBeenCalledWith('/nutrition/diary/2026-01-01/foods/new?barcode=3017624010701')
+    expect(navigateToMock).toHaveBeenCalledWith(
+      '/nutrition/diary/2026-01-01/foods/new?barcode=3017624010701',
+      { replace: true }
+    )
   })
 
   // Drives the race via manual entry (controllable lookup promise); happy-dom can't run the camera frame loop.

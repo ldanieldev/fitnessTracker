@@ -85,49 +85,7 @@ async function run(action: () => Promise<unknown>, title: string, fallback: stri
   }
 }
 
-async function duplicate(program: ProgramSummary) {
-  try {
-    const copy = await apiFetch<Program>(`/api/workouts/programs/${program.id}/duplicate`, { method: 'POST' })
-    await invalidateWorkouts()
-    await navigateTo(`/workouts/programs/${copy.id}`)
-  } catch (err: unknown) {
-    fail('Couldn\'t duplicate program', err, 'Could not duplicate this program')
-  }
-}
-
-const deleting = ref<ProgramSummary | null>(null)
-const deleteOpen = ref(false)
-async function confirmDelete() {
-  const program = deleting.value
-  deleteOpen.value = false
-  if (!program) return
-  try {
-    await apiFetch(`/api/workouts/programs/${program.id}`, { method: 'DELETE' })
-    await invalidateWorkouts()
-  } catch (err: unknown) {
-    fail('Couldn\'t delete program', err, 'Could not delete this program')
-  }
-}
-
-async function exportProgram(program: ProgramSummary) {
-  let filename = 'program.json'
-  try {
-    const blob = await apiFetch<Blob>(`/api/workouts/programs/${program.id}/export`, {
-      responseType: 'blob',
-      onResponse: ({ response }) => {
-        filename = /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1] ?? filename
-      }
-    })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    link.click()
-    URL.revokeObjectURL(url)
-  } catch (err: unknown) {
-    fail('Couldn\'t export program', err, 'Could not export this program')
-  }
-}
+const { duplicate, exportProgram, deleting, deleteOpen, askDelete, confirmDelete } = useProgramActions()
 
 const deleteDescription = computed(() =>
   deleting.value && deleting.value.id === enrollment.value?.program.id
@@ -164,10 +122,7 @@ function menu(program: ProgramSummary): DropdownMenuItem[][] {
         icon: 'i-lucide-trash-2',
         color: 'error',
         testId: `program-delete-${program.id}`,
-        onSelect: () => {
-          deleting.value = program
-          deleteOpen.value = true
-        }
+        onSelect: () => askDelete(program)
       }
     ]
   ]
@@ -218,32 +173,17 @@ const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
 <template>
   <UDashboardPanel id="workout-programs">
     <template #header>
-      <UDashboardNavbar title="Programs">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+      <AppNavbar title="Programs">
         <template #right>
           <UButton
-            label="New"
             icon="i-lucide-plus"
+            label="New"
             size="sm"
             aria-label="New program"
             data-test="program-new"
             @click="newOpen = true"
           />
-          <UDropdownMenu :items="headerMenu">
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              variant="ghost"
-              color="neutral"
-              class="min-h-10 min-w-10 justify-center"
-              aria-label="Program options"
-              data-test="programs-menu"
-            />
-            <template #item-label="{ item }">
-              <span :data-test="item.testId">{{ item.label }}</span>
-            </template>
-          </UDropdownMenu>
+          <AppMenuButton :items="headerMenu" label="Program options" test-id="programs-menu" />
           <input
             ref="fileInput"
             type="file"
@@ -253,11 +193,11 @@ const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
             @change="onImportFile"
           />
         </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-2xl flex-col gap-2">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-2">
         <WorkoutEnrollmentCard
           v-if="enrollment"
           :enrollment="enrollment"
@@ -372,7 +312,7 @@ const weekLabel = (n: number) => `${n} ${n === 1 ? 'week' : 'weeks'}`
             color="error"
             class="min-h-10"
             data-test="program-delete-confirm"
-            @click="confirmDelete"
+            @click="confirmDelete()"
           />
         </template>
       </UModal>

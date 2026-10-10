@@ -154,6 +154,43 @@ function phaseMenu(phase: ProgramPhase): DropdownMenuItem[][] {
   ]
 }
 
+const programActions = useProgramActions()
+const { deleting: deletingProgram, deleteOpen: programDeleteOpen } = programActions
+const programMenu = computed<DropdownMenuItem[][]>(() =>
+  program.value
+    ? [
+        [
+          {
+            label: 'Duplicate',
+            icon: 'i-lucide-copy',
+            testId: 'program-duplicate',
+            onSelect: () => programActions.duplicate(program.value!)
+          },
+          {
+            label: 'Export',
+            icon: 'i-lucide-download',
+            testId: 'program-export',
+            onSelect: () => programActions.exportProgram(program.value!)
+          }
+        ],
+        [
+          {
+            label: 'Delete',
+            icon: 'i-lucide-trash-2',
+            color: 'error',
+            testId: 'program-delete',
+            onSelect: () => programActions.askDelete(program.value!)
+          }
+        ]
+      ]
+    : []
+)
+const programDeleteDescription = computed(() =>
+  running.value
+    ? 'Its phases are deleted and the program you are running ends. Routines and logged workouts stay.'
+    : 'Its phases are deleted. Routines and logged workouts stay.'
+)
+
 const startWeek = (index: number) =>
   1 + program.value!.phases.slice(0, index).reduce((sum, phase) => sum + phase.weeks, 0)
 const weeksLabel = (phase: ProgramPhase, index: number) =>
@@ -163,25 +200,15 @@ const weeksLabel = (phase: ProgramPhase, index: number) =>
 <template>
   <UDashboardPanel id="workout-program">
     <template #header>
-      <UDashboardNavbar>
-        <template #title>
-          <span class="truncate" data-test="program-title">{{ program?.name ?? 'Program' }}</span>
+      <AppNavbar :title="program?.name ?? 'Program'" back="/workouts/programs">
+        <template #right>
+          <AppMenuButton v-if="program" :items="programMenu" label="Program options" test-id="program-menu" />
         </template>
-        <template #leading>
-          <UButton
-            icon="i-lucide-arrow-left"
-            variant="ghost"
-            color="neutral"
-            class="size-10 justify-center"
-            aria-label="Back to programs"
-            to="/workouts/programs"
-          />
-        </template>
-      </UDashboardNavbar>
+      </AppNavbar>
     </template>
 
     <template #body>
-      <div v-if="program" class="mx-auto flex w-full max-w-2xl flex-col gap-3 pb-24 lg:pb-4">
+      <div v-if="program" class="mx-auto flex w-full max-w-3xl flex-col gap-3 pb-24 lg:pb-4">
         <UInput
           v-model="nameDraft"
           :maxlength="255"
@@ -329,6 +356,30 @@ const weeksLabel = (phase: ProgramPhase, index: number) =>
             class="min-h-10"
             data-test="phase-delete-confirm"
             @click="confirmDeletePhase"
+          />
+        </template>
+      </UModal>
+
+      <UModal
+        v-model:open="programDeleteOpen"
+        :title="`Delete ${clipName(deletingProgram?.name ?? 'program')}?`"
+        :description="programDeleteDescription"
+        :ui="{ title: 'wrap-anywhere', description: 'wrap-anywhere', footer: 'justify-end' }"
+      >
+        <template #footer>
+          <UButton
+            label="Cancel"
+            color="neutral"
+            variant="outline"
+            class="min-h-10"
+            @click="programDeleteOpen = false"
+          />
+          <UButton
+            label="Delete"
+            color="error"
+            class="min-h-10"
+            data-test="program-delete-confirm"
+            @click="programActions.confirmDelete(() => navigateTo('/workouts/programs', { replace: true }))"
           />
         </template>
       </UModal>
