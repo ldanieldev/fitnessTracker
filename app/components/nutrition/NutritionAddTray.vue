@@ -25,7 +25,10 @@ const sheetOpen = ref(false)
 <template>
   <div
     v-if="count > 0"
-    class="fixed inset-x-0 bottom-0 z-10 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4"
+    class="
+      fixed inset-x-0 bottom-0 z-10 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95 border-t
+      border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4
+    "
   >
     <div class="max-w-2xl mx-auto w-full flex items-center gap-2">
       <UButton

@@ -22,7 +22,7 @@ export default withNuxt(
       '@stylistic/quote-props': 'off',
       '@stylistic/max-len': [
         'error',
-        { code: 120, ignoreUrls: true, ignoreStrings: true, ignoreTemplateLiterals: true, ignoreRegExpLiterals: true }
+        { code: 120, ignoreUrls: true, ignoreRegExpLiterals: true }
       ]
     }
   },
@@ -35,7 +35,8 @@ export default withNuxt(
         {
           selector: 'CallExpression[callee.name="$fetch"]',
           message:
-            'Use apiFetch from app/composables/useSessionGuard.ts instead of raw $fetch — it handles a stale-session 401 by logging out and redirecting.'
+            'Use apiFetch from app/composables/useSessionGuard.ts instead of raw $fetch — ' +
+            'it handles a stale-session 401 by logging out and redirecting.'
         }
       ]
     }
@@ -55,10 +56,7 @@ export default withNuxt(
         {
           code: 120,
           ignoreUrls: true,
-          ignoreStrings: true,
-          ignoreTemplateLiterals: true,
-          ignoreRegExpLiterals: true,
-          ignoreHTMLAttributeValues: true
+          ignoreRegExpLiterals: true
         }
       ]
     }

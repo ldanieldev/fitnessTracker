@@ -1,7 +1,8 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from '../helpers'
 
-test('no nutrition screen scrolls sideways at the phone width, and the app renders dark on the Graphite background', async ({
+test('no nutrition screen scrolls sideways at the phone width, and the app renders dark on the Graphite ' +
+  'background', async ({
   page,
   goto
 }) => {
@@ -43,7 +44,8 @@ test('no nutrition screen scrolls sideways at the phone width, and the app rende
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(14, 16, 21)')
 })
 
-test('the summary shows one card per day on the phone, and its range trigger does not overlap the sidebar toggle', async ({
+test('the summary shows one card per day on the phone, and its range trigger does not overlap the sidebar ' +
+  'toggle', async ({
   page,
   goto
 }) => {

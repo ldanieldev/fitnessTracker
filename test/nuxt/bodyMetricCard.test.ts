@@ -23,7 +23,8 @@ const entry = (id: number, value: number, day: string) => ({
 })
 
 describe('BodyMetricCard', () => {
-  it('shows the latest value to the type precision, a signed delta in the direction colour, and links to the detail page', async () => {
+  it('shows the latest value to the type precision, a signed delta in the direction colour, and links to the detail ' +
+    'page', async () => {
     const wrapper = await mountSuspended(BodyMetricCard, {
       props: {
         metric: {

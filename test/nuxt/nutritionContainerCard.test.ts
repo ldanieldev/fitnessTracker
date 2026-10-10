@@ -54,7 +54,8 @@ describe('NutritionContainerCard', () => {
     expect(wrapper.find('[data-test="entry-row"] [data-test="entry-energy"]').text()).toContain('207')
   })
 
-  it('shows the derived first-entry time when unset, the stored time when set, and hides it for an empty meal', async () => {
+  it('shows the derived first-entry time when unset, the stored time when set, and hides it for an empty ' +
+    'meal', async () => {
     const derived = await mountSuspended(NutritionContainerCard, { props: { container, date: '2026-09-10' } })
     expect(derived.find('[data-test="container-time"]').text()).toBe(timeOf(container.entries[0]!.loggedAt))
 

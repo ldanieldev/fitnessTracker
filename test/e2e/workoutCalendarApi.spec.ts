@@ -145,7 +145,8 @@ test('export: one row per set in date order under the filter, assisted negative,
   expect(res.disposition).toBe('attachment; filename="workouts-start-to-latest.csv"')
   const lines = res.text.split('\n')
   expect(lines[0]).toBe(
-    'Date,Workout,Exercise,Category,Set,Weight,Weight unit,Reps,Distance,Distance unit,Duration (s),Superset,Comment,Workout comment'
+    'Date,Workout,Exercise,Category,Set,Weight,Weight unit,Reps,Distance,Distance unit,Duration ' +
+    '(s),Superset,Comment,Workout comment'
   )
   expect(lines.slice(1)).toEqual([
     `2026-05-03,"Pull, ""heavy""",${dip.name},Chest,1,-20,lb,6,,,,,,good day`,

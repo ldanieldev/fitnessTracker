@@ -108,7 +108,8 @@ test('ratio mode stores percentages and derives grams', async ({ page, goto }) =
   expect(bad.status).toBe(400)
 })
 
-test('new and unapplied days follow the current default; an explicitly applied profile survives a later default change', async ({
+test('new and unapplied days follow the current default; an explicitly applied profile survives a later default ' +
+  'change', async ({
   page,
   goto
 }) => {

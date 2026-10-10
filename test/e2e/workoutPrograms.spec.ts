@@ -297,7 +297,8 @@ test('non-numeric and non-positive program and phase ids are 404', async ({ page
   }
 })
 
-test('a program delete queues behind a sync or enroll holding the routine and enrollment locks, without a deadlock', async ({
+test('a program delete queues behind a sync or enroll holding the routine and enrollment locks, without a ' +
+  'deadlock', async ({
   page,
   goto
 }) => {

@@ -250,7 +250,10 @@ async function onSubmit(payload: ExerciseFormPayload) {
             />
             <span
               v-if="filterCount > 0"
-              class="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-inverted"
+              class="
+                absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px]
+                font-semibold text-inverted
+              "
               data-test="filter-badge"
               >{{ filterCount }}</span
             >

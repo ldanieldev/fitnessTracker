@@ -58,7 +58,8 @@ test('workout series: metrics, validation and incremental rollups matching a reb
   expect((await apiFetch<ExerciseSeries>(page, 'GET', url('volume'))).json.points).toEqual([])
 })
 
-test('workout series: duplicate entries for one exercise in one session aggregate and survive a partial delete', async ({
+test('workout series: duplicate entries for one exercise in one session aggregate and survive a partial ' +
+  'delete', async ({
   page,
   goto
 }) => {

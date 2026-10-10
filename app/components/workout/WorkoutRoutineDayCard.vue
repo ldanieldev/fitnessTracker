@@ -203,7 +203,11 @@ function meta(entry: RoutineEntry) {
         </span>
         <button
           type="button"
-          class="group flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg px-1.5 sm:gap-3 sm:px-2 py-1.5 text-left transition-colors hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary active:bg-elevated"
+          class="
+            group flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg px-1.5 sm:gap-3 sm:px-2
+            py-1.5 text-left transition-colors hover:bg-elevated/60 focus-visible:outline-2
+            focus-visible:outline-primary active:bg-elevated
+          "
           :disabled="busy"
           :data-test="`routine-entry-open-${entry.id}`"
           @click="emit('editEntry', entry)"
@@ -222,7 +226,10 @@ function meta(entry: RoutineEntry) {
             >
           </span>
           <span
-            class="min-w-20 shrink-0 rounded-md border px-2 py-1 sm:min-w-24 sm:px-2.5 text-center text-sm tabular-nums transition-colors group-hover:border-primary"
+            class="
+              min-w-20 shrink-0 rounded-md border px-2 py-1 sm:min-w-24 sm:px-2.5 text-center text-sm tabular-nums
+              transition-colors group-hover:border-primary
+            "
             :class="prescription(entry) ? 'border-default text-highlighted' : 'border-primary/50 text-primary'"
             :data-test="`routine-entry-target-${entry.id}`"
             >{{ prescription(entry) ?? 'Set targets' }}</span

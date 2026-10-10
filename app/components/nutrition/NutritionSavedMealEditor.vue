@@ -167,7 +167,10 @@ const menu = computed<DropdownMenuItem[][]>(() =>
         <NutritionTotalsPanel :total="total" />
 
         <div
-          class="fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4"
+          class="
+            fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t
+            border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4
+          "
         >
           <UButton block label="Save meal" :loading="saving" :disabled="!canSave" data-test="meal-save" @click="save" />
         </div>

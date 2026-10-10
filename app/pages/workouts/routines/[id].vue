@@ -72,7 +72,11 @@ function toggleActive(active: boolean) {
 }
 
 function confirmPause() {
-  return exclusive(() => pausePrompt.confirm(), 'Couldn\'t change active routine', 'Could not change the active routine')
+  return exclusive(
+    () => pausePrompt.confirm(),
+    'Couldn\'t change active routine',
+    'Could not change the active routine'
+  )
 }
 
 const call = (method: 'POST' | 'PATCH' | 'DELETE', path: string, body?: object) => () =>

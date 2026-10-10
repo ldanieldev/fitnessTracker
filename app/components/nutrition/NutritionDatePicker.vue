@@ -18,7 +18,9 @@ const model = computed({
   set: (value: CalendarDate | null) => {
     if (!value) return
     const js = value.toDate(getLocalTimeZone())
-    const iso = `${js.getFullYear()}-${String(js.getMonth() + 1).padStart(2, '0')}-${String(js.getDate()).padStart(2, '0')}`
+    const month = String(js.getMonth() + 1).padStart(2, '0')
+    const day = String(js.getDate()).padStart(2, '0')
+    const iso = `${js.getFullYear()}-${month}-${day}`
     open.value = false
     emit('pick', iso)
   }

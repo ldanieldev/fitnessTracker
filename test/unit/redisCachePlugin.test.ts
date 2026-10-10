@@ -25,7 +25,8 @@ describe('resolveRedisCache', () => {
     expect(log).not.toHaveBeenCalled()
   })
 
-  it('returns memory and logs once when the probe throws synchronously (e.g. a malformed URL), never rejecting', async () => {
+  it('returns memory and logs once when the probe throws synchronously (e.g. a malformed URL), never ' +
+    'rejecting', async () => {
     const probe = vi.fn(() => {
       throw new Error('Invalid URL')
     })

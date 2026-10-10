@@ -583,7 +583,8 @@ test('pausing before the start week, then resuming, starts at week 1', async ({ 
   expect(await active(page)).toEqual([a.id])
 })
 
-test('changing the current phase\'s routine re-applies it on the next sync without a notice', async ({ page, goto }) => {
+test('changing the current phase\'s routine re-applies it on the next sync without a ' +
+  'notice', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const a = await routine(page, ['A1', 'A2'])

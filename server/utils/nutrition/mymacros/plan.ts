@@ -318,7 +318,9 @@ export function planImport(days: ParsedDay[], userId: number): ImportPlan {
       warnings.push({
         date: day.date,
         code: 'checksum',
-        message: `Daily totals mismatch for ${day.date}: kcal Δ${dKcal.toFixed(2)}, protein Δ${dProtein.toFixed(2)}, carbs Δ${dCarbs.toFixed(2)}, fat Δ${dFat.toFixed(2)}`
+        message:
+          `Daily totals mismatch for ${day.date}: kcal Δ${dKcal.toFixed(2)}, protein Δ${dProtein.toFixed(2)}, ` +
+          `carbs Δ${dCarbs.toFixed(2)}, fat Δ${dFat.toFixed(2)}`
       })
     }
   }

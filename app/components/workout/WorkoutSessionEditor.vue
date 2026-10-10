@@ -264,7 +264,10 @@ function editSet(entryId: number, setId: number, values: SetValues) {
 
     <button
       type="button"
-      class="flex min-h-10 w-full items-center gap-2 rounded-lg border border-default bg-default px-3 text-left text-sm text-dimmed hover:bg-elevated"
+      class="
+        flex min-h-10 w-full items-center gap-2 rounded-lg border border-default bg-default px-3 text-left text-sm
+        text-dimmed hover:bg-elevated
+      "
       data-test="entry-add"
       @click="pickerOpen = true"
     >

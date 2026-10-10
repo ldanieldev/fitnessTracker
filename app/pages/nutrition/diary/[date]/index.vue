@@ -233,7 +233,10 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
 
       <div
         v-if="selection.state.active"
-        class="fixed inset-x-0 bottom-0 z-10 flex gap-2 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95 border-t border-default lg:static lg:border-0 lg:bg-transparent"
+        class="
+          fixed inset-x-0 bottom-0 z-10 flex gap-2 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95
+          border-t border-default lg:static lg:border-0 lg:bg-transparent
+        "
       >
         <UButton
           label="Done"

@@ -18,7 +18,8 @@ const type = {
 }
 
 describe('BodyEntrySheet', () => {
-  it('defaults the date to today, disables Save until a value is typed, and posts value + local day + instant', async () => {
+  it('defaults the date to today, disables Save until a value is typed, and posts value + local day + ' +
+    'instant', async () => {
     useToday().value = '2026-09-16'
     let received: Record<string, unknown> | null = null
     registerEndpoint('/api/body/entries', {

@@ -53,7 +53,8 @@ test('custom types: create, reject a duplicate name, edit, soft-delete; built-in
   ).toBe(200)
 })
 
-test('prefs: hiding a built-in removes it from the default list and the overview; includeHidden still returns it', async ({
+test('prefs: hiding a built-in removes it from the default list and the overview; includeHidden still returns ' +
+  'it', async ({
   page,
   goto
 }) => {

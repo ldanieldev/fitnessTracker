@@ -126,7 +126,8 @@ export async function usdaSearch(q: string, limit: number): Promise<ExternalFood
   const apiKey = requireApiKey()
   try {
     const json = await fetchJson<UsdaSearchResponse>(
-      `${BASE_URL}/foods/search?api_key=${apiKey}&query=${encodeURIComponent(q)}&pageSize=${limit}&dataType=${SEARCH_DATA_TYPES}`
+      `${BASE_URL}/foods/search?api_key=${apiKey}&query=${encodeURIComponent(q)}` +
+      `&pageSize=${limit}&dataType=${SEARCH_DATA_TYPES}`
     )
     return json.foods.map(usdaHitToExternal)
   } catch (err) {

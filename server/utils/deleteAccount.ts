@@ -8,8 +8,8 @@ import {
   savedMeals,
   users,
   workoutSessions
-} from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
+} from '../db/schema'
+import { db } from './db'
 
 // The users cascade hits foods/recipes before diary rows, whose references to them are NO ACTION; clear those first.
 export async function deleteAccount(userId: number): Promise<void> {

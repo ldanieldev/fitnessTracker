@@ -153,7 +153,8 @@ test('phone: build a routine with a superset, run the due day, then an off-order
   await page.locator('[data-test="start-routine-other"]').click()
   await page.locator(`[data-test="routine-pick-${routineId}"]`).click()
   await page.locator(`[data-test="day-pick-${dayA}"]`).click()
-  await expect(page.locator('[data-test="pointer-prompt-text"]')).toHaveText('You\'re starting Day A but Day B is next.')
+  await expect(page.locator('' +
+    '[data-test="pointer-prompt-text"]')).toHaveText('You\'re starting Day A but Day B is next.')
   await page.locator('[data-test="pointer-keep"]').click()
   await expect(page.locator('[data-test="session-name"]')).toHaveValue('Day A')
   await page.locator('[data-test="session-finish"]').click()

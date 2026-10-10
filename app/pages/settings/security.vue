@@ -2,6 +2,12 @@
 const { user, clear: clearSession } = useUserSession()
 const { data: providers, refresh } = await useFetch('/api/auth/providers')
 const toast = useToast()
+const accountDescription =
+  'No longer want to use our service? You can delete your account here. This action is not reversible. ' +
+  'All information related to this account will be deleted permanently.'
+const deleteDescription =
+  'Are you sure you want to delete your account? All of your data will be permanently removed. ' +
+  'This action cannot be undone.'
 
 const hasCredentials = computed(() => providers.value?.some((p) => p.provider === 'credentials') ?? false)
 
@@ -46,7 +52,7 @@ async function deleteAccount() {
 
     <UPageCard
       title="Account"
-      description="No longer want to use our service? You can delete your account here. This action is not reversible. All information related to this account will be deleted permanently."
+      :description="accountDescription"
       class="bg-linear-to-tl from-error/10 from-5% to-default"
     >
       <template #footer>
@@ -57,7 +63,7 @@ async function deleteAccount() {
     <UModal
       v-model:open="showDeleteModal"
       title="Delete account"
-      description="Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
+      :description="deleteDescription"
     >
       <template #body>
         <p class="text-sm text-muted">

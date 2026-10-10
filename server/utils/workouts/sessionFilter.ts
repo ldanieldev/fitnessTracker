@@ -27,7 +27,8 @@ export function sessionFilterWhere(userId: number, filter: SessionFilterQuery): 
       select count(distinct ${effectiveCategoryId})
       from ${workoutEntries} we
       inner join ${exercises} on ${exercises.id} = we.exercise_id
-      left join ${exercisePrefs} on ${exercisePrefs.exerciseId} = ${exercises.id} and ${exercisePrefs.userId} = ${userId}
+      left join ${exercisePrefs} on ${exercisePrefs.exerciseId} = ${exercises.id}
+        and ${exercisePrefs.userId} = ${userId}
       where we.session_id = ${workoutSessions.id} and ${effectiveCategoryId} in (${list})
     )`
     conditions.push(filter.match === 'all' ? sql`${matched} = ${categoryIds.length}` : sql`${matched} > 0`)
@@ -39,7 +40,8 @@ export function sessionFilterWhere(userId: number, filter: SessionFilterQuery): 
     // Assisted entries store the assist as a positive weight where less is better, so the bound flips.
     if (filter.minWeight !== undefined) {
       bounds.push(
-        sql`(case when we.load_style = 'assisted' then ws.weight <= ${filter.minWeight} else ws.weight >= ${filter.minWeight} end)`
+        sql`(case when we.load_style = 'assisted' then ws.weight <= ${filter.minWeight}
+          else ws.weight >= ${filter.minWeight} end)`
       )
     }
     const setMatch = bounds.length

@@ -40,7 +40,9 @@ const subtitle = 'by calories'
 
 const summary = computed(
   () =>
-    `Macro breakdown, ${subtitle}: ${slices.value.map((s) => `${s.label} ${formatAmount(s.key, s.grams)} g, ${s.percent}%`).join('; ')}.`
+    `Macro breakdown, ${subtitle}: ${slices.value
+      .map((s) => `${s.label} ${formatAmount(s.key, s.grams)} g, ${s.percent}%`)
+      .join('; ')}.`
 )
 </script>
 

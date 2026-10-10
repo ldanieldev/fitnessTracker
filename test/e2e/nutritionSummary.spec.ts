@@ -90,7 +90,8 @@ test('summary page renders unlogged days as an em dash and exports csv', async (
   expect(openedUrl).toContain('format=csv')
 })
 
-test('csv export covers only the tracked nutrients, carries each one\'s target, and leaves unlogged totals blank', async ({
+test('csv export covers only the tracked nutrients, carries each one\'s target, and leaves unlogged totals ' +
+  'blank', async ({
   page,
   goto
 }) => {
@@ -114,7 +115,8 @@ test('csv export covers only the tracked nutrients, carries each one\'s target, 
   expect(csv.contentType).toContain('text/csv')
   const lines = csv.text.split('\n')
   expect(lines[0]).toBe(
-    'date,profile,energy,energy_target,protein,protein_target,carbohydrate,carbohydrate_target,fat,fat_target,fiber,fiber_target'
+    'date,profile,energy,energy_target,protein,protein_target,carbohydrate,carbohydrate_target,fat,fat_target,fiber,' +
+    'fiber_target'
   )
   expect(lines[1]).toBe('2026-06-01,Cut,1800,1900,0,,0,,0,,0,')
   const unlogged = lines[2]!.split(',')

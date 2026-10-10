@@ -277,7 +277,10 @@ const weeksLabel = (phase: ProgramPhase, index: number) =>
         />
 
         <div
-          class="fixed inset-x-0 bottom-0 z-10 border-t border-default bg-default/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:sticky lg:inset-x-auto lg:-bottom-6 lg:px-0 lg:pb-4"
+          class="
+            fixed inset-x-0 bottom-0 z-10 border-t border-default bg-default/95 p-4
+            pb-[calc(1rem+env(safe-area-inset-bottom))] lg:sticky lg:inset-x-auto lg:-bottom-6 lg:px-0 lg:pb-4
+          "
         >
           <UButton
             :label="running ? 'Running' : 'Start program'"

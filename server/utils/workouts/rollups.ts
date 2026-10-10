@@ -198,7 +198,8 @@ export async function rebuildRollups(userId?: number): Promise<{ rows: number }>
       .where(
         and(
           scope,
-          sql`(${workoutExerciseRollups.sessionId}, ${workoutExerciseRollups.exerciseId}) not in (${sql.join(keys, sql`, `)})`
+          sql`(${workoutExerciseRollups.sessionId}, ${workoutExerciseRollups.exerciseId})
+            not in (${sql.join(keys, sql`, `)})`
         )
       )
   }

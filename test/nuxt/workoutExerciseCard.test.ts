@@ -204,7 +204,8 @@ describe('WorkoutExerciseCard', () => {
     expect(bodyText('progression-prompt')).toContain('You hit 6 reps at 185 lb — the top of 4–6.')
   })
 
-  it('does not open on mount with a carried-over suggestion, and an edit that keeps the count does not open it', async () => {
+  it('does not open on mount with a carried-over suggestion, and an edit that keeps the count does not open ' +
+    'it', async () => {
     const carried = { ...ranged, sets: [], lastSets: [{ weight: 185, reps: 6 }] }
     const wrapper = await mount({ entry: carried })
     expect(bodyText('progression-prompt')).toBeNull()

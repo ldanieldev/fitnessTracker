@@ -42,7 +42,8 @@ describe('regroup', () => {
     expect(execute).toHaveBeenCalledTimes(2)
   })
 
-  it('locks the rows in id order before reading them, so a queued regroup decides from the latest positions', async () => {
+  it('locks the rows in id order before reading them, so a queued regroup decides from the latest ' +
+    'positions', async () => {
     const { tx, execute } = fakeTx(rows(null, null))
     await regroup(tx, ROUTINE_ENTRY_GROUPS, 7, (items) => items)
     const { sql } = new PgDialect().sqlToQuery(execute.mock.calls[0]![0])

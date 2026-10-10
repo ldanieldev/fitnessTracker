@@ -16,7 +16,8 @@ useHead({
 const { appName } = useRuntimeConfig().public
 const title = appName
 const description =
-  'Track your workouts, monitor your progress, and reach your fitness goals. Your personal fitness journal to log exercises, stay consistent, and build healthy habits.'
+  'Track your workouts, monitor your progress, and reach your fitness goals. ' +
+  'Your personal fitness journal to log exercises, stay consistent, and build healthy habits.'
 
 useSeoMeta({
   title,

@@ -28,7 +28,6 @@ if (existsSync(`${OUT_DIR}/eng.traineddata.gz`)) {
   const response = await fetch(ENG_TRAINEDDATA_URL)
   if (!response.ok) throw new Error(`failed to download ${ENG_TRAINEDDATA_URL}: ${response.status}`)
   writeFileSync(`${OUT_DIR}/eng.traineddata.gz`, Buffer.from(await response.arrayBuffer()))
-  console.log(
-    `downloaded ${OUT_DIR}/eng.traineddata.gz (${statSync(`${OUT_DIR}/eng.traineddata.gz`).size} bytes) from ${ENG_TRAINEDDATA_URL}`
-  )
+  const gzPath = `${OUT_DIR}/eng.traineddata.gz`
+  console.log(`downloaded ${gzPath} (${statSync(gzPath).size} bytes) from ${ENG_TRAINEDDATA_URL}`)
 }

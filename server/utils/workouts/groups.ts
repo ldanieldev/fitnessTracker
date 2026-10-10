@@ -58,7 +58,8 @@ export async function regroup(
     const was = stored.get(item.id)
     if (was && was.sortOrder === index && was.supersetGroup === item.supersetGroup) continue
     await tx.execute(
-      sql`update ${groups.table} set ${sortOrderName} = ${index}, ${groupName} = ${item.supersetGroup} where ${groups.id} = ${item.id}`
+      sql`update ${groups.table} set ${sortOrderName} = ${index}, ${groupName} = ${item.supersetGroup}
+        where ${groups.id} = ${item.id}`
     )
   }
 }

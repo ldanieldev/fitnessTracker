@@ -228,7 +228,8 @@ describe('workouts/routines/[id] page', () => {
     }
   })
 
-  it('keeps the pause-program flow: prompt opens, its confirm waits out a write, and a failure keeps the title', async () => {
+  it('keeps the pause-program flow: prompt opens, its confirm waits out a write, and a failure keeps the ' +
+    'title', async () => {
     patch.handler = async (event) => {
       const body = await readBody<Record<string, unknown>>(event)
       if (body.pauseProgram) throw createError({ statusCode: 500, statusMessage: 'boom' })

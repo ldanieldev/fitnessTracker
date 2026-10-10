@@ -7,6 +7,9 @@ import WorkoutPlateSizesPicker from '~/components/workout/WorkoutPlateSizesPicke
 const { user, fetch: fetchSession } = useUserSession()
 const { defaultRestSeconds, plateSizes, oneRepMaxRepCap } = useWorkoutPrefs()
 const toast = useToast()
+const description =
+  'Defaults for every exercise; an exercise\'s own Settings tab can override them. ' +
+  'Sets above the rep cap are left out of estimated 1RM.'
 
 const schema = z.object({
   defaultRestSeconds: z.number({ message: 'Default rest is required' }).int().min(10).max(600),
@@ -61,7 +64,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
   <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12">
     <UPageCard
       title="Workout"
-      description="Defaults for every exercise; an exercise's own Settings tab can override them. Sets above the rep cap are left out of estimated 1RM."
+      :description="description"
       variant="subtle"
     >
       <UForm :schema="schema" :state="state" class="flex flex-col gap-4 max-w-xs" @submit="onSubmit">

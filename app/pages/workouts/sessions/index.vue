@@ -120,7 +120,8 @@ const {
 } = useWorkoutFetch<WorkoutSessionSummary[]>(
   () => sessionMonthKey(range.value.from, range.value.to, filterQuery.value),
   () =>
-    `/api/workouts/sessions?limit=1000&from=${range.value.from}&to=${range.value.to}${filterQuery.value ? `&${filterQuery.value}` : ''}`,
+    `/api/workouts/sessions?limit=1000&from=${range.value.from}&to=${range.value.to}` +
+    `${filterQuery.value ? `&${filterQuery.value}` : ''}`,
   { enabled: () => view.value === 'month' && filterReady.value }
 )
 

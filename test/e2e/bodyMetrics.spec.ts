@@ -93,7 +93,8 @@ test('validation and ownership: bad body is 400, unknown type is 404, another us
   await other.close()
 })
 
-test('series reduces to the latest reading per day, echoes the range, and overview carries latest/previous/sparkline', async ({
+test('series reduces to the latest reading per day, echoes the range, and overview carries ' +
+  'latest/previous/sparkline', async ({
   page,
   goto
 }) => {
@@ -186,7 +187,8 @@ test('the hub lists built-ins, logs a reading from a card, and shows it with a d
   await expect(page.locator(`[data-test="metric-delta-${weight.id}"]`)).toHaveText('-1.8')
 })
 
-test('the detail page charts the range, lists readings newest first, edits and deletes through the sheet, and switches ranges', async ({
+test('the detail page charts the range, lists readings newest first, edits and deletes through the sheet, and ' +
+  'switches ranges', async ({
   page,
   goto
 }) => {
@@ -245,7 +247,8 @@ test('an unknown type id is a 404 page', async ({ page, goto }) => {
   expect(res?.status()).toBe(404)
 })
 
-test('MTD lists only this month, the progress page charts every visible type, and its range carries into a detail page', async ({
+test('MTD lists only this month, the progress page charts every visible type, and its range carries into a detail ' +
+  'page', async ({
   page,
   goto
 }) => {

@@ -91,7 +91,11 @@ watch(
         <button
           v-if="count(size) > 0"
           type="button"
-          class="absolute flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-inverted before:absolute before:bottom-1/2 before:left-1/2 before:-right-2.5 before:-top-0.5 before:content-['']"
+          class="
+            absolute flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold
+            text-inverted before:absolute before:bottom-1/2 before:left-1/2 before:-right-2.5 before:-top-0.5
+            before:content-['']
+          "
           :class="px(size) <= 40 ? '-right-2.5 -top-2.5' : '-right-1 -top-1'"
           :aria-label="`Remove a pair of ${size} lb plates`"
           :data-test="`plate-count-${size}`"
