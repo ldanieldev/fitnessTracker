@@ -69,7 +69,7 @@ function pick(date: string) {
         <div class="grid grid-cols-3 gap-2">
           <button
             type="button"
-            class="flex cursor-pointer flex-col rounded-2xl bg-elevated p-3 text-left ring-1 ring-accented
+            class="flex flex-col rounded-2xl bg-elevated p-3 text-left ring-1 ring-accented
               transition-colors hover:bg-accented focus-visible:outline-2 focus-visible:outline-primary"
             data-test="tile-target"
             @click="targetOpen = true"

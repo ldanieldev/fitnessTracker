@@ -12,6 +12,14 @@
   --color-macro-other: var(--macro-other);
 }
 
+/* Global override: restore the pointer cursor on enabled buttons, which Tailwind v4 and Nuxt UI 4 leave as default. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 :root {
   --ui-bg: #f6f7f9;
   --ui-bg-elevated: #ffffff;

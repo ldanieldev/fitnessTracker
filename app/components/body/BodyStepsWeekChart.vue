@@ -52,8 +52,8 @@ const hit = (d: StepWeekDay) => d.steps !== null && d.target !== null && d.steps
           v-for="d in week.days"
           :key="d.date"
           type="button"
-          class="flex cursor-pointer flex-col items-center gap-1 rounded-lg py-1 transition-colors hover:bg-accented
-            focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default disabled:opacity-50
+          class="flex flex-col items-center gap-1 rounded-lg py-1 transition-colors hover:bg-accented
+            focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50
             disabled:hover:bg-transparent"
           :disabled="d.date > today"
           :aria-label="d.date > today ? undefined : label(d)"
