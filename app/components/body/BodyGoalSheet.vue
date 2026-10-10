@@ -69,12 +69,12 @@ async function clear() {
 <template>
   <AppSheet v-model:open="open" :title="`${type?.name ?? ''} goal`">
     <template #body>
-      <div v-if="type" class="flex flex-col gap-3">
+      <form v-if="type" class="flex flex-col gap-3" data-test="goal-form" @submit.prevent="save">
         <p v-if="latest === null" class="text-sm text-dimmed">
           Log a reading first — the goal measures progress from your latest value.
         </p>
         <UFormField :label="`Target (${type.unit})`">
-          <AppNumberInput v-model="target" :min="0" :step="step" class="w-full" data-test="goal-target" />
+          <AppNumberInput v-model="target" :min="0" :step="step" autofocus class="w-full" data-test="goal-target" />
         </UFormField>
         <UFormField label="By (optional)">
           <UInput v-model="date" type="date" class="w-full" data-test="goal-date" />
@@ -89,15 +89,15 @@ async function clear() {
             @click="confirmingClear = true"
           />
           <UButton
+            type="submit"
             label="Save"
             class="ml-auto"
             :loading="saving"
             :disabled="!canSave"
             data-test="goal-save"
-            @click="save"
           />
         </div>
-      </div>
+      </form>
     </template>
     <template v-if="goal && confirmingClear" #footer>
       <div class="flex w-full gap-2">

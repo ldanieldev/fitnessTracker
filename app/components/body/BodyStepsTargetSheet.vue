@@ -31,7 +31,7 @@ const valid = computed(
 const weekly = computed(() => (valid.value ? daily.value! * 7 : null))
 
 async function save() {
-  if (!valid.value || from.value === '') return
+  if (!valid.value || from.value === '' || saving.value) return
   saving.value = true
   try {
     await apiFetch('/api/body/steps/target', {
@@ -53,13 +53,14 @@ async function save() {
 <template>
   <AppSheet v-model:open="open" title="Steps target">
     <template #body>
-      <div class="flex flex-col gap-3">
+      <form class="flex flex-col gap-3" data-test="target-form" @submit.prevent="save">
         <UFormField label="Daily target">
           <AppNumberInput
             v-model="daily"
             :min="1"
             :max="STEPS_MAX"
             :step="500"
+            autofocus
             class="w-full"
             data-test="target-daily"
           />
@@ -69,14 +70,14 @@ async function save() {
           <UInput v-model="from" type="date" class="w-full" data-test="target-from" />
         </UFormField>
         <UButton
+          type="submit"
           label="Save"
           class="ml-auto min-h-10"
           :loading="saving"
           :disabled="!valid || from === '' || saving"
           data-test="target-save"
-          @click="save"
         />
-      </div>
+      </form>
     </template>
   </AppSheet>
 </template>

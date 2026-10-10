@@ -93,9 +93,9 @@ async function remove() {
 <template>
   <AppSheet v-model:open="open" :title="entry ? `Edit ${type?.name ?? ''}` : `Log ${type?.name ?? ''}`">
     <template #body>
-      <div v-if="type" class="flex flex-col gap-3">
+      <form v-if="type" class="flex flex-col gap-3" data-test="entry-form" @submit.prevent="save">
         <UFormField :label="`Value (${type.unit})`">
-          <AppNumberInput v-model="value" :min="0" :step="step" class="w-full" data-test="entry-value" />
+          <AppNumberInput v-model="value" :min="0" :step="step" autofocus class="w-full" data-test="entry-value" />
         </UFormField>
         <div class="grid grid-cols-2 gap-2">
           <UFormField label="Date">
@@ -116,15 +116,15 @@ async function remove() {
             @click="confirmingDelete = true"
           />
           <UButton
+            type="submit"
             label="Save"
             class="ml-auto"
             :loading="saving"
             :disabled="!canSave"
             data-test="entry-save"
-            @click="save"
           />
         </div>
-      </div>
+      </form>
     </template>
     <template v-if="entry && confirmingDelete" #footer>
       <div class="flex w-full gap-2">
