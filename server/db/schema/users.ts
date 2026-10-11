@@ -20,6 +20,7 @@ export const users = appSchema.table(
       .notNull()
       .default(sql`'{45,35,25,10,5,2.5}'::numeric[]`),
     oneRepMaxRepCap: smallint('one_rep_max_rep_cap').notNull().default(10),
+    workoutsPerWeek: smallint('workouts_per_week').notNull().default(3),
     showBody: boolean('show_body').notNull().default(true),
     showWorkouts: boolean('show_workouts').notNull().default(true),
     showNutrition: boolean('show_nutrition').notNull().default(true)
@@ -27,6 +28,7 @@ export const users = appSchema.table(
   (table) => [
     unique('users_email_unique').on(table.email),
     check('users_week_start_check', sql`${table.weekStart} in (0, 1)`),
+    check('users_workouts_per_week_check', sql`${table.workoutsPerWeek} between 1 and 7`),
     check('users_default_rest_seconds_check', sql`${table.defaultRestSeconds} between 10 and 600`),
     check(
       'users_plate_sizes_check',

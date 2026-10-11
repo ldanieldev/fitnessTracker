@@ -631,12 +631,14 @@ table app.users {
   default_rest_seconds smallint [not null, default: 60]
   plate_sizes numeric[] [not null, default: `'{45,35,25,10,5,2.5}'::numeric[]`]
   one_rep_max_rep_cap smallint [not null, default: 10]
+  workouts_per_week smallint [not null, default: 3]
   show_body boolean [not null, default: true]
   show_workouts boolean [not null, default: true]
   show_nutrition boolean [not null, default: true]
 
   indexes {
     email [name: 'users_email_unique', unique]
+    
     
     
     
@@ -664,6 +666,7 @@ table app.workout_entries {
 
   indexes {
     exercise_id [name: 'workout_entry_exercise']
+    session_id [name: 'workout_entry_session']
   }
 }
 

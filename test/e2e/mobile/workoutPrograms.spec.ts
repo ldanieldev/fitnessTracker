@@ -32,6 +32,9 @@ test('phone: build a program, start it now, see it on log, history and dashboard
   await expect(page).toHaveURL(/\/workouts\/programs$/)
   await expect(page.locator('[data-test="enrollment-line"]')).toHaveText('Week 1 of 4 · Hypertrophy')
 
+  await goto('/', { waitUntil: 'hydration' })
+  await expect(page.locator('[data-test="today-workout"]')).toContainText('Week 1 of 4 · Hypertrophy')
+
   await goto('/workouts/log', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="program-status-line"]')).toContainText(programName)
   await expect(page.locator('[data-test="start-routine-next-name"]')).toHaveText('Upper A')
@@ -40,9 +43,6 @@ test('phone: build a program, start it now, see it on log, history and dashboard
 
   await goto('/workouts/sessions?view=list', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test^="session-program-"]').first()).toHaveText('P1 · W1')
-
-  await goto('/', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test="dashboard-program"]')).toContainText(programName)
 
   await goto('/workouts/programs', { waitUntil: 'hydration' })
   await page.locator('[data-test="enrollment-pause"]').click()

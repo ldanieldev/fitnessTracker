@@ -1,0 +1,1 @@
+CREATE INDEX "workout_entry_session" ON "app"."workout_entries" USING btree ("session_id");

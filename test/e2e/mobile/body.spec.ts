@@ -27,11 +27,9 @@ test('the Body nav reaches the hub, a reading logs from a card, and the dashboar
   await expect(page.locator('[data-test="metric-chart"] svg')).toBeVisible()
 
   await goto('/', { waitUntil: 'hydration' })
-  await expect(page.locator(`[data-test="dashboard-body"] [data-test="metric-latest-${weight.id}"]`)).toHaveText(
-    '197.0'
-  )
-  await page.locator(`[data-test="dashboard-body"] [data-test="metric-link-${weight.id}"]`).tap()
-  await expect(page).toHaveURL(new RegExp(`/body/${weight.id}$`))
+  await expect(page.locator('[data-test="dashboard-bodyweight"]')).toBeVisible()
+  await expect(page.locator('[data-test="bodyweight-current"]')).toHaveText('197.0')
+  await expect(page.locator('[data-test="today-weighIn"] a')).toHaveAttribute('href', `/body/${weight.id}`)
 })
 
 test('no body screen scrolls sideways at the phone width, and they render on the Graphite background', async ({

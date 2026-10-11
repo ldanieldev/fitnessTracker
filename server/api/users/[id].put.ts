@@ -16,6 +16,7 @@ const updateProfileSchema = z.object({
   defaultRestSeconds: z.number().int().min(10).max(600).optional(),
   plateSizes: plateSizesSchema.optional(),
   oneRepMaxRepCap: z.number().int().min(1).max(20).optional(),
+  workoutsPerWeek: z.number().int().min(1).max(7).optional(),
   showBody: z.boolean().optional(),
   showWorkouts: z.boolean().optional(),
   showNutrition: z.boolean().optional()
@@ -75,6 +76,7 @@ export default defineEventHandler(async (event) => {
       defaultRestSeconds: parsed.data.defaultRestSeconds,
       plateSizes: parsed.data.plateSizes ? normalizePlateSizes(parsed.data.plateSizes).map(String) : undefined,
       oneRepMaxRepCap: parsed.data.oneRepMaxRepCap,
+      workoutsPerWeek: parsed.data.workoutsPerWeek,
       showBody: parsed.data.showBody,
       showWorkouts: parsed.data.showWorkouts,
       showNutrition: parsed.data.showNutrition

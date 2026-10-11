@@ -20,7 +20,7 @@ export function anchorFor(when: StartWhen, today: string, weekStart: 0 | 1): str
   return when === 'now' ? start : shiftDate(start, 7)
 }
 
-function weeksBetween(from: string, to: string): number {
+export function weeksBetween(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / (7 * DAY_MS))
 }
 

@@ -17,6 +17,9 @@ export default defineAppConfig({
         }
       }
     },
+    skeleton: {
+      base: 'bg-accented'
+    },
     modal: {
       slots: { content: 'bg-elevated' }
     },

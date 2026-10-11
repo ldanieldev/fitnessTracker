@@ -5,7 +5,7 @@ import { DEFAULT_PLATE_SIZES, plateSizesSchema } from '~~/shared/utils/plates'
 import WorkoutPlateSizesPicker from '~/components/workout/WorkoutPlateSizesPicker.vue'
 
 const { user, fetch: fetchSession } = useUserSession()
-const { defaultRestSeconds, plateSizes, oneRepMaxRepCap } = useWorkoutPrefs()
+const { defaultRestSeconds, plateSizes, oneRepMaxRepCap, workoutsPerWeek } = useWorkoutPrefs()
 const toast = useToast()
 const description =
   'Defaults for every exercise; an exercise\'s own Settings tab can override them. ' +
@@ -14,7 +14,8 @@ const description =
 const schema = z.object({
   defaultRestSeconds: z.number({ message: 'Default rest is required' }).int().min(10).max(600),
   plateSizes: plateSizesSchema.optional(),
-  oneRepMaxRepCap: z.number({ message: 'Rep cap is required' }).int().min(1).max(20).optional()
+  oneRepMaxRepCap: z.number({ message: 'Rep cap is required' }).int().min(1).max(20).optional(),
+  workoutsPerWeek: z.number({ message: 'Workouts per week is required' }).int().min(1).max(7).optional()
 })
 
 type Schema = z.input<typeof schema>
@@ -23,11 +24,14 @@ type Schema = z.input<typeof schema>
 const canEditPlates = computed(() => Array.isArray(user.value?.plateSizes))
 // Same problem for the rep cap: a pre-column session falls back to 10, which must never be PUT over the real value.
 const canEditRepCap = computed(() => typeof user.value?.oneRepMaxRepCap === 'number')
+// Same for workouts per week: a pre-column session falls back to 3, which must never be PUT over the real value.
+const canEditWorkoutsPerWeek = computed(() => typeof user.value?.workoutsPerWeek === 'number')
 
 const state = reactive<Partial<Schema>>({
   defaultRestSeconds: defaultRestSeconds.value,
   plateSizes: canEditPlates.value ? [...plateSizes.value] : undefined,
-  oneRepMaxRepCap: canEditRepCap.value ? oneRepMaxRepCap.value : undefined
+  oneRepMaxRepCap: canEditRepCap.value ? oneRepMaxRepCap.value : undefined,
+  workoutsPerWeek: canEditWorkoutsPerWeek.value ? workoutsPerWeek.value : undefined
 })
 
 const loading = ref(false)
@@ -82,6 +86,23 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
             data-test="setting-rep-cap"
           />
           <p v-else class="text-sm text-dimmed">Sign in again to edit your 1RM rep cap.</p>
+        </UFormField>
+
+        <UFormField
+          label="Workouts per week"
+          name="workoutsPerWeek"
+          hint="when no program"
+          :required="canEditWorkoutsPerWeek"
+        >
+          <AppNumberInput
+            v-if="canEditWorkoutsPerWeek"
+            v-model="state.workoutsPerWeek"
+            :min="1"
+            :max="7"
+            :step="1"
+            data-test="setting-workouts-per-week"
+          />
+          <p v-else class="text-sm text-dimmed">Sign in again to edit workouts per week.</p>
         </UFormField>
 
         <UFormField label="Plates" name="plateSizes" hint="lb, both sides">

@@ -43,6 +43,20 @@
       "when": 1791569098143,
       "tag": "0005_steps",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791684172603,
+      "tag": "0006_workout_entry_session",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791730209797,
+      "tag": "0007_workouts_per_week",
+      "breakpoints": true
     }
   ]
 }

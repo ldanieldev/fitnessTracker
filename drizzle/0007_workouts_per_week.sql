@@ -1,0 +1,2 @@
+ALTER TABLE "app"."users" ADD COLUMN "workouts_per_week" smallint DEFAULT 3 NOT NULL;--> statement-breakpoint
+ALTER TABLE "app"."users" ADD CONSTRAINT "users_workouts_per_week_check" CHECK ("app"."users"."workouts_per_week" between 1 and 7);

@@ -129,7 +129,10 @@ export const workoutEntries = appSchema.table(
     optional: boolean('optional').notNull().default(false),
     restSeconds: integer('rest_seconds').default(sql`null`)
   },
-  (table) => [index('workout_entry_exercise').on(table.exerciseId)]
+  (table) => [
+    index('workout_entry_exercise').on(table.exerciseId),
+    index('workout_entry_session').on(table.sessionId)
+  ]
 )
 
 export const workoutSets = appSchema.table(

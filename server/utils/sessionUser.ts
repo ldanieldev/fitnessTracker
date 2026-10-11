@@ -13,6 +13,7 @@ type SessionUserRow = Pick<
   | 'defaultRestSeconds'
   | 'plateSizes'
   | 'oneRepMaxRepCap'
+  | 'workoutsPerWeek'
   | 'showBody'
   | 'showWorkouts'
   | 'showNutrition'
@@ -31,6 +32,7 @@ export function toSessionUser(user: SessionUserRow): User {
     defaultRestSeconds: user.defaultRestSeconds,
     plateSizes: user.plateSizes.map(Number),
     oneRepMaxRepCap: user.oneRepMaxRepCap,
+    workoutsPerWeek: user.workoutsPerWeek,
     showBody: user.showBody,
     showWorkouts: user.showWorkouts,
     showNutrition: user.showNutrition

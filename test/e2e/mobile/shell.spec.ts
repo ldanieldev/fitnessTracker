@@ -12,12 +12,12 @@ test('taps reach buttons at the phone viewport', async ({ page, goto }) => {
   await expect(page.getByRole('link', { name: 'Diary' })).toBeVisible()
 })
 
-test('the dashboard Today card reaches the diary for today', async ({ page, goto }) => {
+test('the dashboard Today calories row reaches the diary for today', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   await goto('/', { waitUntil: 'hydration' })
 
-  const card = page.locator('[data-test="dashboard-today"]')
+  const card = page.locator('[data-test="today-calories"] a')
   await expect(card).toBeVisible()
   await card.click()
 

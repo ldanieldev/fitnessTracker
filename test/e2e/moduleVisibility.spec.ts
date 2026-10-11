@@ -35,12 +35,14 @@ test('module visibility: a hidden module leaves the sidebar, dashboard and setti
   await expect(page.getByRole('link', { name: 'Nutrition', exact: true })).toBeVisible()
 
   await goto('/', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test="dashboard-today"]')).toBeVisible()
-  await expect(page.locator('[data-test="dashboard-workout-stats"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="dashboard-today-strip"]')).toBeVisible()
+  await expect(page.locator('[data-test="dashboard-consistency"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="dashboard-strength"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="dashboard-nutrition"]')).toBeVisible()
 
   const userId = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
   await apiFetch(page, 'PUT', `/api/users/${userId}`, { showBody: false, showNutrition: false })
   await goto('/', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="dashboard-empty"]')).toBeVisible()
-  await expect(page.locator('[data-test="dashboard-today"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="dashboard-today-strip"]')).toHaveCount(0)
 })
