@@ -83,7 +83,8 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   }
   await rebuildSearchIndex(page)
 
-  await page.locator('[data-test="food-search-input"]').fill(p)
+  // The bare prefix ties all 31 foods (tie order = index insertion order); the full name ranks Pizza first.
+  await page.locator('[data-test="food-search-input"]').fill(`${p} Pizza`)
   const hitRow = page.locator('[data-test="food-hit"]', { hasText: `${p} Pizza` })
   await expect(hitRow).toBeVisible()
 

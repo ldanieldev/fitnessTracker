@@ -25,9 +25,9 @@ describe('rerank', () => {
     expect(out.map((h) => h.id)).toEqual([1, 2, 3])
   })
 
-  it('is stable for equal scores', async () => {
+  it('breaks equal scores by oldest food, whatever order the index returned them in', async () => {
     const { rerank } = await import('../../server/utils/nutrition/searchRank')
-    const tied = candidates.map((c) => ({ ...c, relevance: 0.5 }))
+    const tied = [candidates[2]!, candidates[0]!, candidates[1]!].map((c) => ({ ...c, relevance: 0.5 }))
     const out = rerank(tied, { favorites: new Set(), usage: new Map() })
     expect(out.map((h) => h.id)).toEqual([1, 2, 3])
   })
