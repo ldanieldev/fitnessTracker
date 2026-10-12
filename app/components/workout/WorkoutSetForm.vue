@@ -85,6 +85,10 @@ function seed(): SetMeasures {
 let seeded = seed()
 const values = reactive<SetMeasures>({ ...seeded })
 const untouched = () => (Object.keys(seeded) as (keyof SetMeasures)[]).every((key) => values[key] === seeded[key])
+const seedWeight = (weight: number | null) => {
+  seeded.weight = weight
+  values.weight = weight
+}
 
 // A delete keeps what the user typed; a new set or a changed suggestion always re-seeds.
 watch(
@@ -99,7 +103,7 @@ watch(
 watch(
   () => props.choice,
   (choice) => {
-    if (props.progression && choice) values.weight = suggestedWeight(choice)
+    if (props.progression && choice) seedWeight(suggestedWeight(choice))
   }
 )
 
@@ -113,7 +117,7 @@ watch(
 watch(
   () => props.presetWeight?.seq,
   () => {
-    if (props.presetWeight && measures.value.includes('weight')) values.weight = props.presetWeight.weight
+    if (props.presetWeight && measures.value.includes('weight')) seedWeight(props.presetWeight.weight)
   },
   { immediate: true }
 )

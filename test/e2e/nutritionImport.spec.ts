@@ -3,8 +3,6 @@ import { expect, test } from '@nuxt/test-utils/playwright'
 import type { ImportResult } from '../../shared/types/nutrition'
 import { apiFetch, makeUser, registerViaApi, uploadFiles } from './helpers'
 
-// The upload-route tests need the compose `inngest` service; otherwise queueImportJob fails and the route 503s.
-
 const fixture = (name: string) => readFileSync(new URL(`../fixtures/mymacros/${name}`, import.meta.url), 'utf8')
 
 interface DayEntry {
@@ -73,6 +71,10 @@ test('upload route queues a job, accepts a generic content type, and the status 
   expect(upload.status).toBe(201)
   const jobId = (upload.json as { jobId: number }).jobId
   expect(jobId).toBeGreaterThan(0)
+  const stub = process.env.INNGEST_EVENT_API_BASE_URL
+  expect(stub, 'e2e must queue into the Inngest stub, not the dev Inngest').toBeTruthy()
+  const sent = (await (await fetch(new URL('sent', stub))).json()) as Array<{ data: { jobId: number } }>
+  expect(sent.some((event) => event.data.jobId === jobId)).toBe(true)
 
   const queued = await apiFetch<ImportJobView>(page, 'GET', `/api/nutrition/import/mymacros/${jobId}`)
   expect(queued.status).toBe(200)

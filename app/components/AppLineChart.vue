@@ -111,9 +111,9 @@ const tooltipLeft = computed(() =>
       />
       <text
         v-if="model.goalEdge"
-        :x="model.plot.right"
+        :x="model.plot.left"
         :y="model.goalEdge === 'above' ? model.plot.top + 10 : model.plot.bottom - 4"
-        text-anchor="end"
+        text-anchor="start"
         font-size="10"
         style="fill: var(--ui-text-muted)"
         data-test="goal-edge"
@@ -154,7 +154,7 @@ const tooltipLeft = computed(() =>
         :key="tick.date"
         :x="tick.x"
         :y="model.height - 6"
-        text-anchor="middle"
+        :text-anchor="tick.anchor"
         font-size="10"
         style="fill: var(--ui-text-dimmed)"
       >

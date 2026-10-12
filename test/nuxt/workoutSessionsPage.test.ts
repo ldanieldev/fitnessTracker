@@ -106,6 +106,16 @@ describe('workouts/sessions page', () => {
     const filtered = calls.filter((query) => query.categories === '1')
     expect(filtered.length).toBeGreaterThan(0)
     expect(filtered.every((query) => query.limit === '20')).toBe(true)
+
+    calls.length = 0
+    q('history-filter-open')!.click()
+    await settle()
+    q('filter-category-1')!.click()
+    await settle()
+    q('filter-apply')!.click()
+    await settle()
+    expect(calls.length).toBeGreaterThan(0)
+    expect(calls.every((query) => query.limit === '20' && !query.categories)).toBe(true)
     wrapper.unmount()
   })
 

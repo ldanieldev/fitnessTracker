@@ -61,6 +61,7 @@ async function save() {
         :key="n.key"
         v-model="checked[n.key]"
         :label="`${n.name} (${n.unit})`"
+        :aria-label="`${n.name} (${n.unit})`"
         :data-test="`tracked-${n.key}`"
       />
     </div>

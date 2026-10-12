@@ -187,7 +187,7 @@ const categoryEditorOpen = ref(false)
 
         <div class="flex min-h-10 items-center justify-between">
           <span class="text-sm font-medium">Show hidden</span>
-          <USwitch v-model="local.includeHidden" data-test="filter-hidden" />
+          <USwitch v-model="local.includeHidden" aria-label="Show hidden" data-test="filter-hidden" />
         </div>
       </div>
     </template>

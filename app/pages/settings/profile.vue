@@ -101,7 +101,8 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 <template>
   <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12">
     <UPageCard title="Profile" description="Update your personal information." variant="subtle">
-      <UForm :schema="schema" :state="state" class="flex flex-col gap-4 max-w-xs" @submit="onSubmit">
+      <!-- An explicit name: its "name" input shadows form.name, so Vue would otherwise write name="undefined". -->
+      <UForm name="profile" :schema="schema" :state="state" class="flex flex-col gap-4 max-w-xs" @submit="onSubmit">
         <div class="flex items-center gap-4">
           <UAvatar :src="state.avatarUrl || undefined" :alt="state.name" size="lg" />
           <UFormField label="Avatar URL" name="avatarUrl" class="flex-1">
@@ -158,9 +159,14 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         <fieldset class="flex flex-col gap-3">
           <legend class="text-sm font-medium text-default">Sections</legend>
           <p class="text-sm text-muted">Hidden sections leave the sidebar, dashboard and settings.</p>
-          <USwitch v-model="preferencesState.showBody" label="Body" name="showBody" />
-          <USwitch v-model="preferencesState.showWorkouts" label="Workouts" name="showWorkouts" />
-          <USwitch v-model="preferencesState.showNutrition" label="Nutrition" name="showNutrition" />
+          <USwitch v-model="preferencesState.showBody" label="Body" aria-label="Body" name="showBody" />
+          <USwitch v-model="preferencesState.showWorkouts" label="Workouts" aria-label="Workouts" name="showWorkouts" />
+          <USwitch
+            v-model="preferencesState.showNutrition"
+            label="Nutrition"
+            aria-label="Nutrition"
+            name="showNutrition"
+          />
         </fieldset>
 
         <UButton type="submit" label="Save changes" :loading="preferencesLoading" class="w-fit" />

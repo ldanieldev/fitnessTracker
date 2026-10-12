@@ -56,7 +56,7 @@ async function workoutSources() {
   return { routines, enrollment, consistency, start, starting, active }
 }
 
-// Read once so hidden modules never fetch; a toggle flipped mid-mount (another device) only hides rows.
+// Read once so hidden modules never fetch; the dashboard page remounts the strip when a flag flips.
 const body = modules.body.value ? bodySources() : null
 const nutrition = modules.nutrition.value ? useTodaySummary() : null
 const workouts = modules.workouts.value ? await workoutSources() : null

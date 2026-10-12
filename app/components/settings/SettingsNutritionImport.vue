@@ -22,6 +22,8 @@ const result = ref<ImportResult | null>(null)
 const jobError = ref<string | null>(null)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let unmounted = false
+// Null drops UInput's default autocomplete="off", invalid on a file input; the prop type has no null, hence untyped.
+const fileAttrs: Record<string, unknown> = { autocomplete: null }
 
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
@@ -105,12 +107,12 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex flex-col gap-4">
     <UFormField label="My Macros+ daily export files (.txt)" name="files">
-      <input
+      <UInput
         type="file"
         multiple
         accept=".txt,text/plain"
+        v-bind="fileAttrs"
         data-test="import-files"
-        aria-label="My Macros+ daily export files"
         @change="onFileChange"
       />
     </UFormField>

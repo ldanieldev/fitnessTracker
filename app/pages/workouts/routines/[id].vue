@@ -310,6 +310,7 @@ const routineMenu = computed<DropdownMenuItem[][]>(() =>
           <USwitch
             :model-value="routine.active"
             label="Active"
+            aria-label="Active"
             :disabled="!routine.days.length || busy"
             data-test="routine-active"
             @update:model-value="toggleActive"

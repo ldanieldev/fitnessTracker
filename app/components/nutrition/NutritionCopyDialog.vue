@@ -109,6 +109,7 @@ function confirm() {
             <div class="flex items-center gap-2">
               <UCheckbox
                 :model-value="checked.get(entry.id) ?? true"
+                :aria-label="`Copy ${entry.description}`"
                 data-test="copy-source-checkbox"
                 @update:model-value="(value) => checked.set(entry.id, Boolean(value))"
               />

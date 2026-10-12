@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { makeUser, registerViaApi } from './helpers'
+import { todayDate } from '../../shared/utils/nutritionSummary'
 
 test('shows the viewfinder or a permission notice, and the manual path lands on the new-food page prefilled', async ({
   page,
@@ -8,7 +9,7 @@ test('shows the viewfinder or a permission notice, and the manual path lands on 
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayDate()
   await goto(`/nutrition/diary/${today}/scan`, { waitUntil: 'hydration' })
 
   const video = page.locator('[data-test="scan-video"]')

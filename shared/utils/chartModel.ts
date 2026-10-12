@@ -110,7 +110,7 @@ export interface ChartModel {
   x: Scale
   y: Scale
   yTicks: Array<{ value: number; y: number }>
-  xTicks: Array<{ date: string; x: number }>
+  xTicks: Array<{ date: string; x: number; anchor: 'middle' | 'end' }>
   rawPath: string
   areaPath: string
   trendPath: string
@@ -166,7 +166,10 @@ export function buildChartModel(input: ChartInput): ChartModel {
     x,
     y,
     yTicks: nice.ticks.map((value) => ({ value, y: y(value) })),
-    xTicks: dateTicks(input.from, input.to, input.width < 400 ? 3 : 5).map((date) => ({ date, x: x(dayIndex(date)) })),
+    xTicks: dateTicks(input.from, input.to, input.width < 400 ? 3 : 5).map((date) => {
+      const at = x(dayIndex(date))
+      return { date, x: at, anchor: at >= plot.right ? 'end' : 'middle' }
+    }),
     rawPath: pathFrom(rawSegments),
     areaPath: areaFrom(rawSegments, plot.bottom),
     trendPath: pathFrom(trendSegments),

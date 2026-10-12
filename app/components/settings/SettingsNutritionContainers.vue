@@ -129,6 +129,7 @@ const showArchived = ref(false)
     >
       <UInput
         v-model="drafts[container.id]"
+        :aria-label="`Rename ${container.name}`"
         :data-test="`container-name-${container.id}`"
         class="flex-1"
         @keyup.enter="rename(container)"
@@ -177,6 +178,7 @@ const showArchived = ref(false)
       <UInput
         v-model="newName"
         placeholder="New container name"
+        aria-label="New container name"
         data-test="add-container-input"
         class="flex-1"
         @keyup.enter="addContainer"

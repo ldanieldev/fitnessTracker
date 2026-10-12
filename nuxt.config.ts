@@ -30,7 +30,7 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/test-utils',
     'nuxt-auth-utils',
-    // Client tree-shaken onServerPrefetch skews useId SSR vs client (nuxt/nuxt#36428); drop after a release has #36430.
+    // Keeps onServerPrefetch in the client build, whose removal skews SSR/client useId (nuxt#36428); drop on 4.6.1+.
     (_options, nuxt) => {
       const client = nuxt.options.optimization.treeShake.composables.client
       if (client.vue) client.vue = client.vue.filter((name) => name !== 'onServerPrefetch')

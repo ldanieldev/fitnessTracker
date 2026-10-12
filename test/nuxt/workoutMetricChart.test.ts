@@ -77,6 +77,23 @@ describe('WorkoutMetricChart', () => {
     expect(wrapper.find('[data-test="goal-edge"]').text()).toBe('↑ Goal 400 lb')
   })
 
+  it('anchors the edge label at the left, away from the latest point', async () => {
+    const wrapper = await mountSuspended(WorkoutMetricChart, {
+      props: {
+        ...base,
+        goal: 400,
+        points: [
+          { date: '2026-03-01', value: 185 },
+          { date: '2026-03-08', value: 205 }
+        ]
+      }
+    })
+    const label = wrapper.find('[data-test="goal-edge"]')
+    const firstDot = Number(wrapper.findAll('circle')[0]!.attributes('cx'))
+    expect(label.attributes('text-anchor')).toBe('start')
+    expect(Number(label.attributes('x'))).toBeLessThanOrEqual(firstDot)
+  })
+
   it('marks a far goal below the data with a down arrow and the stored value', async () => {
     const wrapper = await mountSuspended(WorkoutMetricChart, {
       props: {

@@ -65,6 +65,7 @@ const plates = computed(() => {
       <p v-if="raw !== null" class="text-center text-sm text-dimmed" data-test="set-calc-raw">
         {{ percent }}% = {{ raw }} lb
       </p>
+      <p v-else class="text-center text-sm text-dimmed" data-test="set-calc-hint">Enter a percentage of your 1RM</p>
       <p v-if="loadable !== null" class="text-center text-3xl font-bold tabular-nums" data-test="set-calc-loadable">
         {{ loadable }} lb
       </p>

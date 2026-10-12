@@ -112,6 +112,7 @@ watch(
 const paging = ref({ filter: '', pages: 1 })
 const pages = computed(() => (paging.value.filter === filterQuery.value ? paging.value.pages : 1))
 const limit = computed(() => Math.min(pages.value * PAGE_SIZE, MAX_LIMIT))
+watch(filterQuery, (filter) => (paging.value = { filter, pages: 1 }))
 
 const {
   data: sessions,

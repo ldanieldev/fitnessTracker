@@ -50,5 +50,15 @@ describe('WorkoutToolsSetCalc', () => {
     expect(wrapper.find('[data-test="set-calc-loadable"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="set-calc-plates"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="set-calc-use"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="set-calc-hint"]').text()).toBe('Enter a percentage of your 1RM')
+  })
+
+  it('shows the hint for a blank percent and hides it once there is a result', async () => {
+    const wrapper = await mountSuspended(WorkoutToolsSetCalc, {
+      props: { oneRm: 262, pending: false, context: barbell }
+    })
+    expect(wrapper.find('[data-test="set-calc-hint"]').exists()).toBe(false)
+    await wrapper.find('[data-test="set-calc-percent"]').setValue('')
+    expect(wrapper.find('[data-test="set-calc-hint"]').exists()).toBe(true)
   })
 })

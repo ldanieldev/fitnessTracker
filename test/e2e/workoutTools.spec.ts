@@ -79,6 +79,17 @@ test('1RM estimate comes from recent sets and follows edits', async ({ page, got
   await apiFetch(page, 'PATCH', `/api/workouts/sets/${logged.json.set.id}`, { weight: 245 })
   expect((await apiFetch<OneRepMaxResult>(page, 'GET', url)).json.estimate).toBe(275.6)
 
+  const heavier = await apiFetch<{ set: { id: number } }>(page, 'POST', `/api/workouts/entries/${entryId}/sets`, {
+    weight: 255,
+    reps: 5
+  })
+  expect((await apiFetch<OneRepMaxResult>(page, 'GET', url)).json.estimate).toBe(286.9)
+  // Touched so the delete below moves only the set count in the cache stamp, not its newest update time.
+  await apiFetch(page, 'PATCH', `/api/workouts/sets/${logged.json.set.id}`, { reps: 5 })
+  expect((await apiFetch<OneRepMaxResult>(page, 'GET', url)).json.estimate).toBe(286.9)
+  await apiFetch(page, 'DELETE', `/api/workouts/sets/${heavier.json.set.id}`)
+  expect((await apiFetch<OneRepMaxResult>(page, 'GET', url)).json.estimate).toBe(275.6)
+
   // Before the assisted PUT: the short-circuit would otherwise answer these without reaching the window or the query.
   expect((await apiFetch(page, 'GET', `/api/workouts/exercises/${lift.id}/one-rep-max?on=yesterday`)).status).toBe(400)
   expect((await apiFetch(page, 'GET', `/api/workouts/exercises/${lift.id}/one-rep-max?on=2026-02-30`)).status).toBe(400)

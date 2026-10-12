@@ -151,7 +151,7 @@ function remove() {
             data-test="routine-entry-rest"
           />
         </div>
-        <USwitch v-model="form.optional" label="Optional" data-test="routine-entry-optional" />
+        <USwitch v-model="form.optional" label="Optional" aria-label="Optional" data-test="routine-entry-optional" />
         <UInput
           v-model="form.notes"
           placeholder="Note, e.g. per side"

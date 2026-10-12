@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from '../helpers'
+import { todayDate } from '../../../shared/utils/nutritionSummary'
 
 // Distinct from the real Nutella/Cheerios barcodes already in the dev DB, so these always hit the stub route.
 const STUB_BARCODE = '4017624010700'
@@ -33,7 +34,7 @@ test('scanning twice keeps the tray and container, and the scanned row lands in 
   const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
   const target = containers.json[1]!
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayDate()
   await goto(`/nutrition/diary/${today}/add?containerId=${target.id}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="add-container"]')).toContainText(target.name)
 

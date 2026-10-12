@@ -101,8 +101,8 @@ async function makeDefault() {
         <div v-if="metric === 'weight_at_reps'" class="w-36 shrink-0">
           <AppNumberInput v-model="reps" :min="1" :max="30" :step="1" data-test="graph-reps" />
         </div>
-        <UCheckbox v-model="showTrend" label="Trend" data-test="graph-trend" />
-        <UCheckbox v-model="zeroBased" label="Start at zero" data-test="graph-zero" />
+        <UCheckbox v-model="showTrend" label="Trend" aria-label="Trend" data-test="graph-trend" />
+        <UCheckbox v-model="zeroBased" label="Start at zero" aria-label="Start at zero" data-test="graph-zero" />
       </div>
     </div>
 

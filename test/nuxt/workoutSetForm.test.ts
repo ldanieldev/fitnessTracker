@@ -308,6 +308,26 @@ describe('WorkoutSetForm', () => {
     expect(input(wrapper, 'set-weight-new').value).toBe('215')
   })
 
+  it('re-seeds on a delete after a preset weight, as if nothing was typed', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: { ...at({ ...barbell, sets: [set(1, 175, 5), set(2, 205, 6)] }), presetWeight: { weight: 200, seq: 1 } }
+    })
+    expect(input(wrapper, 'set-weight-new').value).toBe('200')
+    await wrapper.setProps(at({ ...barbell, sets: [set(1, 175, 5)] }))
+    expect(input(wrapper, 'set-weight-new').value).toBe('175')
+  })
+
+  it('re-seeds on a delete after applying the suggestion, as if nothing was typed', async () => {
+    const wrapper = await mountSuspended(WorkoutSetForm, {
+      props: at({ ...ranged, sets: [set(1, 185, 3), set(2, 185, 6)] })
+    })
+    await wrapper.setProps({ choice: 'apply' })
+    expect(input(wrapper, 'set-weight-new').value).toBe('195')
+    await wrapper.setProps(at({ ...ranged, sets: [set(1, 185, 3)] }))
+    expect(input(wrapper, 'set-weight-new').value).toBe('185')
+    expect(input(wrapper, 'set-reps-new').value).toBe('3')
+  })
+
   it('re-seeds on a delete when nothing was typed', async () => {
     const wrapper = await mountSuspended(WorkoutSetForm, {
       props: at({ ...barbell, sets: [set(1, 175, 5), set(2, 205, 6)] })

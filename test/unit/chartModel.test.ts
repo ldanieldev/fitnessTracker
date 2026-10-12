@@ -82,6 +82,22 @@ describe('chartModel', () => {
     expect(buildChartModel({ ...base, goal: 50 }).goalEdge).toBe('below')
   })
 
+  it('ends the last date label at the plot edge so it is not clipped, and centres the rest', async () => {
+    const { buildChartModel } = await import('../../shared/utils/chartModel')
+    const m = buildChartModel({
+      points: [{ date: '2026-03-01', value: 200 }],
+      trend: [],
+      goal: null,
+      from: '2026-03-01',
+      to: '2026-03-11',
+      width: 320,
+      height: 200,
+      gapDays: 10
+    })
+    expect(m.xTicks.map((t) => t.anchor)).toEqual(['middle', 'middle', 'end'])
+    expect(m.xTicks.at(-1)!.x).toBe(m.plot.right)
+  })
+
   it('spreads date ticks from first to last day without duplicates', async () => {
     const { dateTicks } = await import('../../shared/utils/chartModel')
     expect(dateTicks('2026-03-01', '2026-03-31', 3)).toEqual(['2026-03-01', '2026-03-16', '2026-03-31'])

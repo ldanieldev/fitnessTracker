@@ -76,7 +76,7 @@ function save() {
             @update:model-value="touched = true"
           />
         </UFormField>
-        <USwitch v-model="form.deload" label="Deload" data-test="phase-deload" />
+        <USwitch v-model="form.deload" label="Deload" aria-label="Deload" data-test="phase-deload" />
         <UButton type="submit" label="Save" block class="min-h-10" :disabled="!valid" data-test="phase-save" />
       </form>
     </template>

@@ -230,6 +230,20 @@ describe('WorkoutHistoryFilterSheet', () => {
     wrapper.unmount()
   })
 
+  it('keeps a toggled-off unknown category chip so it can be selected again', async () => {
+    const wrapper = await mount({ categories: [77] })
+    await flush()
+    q('filter-category-77')!.click()
+    await flush()
+    expect(q('filter-category-77')?.textContent).toContain('Unknown category')
+    q('filter-category-77')!.click()
+    await flush()
+    q('filter-apply')!.click()
+    await flush()
+    expect(wrapper.emitted('apply')?.at(-1)).toEqual([{ categories: [77] }])
+    wrapper.unmount()
+  })
+
   it('does not leave the phase select loading after the program goes to Any mid-fetch and back', async () => {
     const wrapper = await mount({ programId: 9 })
     await flush()

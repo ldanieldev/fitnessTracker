@@ -325,7 +325,11 @@ async function confirmDelete() {
                 />
               </template>
               <template v-else>
-                <UCheckbox v-model="rows[key]!.enabled" :data-test="`goal-enable-${key}`" />
+                <UCheckbox
+                  v-model="rows[key]!.enabled"
+                  :aria-label="`Goal for ${nutrientMeta(key)?.name}`"
+                  :data-test="`goal-enable-${key}`"
+                />
                 <span class="w-full sm:w-32 text-sm font-medium" :class="nameClass(key)">{{
                   nutrientMeta(key)?.name
                 }}</span>
@@ -348,7 +352,12 @@ async function confirmDelete() {
             </div>
           </div>
 
-          <UCheckbox v-model="isDefault" label="Set as default" data-test="goal-is-default" />
+          <UCheckbox
+            v-model="isDefault"
+            label="Set as default"
+            aria-label="Set as default"
+            data-test="goal-is-default"
+          />
 
           <div class="flex justify-end gap-2">
             <UButton label="Cancel" color="neutral" variant="outline" @click="modalOpen = false" />

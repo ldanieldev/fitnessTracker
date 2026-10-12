@@ -220,6 +220,21 @@ describe('useRestTimer', () => {
     expect(onComplete).toHaveBeenCalledOnce()
   })
 
+  it('completes the rest when an adjustment runs it down to 0', async () => {
+    const { useRestTimer } = await import('../../app/composables/useRestTimer')
+    const timer = useRestTimer()
+    const onComplete = vi.fn()
+    timer.onComplete(onComplete)
+
+    timer.start(5)
+    timer.adjustTime(-5)
+    expect(timer.isRunning.value).toBe(false)
+    expect(onComplete).toHaveBeenCalledOnce()
+
+    vi.advanceTimersByTime(5000)
+    expect(onComplete).toHaveBeenCalledOnce()
+  })
+
   it('stops ticking when its owning scope is disposed', async () => {
     const { effectScope } = await import('vue')
     const { useRestTimer } = await import('../../app/composables/useRestTimer')

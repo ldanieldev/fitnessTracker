@@ -44,6 +44,7 @@ function save() {
         <USwitch
           v-model="form.floating"
           label="Floating — outside the rotation, start any time"
+          aria-label="Floating — outside the rotation, start any time"
           data-test="routine-day-floating"
         />
         <UButton

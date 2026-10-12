@@ -57,6 +57,7 @@ function onTap() {
         v-if="selectable"
         :model-value="selected"
         :disabled="disabled"
+        :aria-label="`Select ${title}`"
         :data-test="checkboxHook"
         @click.stop
         @update:model-value="(v) => emit('toggle', Boolean(v))"

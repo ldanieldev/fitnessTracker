@@ -67,11 +67,7 @@ export function useRestTimer() {
     if (!isRunning.value) return
     endsAt += delta * 1000
     totalSeconds.value = Math.max(0, totalSeconds.value + delta)
-    remainingSeconds.value = secondsLeft()
-    if (remainingSeconds.value === 0) {
-      clearTimer()
-      isRunning.value = false
-    }
+    tick()
   }
 
   function setPreset(seconds: number) {

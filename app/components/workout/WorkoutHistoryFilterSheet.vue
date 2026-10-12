@@ -60,6 +60,7 @@ const phaseItems = computed(() =>
 )
 
 const categories = ref<number[]>([])
+const openedCategories = ref<number[]>([])
 const match = ref<SessionFilterMatch>('any')
 const exercise = ref<Pick<Exercise, 'id' | 'name' | 'loadStyle'> | null>(null)
 const minWeight = ref<number | null>(null)
@@ -91,6 +92,7 @@ watch(
   (isOpen) => {
     if (!isOpen) return
     categories.value = [...(props.filter.categories ?? [])]
+    openedCategories.value = categories.value
     match.value = props.filter.match ?? 'any'
     minWeight.value = props.filter.minWeight ?? null
     minReps.value = props.filter.minReps ?? null
@@ -115,7 +117,7 @@ function toggle(id: number) {
 const chips = computed<Array<Pick<ExerciseCategory, 'id' | 'name' | 'color'>>>(() => {
   if (!reference.value) return []
   const known = new Set(reference.value.categories.map((c) => c.id))
-  const unknown = categories.value
+  const unknown = openedCategories.value
     .filter((id) => !known.has(id))
     .map((id) => ({ id, name: 'Unknown category', color: 'fallback' }))
   return [...reference.value.categories, ...unknown]

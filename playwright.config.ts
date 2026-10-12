@@ -12,6 +12,7 @@ process.env.NUXT_OFF_SEARCH_URL = '/api/nutrition/_test/off/search'
 
 export default defineConfig<ConfigOptions>({
   testDir: './test/e2e',
+  globalSetup: './test/e2e/inngestStub.ts',
   globalTeardown: './test/e2e/globalTeardown.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

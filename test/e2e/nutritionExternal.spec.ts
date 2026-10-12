@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { todayDate } from '../../shared/utils/nutritionSummary'
 
 // Not the real Nutella barcode (3017624010701) in the dev DB, so the OFF import lookup always hits the stub.
 const STUB_BARCODE = '4017624010700'
@@ -84,7 +85,7 @@ test.describe('external food search, barcode lookup and import', () => {
     await goto('/', { waitUntil: 'hydration' })
     await registerViaApi(page, makeUser())
 
-    const today = new Date().toISOString().slice(0, 10)
+    const today = todayDate()
     await goto(`/nutrition/diary/${today}/add`, { waitUntil: 'hydration' })
 
     await page.locator('[data-test="online-tab"]').click()

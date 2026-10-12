@@ -19,6 +19,15 @@ describe('SettingsNutritionImport', () => {
     toastAddMock.mockClear()
   })
 
+  it('binds the field label to the file input', async () => {
+    const wrapper = await mountSuspended(SettingsNutritionImport)
+
+    const input = wrapper.find('[data-test="import-files"]')
+    expect(input.attributes('id')).toBeTruthy()
+    expect(wrapper.find('label').attributes('for')).toBe(input.attributes('id'))
+    expect(input.attributes('autocomplete')).toBeUndefined()
+  })
+
   it('uploads files, polls the job status, and renders the summary and warnings', async () => {
     registerEndpoint('/api/nutrition/import/mymacros', { method: 'POST', handler: () => ({ jobId: 7 }) })
     const appendSpy = vi.spyOn(FormData.prototype, 'append')
