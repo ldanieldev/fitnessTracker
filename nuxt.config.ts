@@ -29,12 +29,7 @@ export default defineNuxtConfig({
     '@nuxt/hints',
     '@nuxt/image',
     '@nuxt/test-utils',
-    'nuxt-auth-utils',
-    // Keeps onServerPrefetch in the client build, whose removal skews SSR/client useId (nuxt#36428); drop on 4.6.1+.
-    (_options, nuxt) => {
-      const client = nuxt.options.optimization.treeShake.composables.client
-      if (client.vue) client.vue = client.vue.filter((name) => name !== 'onServerPrefetch')
-    }
+    'nuxt-auth-utils'
   ],
 
   $development: {
@@ -119,7 +114,15 @@ export default defineNuxtConfig({
   },
   vite: {
     optimizeDeps: {
-      include: ['@internationalized/date', 'date-fns', 'zod', '@vue/devtools-core', '@vue/devtools-kit']
+      include: [
+        '@internationalized/date',
+        'date-fns',
+        'zod',
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'tesseract.js',
+        'zxing-wasm/reader'
+      ]
     }
   },
   eslint: {
