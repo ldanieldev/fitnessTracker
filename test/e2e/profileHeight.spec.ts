@@ -38,3 +38,15 @@ test('height: the profile form saves feet and inches and shows them again', asyn
   await expect(page.getByLabel('Height feet')).toHaveValue('5')
   await expect(page.getByLabel('Height inches')).toHaveValue('5.5')
 })
+
+test('user list: no route returns accounts, signed in or not', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  const user = await registerViaApi(page, makeUser())
+  const signedIn = await apiFetch(page, 'GET', '/api/users')
+  expect(Array.isArray(signedIn.json)).toBe(false)
+  expect(JSON.stringify(signedIn.json)).not.toContain(user.email)
+  await apiFetch(page, 'DELETE', '/api/_auth/session')
+  const anonymous = await apiFetch(page, 'GET', '/api/users')
+  expect(Array.isArray(anonymous.json)).toBe(false)
+  expect(JSON.stringify(anonymous.json)).not.toContain(user.email)
+})
