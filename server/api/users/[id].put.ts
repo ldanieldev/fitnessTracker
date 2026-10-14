@@ -11,6 +11,7 @@ const updateProfileSchema = z.object({
   email: z.email().optional(),
   age: z.coerce.number().min(13).max(120).optional(),
   sex: z.enum(['m', 'f']).optional(),
+  heightIn: z.number().min(36).max(96).nullable().optional(),
   avatarUrl: z.string().url().optional().or(z.literal('')),
   weekStart: z.union([z.literal(0), z.literal(1)]).optional(),
   defaultRestSeconds: z.number().int().min(10).max(600).optional(),
@@ -21,6 +22,8 @@ const updateProfileSchema = z.object({
   showWorkouts: z.boolean().optional(),
   showNutrition: z.boolean().optional()
 })
+
+const roundTenth = (value: number) => Math.round(value * 10) / 10
 
 export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event)
@@ -71,6 +74,7 @@ export default defineEventHandler(async (event) => {
       email: parsed.data.email,
       age: parsed.data.age,
       sex: parsed.data.sex,
+      heightIn: parsed.data.heightIn == null ? parsed.data.heightIn : String(roundTenth(parsed.data.heightIn)),
       avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl || null : undefined,
       weekStart: parsed.data.weekStart,
       defaultRestSeconds: parsed.data.defaultRestSeconds,

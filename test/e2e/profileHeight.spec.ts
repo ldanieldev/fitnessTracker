@@ -1,0 +1,40 @@
+import { expect, test } from '@nuxt/test-utils/playwright'
+import { apiFetch, makeUser, registerViaApi } from './helpers'
+
+test('height: saves 36–96 inches, clears with null, rejects anything else', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const session = await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')
+  const id = session.json.user.id
+  for (const bad of [35.9, 96.1, '65']) {
+    expect((await apiFetch(page, 'PUT', `/api/users/${id}`, { heightIn: bad })).status).toBe(400)
+  }
+  expect((await apiFetch(page, 'PUT', `/api/users/${id}`, { heightIn: 65.54 })).status).toBe(200)
+  expect((await apiFetch<{ heightIn: string }>(page, 'GET', `/api/users/${id}`)).json.heightIn).toBe('65.5')
+  expect((await apiFetch(page, 'PUT', `/api/users/${id}`, { heightIn: null })).status).toBe(200)
+  expect((await apiFetch<{ heightIn: string | null }>(page, 'GET', `/api/users/${id}`)).json.heightIn).toBeNull()
+})
+
+test('user GET: only your own row', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const session = await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')
+  expect((await apiFetch(page, 'GET', `/api/users/${session.json.user.id + 1}`)).status).toBe(403)
+  await apiFetch(page, 'DELETE', '/api/_auth/session')
+  expect((await apiFetch(page, 'GET', `/api/users/${session.json.user.id}`)).status).toBe(401)
+})
+
+test('height: the profile form saves feet and inches and shows them again', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const session = await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')
+  await apiFetch(page, 'PUT', `/api/users/${session.json.user.id}`, { sex: 'm' })
+  await goto('/settings/profile', { waitUntil: 'hydration' })
+  await page.getByLabel('Height feet').fill('5')
+  await page.getByLabel('Height inches').fill('5.5')
+  await page.getByRole('button', { name: 'Save changes' }).first().click()
+  await expect(page.getByText('Profile updated', { exact: true })).toBeVisible()
+  await goto('/settings/profile', { waitUntil: 'hydration' })
+  await expect(page.getByLabel('Height feet')).toHaveValue('5')
+  await expect(page.getByLabel('Height inches')).toHaveValue('5.5')
+})

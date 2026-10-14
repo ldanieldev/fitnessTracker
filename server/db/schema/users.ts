@@ -10,6 +10,7 @@ export const users = appSchema.table(
     name: varchar({ length: 255 }).notNull(),
     age: integer().notNull(),
     sex: varchar({ enum: ['m', 'f'] }).default(sql`null`),
+    heightIn: numeric('height_in').default(sql`null`),
     avatarUrl: varchar('avatar_url', { length: 255 }).default(sql`null`),
     isActive: boolean('is_active').default(true),
     password: varchar({ length: 255 }),
@@ -35,7 +36,8 @@ export const users = appSchema.table(
       sql`cardinality(${table.plateSizes}) between 1 and 12
         and 0 < all(${table.plateSizes}) and 100 >= all(${table.plateSizes})`
     ),
-    check('users_one_rep_max_rep_cap_check', sql`${table.oneRepMaxRepCap} between 1 and 20`)
+    check('users_one_rep_max_rep_cap_check', sql`${table.oneRepMaxRepCap} between 1 and 20`),
+    check('users_height_in_check', sql`${table.heightIn} is null or ${table.heightIn} between 36 and 96`)
   ]
 )
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { HEIGHT_MAX_IN, HEIGHT_MIN_IN, joinHeight, splitHeight } from '~~/shared/utils/height'
 
 const { user, fetch: fetchSession } = useUserSession()
 const toast = useToast()
@@ -10,17 +11,32 @@ const schema = z.object({
   email: z.string({ message: 'Email is required' }).email('Invalid email'),
   age: z.coerce.number({ message: 'Age is required' }).min(13, 'Must be at least 13 years old').max(120, 'Invalid age'),
   sex: z.enum(['m', 'f'], { message: 'Sex is required' }),
-  avatarUrl: z.string().url('Invalid URL').optional().or(z.literal(''))
+  avatarUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
+  heightFeet: z.number().int('Whole feet').min(0).nullable().optional(),
+  heightInches: z.number().min(0).max(95.9).nullable().optional()
+}).superRefine((data, ctx) => {
+  const total = joinHeight(data.heightFeet, data.heightInches)
+  if (total !== null && (total < HEIGHT_MIN_IN || total > HEIGHT_MAX_IN)) {
+    ctx.addIssue({ code: 'custom', path: ['heightFeet'], message: 'Height must be 3′ to 8′' })
+  }
 })
 
 type Schema = z.input<typeof schema>
+
+// Read from the DB, not the session user: sessions signed in before height existed would show it blank.
+const { data: profileRow } = await useFetch<{ heightIn: string | null }>(`/api/users/${user.value!.id}`, {
+  key: 'settings:profile-row'
+})
+const savedHeight = splitHeight(profileRow.value?.heightIn == null ? null : Number(profileRow.value.heightIn))
 
 const state = reactive<Partial<Schema>>({
   name: user.value?.name ?? '',
   email: user.value?.email ?? '',
   age: user.value?.age ?? undefined,
   sex: (user.value?.sex as 'm' | 'f') ?? undefined,
-  avatarUrl: user.value?.avatar_url ?? ''
+  avatarUrl: user.value?.avatar_url ?? '',
+  heightFeet: savedHeight.feet,
+  heightInches: savedHeight.inches
 })
 
 const loading = ref(false)
@@ -72,10 +88,11 @@ async function onPreferencesSubmit(payload: FormSubmitEvent<PreferencesSchema>) 
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   loading.value = true
+  const { heightFeet, heightInches, ...profile } = payload.data
   try {
     await apiFetch(`/api/users/${user.value!.id}`, {
       method: 'PUT',
-      body: payload.data
+      body: { ...profile, heightIn: joinHeight(heightFeet, heightInches) }
     })
     await fetchSession()
     toast.add({
@@ -132,6 +149,27 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
             placeholder="Select your sex"
             class="w-full"
           />
+        </UFormField>
+
+        <UFormField label="Height" name="heightFeet" hint="optional">
+          <div class="flex items-center gap-2">
+            <AppNumberInput
+              v-model="state.heightFeet"
+              :min="0"
+              :step="1"
+              aria-label="Height feet"
+              data-test="profile-height-feet"
+            />
+            <span class="text-sm text-muted">ft</span>
+            <AppNumberInput
+              v-model="state.heightInches"
+              :min="0"
+              :step="0.5"
+              aria-label="Height inches"
+              data-test="profile-height-inches"
+            />
+            <span class="text-sm text-muted">in</span>
+          </div>
         </UFormField>
 
         <UButton type="submit" label="Save changes" :loading="loading" class="w-fit" />

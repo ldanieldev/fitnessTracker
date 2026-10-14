@@ -1,13 +1,19 @@
 import { eq, getTableColumns } from 'drizzle-orm'
 import { users } from '~~/server/db/schema'
+import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
+  const sessionUserId = await requireUserId(event)
   const id = Number(getRouterParam(event, 'id'))
 
   const { password, ...userColumns } = getTableColumns(users)
 
   if (Number.isNaN(id) || id === 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid user ID' })
+  }
+
+  if (id !== sessionUserId) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
   const result = await withQuerySpan('select-user', () =>

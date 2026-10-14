@@ -1,0 +1,2 @@
+ALTER TABLE "app"."users" ADD COLUMN "height_in" numeric DEFAULT null;--> statement-breakpoint
+ALTER TABLE "app"."users" ADD CONSTRAINT "users_height_in_check" CHECK ("app"."users"."height_in" is null or "app"."users"."height_in" between 36 and 96);
