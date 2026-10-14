@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm'
 import type { EntryTarget, LoadStyle, PointerChoice, TrackingType, WorkoutSession } from '~~/shared/types/workout'
-import { routines, workoutEntries, workoutSessions, workoutTemplateEntries } from '~~/server/db/schema'
+import { routineDaySkips, routines, workoutEntries, workoutSessions, workoutTemplateEntries } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
 import type { SessionStartInput } from '~~/server/utils/workouts/input'
 import { sessionProgramTag } from '~~/server/utils/workouts/enrollments'
@@ -9,7 +9,7 @@ import { loadSession, rethrowOpenSessionConflict } from '~~/server/utils/workout
 import { DAY_NOT_FOUND, ownedRoutineDay } from '~~/server/utils/workouts/routineDays'
 import { cycleDays, lockRoutine } from '~~/server/utils/workouts/routines'
 import { targetColumns, toEntryTarget } from '~~/server/utils/workouts/targets'
-import { advancePointer, needsPointerChoice } from '~~/shared/utils/routineCycle'
+import { advancePointer, needsPointerChoice, skippedByStart } from '~~/shared/utils/routineCycle'
 import { normalizeGroups } from '~~/shared/utils/supersets'
 import { copyTargetsFrom } from '~~/shared/utils/workoutTargets'
 
@@ -43,6 +43,7 @@ interface DayClaim {
   name: string
   routineId: number
   nextDayId: number | null
+  skipped: Array<{ id: number; name: string }>
 }
 
 async function claimRoutineDay(
@@ -64,7 +65,11 @@ async function claimRoutineDay(
     dayId: day.id,
     name: day.name,
     routineId: day.routineId,
-    nextDayId: advancePointer(days, routine.nextDayId, day.id, choice)
+    nextDayId: advancePointer(days, routine.nextDayId, day.id, choice),
+    skipped: skippedByStart(days, routine.nextDayId, day.id, choice).map((id) => ({
+      id,
+      name: days.find((d) => d.id === id)!.name
+    }))
   }
 }
 
@@ -175,7 +180,21 @@ export async function startSession(userId: number, input: SessionStartInput): Pr
           restSeconds: entry.restSeconds
         })
       }
-      if (claim) await tx.update(routines).set({ nextDayId: claim.nextDayId }).where(eq(routines.id, claim.routineId))
+      if (claim) {
+        await tx.update(routines).set({ nextDayId: claim.nextDayId }).where(eq(routines.id, claim.routineId))
+        if (claim.skipped.length) {
+          await tx.insert(routineDaySkips).values(
+            claim.skipped.map((skipped) => ({
+              userId,
+              routineId: claim.routineId,
+              dayId: skipped.id,
+              dayName: skipped.name,
+              skippedOn: input.performedOn,
+              via: 'start' as const
+            }))
+          )
+        }
+      }
       return row.id
     })
     return loadSession(userId, id)

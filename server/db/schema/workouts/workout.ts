@@ -156,3 +156,19 @@ export const workoutSets = appSchema.table(
   },
   (table) => [index('workout_set_entry').on(table.entryId, table.sortOrder)]
 )
+
+export const routineDaySkips = appSchema.table(
+  'routine_day_skips',
+  {
+    ...commonColumns,
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    routineId: integer('routine_id').references(() => routines.id, { onDelete: 'set null' }),
+    dayId: integer('day_id').references(() => workoutTemplates.id, { onDelete: 'set null' }),
+    dayName: varchar('day_name', { length: 255 }).notNull(),
+    skippedOn: date('skipped_on').notNull(),
+    via: varchar('via', { enum: ['skip', 'start'] }).notNull()
+  },
+  (table) => [index('routine_day_skip_user_day').on(table.userId, table.skippedOn)]
+)

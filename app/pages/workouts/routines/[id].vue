@@ -80,6 +80,7 @@ function confirmPause() {
   )
 }
 
+const today = useTodayOrNow()
 const call = (method: 'POST' | 'PATCH' | 'DELETE', path: string, body?: object) => () =>
   apiFetch<Routine>(`/api/workouts/${path}`, { method, body })
 
@@ -140,7 +141,7 @@ function makeNext(day: RoutineDay) {
 }
 
 function skipDay() {
-  act(call('POST', `routines/${id}/skip`), 'Couldn\'t skip day', 'Could not skip this day')
+  act(call('POST', `routines/${id}/skip`, { date: today.value }), 'Couldn\'t skip day', 'Could not skip this day')
 }
 
 function moveDay(day: RoutineDay, delta: -1 | 1) {

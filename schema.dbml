@@ -522,6 +522,22 @@ table app.recipes {
   deleted_at timestamp [default: `null`]
 }
 
+table app.routine_day_skips {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  routine_id integer
+  day_id integer
+  day_name varchar(255) [not null]
+  skipped_on date [not null]
+  via varchar [not null]
+
+  indexes {
+    (user_id, skipped_on) [name: 'routine_day_skip_user_day']
+  }
+}
+
 table app.routines {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -923,6 +939,12 @@ ref recipe_ingredients_food_id_foods_id_fk: app.recipe_ingredients.food_id > app
 ref recipe_ingredients_food_serving_id_food_servings_id_fk: app.recipe_ingredients.food_serving_id > app.food_servings.id [delete: no action, update: no action]
 
 ref recipes_user_id_users_id_fk: app.recipes.user_id > app.users.id [delete: cascade, update: no action]
+
+ref routine_day_skips_user_id_users_id_fk: app.routine_day_skips.user_id > app.users.id [delete: cascade, update: no action]
+
+ref routine_day_skips_routine_id_routines_id_fk: app.routine_day_skips.routine_id > app.routines.id [delete: set null, update: no action]
+
+ref routine_day_skips_day_id_workout_templates_id_fk: app.routine_day_skips.day_id > app.workout_templates.id [delete: set null, update: no action]
 
 ref routines_user_id_users_id_fk: app.routines.user_id > app.users.id [delete: cascade, update: no action]
 

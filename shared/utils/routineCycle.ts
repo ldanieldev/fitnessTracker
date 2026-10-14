@@ -39,3 +39,22 @@ export function advancePointer(
 export function skipPointer(days: CycleDay[], nextDayId: number | null): number | null {
   return followingDayId(days, dueDayId(days, nextDayId))
 }
+
+/** Rotation days an out-of-order start with "skip" passes over: the due day up to, not including, the started one. */
+export function skippedByStart(
+  days: CycleDay[],
+  nextDayId: number | null,
+  startedDayId: number,
+  choice?: PointerChoice
+): number[] {
+  if (choice !== 'skip' || !needsPointerChoice(days, nextDayId, startedDayId)) return []
+  const rotation = days.filter((day) => !day.floating)
+  const due = dueDayId(days, nextDayId)
+  const out: number[] = []
+  let index = rotation.findIndex((day) => day.id === due)
+  while (index !== -1 && rotation[index]!.id !== startedDayId && out.length < rotation.length) {
+    out.push(rotation[index]!.id)
+    index = (index + 1) % rotation.length
+  }
+  return out
+}

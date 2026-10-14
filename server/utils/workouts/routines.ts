@@ -4,6 +4,7 @@ import {
   exercisePrefs,
   exercises,
   programs,
+  routineDaySkips,
   routines,
   workoutTemplateEntries,
   workoutTemplates
@@ -244,14 +245,20 @@ export async function deleteRoutine(userId: number, id: number): Promise<void> {
   })
 }
 
-export async function skipRoutineDay(userId: number, id: number): Promise<Routine> {
+export async function skipRoutineDay(userId: number, id: number, skippedOn: string): Promise<Routine> {
   await db.transaction(async (tx) => {
     const row = await lockRoutine(tx, userId, id)
     const days = await cycleDays(id, tx)
+    const due = days.find((day) => day.id === dueDayId(days, row.nextDayId))
     await tx
       .update(routines)
       .set({ nextDayId: skipPointer(days, row.nextDayId) })
       .where(eq(routines.id, id))
+    if (due) {
+      await tx
+        .insert(routineDaySkips)
+        .values({ userId, routineId: id, dayId: due.id, dayName: due.name, skippedOn, via: 'skip' })
+    }
   })
   return loadRoutine(userId, id)
 }

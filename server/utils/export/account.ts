@@ -36,6 +36,7 @@ import {
   programs,
   recipeIngredients,
   recipes,
+  routineDaySkips,
   routines,
   savedMealItems,
   savedMeals,
@@ -158,6 +159,7 @@ export function accountTables(userId: number) {
     exercise_variation_members: () => select(exerciseVariationMembers, eq(exerciseVariationMembers.userId, userId)),
     workout_exercise_goals: () => select(workoutExerciseGoals, eq(workoutExerciseGoals.userId, userId)),
     routines: () => select(routines, eq(routines.userId, userId)),
+    routine_day_skips: () => select(routineDaySkips, eq(routineDaySkips.userId, userId)),
     workout_templates: () => select(workoutTemplates, eq(workoutTemplates.userId, userId)),
     workout_template_entries: () =>
       select(

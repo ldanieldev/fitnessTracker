@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { advancePointer, dueDayId, needsPointerChoice, skipPointer } from '../../shared/utils/routineCycle'
+import {
+  advancePointer,
+  dueDayId,
+  needsPointerChoice,
+  skippedByStart,
+  skipPointer
+} from '../../shared/utils/routineCycle'
 
 const days = [
   { id: 1, floating: false },
@@ -63,5 +69,20 @@ describe('skipPointer', () => {
     expect(skipPointer(days, 3)).toBe(1)
     expect(skipPointer(days, null)).toBe(2)
     expect(skipPointer([], null)).toBeNull()
+  })
+})
+
+describe('skippedByStart', () => {
+  it('lists the rotation days passed over, from the due day up to the started one', () => {
+    expect(skippedByStart(days, 1, 3, 'skip')).toEqual([1, 2])
+    expect(skippedByStart(days, 2, 3, 'skip')).toEqual([2])
+    expect(skippedByStart(days, 3, 2, 'skip')).toEqual([3, 1])
+  })
+
+  it('skips nothing when keeping the pointer, starting the due day, or starting a floating day', () => {
+    expect(skippedByStart(days, 1, 3, 'keep')).toEqual([])
+    expect(skippedByStart(days, 1, 3)).toEqual([])
+    expect(skippedByStart(days, 2, 2, 'skip')).toEqual([])
+    expect(skippedByStart(days, 1, 9, 'skip')).toEqual([])
   })
 })
