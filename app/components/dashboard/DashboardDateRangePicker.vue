@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
+import { CalendarDate, getLocalTimeZone, toCalendarDate as toDay, today, type DateValue } from '@internationalized/date'
 import type { Range } from '~/types'
 import { formatRange } from '~/utils/dateRange'
 
@@ -21,18 +21,30 @@ const toCalendarDate = (date: Date) => {
   return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
 }
 
-const calendarRange = computed({
-  get: () => ({
-    start: selected.value.start ? toCalendarDate(selected.value.start) : undefined,
-    end: selected.value.end ? toCalendarDate(selected.value.end) : undefined
-  }),
-  set: (newValue: { start: CalendarDate | null; end: CalendarDate | null }) => {
-    selected.value = {
-      start: newValue.start ? newValue.start.toDate(getLocalTimeZone()) : new Date(),
-      end: newValue.end ? newValue.end.toDate(getLocalTimeZone()) : new Date()
-    }
-  }
+type CalendarRange = { start: DateValue | undefined; end: DateValue | undefined }
+
+const fromSelected = (): CalendarRange => ({
+  start: toCalendarDate(selected.value.start),
+  end: toCalendarDate(selected.value.end)
 })
+
+// The calendar reports the first click as a range with no end, so it waits here until the second click completes it.
+const calendarRange = shallowRef<CalendarRange>(fromSelected())
+watch(selected, () => {
+  calendarRange.value = fromSelected()
+})
+
+function onCalendarChange(value: CalendarRange | null) {
+  calendarRange.value = value ?? { start: undefined, end: undefined }
+  if (value?.start && value.end) {
+    const tz = getLocalTimeZone()
+    selected.value = { start: toDay(value.start).toDate(tz), end: toDay(value.end).toDate(tz) }
+  }
+}
+
+function onOpenChange(open: boolean) {
+  if (!open) calendarRange.value = fromSelected()
+}
 
 const isRangeSelected = (range: { days?: number; months?: number; years?: number }) => {
   if (!selected.value.start || !selected.value.end) return false
@@ -74,7 +86,7 @@ const selectRange = (range: { days?: number; months?: number; years?: number }) 
 </script>
 
 <template>
-  <UPopover :content="{ align: 'start' }" :modal="true">
+  <UPopover :content="{ align: 'start' }" :modal="true" @update:open="onOpenChange">
     <UButton
       color="neutral"
       variant="ghost"
@@ -113,11 +125,13 @@ const selectRange = (range: { days?: number; months?: number; years?: number }) 
         </div>
 
         <UCalendar
-          v-model="calendarRange"
+          :model-value="calendarRange"
           class="p-2"
+          :max-value="today(getLocalTimeZone())"
           :number-of-months="props.months"
           :week-starts-on="weekStart"
           range
+          @update:model-value="onCalendarChange"
         />
       </div>
     </template>
