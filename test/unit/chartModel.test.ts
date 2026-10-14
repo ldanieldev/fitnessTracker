@@ -129,4 +129,43 @@ describe('chartModel', () => {
     expect(buildChartModel(input).y.domain[0]).toBeGreaterThan(0)
     expect(buildChartModel({ ...input, zeroBased: true }).y.domain[0]).toBe(0)
   })
+
+  it('places markers inside the range by date and drops the rest', async () => {
+    const { buildChartModel } = await import('../../shared/utils/chartModel')
+    const m = buildChartModel({
+      points: [{ date: '2026-03-01', value: 200 }],
+      trend: [],
+      goal: null,
+      from: '2026-03-01',
+      to: '2026-03-11',
+      width: 340,
+      height: 200,
+      gapDays: 10,
+      markers: [
+        { date: '2026-03-11', label: 'late' },
+        { date: '2026-02-28', label: 'before' },
+        { date: '2026-03-06', label: 'middle' }
+      ]
+    })
+    expect(m.markers.map((mk) => mk.label)).toEqual(['middle', 'late'])
+    expect(m.markers[0]!.x).toBe((m.plot.left + m.plot.right) / 2)
+    expect(m.markers[1]!.x).toBe(m.plot.right)
+    const plain = { points: [], trend: [], goal: null, from: '2026-03-01', to: '2026-03-11', width: 340, height: 200 }
+    expect(buildChartModel({ ...plain, gapDays: 10 }).markers).toEqual([])
+  })
+
+  it('picks the nearest dot or marker, preferring a marker within reach', async () => {
+    const { pickNearest } = await import('../../shared/utils/chartModel')
+    const dots = [
+      { date: '2026-03-01', value: 1, x: 100, y: 0 },
+      { date: '2026-03-02', value: 2, x: 200, y: 0 }
+    ]
+    const markers = [{ date: '2026-03-02', label: 'note', x: 206 }]
+    expect(pickNearest(dots, markers, 104)).toEqual({ kind: 'dot', dot: dots[0] })
+    expect(pickNearest(dots, markers, 201)).toEqual({ kind: 'marker', marker: markers[0] })
+    expect(pickNearest(dots, markers, 160)).toEqual({ kind: 'dot', dot: dots[1] })
+    expect(pickNearest([], markers, 0)).toEqual({ kind: 'marker', marker: markers[0] })
+    expect(pickNearest(dots, [], 199)).toEqual({ kind: 'dot', dot: dots[1] })
+    expect(pickNearest([], [], 0)).toBeNull()
+  })
 })

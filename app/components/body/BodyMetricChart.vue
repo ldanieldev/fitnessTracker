@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SeriesGranularity, SeriesPoint } from '~~/shared/types/series'
+import type { ChartMarker } from '~~/shared/utils/chartModel'
 import { formatDelta, formatValue } from '~~/shared/utils/bodyMetrics'
 
 const props = withDefaults(
@@ -13,8 +14,9 @@ const props = withDefaults(
     unit: string
     granularity: SeriesGranularity
     height?: number
+    markers?: ChartMarker[]
   }>(),
-  { height: 200 }
+  { height: 200, markers: () => [] }
 )
 
 const summary = computed(() => {
@@ -40,6 +42,7 @@ const summary = computed(() => {
     empty-text="No readings in this range"
     :dense="points.length > 180"
     :height="height"
+    :markers="markers"
   >
     <template #tooltip="{ dot, previous, when }">
       <div class="text-dimmed">{{ when }}</div>

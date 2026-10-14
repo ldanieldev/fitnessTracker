@@ -103,6 +103,15 @@ export interface ChartDot extends XY {
   value: number
 }
 
+export interface ChartMarker {
+  date: string
+  label: string
+}
+
+export interface PlacedMarker extends ChartMarker {
+  x: number
+}
+
 export interface ChartModel {
   width: number
   height: number
@@ -117,6 +126,7 @@ export interface ChartModel {
   goalY: number | null
   goalEdge: 'above' | 'below' | null
   dots: ChartDot[]
+  markers: PlacedMarker[]
 }
 
 export interface ChartInput {
@@ -129,6 +139,7 @@ export interface ChartInput {
   height: number
   gapDays: number
   zeroBased?: boolean
+  markers?: ChartMarker[]
 }
 
 // A goal this close to the data (share of its magnitude, or one data span) widens the axis; farther gets an edge label.
@@ -175,6 +186,27 @@ export function buildChartModel(input: ChartInput): ChartModel {
     trendPath: pathFrom(trendSegments),
     goalY: goalFits ? y(goal) : null,
     goalEdge: goal === null || goalFits ? null : goal > hi ? 'above' : 'below',
-    dots: rawSegments.flat()
+    dots: rawSegments.flat(),
+    markers: (input.markers ?? [])
+      .filter((m) => m.date >= input.from && m.date <= input.to)
+      .map((m) => ({ ...m, x: x(dayIndex(m.date)) }))
+      .sort((a, b) => a.x - b.x)
   }
+}
+
+export type ChartPick = { kind: 'dot'; dot: ChartDot } | { kind: 'marker'; marker: PlacedMarker }
+
+/** Nearest dot or marker to x. Markers are the smaller target, so they win ties and picks within `markerReach` px. */
+export function pickNearest(
+  dots: ChartDot[],
+  markers: PlacedMarker[],
+  x: number,
+  markerReach = 8
+): ChartPick | null {
+  const dot = nearestPoint(dots, x)
+  const marker = nearestPoint(markers, x)
+  if (!marker) return dot ? { kind: 'dot', dot } : null
+  const markerDist = Math.abs(marker.x - x)
+  if (!dot || markerDist <= markerReach || markerDist <= Math.abs(dot.x - x)) return { kind: 'marker', marker }
+  return { kind: 'dot', dot }
 }

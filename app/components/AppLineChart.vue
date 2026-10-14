@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { useId } from 'vue'
 import type { SeriesPoint } from '~~/shared/types/series'
-import { buildChartModel, nearestPoint, type ChartDot } from '~~/shared/utils/chartModel'
+import {
+  buildChartModel,
+  pickNearest,
+  type ChartDot,
+  type ChartMarker,
+  type ChartPick
+} from '~~/shared/utils/chartModel'
 
 const props = withDefaults(
   defineProps<{
@@ -18,8 +24,9 @@ const props = withDefaults(
     dense?: boolean
     height?: number
     formatTick?: (value: number) => string
+    markers?: ChartMarker[]
   }>(),
-  { goalLabel: '', zeroBased: false, dense: false, height: 200, formatTick: undefined }
+  { goalLabel: '', zeroBased: false, dense: false, height: 200, formatTick: undefined, markers: () => [] }
 )
 
 defineSlots<{ tooltip(props: { dot: ChartDot; previous: ChartDot | null; when: string }): unknown }>()
@@ -38,29 +45,46 @@ const model = computed(() =>
     width: width.value,
     height: props.height,
     gapDays: props.gapDays,
-    zeroBased: props.zeroBased
+    zeroBased: props.zeroBased,
+    markers: props.markers
   })
 )
 
-const selectedIndex = ref(-1)
+const picked = shallowRef<ChartPick | null>(null)
 watch(
-  () => props.points,
-  () => (selectedIndex.value = -1)
+  () => [props.points, props.markers],
+  () => (picked.value = null)
 )
 
-const selected = computed(() => model.value.dots[selectedIndex.value] ?? null)
-const previous = computed(() => model.value.dots[selectedIndex.value - 1] ?? null)
+const selected = computed(() => (picked.value?.kind === 'dot' ? picked.value.dot : null))
+const selectedMarker = computed(() => (picked.value?.kind === 'marker' ? picked.value.marker : null))
+const previous = computed(() => {
+  const index = selected.value ? model.value.dots.indexOf(selected.value) : -1
+  return model.value.dots[index - 1] ?? null
+})
+const note = computed(() => {
+  const date = selected.value?.date ?? selectedMarker.value?.date
+  return date ? (model.value.markers.find((m) => m.date === date)?.label ?? null) : null
+})
 
 // The viewBox width equals the rendered width, so a pixel offset inside the plot rect is already in SVG units.
 function pick(event: PointerEvent) {
   const rect = (event.currentTarget as SVGRectElement).getBoundingClientRect()
-  const dot = nearestPoint(model.value.dots, event.clientX - rect.left + model.value.plot.left)
-  selectedIndex.value = dot ? model.value.dots.indexOf(dot) : -1
+  picked.value = pickNearest(model.value.dots, model.value.markers, event.clientX - rect.left + model.value.plot.left)
 }
 
+const tooltipX = computed(() => selected.value?.x ?? selectedMarker.value?.x ?? null)
+const tooltipWidth = computed(() => (note.value ? 224 : 112))
 const tooltipLeft = computed(() =>
-  selected.value ? Math.min(Math.max(selected.value.x - 48, 0), model.value.width - 112) : 0
+  tooltipX.value === null
+    ? 0
+    : Math.min(Math.max(tooltipX.value - tooltipWidth.value / 2, 0), model.value.width - tooltipWidth.value)
 )
+
+const flag = (x: number) => {
+  const b = model.value.plot.bottom
+  return `M${x - 4} ${b} L${x + 4} ${b} L${x} ${b - 7} Z`
+}
 </script>
 
 <template>
@@ -160,6 +184,23 @@ const tooltipLeft = computed(() =>
       >
         {{ chartDayLabel(tick.date) }}
       </text>
+      <path
+        v-for="marker in model.markers"
+        :key="marker.date"
+        :d="flag(marker.x)"
+        fill="var(--ui-warning)"
+        :data-test="`chart-marker-${marker.date}`"
+      />
+      <line
+        v-if="selectedMarker"
+        :x1="selectedMarker.x"
+        :x2="selectedMarker.x"
+        :y1="model.plot.top"
+        :y2="model.plot.bottom"
+        stroke="var(--ui-warning)"
+        stroke-width="1"
+        stroke-dasharray="3 3"
+      />
       <g v-if="selected">
         <line
           :x1="selected.x"
@@ -190,16 +231,25 @@ const tooltipLeft = computed(() =>
       />
     </svg>
     <div
-      v-if="selected"
+      v-if="selected || selectedMarker"
       class="pointer-events-none absolute top-1 rounded-md bg-elevated px-2 py-1 text-xs shadow ring ring-default"
-      :style="{ left: `${tooltipLeft}px` }"
+      :style="{ left: `${tooltipLeft}px`, maxWidth: `${tooltipWidth}px` }"
       data-test="chart-tooltip"
     >
-      <slot name="tooltip" :dot="selected" :previous="previous" :when="chartDayLabel(selected.date)" />
+      <slot v-if="selected" name="tooltip" :dot="selected" :previous="previous" :when="chartDayLabel(selected.date)" />
+      <div v-else-if="selectedMarker" class="text-dimmed">{{ chartDayLabel(selectedMarker.date) }}</div>
+      <p v-if="note" class="mt-0.5 line-clamp-3 border-t border-default pt-0.5 text-default" data-test="chart-note">
+        {{ note }}
+      </p>
     </div>
     <p v-if="points.length === 0" class="absolute inset-0 flex items-center justify-center text-sm text-dimmed">
       {{ emptyText }}
     </p>
     <span class="sr-only">{{ summary }}</span>
+    <ul v-if="model.markers.length" class="sr-only">
+      <li v-for="marker in model.markers" :key="marker.date">
+        Note, {{ chartDayLabel(marker.date) }}: {{ marker.label }}
+      </li>
+    </ul>
   </div>
 </template>

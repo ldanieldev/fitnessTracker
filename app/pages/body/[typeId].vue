@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MeasurementEntry } from '~~/shared/types/body'
+import type { DayNote } from '~~/shared/types/days'
 import {
   actualPace,
   effectiveDirection,
@@ -26,6 +27,14 @@ await Promise.all([seriesFetch, entriesFetch])
 if (seriesFetch.error.value) {
   throw createError({ statusCode: 404, statusMessage: 'Measurement type not found', fatal: true })
 }
+
+const notesFetch = useFetch<DayNote[]>('/api/days/notes', {
+  key: computed(() => `days:notes:${series.value?.from}:${series.value?.to}`),
+  query: computed(() => ({ from: series.value?.from, to: series.value?.to, limit: 400 })),
+  lazy: true,
+  server: false
+})
+const markers = computed(() => (notesFetch.data.value ?? []).map((n) => ({ date: n.date, label: n.note })))
 
 const type = computed(() => series.value?.type ?? null)
 const editing = ref<MeasurementEntry | null>(null)
@@ -127,6 +136,7 @@ function openEdit(entry: MeasurementEntry) {
             :precision="type.precision"
             :unit="type.unit"
             :granularity="series.granularity"
+            :markers="markers"
           />
         </UCard>
         <BodyEntryList :entries="entriesFetch.data.value ?? []" :type="type" :direction="direction" @edit="openEdit" />

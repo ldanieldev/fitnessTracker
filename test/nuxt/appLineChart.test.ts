@@ -52,4 +52,29 @@ describe('AppLineChart', () => {
       ids.map((id) => `url(#${id})`)
     )
   })
+
+  it('flags noted days on the baseline and shows the note in the tooltip', async () => {
+    const markers = [
+      { date: '2026-03-08', label: 'Event day, ate out' },
+      { date: '2026-03-31', label: 'Poor sleep' },
+      { date: '2026-04-02', label: 'Outside the range' }
+    ]
+    const wrapper = await mountSuspended(AppLineChart, {
+      props: { ...props, markers },
+      slots: { tooltip: ({ dot, when }: TooltipProps) => `${when}: ${dot.value}` }
+    })
+    expect(wrapper.findAll('[data-test^="chart-marker-"]').map((m) => m.attributes('data-test'))).toEqual([
+      'chart-marker-2026-03-08',
+      'chart-marker-2026-03-31'
+    ])
+    expect(wrapper.find('ul.sr-only').text()).toContain('Note, Mar 31: Poor sleep')
+
+    await wrapper.find('rect').trigger('pointerdown', { clientX: 5000 })
+    expect(wrapper.find('[data-test="chart-tooltip"]').text()).toContain('Mar 31')
+    expect(wrapper.find('[data-test="chart-note"]').text()).toBe('Poor sleep')
+
+    await wrapper.find('rect').trigger('pointerdown', { clientX: 0 })
+    expect(wrapper.find('[data-test="chart-tooltip"]').text()).toBe('Mar 1: 185')
+    expect(wrapper.find('[data-test="chart-note"]').exists()).toBe(false)
+  })
 })
