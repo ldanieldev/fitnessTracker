@@ -38,6 +38,7 @@ const props = defineProps<{
   tracked: TrackedNutrient[]
 }>()
 const toast = useToast()
+const today = useTodayOrNow()
 
 function displayKcal(profile: Profile) {
   if (profile.calories !== null) return profile.calories
@@ -171,9 +172,13 @@ async function submit() {
   saving.value = true
   try {
     if (editing.value) {
-      await apiFetch(`/api/nutrition/goal-profiles/${editing.value.id}`, { method: 'PUT', body })
+      await apiFetch(`/api/nutrition/goal-profiles/${editing.value.id}`, {
+        method: 'PUT',
+        body,
+        query: { today: today.value }
+      })
     } else {
-      await apiFetch('/api/nutrition/goal-profiles', { method: 'POST', body })
+      await apiFetch('/api/nutrition/goal-profiles', { method: 'POST', body, query: { today: today.value } })
     }
     modalOpen.value = false
     await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
@@ -188,6 +193,7 @@ async function setDefault(profile: Profile) {
   try {
     await apiFetch(`/api/nutrition/goal-profiles/${profile.id}`, {
       method: 'PUT',
+      query: { today: today.value },
       body: {
         name: profile.name,
         inputMode: profile.inputMode,
@@ -223,7 +229,10 @@ const deleteModalOpen = computed({
 async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
-    await apiFetch(`/api/nutrition/goal-profiles/${deleteTarget.value.id}`, { method: 'DELETE' })
+    await apiFetch(`/api/nutrition/goal-profiles/${deleteTarget.value.id}`, {
+      method: 'DELETE',
+      query: { today: today.value }
+    })
   } catch (error: unknown) {
     toast.add({
       title: 'Delete failed',

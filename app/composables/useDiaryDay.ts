@@ -50,6 +50,7 @@ export interface DiaryDay {
   persisted: boolean
   notes: string | null
   incomplete: boolean
+  defaultProfileName: string | null
   goalProfileId: number | null
   targets: DiaryTarget[]
   containers: DiaryContainer[]

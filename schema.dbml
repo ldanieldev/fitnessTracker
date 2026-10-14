@@ -349,6 +349,22 @@ table app.goal_profiles {
   }
 }
 
+table app.goal_target_history {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  effective_from date [not null]
+  profile_id integer [default: `null`]
+  profile_name varchar(255) [default: `null`]
+  calories numeric [default: `null`]
+  targets jsonb [not null, default: `'[]'::jsonb`]
+
+  indexes {
+    (user_id, effective_from) [name: 'goal_target_history_one_per_day', unique]
+  }
+}
+
 table app.import_jobs {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -907,6 +923,10 @@ ref goal_profile_targets_profile_id_goal_profiles_id_fk: app.goal_profile_target
 ref goal_profile_targets_nutrient_id_nutrients_id_fk: app.goal_profile_targets.nutrient_id > app.nutrients.id [delete: no action, update: no action]
 
 ref goal_profiles_user_id_users_id_fk: app.goal_profiles.user_id > app.users.id [delete: cascade, update: no action]
+
+ref goal_target_history_user_id_users_id_fk: app.goal_target_history.user_id > app.users.id [delete: cascade, update: no action]
+
+ref goal_target_history_profile_id_goal_profiles_id_fk: app.goal_target_history.profile_id > app.goal_profiles.id [delete: set null, update: no action]
 
 ref import_jobs_user_id_users_id_fk: app.import_jobs.user_id > app.users.id [delete: cascade, update: no action]
 

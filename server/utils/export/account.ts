@@ -25,6 +25,7 @@ import {
   foodUsageStats,
   goalProfiles,
   goalProfileTargets,
+  goalTargetHistory,
   mealContainers,
   measurementGoals,
   measurements,
@@ -120,6 +121,7 @@ export function accountTables(userId: number) {
           db.select({ id: goalProfiles.id }).from(goalProfiles).where(eq(goalProfiles.userId, userId))
         )
       ),
+    goal_target_history: () => select(goalTargetHistory, eq(goalTargetHistory.userId, userId)),
     user_tracked_nutrients: () => select(userTrackedNutrients, eq(userTrackedNutrients.userId, userId)),
     foods: () => select(foods, eq(foods.createdByUserId, userId)),
     food_servings: () => select(foodServings, inArray(foodServings.foodId, myFoods)),

@@ -1,5 +1,16 @@
 import { sql } from 'drizzle-orm'
-import { boolean, index, integer, numeric, primaryKey, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  date,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  primaryKey,
+  timestamp,
+  uniqueIndex,
+  varchar
+} from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 import { nutrients } from './nutrient'
@@ -54,4 +65,31 @@ export const searchOutbox = appSchema.table(
       .on(table.id)
       .where(sql`processed_at is null`)
   ]
+)
+
+export interface GoalTargetSnapshot {
+  key: string
+  amount: number
+  direction: 'min' | 'max' | 'target'
+}
+
+export const goalTargetHistory = appSchema.table(
+  'goal_target_history',
+  {
+    ...commonColumns,
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    effectiveFrom: date('effective_from').notNull(),
+    profileId: integer('profile_id')
+      .default(sql`null`)
+      .references(() => goalProfiles.id, { onDelete: 'set null' }),
+    profileName: varchar('profile_name', { length: 255 }).default(sql`null`),
+    calories: numeric('calories').default(sql`null`),
+    targets: jsonb('targets')
+      .$type<GoalTargetSnapshot[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`)
+  },
+  (table) => [uniqueIndex('goal_target_history_one_per_day').on(table.userId, table.effectiveFrom)]
 )

@@ -5,7 +5,7 @@ import { todayDate } from '../../../shared/utils/nutritionSummary'
 test('the day header navigates by the week strip and the date sheet, and the FAB opens Add', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  await apiFetch(page, 'POST', '/api/nutrition/goal-profiles', {
+  await apiFetch(page, 'POST', '/api/nutrition/goal-profiles?today=2026-09-01', {
     name: 'Phone Cut',
     inputMode: 'grams',
     isDefault: true,

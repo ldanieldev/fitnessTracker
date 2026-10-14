@@ -25,7 +25,7 @@ test('a persisted day follows the default profile targets and shows the day note
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  await apiFetch(page, 'POST', '/api/nutrition/goal-profiles', {
+  await apiFetch(page, 'POST', '/api/nutrition/goal-profiles?today=2026-01-01', {
     name: 'Cut',
     inputMode: 'grams',
     isDefault: true,

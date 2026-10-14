@@ -98,7 +98,7 @@ test('csv export covers only the tracked nutrients, carries each one\'s target, 
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  const profile = await apiFetch(page, 'POST', '/api/nutrition/goal-profiles', {
+  const profile = await apiFetch(page, 'POST', '/api/nutrition/goal-profiles?today=2026-06-01', {
     name: 'Cut',
     inputMode: 'grams',
     isDefault: true,

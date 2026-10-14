@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { EntryType, TargetDirection } from '~~/shared/types/nutrition'
 import {
   diaryDays,
@@ -6,13 +6,13 @@ import {
   diaryEntries,
   diaryEntryNutrients,
   diaryMealTimes,
-  goalProfiles,
-  goalProfileTargets,
   mealContainers,
   nutrients
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { loadDayNote } from '~~/server/utils/days/notes'
+import { loadDefaultHistory } from '~~/server/utils/nutrition/targetHistory'
+import { snapshotOn } from '~~/shared/utils/goalHistory'
 import { parseDiaryDate } from '~~/server/utils/nutrition/day'
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { requireUserId } from '~~/server/utils/session'
@@ -71,6 +71,7 @@ export default defineEventHandler(async (event) => {
   })
 
   let targets: Target[]
+  let defaultProfileName: string | null = null
   if (day && day.goalProfileId !== null) {
     targets = await db
       .select({
@@ -86,32 +87,16 @@ export default defineEventHandler(async (event) => {
       .then((rows) => rows.map((t) => ({ ...t, amount: Number(t.amount) })))
     if (energyEntry) targets = ensureEnergyTarget(targets, makeEnergyTarget, null)
   } else {
-    const defaultProfile = await db
-      .select({ id: goalProfiles.id, calories: goalProfiles.calories })
-      .from(goalProfiles)
-      .where(and(eq(goalProfiles.userId, userId), eq(goalProfiles.isDefault, true), isNull(goalProfiles.deletedAt)))
-      .then((r) => r[0])
-
-    targets = defaultProfile
-      ? await db
-          .select({
-            key: nutrients.key,
-            name: nutrients.name,
-            unit: nutrients.unit,
-            amount: goalProfileTargets.amount,
-            direction: goalProfileTargets.direction
-          })
-          .from(goalProfileTargets)
-          .innerJoin(nutrients, eq(nutrients.id, goalProfileTargets.nutrientId))
-          .where(eq(goalProfileTargets.profileId, defaultProfile.id))
-          .then((rows) => rows.map((t) => ({ ...t, amount: Number(t.amount) })))
-      : []
-    if (energyEntry && defaultProfile) {
-      targets = ensureEnergyTarget(
-        targets,
-        makeEnergyTarget,
-        defaultProfile.calories === null ? null : Number(defaultProfile.calories)
-      )
+    const snapshot = snapshotOn(await loadDefaultHistory(userId), date)
+    defaultProfileName = snapshot?.profileName ?? null
+    const byKey = new Map(catalog.map((n) => [n.key, n]))
+    targets = (snapshot?.targets ?? []).flatMap((t) => {
+      const nutrient = byKey.get(t.key)
+      if (!nutrient) return []
+      return [{ key: t.key, name: nutrient.name, unit: nutrient.unit, amount: t.amount, direction: t.direction }]
+    })
+    if (energyEntry && snapshot?.profileName != null) {
+      targets = ensureEnergyTarget(targets, makeEnergyTarget, snapshot.calories)
     }
   }
 
@@ -226,6 +211,7 @@ export default defineEventHandler(async (event) => {
     persisted: Boolean(day),
     notes: await loadDayNote(userId, date),
     incomplete: day?.incomplete ?? false,
+    defaultProfileName,
     goalProfileId: day?.goalProfileId ?? null,
     targets,
     containers,

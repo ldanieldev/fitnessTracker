@@ -1,6 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
-import { todayDate } from '../../shared/utils/nutritionSummary'
+import { shiftDate, todayDate } from '../../shared/utils/nutritionSummary'
 
 interface GoalProfileTarget {
   nutrient: string
@@ -108,8 +108,8 @@ test('ratio mode stores percentages and derives grams', async ({ page, goto }) =
   expect(bad.status).toBe(400)
 })
 
-test('new and unapplied days follow the current default; an explicitly applied profile survives a later default ' +
-  'change', async ({
+test('unapplied days follow the default in force on their date; an explicitly applied profile survives a later ' +
+  'default change', async ({
   page,
   goto
 }) => {
@@ -175,6 +175,8 @@ test('new and unapplied days follow the current default; an explicitly applied p
   await goto(`/nutrition/diary/${date}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="energy-value"]')).toContainText('1400')
 
-  await goto('/nutrition/diary/2025-01-01', { waitUntil: 'hydration' })
+  await goto(`/nutrition/diary/${shiftDate(date, 1)}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="energy-value"]')).toContainText('2200')
+  const before = await apiFetch<{ defaultProfileName: string | null }>(page, 'GET', '/api/nutrition/diary/2025-01-01')
+  expect(before.json.defaultProfileName).toBeNull()
 })

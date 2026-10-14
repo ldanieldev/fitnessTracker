@@ -5,7 +5,7 @@ test('logs, views, toggles and deletes a diary entry', async ({ page, goto }) =>
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
-  await apiFetch(page, 'POST', '/api/nutrition/goal-profiles', {
+  await apiFetch(page, 'POST', '/api/nutrition/goal-profiles?today=2026-07-01', {
     name: 'Cut',
     inputMode: 'grams',
     isDefault: true,

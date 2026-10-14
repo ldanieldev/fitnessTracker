@@ -5,10 +5,12 @@ import { buildGoalTargetRows, goalProfileSchema } from '~~/server/utils/nutritio
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { changeDate, recordDefaultTargets } from '~~/server/utils/nutrition/targetHistory'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
+  const effectiveFrom = changeDate(event)
   const id = Number(getRouterParam(event, 'id'))
   const body = await parseBody(event, goalProfileSchema)
 
@@ -59,6 +61,7 @@ export default defineEventHandler(async (event) => {
         }))
       )
 
+      await recordDefaultTargets(tx, userId, effectiveFrom)
       return { id: profile.id }
     })
   } catch (err) {
