@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     nutrients.map((n) => [
       n.key,
       rollingAverage(
-        days.map((d) => d.totals[n.key] ?? null),
+        days.map((d) => (d.incomplete ? null : (d.totals[n.key] ?? null))),
         window
       )
     ])
@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
     days: days.map((day, i) => ({
       date: day.date,
       logged: day.logged,
+      incomplete: day.incomplete,
       totals: day.totals,
       targets: day.targets,
       rolling: Object.fromEntries(nutrients.map((n) => [n.key, rollingByKey.get(n.key)![i]]))

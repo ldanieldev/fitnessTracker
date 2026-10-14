@@ -49,6 +49,7 @@ export interface DiaryDay {
   date: string
   persisted: boolean
   notes: string | null
+  incomplete: boolean
   goalProfileId: number | null
   targets: DiaryTarget[]
   containers: DiaryContainer[]

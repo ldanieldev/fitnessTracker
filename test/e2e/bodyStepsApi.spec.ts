@@ -32,10 +32,10 @@ test('upsert replaces a day, validation rejects bad input, delete removes it', a
   const lookup = () => apiFetch<{ day: StepDay | null }>(page, 'GET', `/api/body/steps/days/${today}`)
   expect((await lookup()).json).toEqual({ day: null })
   const first = await apiFetch<StepDay>(page, 'PUT', `/api/body/steps/days/${today}`, { steps: 5000 })
-  expect(first.json).toEqual({ date: today, steps: 5000 })
+  expect(first.json).toEqual({ date: today, steps: 5000, partial: false })
   await apiFetch(page, 'PUT', `/api/body/steps/days/${today}`, { steps: 7000 })
   expect((await weeks(page)).json[0]!).toMatchObject({ total: 7000, logged: 1 })
-  expect((await lookup()).json).toEqual({ day: { date: today, steps: 7000 } })
+  expect((await lookup()).json).toEqual({ day: { date: today, steps: 7000, partial: false } })
   expect((await apiFetch(page, 'GET', '/api/body/steps/days/2026-02-30')).status).toBe(400)
 
   for (const [date, body] of [

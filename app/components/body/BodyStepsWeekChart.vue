@@ -16,10 +16,16 @@ const roomForCheck = (value: number) => pct(value) >= 14
 
 function label(d: StepWeekDay) {
   const day = format(new Date(`${d.date}T00:00:00`), 'EEE, MMM d')
-  return d.steps === null ? `Log steps for ${day}` : `Edit steps for ${day}, ${formatSteps(d.steps)} steps`
+  if (d.steps === null) return `Log steps for ${day}`
+  return `Edit steps for ${day}, ${formatSteps(d.steps)} steps${d.partial ? ', partial day' : ''}`
 }
 
 const hit = (d: StepWeekDay) => d.steps !== null && d.target !== null && d.steps >= d.target
+
+function barClass(d: StepWeekDay) {
+  if (d.partial) return 'border-[1.5px] border-dashed border-primary bg-primary/15'
+  return hit(d) ? 'bg-primary' : 'bg-primary/50'
+}
 </script>
 
 <template>
@@ -67,9 +73,10 @@ const hit = (d: StepWeekDay) => d.steps !== null && d.target !== null && d.steps
             <span
               v-if="d.steps !== null"
               class="relative w-3/4 rounded-t-md rounded-b-sm"
-              :class="hit(d) ? 'bg-primary' : 'bg-primary/50'"
+              :class="barClass(d)"
               :style="{ height: `${pct(d.steps)}%`, minHeight: '4px' }"
               :data-test="`steps-bar-${d.date}`"
+              :data-partial="d.partial ? 'true' : undefined"
             >
               <span
                 v-if="hit(d)"
@@ -79,7 +86,8 @@ const hit = (d: StepWeekDay) => d.steps !== null && d.target !== null && d.steps
                 <UIcon
                   v-if="roomForCheck(d.steps)"
                   name="i-lucide-check"
-                  class="size-3 text-inverted"
+                  class="size-3"
+                  :class="d.partial ? 'text-primary' : 'text-inverted'"
                   :data-test="`steps-hit-icon-${d.date}`"
                 />
                 <span class="sr-only">Target met</span>

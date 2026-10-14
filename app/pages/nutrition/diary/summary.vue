@@ -13,6 +13,7 @@ interface SummaryNutrient {
 interface SummaryDay {
   date: string
   logged: boolean
+  incomplete: boolean
   totals: Record<string, number | null>
   rolling: Record<string, number | null>
 }
@@ -125,7 +126,15 @@ const menu = computed<DropdownMenuItem[][]>(() => [
           <UCard data-test="summary-card">
             <div class="flex items-center justify-between gap-2 mb-2">
               <span class="font-medium">{{ day.date }}</span>
-              <UIcon v-if="day.logged" name="i-lucide-check" class="text-success size-4" />
+              <span
+                v-if="day.incomplete"
+                class="flex items-center gap-1 text-xs text-dimmed"
+                :data-test="`summary-incomplete-${day.date}`"
+              >
+                <UIcon name="i-lucide-circle-dashed" class="size-4" />
+                Incomplete
+              </span>
+              <UIcon v-else-if="day.logged" name="i-lucide-check" class="text-success size-4" />
               <span v-else class="text-dimmed">—</span>
             </div>
             <NutritionMacroText v-if="day.logged" with-energy :nutrients="day.totals" class="mb-2" />
@@ -162,7 +171,15 @@ const menu = computed<DropdownMenuItem[][]>(() => [
             >
               <td class="py-2 pr-4 font-medium">{{ day.date }}</td>
               <td class="py-2 pr-4">
-                <UIcon v-if="day.logged" name="i-lucide-check" class="text-success size-4" />
+                <span
+                  v-if="day.incomplete"
+                  class="flex items-center gap-1 text-xs text-dimmed"
+                  :data-test="`summary-incomplete-${day.date}`"
+                >
+                  <UIcon name="i-lucide-circle-dashed" class="size-4" />
+                  Incomplete
+                </span>
+                <UIcon v-else-if="day.logged" name="i-lucide-check" class="text-success size-4" />
                 <span v-else class="text-dimmed">—</span>
               </td>
               <template v-for="nutrient in trackedNutrients" :key="nutrient.key">

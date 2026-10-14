@@ -10,7 +10,7 @@ export default defineEventHandler(async (event): Promise<{ day: StepDay | null }
   const userId = await requireUserId(event)
   const day = parseWith(isoDate, getRouterParam(event, 'date'))
   const row = await db
-    .select({ date: stepDays.day, steps: stepDays.steps })
+    .select({ date: stepDays.day, steps: stepDays.steps, partial: stepDays.partial })
     .from(stepDays)
     .where(and(eq(stepDays.userId, userId), eq(stepDays.day, day)))
     .then((r) => r[0] ?? null)

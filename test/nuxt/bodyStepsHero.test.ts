@@ -5,10 +5,10 @@ import { summarizeWeek } from '../../shared/utils/steps'
 
 const TODAY = '2026-10-09'
 const days = [
-  { date: '2026-10-04', steps: 8229 },
-  { date: '2026-10-05', steps: 10794 },
-  { date: '2026-10-06', steps: 5722 },
-  { date: '2026-10-08', steps: 7950 }
+  { date: '2026-10-04', steps: 8229, partial: false },
+  { date: '2026-10-05', steps: 10794, partial: false },
+  { date: '2026-10-06', steps: 5722, partial: false },
+  { date: '2026-10-08', steps: 7950, partial: false }
 ]
 
 describe('BodyStepsHero', () => {

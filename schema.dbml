@@ -41,6 +41,7 @@ table app.diary_days {
   updated_at timestamp [default: `now()`]
   user_id integer [not null]
   date date [not null]
+  incomplete boolean [not null, default: false]
   goal_profile_id integer [default: `null`]
 
   indexes {
@@ -579,6 +580,7 @@ table app.step_days {
   user_id integer [not null]
   day date [not null]
   steps integer [not null]
+  partial boolean [not null, default: false]
   source varchar(16) [not null, default: 'manual']
 
   indexes {

@@ -25,7 +25,7 @@ registerEndpoint('/api/body/steps/weeks', (event: H3Event) => {
   calls.push(count)
   return Array.from({ length: count }, (_, i) => {
     const start = shiftDate(THIS_WEEK, -7 * i)
-    return summarizeWeek(start, i === 0 ? [{ date: start, steps: 5000 }] : [], eight, TODAY)
+    return summarizeWeek(start, i === 0 ? [{ date: start, steps: 5000, partial: false }] : [], eight, TODAY)
   })
 })
 registerEndpoint('/api/body/steps/target', () => ({ target: eight[0] }))

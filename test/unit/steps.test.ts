@@ -16,7 +16,7 @@ const days = (counts: (number | null)[], start = SUN): StepDay[] =>
     if (steps === null) return []
     const d = new Date(`${start}T00:00:00Z`)
     d.setUTCDate(d.getUTCDate() + i)
-    return [{ date: d.toISOString().slice(0, 10), steps }]
+    return [{ date: d.toISOString().slice(0, 10), steps, partial: false }]
   })
 const eight: StepTarget[] = [{ dailyTarget: 8000, effectiveFrom: '2026-01-01' }]
 const PAST = '2026-10-20'
@@ -44,7 +44,11 @@ describe('stepCounts', () => {
   it('maps every logged day across weeks and skips unlogged ones', () => {
     const a = summarizeWeek(SUN, days([100, null, 300]), eight, PAST)
     const b = summarizeWeek('2026-09-27', days([5], '2026-09-27'), eight, PAST)
-    expect(stepCounts([a, b])).toEqual({ '2026-10-04': 100, '2026-10-06': 300, '2026-09-27': 5 })
+    expect(stepCounts([a, b])).toEqual({
+      '2026-10-04': { steps: 100, partial: false },
+      '2026-10-06': { steps: 300, partial: false },
+      '2026-09-27': { steps: 5, partial: false }
+    })
     expect(stepCounts([])).toEqual({})
   })
 })
@@ -106,10 +110,26 @@ describe('summarizeWeek', () => {
     expect(hit.average).toBe(8000)
     expect(hit.budget).toBe(56000)
     expect(hit.met).toBe(true)
-    expect(hit.days[1]).toEqual({ date: '2026-10-05', steps: null, target: 8000 })
+    expect(hit.days[1]).toEqual({ date: '2026-10-05', steps: null, partial: false, target: 8000 })
 
     const miss = summarizeWeek(SUN, days([7000, 7000]), eight, PAST)
     expect(miss.met).toBe(false)
+  })
+
+  it('leaves partial days out of the average but keeps their steps in the total', () => {
+    const logged = days([9000, 334, 8000])
+    logged[1]!.partial = true
+    const week = summarizeWeek(SUN, logged, eight, PAST)
+    expect(week.logged).toBe(3)
+    expect(week.partial).toBe(1)
+    expect(week.total).toBe(17334)
+    expect(week.average).toBe(8500)
+    expect(week.days[1]).toMatchObject({ steps: 334, partial: true })
+    expect(stepCounts([week])['2026-10-05']).toEqual({ steps: 334, partial: true })
+
+    const onlyPartial = days([500])
+    onlyPartial[0]!.partial = true
+    expect(summarizeWeek(SUN, onlyPartial, eight, PAST).average).toBeNull()
   })
 
   it('uses the target in force on each day when it changes mid-week', () => {

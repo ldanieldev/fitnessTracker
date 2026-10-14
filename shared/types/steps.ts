@@ -1,6 +1,7 @@
 export interface StepDay {
   date: string
   steps: number
+  partial: boolean
 }
 
 export interface StepTarget {
@@ -11,6 +12,7 @@ export interface StepTarget {
 export interface StepWeekDay {
   date: string
   steps: number | null
+  partial: boolean
   target: number | null
 }
 
@@ -20,6 +22,7 @@ export interface StepWeek {
   days: StepWeekDay[]
   total: number
   logged: number
+  partial: number
   average: number | null
   budget: number | null
   met: boolean | null

@@ -46,7 +46,7 @@ export async function loadStepWeeks(
   }
 
   const rows: StepDay[] = await db
-    .select({ date: stepDays.day, steps: stepDays.steps })
+    .select({ date: stepDays.day, steps: stepDays.steps, partial: stepDays.partial })
     .from(stepDays)
     .where(
       and(

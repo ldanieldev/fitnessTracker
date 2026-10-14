@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
   const date = parseDiaryDate(getRouterParam(event, 'date'))
 
   const day = await db
-    .select({ id: diaryDays.id, goalProfileId: diaryDays.goalProfileId })
+    .select({ id: diaryDays.id, goalProfileId: diaryDays.goalProfileId, incomplete: diaryDays.incomplete })
     .from(diaryDays)
     .where(and(eq(diaryDays.userId, userId), eq(diaryDays.date, date)))
     .then((r) => r[0])
@@ -225,6 +225,7 @@ export default defineEventHandler(async (event) => {
     date,
     persisted: Boolean(day),
     notes: await loadDayNote(userId, date),
+    incomplete: day?.incomplete ?? false,
     goalProfileId: day?.goalProfileId ?? null,
     targets,
     containers,

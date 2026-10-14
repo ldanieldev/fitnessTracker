@@ -49,7 +49,10 @@ export const goalPutSchema = z.object({
   targetDate: isoDate.nullable().optional()
 })
 
-export const stepDayPutSchema = z.object({ steps: z.number().int().min(0).max(STEPS_MAX) })
+export const stepDayPutSchema = z.object({
+  steps: z.number().int().min(0).max(STEPS_MAX),
+  partial: z.boolean().default(false)
+})
 
 export const stepTargetPutSchema = z.object({
   dailyTarget: z.number().int().min(1).max(STEPS_MAX),

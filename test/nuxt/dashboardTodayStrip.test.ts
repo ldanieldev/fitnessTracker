@@ -145,7 +145,7 @@ const stepWeek = (steps: number | null, target: number | null) => [
   {
     start: today,
     end: today,
-    days: [{ date: today, steps, target }],
+    days: [{ date: today, steps, partial: false, target }],
     total: steps ?? 0,
     logged: 1,
     average: null,

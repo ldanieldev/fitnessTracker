@@ -25,7 +25,9 @@ function badge(week: StepWeek): { label: string; color: 'success' | 'error' | 'n
       <div class="flex min-w-0 flex-1 flex-col">
         <span class="text-sm">{{ day(week.start) }} – {{ day(week.end) }}</span>
         <span class="text-xs tabular-nums text-dimmed">
-          {{ formatSteps(week.average) }}/day · {{ formatSteps(week.total) }} total · {{ week.logged }}/7
+          {{ formatSteps(week.average) }}/day · {{ formatSteps(week.total) }} total · {{ week.logged }}/7{{
+            week.partial ? ` · ${week.partial} partial` : ''
+          }}
         </span>
       </div>
       <UBadge

@@ -23,7 +23,7 @@ describe('BodyStepsSheet', () => {
       method: 'PUT',
       handler: async (event) => {
         received = { path: event.path, body: await readBody(event) }
-        return { date: '2026-10-07', steps: 8229 }
+        return { date: '2026-10-07', steps: 8229, partial: false }
       }
     })
     const wrapper = await mountSuspended(BodyStepsSheet, {
@@ -44,7 +44,7 @@ describe('BodyStepsSheet', () => {
     expect(save.disabled).toBe(false)
     save.click()
     await vi.waitFor(() => expect(received).not.toBeNull())
-    expect(received!.body).toEqual({ steps: 8229 })
+    expect(received!.body).toEqual({ steps: 8229, partial: false })
     await vi.waitFor(() => expect(wrapper.emitted('saved')).toHaveLength(1))
     wrapper.unmount()
     document.body.innerHTML = ''
@@ -62,7 +62,7 @@ describe('BodyStepsSheet', () => {
     })
     const wrapper = await mountSuspended(BodyStepsSheet, {
       attachTo: document.body,
-      props: { open: true, date: '2026-10-05', known: { '2026-10-05': 6500 } }
+      props: { open: true, date: '2026-10-05', known: { '2026-10-05': { steps: 6500, partial: false } } }
     })
     await flushPromises()
     expect(document.body.textContent).toContain('Edit steps')
@@ -142,7 +142,7 @@ describe('BodyStepsSheet', () => {
     useToday().value = '2026-10-07'
     registerEndpoint('/api/body/steps/days/2026-08-03', {
       method: 'GET',
-      handler: () => ({ day: { date: '2026-08-03', steps: 6100 } })
+      handler: () => ({ day: { date: '2026-08-03', steps: 6100, partial: false } })
     })
     registerEndpoint('/api/body/steps/days/2026-08-04', { method: 'GET', handler: () => ({ day: null }) })
     const wrapper = await mountSuspended(BodyStepsSheet, {
@@ -171,7 +171,7 @@ describe('BodyStepsSheet', () => {
       method: 'PUT',
       handler: async (event) => {
         received = await readBody(event)
-        return { date: '2026-10-07', steps: 6400 }
+        return { date: '2026-10-07', steps: 6400, partial: false }
       }
     })
     const wrapper = await mountSuspended(BodyStepsSheet, {
@@ -190,8 +190,34 @@ describe('BodyStepsSheet', () => {
     type(input, '6400')
     await flushPromises()
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(received).toEqual({ steps: 6400 }))
+    await vi.waitFor(() => expect(received).toEqual({ steps: 6400, partial: false }))
     await vi.waitFor(() => expect(wrapper.emitted('saved')).toHaveLength(1))
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('prefills the partial switch from a known day and sends it on save', async () => {
+    useToday().value = '2026-10-07'
+    let received: unknown = null
+    registerEndpoint('/api/body/steps/days/2026-08-24', {
+      method: 'PUT',
+      handler: async (event) => {
+        received = await readBody(event)
+        return { date: '2026-08-24', steps: 334, partial: false }
+      }
+    })
+    const wrapper = await mountSuspended(BodyStepsSheet, {
+      attachTo: document.body,
+      props: { open: true, date: '2026-08-24', known: { '2026-08-24': { steps: 334, partial: true } } }
+    })
+    await flushPromises()
+    const toggle = q<HTMLButtonElement>('[data-test="steps-partial"]')!
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    toggle.click()
+    await flushPromises()
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    q<HTMLButtonElement>('[data-test="steps-save"]')!.click()
+    await vi.waitFor(() => expect(received).toEqual({ steps: 334, partial: false }))
     wrapper.unmount()
     document.body.innerHTML = ''
   })

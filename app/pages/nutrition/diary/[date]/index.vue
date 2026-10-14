@@ -151,6 +151,22 @@ function onDayAction(action: DayAction) {
   else if (action === 'summary') navigateTo('/nutrition/diary/summary')
   else if (action === 'notes') notesOpen.value = true
   else if (action === 'goal') goalOpen.value = true
+  else if (action === 'incomplete') setIncomplete(!day.value?.incomplete)
+}
+
+const markingIncomplete = ref(false)
+
+async function setIncomplete(incomplete: boolean) {
+  if (markingIncomplete.value) return
+  markingIncomplete.value = true
+  try {
+    await apiFetch(`/api/nutrition/diary/${date.value}/incomplete`, { method: 'PUT', body: { incomplete } })
+    await invalidateNutrition(NUTRITION_KEYS.day(date.value), 'nutrition:logged:', 'nutrition:summary:')
+  } catch (error: unknown) {
+    toast.add({ title: 'Update failed', description: errorMessage(error, 'Could not update this day'), color: 'error' })
+  } finally {
+    markingIncomplete.value = false
+  }
 }
 
 interface CopyConfirmPayload {
@@ -183,7 +199,12 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
 <template>
   <UDashboardPanel id="diary">
     <template #header>
-      <NutritionDayHeader :date="date" @navigate="(d) => navigateTo(`/nutrition/diary/${d}`)" @action="onDayAction" />
+      <NutritionDayHeader
+        :date="date"
+        :incomplete="day?.incomplete ?? false"
+        @navigate="(d) => navigateTo(`/nutrition/diary/${d}`)"
+        @action="onDayAction"
+      />
       <NutritionWeekStrip
         :date="date"
         :logged="loggedWeek?.dates ?? []"
@@ -194,6 +215,23 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
 
     <template #body>
       <div class="flex flex-col gap-4 max-w-3xl mx-auto w-full pb-24">
+        <div
+          v-if="day?.incomplete"
+          class="flex items-center gap-3 rounded-lg border border-dashed border-accented px-3 py-2"
+          data-test="day-incomplete"
+        >
+          <UIcon name="i-lucide-circle-dashed" class="size-4 shrink-0 text-dimmed" />
+          <p class="min-w-0 flex-1 text-sm text-muted">Marked incomplete: left out of averages</p>
+          <UButton
+            label="Undo"
+            size="sm"
+            variant="ghost"
+            color="neutral"
+            :loading="markingIncomplete"
+            data-test="day-incomplete-undo"
+            @click="setIncomplete(false)"
+          />
+        </div>
         <NutritionSummaryCard
           v-if="day"
           v-model:mode="mode"

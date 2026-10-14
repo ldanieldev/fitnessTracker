@@ -23,10 +23,10 @@ describe('BodyStepsCard', () => {
       summarizeWeek(
         '2026-10-04',
         [
-          { date: '2026-10-04', steps: 8000 },
-          { date: '2026-10-05', steps: 8000 },
-          { date: '2026-10-06', steps: 8000 },
-          { date: TODAY, steps: 4000 }
+          { date: '2026-10-04', steps: 8000, partial: false },
+          { date: '2026-10-05', steps: 8000, partial: false },
+          { date: '2026-10-06', steps: 8000, partial: false },
+          { date: TODAY, steps: 4000, partial: false }
         ],
         eight,
         TODAY
@@ -45,7 +45,7 @@ describe('BodyStepsCard', () => {
   it('offers Set a target when no target applies, and shows a dash for an unlogged today', async () => {
     useToday().value = TODAY
     payload = [
-      summarizeWeek('2026-10-04', [{ date: '2026-10-04', steps: 5000 }], [], TODAY),
+      summarizeWeek('2026-10-04', [{ date: '2026-10-04', steps: 5000, partial: false }], [], TODAY),
       summarizeWeek('2026-09-27', [], [], TODAY)
     ]
     const wrapper = await mountSuspended(BodyStepsCard)
@@ -59,7 +59,7 @@ describe('BodyStepsCard', () => {
   it('opens the log sheet from Log and the target sheet from Set a target', async () => {
     useToday().value = TODAY
     payload = [
-      summarizeWeek('2026-10-04', [{ date: '2026-10-04', steps: 5000 }], [], TODAY),
+      summarizeWeek('2026-10-04', [{ date: '2026-10-04', steps: 5000, partial: false }], [], TODAY),
       summarizeWeek('2026-09-27', [], [], TODAY)
     ]
     const wrapper = await mountSuspended(BodyStepsCard, { attachTo: document.body })
@@ -77,11 +77,11 @@ describe('BodyStepsCard', () => {
     useToday().value = '2026-10-04'
     payload = [
       summarizeWeek('2026-10-04', [], eight, '2026-10-04'),
-      summarizeWeek('2026-09-27', [{ date: '2026-10-03', steps: 7000 }], eight, '2026-10-04')
+      summarizeWeek('2026-09-27', [{ date: '2026-10-03', steps: 7000, partial: false }], eight, '2026-10-04')
     ]
     const wrapper = await mountSuspended(BodyStepsCard)
     const known = wrapper.findComponent({ name: 'BodyStepsSheet' }).props('known')
-    expect(known).toEqual({ '2026-10-03': 7000 })
+    expect(known).toEqual({ '2026-10-03': { steps: 7000, partial: false } })
     wrapper.unmount()
   })
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { StepDay } from '~~/shared/types/steps'
-import { STEPS_MAX } from '~~/shared/utils/steps'
+import { STEPS_MAX, type KnownStepDay } from '~~/shared/utils/steps'
 import { errorMessage } from '~/utils/apiError'
 
-const props = defineProps<{ date: string | null; known: Record<string, number> }>()
+const props = defineProps<{ date: string | null; known: Record<string, KnownStepDay> }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
@@ -11,9 +11,10 @@ const toast = useToast()
 const today = useTodayOrNow()
 const day = ref('')
 const steps = ref<number | null>(null)
+const partial = ref(false)
 const saving = ref(false)
 const confirmingDelete = ref(false)
-const looked = ref<Record<string, number>>({})
+const looked = ref<Record<string, KnownStepDay>>({})
 const counts = computed(() => ({ ...looked.value, ...props.known }))
 
 async function lookUp(date: string) {
@@ -21,15 +22,19 @@ async function lookUp(date: string) {
   try {
     const { day: found } = await apiFetch<{ day: StepDay | null }>(`/api/body/steps/days/${date}`)
     if (!found) return
-    looked.value = { ...looked.value, [date]: found.steps }
-    if (day.value === date && steps.value === null) steps.value = found.steps
+    looked.value = { ...looked.value, [date]: { steps: found.steps, partial: found.partial } }
+    if (day.value === date && steps.value === null) {
+      steps.value = found.steps
+      partial.value = found.partial
+    }
   } catch {
     // A failed lookup leaves the day unknown; Save still upserts, so nothing is lost.
   }
 }
 
 function showDay(date: string) {
-  steps.value = counts.value[date] ?? null
+  steps.value = counts.value[date]?.steps ?? null
+  partial.value = counts.value[date]?.partial ?? false
   confirmingDelete.value = false
   lookUp(date)
 }
@@ -68,7 +73,7 @@ async function send(method: 'PUT' | 'DELETE') {
   try {
     await apiFetch(`/api/body/steps/days/${day.value}`, {
       method,
-      body: method === 'PUT' ? { steps: steps.value } : undefined
+      body: method === 'PUT' ? { steps: steps.value, partial: partial.value } : undefined
     })
     await invalidateBody(BODY_KEYS.steps)
   } catch (error: unknown) {
@@ -104,6 +109,13 @@ async function send(method: 'PUT' | 'DELETE') {
         <UFormField label="Date">
           <UInput v-model="day" type="date" :max="today" class="w-full" data-test="steps-date" />
         </UFormField>
+        <USwitch
+          v-model="partial"
+          label="Partial day"
+          description="Counted in the week's total, left out of the average"
+          aria-label="Partial day"
+          data-test="steps-partial"
+        />
         <div v-if="!confirmingDelete" class="flex w-full gap-2">
           <UButton
             v-if="existing"

@@ -7,10 +7,10 @@ const eight = [{ dailyTarget: 8000, effectiveFrom: '2026-01-01' }]
 const week = summarizeWeek(
   '2026-10-04',
   [
-    { date: '2026-10-04', steps: 8229 },
-    { date: '2026-10-05', steps: 10794 },
-    { date: '2026-10-06', steps: 5722 },
-    { date: '2026-10-08', steps: 7950 }
+    { date: '2026-10-04', steps: 8229, partial: false },
+    { date: '2026-10-05', steps: 10794, partial: false },
+    { date: '2026-10-06', steps: 5722, partial: false },
+    { date: '2026-10-08', steps: 7950, partial: false }
   ],
   eight,
   '2026-10-09'
@@ -56,7 +56,7 @@ describe('BodyStepsWeekChart', () => {
   })
 
   it('has no target line when no target applies', async () => {
-    const plain = summarizeWeek('2026-10-04', [{ date: '2026-10-04', steps: 5000 }], [], TODAY)
+    const plain = summarizeWeek('2026-10-04', [{ date: '2026-10-04', steps: 5000, partial: false }], [], TODAY)
     const wrapper = await mountSuspended(BodyStepsWeekChart, {
       props: { week: plain, today: TODAY, lastWeekTotal: null }
     })
@@ -68,8 +68,8 @@ describe('BodyStepsWeekChart', () => {
     const lopsided = summarizeWeek(
       '2026-10-04',
       [
-        { date: '2026-10-04', steps: 200000 },
-        { date: '2026-10-05', steps: 15929 }
+        { date: '2026-10-04', steps: 200000, partial: false },
+        { date: '2026-10-05', steps: 15929, partial: false }
       ],
       eight,
       TODAY
@@ -80,5 +80,27 @@ describe('BodyStepsWeekChart', () => {
     expect(wrapper.find('[data-test="steps-hit-icon-2026-10-04"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="steps-hit-2026-10-05"]').text()).toBe('Target met')
     expect(wrapper.find('[data-test="steps-hit-icon-2026-10-05"]').exists()).toBe(false)
+  })
+
+  it('draws a partial day as a dashed outline and says so in its label', async () => {
+    const withPartial = summarizeWeek(
+      '2026-10-04',
+      [
+        { date: '2026-10-04', steps: 334, partial: true },
+        { date: '2026-10-05', steps: 9000, partial: false }
+      ],
+      eight,
+      TODAY
+    )
+    const wrapper = await mountSuspended(BodyStepsWeekChart, {
+      props: { week: withPartial, today: TODAY, lastWeekTotal: null }
+    })
+    const bar = wrapper.find('[data-test="steps-bar-2026-10-04"]')
+    expect(bar.attributes('data-partial')).toBe('true')
+    expect(bar.classes()).toContain('border-dashed')
+    expect(wrapper.find('[data-test="steps-bar-2026-10-05"]').attributes('data-partial')).toBeUndefined()
+    expect(wrapper.find('[data-test="steps-day-2026-10-04"]').attributes('aria-label')).toBe(
+      'Edit steps for Sun, Oct 4, 334 steps, partial day'
+    )
   })
 })

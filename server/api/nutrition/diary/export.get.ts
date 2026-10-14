@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
     days.map((day) => ({
       date: day.date,
       logged: day.logged,
+      incomplete: day.incomplete,
       profileName: day.profileName,
       totals: day.logged ? (day.totals as Record<string, number>) : {},
       targets: day.logged ? day.targets : null

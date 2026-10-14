@@ -12,8 +12,17 @@ export function formatStepsCompact(value: number): string {
   return Math.abs(value) >= 1000 ? `${Number((value / 1000).toFixed(1))}k` : String(Math.round(value))
 }
 
-export function stepCounts(weeks: StepWeek[]): Record<string, number> {
-  return Object.fromEntries(weeks.flatMap((w) => w.days.flatMap((d) => (d.steps === null ? [] : [[d.date, d.steps]]))))
+export interface KnownStepDay {
+  steps: number
+  partial: boolean
+}
+
+export function stepCounts(weeks: StepWeek[]): Record<string, KnownStepDay> {
+  return Object.fromEntries(
+    weeks.flatMap((w) =>
+      w.days.flatMap((d) => (d.steps === null ? [] : [[d.date, { steps: d.steps, partial: d.partial }]]))
+    )
+  )
 }
 
 export function stepTargetOn(targets: StepTarget[], date: string): StepTarget | null {
@@ -27,13 +36,21 @@ export function stepTargetOn(targets: StepTarget[], date: string): StepTarget | 
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
 
 export function summarizeWeek(start: string, days: StepDay[], targets: StepTarget[], today: string): StepWeek {
-  const counts = new Map(days.map((d) => [d.date, d.steps]))
+  const byDate = new Map(days.map((d) => [d.date, d]))
   const rows: StepWeekDay[] = Array.from({ length: 7 }, (_, i) => {
     const date = shiftDate(start, i)
-    return { date, steps: counts.get(date) ?? null, target: stepTargetOn(targets, date)?.dailyTarget ?? null }
+    const day = byDate.get(date)
+    return {
+      date,
+      steps: day?.steps ?? null,
+      partial: day?.partial ?? false,
+      target: stepTargetOn(targets, date)?.dailyTarget ?? null
+    }
   })
   const end = rows[6]!.date
   const logged = rows.filter((r) => r.steps !== null)
+  // Partial days' steps really happened, so they count in the total, but a part-day would drag the average down.
+  const full = logged.filter((r) => !r.partial)
   const total = sum(logged.map((r) => r.steps!))
   const targeted = rows.filter((r) => r.target !== null)
   const budget = targeted.length ? sum(targeted.map((r) => r.target!)) : null
@@ -48,7 +65,8 @@ export function summarizeWeek(start: string, days: StepDay[], targets: StepTarge
     days: rows,
     total,
     logged: logged.length,
-    average: logged.length ? Math.round(total / logged.length) : null,
+    partial: logged.length - full.length,
+    average: full.length ? Math.round(sum(full.map((r) => r.steps!)) / full.length) : null,
     budget,
     met,
     remaining,

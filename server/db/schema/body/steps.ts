@@ -1,4 +1,4 @@
-import { date, integer, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import { boolean, date, integer, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 
@@ -11,6 +11,7 @@ export const stepDays = appSchema.table(
       .references(() => users.id, { onDelete: 'cascade' }),
     day: date('day').notNull(),
     steps: integer('steps').notNull(),
+    partial: boolean('partial').notNull().default(false),
     source: varchar('source', { length: 16 }).notNull().default('manual')
   },
   (table) => [uniqueIndex('step_day_one_per_day').on(table.userId, table.day)]

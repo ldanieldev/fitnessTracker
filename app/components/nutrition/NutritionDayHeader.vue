@@ -3,25 +3,30 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import { formatMonthTitle } from '~/utils/nutrition/week'
 import { useIsNarrow } from '~/composables/useIsNarrow'
 
-export type DayAction = 'copy-day' | 'select' | 'notes' | 'goal' | 'summary'
+export type DayAction = 'copy-day' | 'select' | 'notes' | 'goal' | 'summary' | 'incomplete'
 
-defineProps<{ date: string }>()
+const props = defineProps<{ date: string; incomplete?: boolean }>()
 const emit = defineEmits<{ navigate: [date: string]; action: [action: DayAction] }>()
 
 const pickerOpen = ref(false)
 const narrow = useIsNarrow()
 
-const menu: DropdownMenuItem[][] = [
+const menu = computed<DropdownMenuItem[][]>(() => [
   [
     { label: 'Copy day', icon: 'i-lucide-copy', onSelect: () => emit('action', 'copy-day') },
     { label: 'Select entries', icon: 'i-lucide-list-checks', onSelect: () => emit('action', 'select') }
   ],
   [
     { label: 'Day notes', icon: 'i-lucide-notebook-pen', onSelect: () => emit('action', 'notes') },
-    { label: 'Apply goal profile', icon: 'i-lucide-target', onSelect: () => emit('action', 'goal') }
+    { label: 'Apply goal profile', icon: 'i-lucide-target', onSelect: () => emit('action', 'goal') },
+    {
+      label: props.incomplete ? 'Mark day complete' : 'Mark day incomplete',
+      icon: props.incomplete ? 'i-lucide-circle-check' : 'i-lucide-circle-dashed',
+      onSelect: () => emit('action', 'incomplete')
+    }
   ],
   [{ label: 'Summary', icon: 'i-lucide-line-chart', onSelect: () => emit('action', 'summary') }]
-]
+])
 </script>
 
 <template>

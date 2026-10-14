@@ -21,6 +21,7 @@ import { ensureEnergyTarget } from '~~/shared/utils/nutritionTargets'
 export interface RangeDay {
   date: string
   logged: boolean
+  incomplete: boolean
   totals: Record<string, number | null>
   targets: Record<string, { amount: number; direction: TargetDirection }> | null
   profileName: string | null
@@ -65,6 +66,7 @@ export async function loadIntakeRange(
       id: diaryDays.id,
       date: diaryDays.date,
       goalProfileId: diaryDays.goalProfileId,
+      incomplete: diaryDays.incomplete,
       profileName: goalProfiles.name,
       calories: goalProfiles.calories
     })
@@ -140,7 +142,7 @@ export async function loadIntakeRange(
     if (!day) {
       const totals: Record<string, number | null> = {}
       for (const n of nutrientRows) totals[n.key] = null
-      return { date, logged: false, totals, targets: null, profileName: null }
+      return { date, logged: false, incomplete: false, totals, targets: null, profileName: null }
     }
 
     const dayTotals = totalsByDay.get(day.id) ?? {}
@@ -162,7 +164,7 @@ export async function loadIntakeRange(
       targets = Object.fromEntries(withEnergy.map(({ key, ...rest }) => [key, rest]))
     }
 
-    return { date, logged: true, totals, targets, profileName }
+    return { date, logged: true, incomplete: day.incomplete, totals, targets, profileName }
   })
 
   return { nutrients: nutrientRows, days }

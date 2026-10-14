@@ -115,11 +115,11 @@ test('csv export covers only the tracked nutrients, carries each one\'s target, 
   expect(csv.contentType).toContain('text/csv')
   const lines = csv.text.split('\n')
   expect(lines[0]).toBe(
-    'date,profile,energy,energy_target,protein,protein_target,carbohydrate,carbohydrate_target,fat,fat_target,fiber,' +
-    'fiber_target'
+    'date,profile,incomplete,energy,energy_target,protein,protein_target,carbohydrate,carbohydrate_target,' +
+    'fat,fat_target,fiber,fiber_target'
   )
-  expect(lines[1]).toBe('2026-06-01,Cut,1800,1900,0,,0,,0,,0,')
+  expect(lines[1]).toBe('2026-06-01,Cut,false,1800,1900,0,,0,,0,,0,')
   const unlogged = lines[2]!.split(',')
   expect(unlogged[0]).toBe('2026-06-02')
-  expect(unlogged[2]).toBe('')
+  expect(unlogged[3]).toBe('')
 })

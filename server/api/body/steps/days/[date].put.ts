@@ -9,15 +9,15 @@ import { requireUserId } from '~~/server/utils/session'
 export default defineEventHandler(async (event): Promise<StepDay> => {
   const userId = await requireUserId(event)
   const day = parseStepDate(getRouterParam(event, 'date'))
-  const { steps } = await parseBody(event, stepDayPutSchema)
+  const { steps, partial } = await parseBody(event, stepDayPutSchema)
   const row = await db
     .insert(stepDays)
-    .values({ userId, day, steps, source: 'manual' })
+    .values({ userId, day, steps, partial, source: 'manual' })
     .onConflictDoUpdate({
       target: [stepDays.userId, stepDays.day],
-      set: { steps, source: 'manual', updatedAt: new Date() }
+      set: { steps, partial, source: 'manual', updatedAt: new Date() }
     })
     .returning()
     .then((r) => r[0]!)
-  return { date: row.day, steps: row.steps }
+  return { date: row.day, steps: row.steps, partial: row.partial }
 })

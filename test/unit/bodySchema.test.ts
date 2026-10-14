@@ -64,6 +64,7 @@ describe('body schema', () => {
       'createdAt',
       'day',
       'id',
+      'partial',
       'source',
       'steps',
       'updatedAt',
