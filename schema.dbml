@@ -11,6 +11,19 @@ table app.auth_providers {
   }
 }
 
+table app.day_notes {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  day date [not null]
+  body text [not null]
+
+  indexes {
+    (user_id, day) [name: 'day_note_one_per_day', unique]
+  }
+}
+
 table app.diary_day_targets {
   day_id integer [not null]
   nutrient_id integer [not null]
@@ -28,7 +41,6 @@ table app.diary_days {
   updated_at timestamp [default: `now()`]
   user_id integer [not null]
   date date [not null]
-  notes text [default: `null`]
   goal_profile_id integer [default: `null`]
 
   indexes {
@@ -789,6 +801,8 @@ table app.workout_templates {
 }
 
 ref auth_providers_user_id_users_id_fk: app.auth_providers.user_id > app.users.id [delete: cascade, update: no action]
+
+ref day_notes_user_id_users_id_fk: app.day_notes.user_id > app.users.id [delete: cascade, update: no action]
 
 ref diary_day_targets_day_id_diary_days_id_fk: app.diary_day_targets.day_id > app.diary_days.id [delete: cascade, update: no action]
 

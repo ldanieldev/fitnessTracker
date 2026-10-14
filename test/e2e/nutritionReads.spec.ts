@@ -49,7 +49,12 @@ test('diary/logged returns the dates with a diary row in range', async ({ page, 
       nutrients: { energy: 1 }
     }
   ])
-  await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-09-10/notes', { notes: 'hi' })
+  await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-09-10/meal-time', {
+    containerId: containers[0]!.id,
+    time: '08:00'
+  })
+  // Day notes belong to no module, so a note-only day must not count as a logged diary day.
+  await apiFetch(page, 'PUT', '/api/days/2026-09-11/note', { note: 'hi' })
 
   const logged = await apiFetch<{ dates: string[] }>(
     page,

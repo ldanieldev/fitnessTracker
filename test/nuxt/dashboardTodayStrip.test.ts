@@ -39,6 +39,7 @@ let stepsGate: Promise<void> | null = null
 let active: unknown = null
 let routines: unknown[] = []
 let consistency: unknown = null
+let note: string | null = null
 const calls = new Map<string, number>()
 const hit = (path: string) => calls.set(path, (calls.get(path) ?? 0) + 1)
 registerEndpoint('/api/body/overview', () => {
@@ -76,6 +77,10 @@ registerEndpoint('/api/dashboard/consistency', () => {
   hit('consistency')
   return consistency
 })
+registerEndpoint(`/api/days/${today}/note`, () => {
+  hit('note')
+  return { date: today, note }
+})
 
 const wrappers: VueWrapper[] = []
 
@@ -99,6 +104,7 @@ afterEach(() => {
   active = null
   routines = []
   consistency = null
+  note = null
 })
 
 const bodyweight = (measuredOn: string) => [
@@ -381,5 +387,18 @@ describe('DashboardTodayStrip', () => {
     const wrapper = await mounted()
     wrapper.findComponent({ name: 'BodyEntrySheet' }).vm.$emit('saved')
     expect(refreshData).toHaveBeenCalledWith('dashboard:bodyweight')
+  })
+
+  it('shows today’s note under the rows, or a prompt to add one', async () => {
+    day = diary(500)
+    note = 'Event day, ate out'
+    let wrapper = await mounted()
+    expect(row(wrapper, 'note-text').text()).toBe('Event day, ate out')
+    expect(row(wrapper, 'note-edit').attributes('aria-label')).toBe('Edit today’s note')
+    note = null
+    wrapper = await mounted()
+    expect(row(wrapper, 'note-text').text()).toBe('Nothing noted today')
+    expect(row(wrapper, 'note-edit').attributes('aria-label')).toBe('Add a note for today')
+    expect(calls.get('note')).toBe(1)
   })
 })

@@ -32,6 +32,12 @@ const links = computed(
           to: '/',
           onSelect: close
         },
+        {
+          label: 'Day notes',
+          icon: 'i-lucide-notebook-pen',
+          to: '/notes',
+          onSelect: close
+        },
         modules.body.value && {
           label: 'Body',
           icon: 'i-lucide-person-standing',

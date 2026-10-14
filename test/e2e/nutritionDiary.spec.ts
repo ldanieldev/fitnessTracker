@@ -2,6 +2,16 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
 
+// Setting a meal time persists a diary day without adding food or applying a profile.
+async function persistDay(page: Page, date: string) {
+  const containers = (await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')).json
+  const res = await apiFetch(page, 'PUT', `/api/nutrition/diary/${date}/meal-time`, {
+    containerId: containers[0]!.id,
+    time: '08:00'
+  })
+  expect(res.ok).toBe(true)
+}
+
 test('reading an untouched date returns an empty day without persisting one', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
@@ -11,7 +21,7 @@ test('reading an untouched date returns an empty day without persisting one', as
   expect(day.json.persisted).toBe(false)
 })
 
-test('writing a note persists the day and it follows the default profile targets', async ({ page, goto }) => {
+test('a persisted day follows the default profile targets and shows the day note', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -25,7 +35,8 @@ test('writing a note persists the day and it follows the default profile targets
     ]
   })
 
-  const notes = await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-01-16/notes', { notes: 'travel day' })
+  await persistDay(page, '2026-01-16')
+  const notes = await apiFetch(page, 'PUT', '/api/days/2026-01-16/note', { note: 'travel day' })
   expect(notes.ok).toBe(true)
 
   const day = await apiFetch<{
@@ -52,7 +63,7 @@ test('editing a goal profile never rewrites a day with an explicitly applied pro
   })
   const { id } = created.json
 
-  await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-01-17/notes', { notes: 'x' })
+  await persistDay(page, '2026-01-17')
   // A day with no profile applied follows the current default instead — apply one explicitly to pin this day's targets.
   await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-01-17/goal', { profileId: id })
 
@@ -97,7 +108,7 @@ test('a deleted default profile is not snapshotted onto new days', async ({ page
   const deleted = await apiFetch(page, 'DELETE', `/api/nutrition/goal-profiles/${id}`)
   expect(deleted.ok).toBe(true)
 
-  await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-03-01/notes', { notes: 'no default anymore' })
+  await persistDay(page, '2026-03-01')
 
   const day = await apiFetch<{ targets: unknown[]; goalProfileId: number | null }>(
     page,

@@ -9,7 +9,7 @@ import { calendarWeekStarts, dayStreak, longestDayRun } from '~~/shared/utils/da
 import { shiftDate } from '~~/shared/utils/nutritionSummary'
 import { weekStartOf } from '~~/shared/utils/programs'
 
-// Joins entries: diary_days rows also exist for days with only notes or a goal profile and no food.
+// Joins entries: diary_days rows also exist for days with only a goal profile or meal time and no food.
 async function loggedDays(userId: number): Promise<string[]> {
   const rows = await db
     .selectDistinct({ date: diaryDays.date })

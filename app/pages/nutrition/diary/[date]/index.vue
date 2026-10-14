@@ -281,7 +281,12 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         @copy="copyEntry"
       />
 
-      <LazyNutritionDayNotesSheet v-model:open="notesOpen" :date="date" :notes="day?.notes ?? null" />
+      <LazyAppDayNoteSheet
+        v-model:open="notesOpen"
+        :date="date"
+        :note="day?.notes ?? null"
+        @saved="invalidateNutrition(NUTRITION_KEYS.day(date))"
+      />
 
       <LazyNutritionGoalSheet
         v-model:open="goalOpen"

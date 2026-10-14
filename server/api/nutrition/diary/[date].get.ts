@@ -12,6 +12,7 @@ import {
   nutrients
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
+import { loadDayNote } from '~~/server/utils/days/notes'
 import { parseDiaryDate } from '~~/server/utils/nutrition/day'
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { requireUserId } from '~~/server/utils/session'
@@ -54,7 +55,7 @@ export default defineEventHandler(async (event) => {
   const date = parseDiaryDate(getRouterParam(event, 'date'))
 
   const day = await db
-    .select({ id: diaryDays.id, notes: diaryDays.notes, goalProfileId: diaryDays.goalProfileId })
+    .select({ id: diaryDays.id, goalProfileId: diaryDays.goalProfileId })
     .from(diaryDays)
     .where(and(eq(diaryDays.userId, userId), eq(diaryDays.date, date)))
     .then((r) => r[0])
@@ -223,7 +224,7 @@ export default defineEventHandler(async (event) => {
   return {
     date,
     persisted: Boolean(day),
-    notes: day?.notes ?? null,
+    notes: await loadDayNote(userId, date),
     goalProfileId: day?.goalProfileId ?? null,
     targets,
     containers,

@@ -59,10 +59,19 @@ async function workoutSources() {
 // Read once so hidden modules never fetch; the dashboard page remounts the strip when a flag flips.
 const body = modules.body.value ? bodySources() : null
 const nutrition = modules.nutrition.value ? useTodaySummary() : null
+const noteFetch =
+  modules.body.value || modules.workouts.value || modules.nutrition.value
+    ? useFetch<{ note: string | null }>(() => `/api/days/${today.value}/note`, {
+        key: computed(() => `days:note:${today.value}`),
+        lazy: true
+      })
+    : null
 const workouts = modules.workouts.value ? await workoutSources() : null
 
 const bodyweight = computed(() => body?.metrics.value.find((m) => m.type.key === 'bodyweight') ?? null)
 const logOpen = ref(false)
+const noteOpen = ref(false)
+const note = computed(() => noteFetch?.data.value?.note ?? null)
 const activeSession = computed(() => workouts?.active.session.value ?? null)
 const starting = computed(() => workouts?.starting.value ?? false)
 const nextDay = computed(() => workouts?.routines.data.value?.find((r) => r.active && r.nextDay)?.nextDay ?? null)
@@ -242,6 +251,38 @@ const DOT = {
         </div>
       </template>
     </div>
+    <div
+      v-if="noteFetch && noteFetch.status.value === 'success'"
+      class="mt-2 flex items-center gap-2.5 border-t border-default pt-2"
+      data-test="today-note"
+    >
+      <NuxtLink to="/notes" class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg hover:bg-accented">
+        <UIcon name="i-lucide-notebook-pen" class="size-5 shrink-0 text-dimmed" />
+        <span class="w-15 shrink-0 truncate text-sm text-muted">Note</span>
+        <span
+          class="min-w-0 flex-1 truncate text-sm"
+          :class="note ? 'text-highlighted' : 'text-dimmed'"
+          data-test="today-note-text"
+        >
+          {{ note ?? 'Nothing noted today' }}
+        </span>
+      </NuxtLink>
+      <UButton
+        :icon="note ? 'i-lucide-pencil' : 'i-lucide-plus'"
+        size="sm"
+        variant="subtle"
+        :aria-label="note ? 'Edit today’s note' : 'Add a note for today'"
+        data-test="today-note-edit"
+        @click="noteOpen = true"
+      />
+    </div>
+    <AppDayNoteSheet
+      v-if="noteFetch"
+      v-model:open="noteOpen"
+      :date="today"
+      :note="note"
+      @saved="noteFetch.refresh()"
+    />
     <BodyEntrySheet
       v-if="bodyweight"
       v-model:open="logOpen"

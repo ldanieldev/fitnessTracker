@@ -43,7 +43,6 @@ export const diaryDays = appSchema.table(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     date: date('date').notNull(),
-    notes: text('notes').default(sql`null`),
     goalProfileId: integer('goal_profile_id')
       .default(sql`null`)
       .references(() => goalProfiles.id, { onDelete: 'set null' })
