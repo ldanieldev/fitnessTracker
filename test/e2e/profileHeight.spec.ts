@@ -50,3 +50,33 @@ test('user list: no route returns accounts, signed in or not', async ({ page, go
   expect(Array.isArray(anonymous.json)).toBe(false)
   expect(JSON.stringify(anonymous.json)).not.toContain(user.email)
 })
+
+test('user create: only registration makes accounts, and registering an existing email is refused', async ({
+  page,
+  goto
+}) => {
+  await goto('/', { waitUntil: 'hydration' })
+  const email = `create-route-${Date.now()}@example.com`
+  await apiFetch(page, 'POST', '/api/users', { name: '', email, password: 'x', age: 999 })
+  const login = await page.evaluate(
+    async (body) =>
+      (await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+      })).status,
+    { email, password: 'x' }
+  )
+  expect(login).not.toBe(200)
+
+  const user = await registerViaApi(page, makeUser())
+  await apiFetch(page, 'DELETE', '/api/_auth/session')
+  const again = await apiFetch(page, 'POST', '/api/auth/register', {
+    name: 'Someone Else',
+    email: user.email,
+    password: 'another-password',
+    age: 30
+  })
+  expect(again.status).toBe(409)
+  expect((await apiFetch<{ user?: unknown }>(page, 'GET', '/api/_auth/session')).json.user).toBeUndefined()
+})

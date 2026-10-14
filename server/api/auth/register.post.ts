@@ -28,46 +28,14 @@ export default defineEventHandler(async (event) => {
 
   // Check if email already exists
   const existing = await db
-    .select({ id: users.id, password: users.password })
+    .select({ id: users.id })
     .from(users)
     .where(eq(users.email, parsed.data.email))
     .limit(1)
     .then((r) => r[0])
 
-  if (existing) {
-    // If user exists from OAuth but has no password, let them set one (account linking)
-    if (!existing.password) {
-      const hashedPassword = await hashPassword(parsed.data.password)
-      await db
-        .update(users)
-        .set({
-          password: hashedPassword,
-          name: parsed.data.name,
-          age: parsed.data.age,
-          sex: parsed.data.sex
-        })
-        .where(eq(users.id, existing.id))
-
-      await db.insert(authProviders).values({
-        userId: existing.id,
-        provider: 'credentials',
-        providerAccountId: parsed.data.email
-      })
-
-      const user = await db
-        .select(userColumns)
-        .from(users)
-        .where(eq(users.id, existing.id))
-        .limit(1)
-        .then((r) => r[0]!)
-
-      await replaceUserSession(event, { user: toSessionUser(user) })
-
-      return { success: true }
-    }
-
-    throw createError({ statusCode: 409, statusMessage: 'Email already exists' })
-  }
+  // Never set a password on an existing OAuth-only account here: knowing its email would be enough to take it over.
+  if (existing) throw createError({ statusCode: 409, statusMessage: 'Email already exists' })
 
   // Create new user with credentials
   const hashedPassword = await hashPassword(parsed.data.password)

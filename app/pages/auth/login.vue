@@ -10,7 +10,7 @@ const router = useRouter()
 
 const OAUTH_ERRORS: Record<OAuthErrorCode, string> = {
   no_email: 'Your account has no public email. Make it public or use another login method.',
-  email_unverified: 'Your Google email is not verified. Verify it or use another login method.',
+  email_unverified: 'That account’s email is not verified. Verify it with the provider or use another login method.',
   provider_error: 'Sign-in failed. Please try again.',
   already_linked: 'That account is already linked to a different user.'
 }

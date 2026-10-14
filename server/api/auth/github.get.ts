@@ -1,3 +1,4 @@
+import { fetchGitHubEmails, verifiedPrimaryEmail } from '~~/server/utils/githubEmail'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const githubHandler = defineOAuthGitHubEventHandler({
@@ -5,10 +6,16 @@ const githubHandler = defineOAuthGitHubEventHandler({
     scope: ['user:email'],
     emailRequired: true
   },
-  async onSuccess(event, { user: ghUser }) {
-    const email: string = ghUser.email || ''
+  async onSuccess(event, { user: ghUser, tokens }) {
+    let email: string | null
+    try {
+      email = verifiedPrimaryEmail(await fetchGitHubEmails(tokens.access_token))
+    } catch (error) {
+      logger.error({ err: error, route: '/api/auth/github', provider: 'github' }, 'GitHub email lookup failed')
+      return loginError(event, 'provider_error')
+    }
     if (!email) {
-      return loginError(event, 'no_email')
+      return loginError(event, 'email_unverified')
     }
 
     try {
