@@ -740,9 +740,11 @@ table app.workout_sessions {
   enrollment_id integer
   program_phase_id integer
   program_week smallint [default: `null`]
+  import_key varchar(64) [default: `null`]
 
   indexes {
     user_id [name: 'workout_session_open', unique]
+    (user_id, import_key) [name: 'workout_session_import_key', unique]
     (user_id, performed_on, id) [name: 'workout_session_recent']
   }
 }

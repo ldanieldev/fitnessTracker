@@ -1,0 +1,2 @@
+ALTER TABLE "app"."workout_sessions" ADD COLUMN "import_key" varchar(64) DEFAULT null;--> statement-breakpoint
+CREATE UNIQUE INDEX "workout_session_import_key" ON "app"."workout_sessions" USING btree ("user_id","import_key") WHERE import_key is not null;

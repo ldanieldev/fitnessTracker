@@ -8,7 +8,7 @@ export const importJobs = appSchema.table('import_jobs', {
   userId: integer('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  source: varchar('source', { enum: ['mymacros'] }).notNull(),
+  source: varchar('source', { enum: ['mymacros', 'fitnotes'] }).notNull(),
   status: varchar('status', { enum: ['queued', 'running', 'done', 'failed'] })
     .notNull()
     .default('queued'),

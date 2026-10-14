@@ -2,7 +2,7 @@
 import { format } from 'date-fns'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { WorkoutSessionSummary } from '~~/shared/types/workout'
-import { durationLabel } from '~~/shared/utils/workoutTime'
+import { durationLabel, hasDuration } from '~~/shared/utils/workoutTime'
 import { plural } from '~/utils/plural'
 
 const props = defineProps<{ summary: WorkoutSessionSummary; copyDisabled?: boolean }>()
@@ -19,9 +19,10 @@ const line = computed(() => {
   return [when, plural(s.exerciseCount, 'exercise'), plural(s.setCount, 'set')].join(' · ')
 })
 
-const duration = computed(() =>
-  props.summary.endedAt ? durationLabel(props.summary.startedAt, new Date(props.summary.endedAt).getTime()) : null
-)
+const duration = computed(() => {
+  const { startedAt, endedAt } = props.summary
+  return endedAt && hasDuration(startedAt, endedAt) ? durationLabel(startedAt, new Date(endedAt).getTime()) : null
+})
 
 // Nuxt UI renders menu items through pickLinkProps, so a data-test on the item is dropped; the label slot carries it.
 const menu = computed<DropdownMenuItem[][]>(() => [

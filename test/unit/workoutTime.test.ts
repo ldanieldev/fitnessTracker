@@ -3,6 +3,7 @@ import {
   durationLabel,
   elapsedLabel,
   fromLocalInput,
+  hasDuration,
   toLocalInput,
   totalTimeLabel
 } from '../../shared/utils/workoutTime'
@@ -37,6 +38,14 @@ describe('totalTimeLabel', () => {
 
   it('renders hours and minutes at an hour and over', () => {
     expect(totalTimeLabel(12 * 3600 + 35 * 60)).toBe('12h 35m')
+  })
+})
+
+describe('hasDuration', () => {
+  it('is false only for a finished workout whose start and end are the same instant', () => {
+    expect(hasDuration(start, '2026-09-18T10:00:00Z')).toBe(false)
+    expect(hasDuration(start, '2026-09-18T10:45:00.000Z')).toBe(true)
+    expect(hasDuration(start, null)).toBe(true)
   })
 })
 

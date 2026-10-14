@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import type { WorkoutSession } from '~~/shared/types/workout'
-import { durationLabel } from '~~/shared/utils/workoutTime'
+import { durationLabel, hasDuration } from '~~/shared/utils/workoutTime'
 
 const props = defineProps<{ session: WorkoutSession }>()
 
@@ -72,7 +72,12 @@ const dateLabel = computed(() => format(new Date(`${props.session.performedOn}T0
         data-test="session-name"
         @blur="saveName"
       />
-      <span class="shrink-0 text-sm tabular-nums text-dimmed" data-test="session-elapsed">{{ elapsedLabel }}</span>
+      <span
+        v-if="hasDuration(session.startedAt, session.endedAt)"
+        class="shrink-0 text-sm tabular-nums text-dimmed"
+        data-test="session-elapsed"
+        >{{ elapsedLabel }}</span
+      >
     </div>
     <div class="flex items-center gap-2 px-2.5 text-xs text-dimmed">
       <span data-test="session-date-label">{{ dateLabel }}</span>

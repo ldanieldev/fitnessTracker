@@ -1,6 +1,7 @@
 import { serve } from 'inngest/nuxt'
 import { inngest } from '~~/server/utils/inngest/client'
 import { importMyMacros } from '~~/server/utils/inngest/functions/importMyMacros'
+import { importFitNotes } from '~~/server/utils/inngest/functions/importFitNotes'
 import { searchOutboxDrain } from '~~/server/utils/inngest/functions/searchOutboxDrain'
 import { searchRebuild } from '~~/server/utils/inngest/functions/searchRebuild'
 import { searchNightlyRebuild } from '~~/server/utils/inngest/functions/searchNightlyRebuild'
@@ -18,7 +19,8 @@ export default defineEventHandler(
       exerciseSearchOutboxDrain,
       exerciseSearchRebuild,
       rollupNightlyRebuild,
-      importMyMacros
+      importMyMacros,
+      importFitNotes
     ]
   })
 )

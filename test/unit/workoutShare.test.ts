@@ -95,4 +95,11 @@ describe('workoutShareText', () => {
       ].join('\n')
     )
   })
+
+  it('leaves the duration off an imported workout with no recorded time', () => {
+    const imported = workoutShareText(
+      session({ startedAt: '2026-10-03T12:00:00.000Z', endedAt: '2026-10-03T12:00:00.000Z', entries: [] })
+    )
+    expect(imported.split('\n')[0]).toBe('Push A — Sat, Oct 3')
+  })
 })

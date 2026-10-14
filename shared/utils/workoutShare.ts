@@ -3,7 +3,7 @@ import type { WorkoutEntry, WorkoutSession } from '../types/workout'
 import { formatSet } from './setFormat'
 import { measuresFor } from './setRules'
 import { supersetLabel } from './supersets'
-import { durationLabel } from './workoutTime'
+import { durationLabel, hasDuration } from './workoutTime'
 
 function entryLines(entry: WorkoutEntry, label: string | null): string[] {
   const measures = measuresFor(entry.trackingType)
@@ -18,7 +18,9 @@ function entryLines(entry: WorkoutEntry, label: string | null): string[] {
 export function workoutShareText(session: WorkoutSession): string {
   const date = format(new Date(`${session.performedOn}T00:00:00`), 'EEE, MMM d')
   let title = `${session.name ?? 'Workout'} — ${date}`
-  if (session.endedAt) title += ` · ${durationLabel(session.startedAt, new Date(session.endedAt).getTime())}`
+  if (session.endedAt && hasDuration(session.startedAt, session.endedAt)) {
+    title += ` · ${durationLabel(session.startedAt, new Date(session.endedAt).getTime())}`
+  }
   const head = session.notes ? [title, `Note: ${session.notes}`] : [title]
   const body = session.entries
     .filter((entry) => entry.sets.length > 0)

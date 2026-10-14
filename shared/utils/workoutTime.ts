@@ -5,6 +5,11 @@ export function elapsedLabel(seconds: number): string {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds % 60)}` : `${minutes}:${pad(seconds % 60)}`
 }
 
+/** Imports record start = end for "duration unknown", so a finished workout with no elapsed time has none to show. */
+export function hasDuration(startedAt: string, endedAt: string | null): boolean {
+  return endedAt === null || new Date(endedAt).getTime() !== new Date(startedAt).getTime()
+}
+
 export function durationLabel(startedAt: string, end: number): string {
   return elapsedLabel(Math.max(0, Math.floor((end - new Date(startedAt).getTime()) / 1000)))
 }

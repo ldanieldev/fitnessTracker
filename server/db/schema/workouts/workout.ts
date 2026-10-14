@@ -97,12 +97,16 @@ export const workoutSessions = appSchema.table(
     programPhaseId: integer('program_phase_id').references((): AnyPgColumn => programPhases.id, {
       onDelete: 'set null'
     }),
-    programWeek: smallint('program_week').default(sql`null`)
+    programWeek: smallint('program_week').default(sql`null`),
+    importKey: varchar('import_key', { length: 64 }).default(sql`null`)
   },
   (table) => [
     uniqueIndex('workout_session_open')
       .on(table.userId)
       .where(sql`ended_at is null`),
+    uniqueIndex('workout_session_import_key')
+      .on(table.userId, table.importKey)
+      .where(sql`import_key is not null`),
     index('workout_session_recent').on(table.userId, table.performedOn, table.id)
   ]
 )
