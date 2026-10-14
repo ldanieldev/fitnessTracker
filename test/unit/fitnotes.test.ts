@@ -3,6 +3,7 @@ import {
   exactExerciseMatch,
   fitNotesCategoryKey,
   FitNotesParseError,
+  fitsTrackingType,
   parseAssist,
   parseCsvRows,
   parseFitNotesCsv,
@@ -62,6 +63,7 @@ describe('parseAssist', () => {
     expect(parseAssist('20kg Assist', 'lbs')).toBe(44.09)
     expect(parseAssist('40 assist', 'kgs')).toBe(88.18)
     expect(parseAssist('Superset', 'lbs')).toBeNull()
+    expect(parseAssist('last 2 assisted by spotter', 'lbs')).toBeNull()
     expect(parseAssist(null, 'lbs')).toBeNull()
   })
 })
@@ -135,6 +137,30 @@ describe('summarizeFitNotes', () => {
     })
   })
 
+  it('reads a negative weight as an assist', () => {
+    const [row] = parseFitNotesCsv(`${HEADER}\n2026-01-01,Dip,Triceps,-40.0,lbs,8,,,,`)
+    expect(row).toMatchObject({ weight: 0, assist: 40 })
+  })
+
+  it('keeps weight and reps alongside time or distance', () => {
+    const rows = parseFitNotesCsv(
+      [
+        HEADER,
+        '2026-01-01,Weighted Plank,Abs,45,lbs,,,,0:01:00,',
+        '2026-01-01,Farmer Carry,Forearms,100,lbs,,40,m,,',
+        '2026-01-01,Sled Push,Legs,,,10,20,m,,',
+        '2026-01-01,Hang,Back,,,3,,,0:00:30,'
+      ].join('\n')
+    )
+    const types = Object.fromEntries(summarizeFitNotes(rows).map((s) => [s.name, s.trackingType]))
+    expect(types).toEqual({
+      'Weighted Plank': 'weight_time',
+      'Farmer Carry': 'weight_distance',
+      'Sled Push': 'reps_distance',
+      Hang: 'reps_time'
+    })
+  })
+
   it('types time-only and distance-only cardio', () => {
     const rows = parseFitNotesCsv(
       [HEADER, '2026-01-01,Plank,Abs,,,,,,0:01:00,', '2026-01-01,Walk,Cardio,,,,2,km,,'].join('\n')
@@ -165,6 +191,16 @@ describe('setWeight', () => {
     expect(setWeight({ ...set, weight: 185, assist: null }, 'weight_reps', false)).toBe(185)
     expect(setWeight(set, 'reps', false)).toBeNull()
     expect(setWeight(set, 'distance_time', false)).toBeNull()
+  })
+})
+
+describe('fitsTrackingType', () => {
+  it('accepts an exercise type that holds every logged measure', () => {
+    expect(fitsTrackingType('reps', 'weight_reps')).toBe(true)
+    expect(fitsTrackingType('weight_reps', 'weight_reps')).toBe(true)
+    expect(fitsTrackingType('time', 'weight_time')).toBe(true)
+    expect(fitsTrackingType('weight_reps', 'reps')).toBe(false)
+    expect(fitsTrackingType('distance_time', 'time')).toBe(false)
   })
 })
 

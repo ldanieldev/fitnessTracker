@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DayNote } from '~~/shared/types/days'
+import { errorMessage } from '~/utils/apiError'
 import { formatDayLabel } from '~~/shared/utils/dayLabel'
 import { shiftDate } from '~~/shared/utils/nutritionSummary'
 
@@ -45,8 +46,21 @@ const sheetOpen = computed({
   }
 })
 
-function edit(date: string) {
-  editing.value = { date, note: notes.value.find((n) => n.date === date)?.note ?? null }
+const toast = useToast()
+
+async function edit(date: string) {
+  const loaded = notes.value.find((n) => n.date === date)
+  if (loaded) {
+    editing.value = { date, note: loaded.note }
+    return
+  }
+  // The day's note may sit past the loaded pages; opening blank and saving would silently replace it.
+  try {
+    const { note } = await apiFetch<{ note: string | null }>(`/api/days/${date}/note`)
+    editing.value = { date, note }
+  } catch (error: unknown) {
+    toast.add({ title: 'Couldn’t open that day', description: errorMessage(error, 'Try again'), color: 'error' })
+  }
 }
 
 async function onSaved() {
@@ -89,8 +103,8 @@ async function onSaved() {
               :data-test="`note-${item.date}`"
               @click="edit(item.date)"
             >
-              <p class="text-xs font-medium text-dimmed">{{ formatDayLabel(item.date) }}</p>
-              <p class="whitespace-pre-wrap text-sm">{{ item.note }}</p>
+              <span class="block text-xs font-medium text-dimmed">{{ formatDayLabel(item.date) }}</span>
+              <span class="block whitespace-pre-wrap text-sm">{{ item.note }}</span>
             </button>
           </li>
         </ul>

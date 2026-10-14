@@ -7,6 +7,7 @@ import {
   measurements,
   workoutEntries,
   workoutExerciseGoals,
+  workoutExerciseRollups,
   workoutSessions,
   workoutSets
 } from '~~/server/db/schema'
@@ -31,6 +32,24 @@ export function workoutsStamp(userId: number, window: DateRange) {
     .leftJoin(workoutEntries, eq(workoutEntries.sessionId, workoutSessions.id))
     .leftJoin(workoutSets, eq(workoutSets.entryId, workoutEntries.id))
     .where(and(eq(workoutSessions.userId, userId), between(workoutSessions.performedOn, window.from, window.to)))
+}
+
+// Rollups land after their sets commit (imports rebuild them at the end), so set stamps alone can cache them missing.
+export function rollupsStamp(userId: number, window: DateRange) {
+  return db
+    .select({
+      rows: count(),
+      sets: sql<string | null>`sum(workout_exercise_rollups.set_count)::text`,
+      volume: sql<string | null>`sum(workout_exercise_rollups.total_volume)::text`,
+      e1rm: sql<string | null>`sum(workout_exercise_rollups.best_e1rm)::text`
+    })
+    .from(workoutExerciseRollups)
+    .where(
+      and(
+        eq(workoutExerciseRollups.userId, userId),
+        between(workoutExerciseRollups.performedOn, window.from, window.to)
+      )
+    )
 }
 
 export function bodyweightStamp(userId: number, typeId: number) {

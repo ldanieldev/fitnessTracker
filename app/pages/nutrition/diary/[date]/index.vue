@@ -264,8 +264,8 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
           data-test="day-notes-card"
           @click="notesOpen = true"
         >
-          <p class="text-xs font-medium text-dimmed">Notes</p>
-          <p class="whitespace-pre-wrap text-sm">{{ day.notes }}</p>
+          <span class="block text-xs font-medium text-dimmed">Notes</span>
+          <span class="block whitespace-pre-wrap text-sm">{{ day.notes }}</span>
         </button>
       </div>
 

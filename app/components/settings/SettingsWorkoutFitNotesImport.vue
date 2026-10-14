@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex w-full min-w-0 flex-col gap-4">
     <UFormField v-if="!preview" label="FitNotes export (.csv)" name="fitnotesFile">
       <UInput
         type="file"
@@ -189,7 +189,7 @@ onBeforeUnmount(() => {
     <p v-if="previewing" class="text-sm text-dimmed" data-test="fitnotes-reading">Reading the export…</p>
 
     <template v-if="preview && !result && status !== 'failed'">
-      <div class="flex flex-col gap-1 text-sm" data-test="fitnotes-summary">
+      <div class="flex min-w-0 flex-col gap-1 text-sm wrap-anywhere" data-test="fitnotes-summary">
         <p class="text-highlighted">
           {{ preview.sets.toLocaleString('en-US') }} sets on {{ preview.days.toLocaleString('en-US') }} days,
           {{ preview.firstDate }} to {{ preview.lastDate }}
@@ -216,7 +216,7 @@ onBeforeUnmount(() => {
         data-test="fitnotes-only-new"
       />
 
-      <ul class="flex flex-col divide-y divide-default rounded-lg border border-default">
+      <ul class="flex w-full min-w-0 flex-col divide-y divide-default overflow-hidden rounded-lg border border-default">
         <li
           v-for="row in rows"
           :key="row.name"
@@ -264,6 +264,7 @@ onBeforeUnmount(() => {
                 variant="outline"
                 color="neutral"
                 :aria-label="`Use ${option.name}`"
+                :ui="{ label: 'whitespace-normal text-left' }"
                 :data-test="`fitnotes-suggest-${row.name}-${option.id}`"
                 @click="choose(row.name, option)"
               />

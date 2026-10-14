@@ -91,6 +91,9 @@ test('account export: every table of the userâ€™s data, nothing of anyone elseâ€
     expect.arrayContaining(['Barbell Squat', 'Elliptical Trainer'])
   )
   expect(data.reference.nutrients!.some((n) => n.key === 'energy')).toBe(true)
+  expect(data.reference.measurement_types!.map((t) => t.key)).toEqual(
+    expect.arrayContaining(['bodyweight', 'waist'])
+  )
 
   expect((await apiFetch(page, 'GET', '/api/export?today=2026-13-01')).status).toBe(400)
   await apiFetch(page, 'DELETE', '/api/_auth/session')

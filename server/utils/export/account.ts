@@ -249,6 +249,7 @@ async function referenceRows(tables: Record<string, Rows>) {
         )
     : []
   return {
+    measurement_types: await db.select().from(measurementTypes).where(isNull(measurementTypes.userId)),
     exercise_categories: await db.select().from(exerciseCategories).where(isNull(exerciseCategories.userId)),
     exercises: sharedExercises,
     foods: sharedFoods,

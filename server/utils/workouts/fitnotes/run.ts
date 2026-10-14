@@ -18,6 +18,7 @@ import { rebuildRollups } from '~~/server/utils/workouts/rollups'
 import {
   exactExerciseMatch,
   fitNotesCategoryKey,
+  fitsTrackingType,
   parseFitNotesCsv,
   planFitNotesDays,
   setWeight,
@@ -29,6 +30,8 @@ import { exerciseOptions, fitNotesImportKey, sessionDays } from './preview'
 
 const IMPORT_CATEGORY_COLOR = 'slate'
 const COMMENT_MAX = 500
+// Advisory-lock namespace for claiming a FitNotes job; the second key is the user id.
+const CLAIM_LOCK = 7_301_011
 
 interface TargetExercise {
   id: number
@@ -89,7 +92,12 @@ async function resolveExercises(
     const mapped = s.name in mapping ? mapping[s.name] : (exactExerciseMatch(s.name, options)?.id ?? null)
     if (mapped != null) {
       const exercise = await loadExerciseSettings(userId, mapped)
-      targets.set(s.name, { id: mapped, trackingType: s.trackingType, loadStyle: loadStyle ?? exercise.loadStyle })
+      const trackingType = fitsTrackingType(s.trackingType, exercise.trackingType)
+        ? exercise.trackingType
+        : s.trackingType
+      // No assists in the export means its weights are real loads, so an assisted target's style must not apply.
+      const style = loadStyle ?? (exercise.loadStyle === 'assisted' ? null : exercise.loadStyle)
+      targets.set(s.name, { id: mapped, trackingType, loadStyle: style })
       continue
     }
     let id = await ownExerciseNamed(userId, s.name)
@@ -144,7 +152,7 @@ export async function performFitNotesImport(
       result.daysSkippedExisting++
       continue
     }
-    // Noon UTC keeps the calendar date in any timezone; equal start and end mean "no duration recorded".
+    // Noon UTC is the same calendar date from UTC-12 to UTC+11; equal start and end mean "no duration recorded".
     const at = new Date(`${day.date}T12:00:00Z`)
     try {
       const sets = await db.transaction(async (tx) => {
@@ -214,7 +222,27 @@ export async function runFitNotesImport(jobId: number): Promise<FitNotesImportRe
     .then((r) => r[0])
   if (!job) throw new Error(`FitNotes import job ${jobId} not found`)
 
-  await db.update(importJobs).set({ status: 'running' }).where(eq(importJobs.id, jobId))
+  // Concurrent runs would create the same new exercises twice; a run untouched for an hour counts as crashed.
+  const claimed = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${CLAIM_LOCK}, ${job.userId})`)
+    return tx
+      .update(importJobs)
+      .set({ status: 'running' })
+      .where(
+        and(
+          eq(importJobs.id, jobId),
+          sql`not exists (select 1 from ${importJobs} other where other.user_id = ${job.userId}
+            and other.source = 'fitnotes' and other.status = 'running' and other.id <> ${jobId}
+            and other.updated_at > now() - interval '1 hour')`
+        )
+      )
+      .returning({ id: importJobs.id })
+  })
+  if (claimed.length === 0) {
+    const error = 'Another FitNotes import is still running; try again when it finishes'
+    await db.update(importJobs).set({ status: 'failed', error }).where(eq(importJobs.id, jobId))
+    throw new Error(error)
+  }
   try {
     const result = await performFitNotesImport(job.userId, job.payload as FitNotesImportPayload)
     await db.update(importJobs).set({ status: 'done', result }).where(eq(importJobs.id, jobId))

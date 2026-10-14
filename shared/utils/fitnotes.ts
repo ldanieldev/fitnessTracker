@@ -16,7 +16,7 @@ export const FITNOTES_HEADER = [
 const LB_PER_KG = 2.20462
 const METERS_PER_UNIT: Record<string, number> = { m: 1, km: 1000, mi: 1609.344, ft: 0.3048, yd: 0.9144 }
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-const ASSIST = /(\d+(?:\.\d+)?)\s*(lbs?|kgs?)?\s*assist/i
+const ASSIST = /\b(\d+(?:\.\d+)?)\s*(lbs?|kgs?)?\s*assist\b/i
 
 export class FitNotesParseError extends Error {}
 
@@ -153,16 +153,17 @@ export function parseFitNotesCsv(text: string): FitNotesRow[] {
       throw new FitNotesParseError(`Line ${line}: unknown distance unit "${distanceUnit}"`)
     }
     const weightValue = num(weight)
+    const pounds = weightValue === null ? null : toPounds(weightValue, weightUnit ?? '')
     const note = comment ? comment : null
     return {
       date,
       exercise,
       category: category ?? '',
-      weight: weightValue === null ? null : toPounds(weightValue, weightUnit ?? ''),
+      weight: pounds !== null && pounds < 0 ? 0 : pounds,
       reps: num(reps),
       distanceMeters: distanceValue === null ? null : round(distanceValue * METERS_PER_UNIT[unit]!),
       durationSeconds: parseFitNotesTime(time ?? ''),
-      assist: parseAssist(note, weightUnit ?? ''),
+      assist: pounds !== null && pounds < 0 ? -pounds : parseAssist(note, weightUnit ?? ''),
       comment: note
     }
   })
@@ -171,11 +172,21 @@ export function parseFitNotesCsv(text: string): FitNotesRow[] {
 function trackingTypeOf(rows: FitNotesRow[]): TrackingType {
   const distance = rows.some((r) => r.distanceMeters !== null)
   const time = rows.some((r) => r.durationSeconds !== null)
-  if (distance && time) return 'distance_time'
-  if (time) return 'time'
-  if (distance) return 'distance'
   const weighted = rows.some((r) => (r.weight ?? 0) !== 0 || r.assist !== null)
+  const reps = rows.some((r) => r.reps !== null)
+  if (distance && time) return 'distance_time'
+  if (distance || time) {
+    if (weighted) return distance ? 'weight_distance' : 'weight_time'
+    if (reps) return distance ? 'reps_distance' : 'reps_time'
+    return distance ? 'distance' : 'time'
+  }
   return weighted ? 'weight_reps' : 'reps'
+}
+
+/** True when every measure the export logged fits the exercise's type, so a mapped entry can keep that type. */
+export function fitsTrackingType(data: TrackingType, exercise: TrackingType): boolean {
+  const have = new Set(exercise.split('_'))
+  return data.split('_').every((measure) => have.has(measure))
 }
 
 export function summarizeFitNotes(rows: FitNotesRow[]): FitNotesExerciseSummary[] {

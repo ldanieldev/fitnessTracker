@@ -151,26 +151,29 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
           />
         </UFormField>
 
-        <UFormField label="Height" name="heightFeet" hint="optional">
-          <div class="flex items-center gap-2">
-            <AppNumberInput
-              v-model="state.heightFeet"
-              :min="0"
-              :step="1"
-              aria-label="Height feet"
-              data-test="profile-height-feet"
-            />
-            <span class="text-sm text-muted">ft</span>
-            <AppNumberInput
-              v-model="state.heightInches"
-              :min="0"
-              :step="0.5"
-              aria-label="Height inches"
-              data-test="profile-height-inches"
-            />
-            <span class="text-sm text-muted">in</span>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="text-sm font-medium text-default">Height <span class="text-dimmed">(optional)</span></legend>
+          <div class="flex flex-col gap-3">
+            <UFormField label="Feet" name="heightFeet">
+              <AppNumberInput
+                v-model="state.heightFeet"
+                :min="0"
+                :step="1"
+                aria-label="Height feet"
+                data-test="profile-height-feet"
+              />
+            </UFormField>
+            <UFormField label="Inches" name="heightInches">
+              <AppNumberInput
+                v-model="state.heightInches"
+                :min="0"
+                :step="0.5"
+                aria-label="Height inches"
+                data-test="profile-height-inches"
+              />
+            </UFormField>
           </div>
-        </UFormField>
+        </fieldset>
 
         <UButton type="submit" label="Save changes" :loading="loading" class="w-fit" />
       </UForm>

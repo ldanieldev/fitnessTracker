@@ -123,6 +123,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       title="Import from FitNotes"
       description="Upload a FitNotes CSV export to bring your training history in. Review how its exercises map first."
       variant="subtle"
+      :ui="{ container: 'min-w-0' }"
     >
       <SettingsWorkoutFitNotesImport />
     </UPageCard>

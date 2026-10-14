@@ -5,7 +5,7 @@ import { exercises, workoutExerciseGoals, workoutExerciseRollups, workoutSession
 import { db } from '~~/server/utils/db'
 import { cachedPart } from '~~/server/utils/dashboard/cache'
 import type { DashboardContext } from '~~/server/utils/dashboard/context'
-import { goalsStamp, workoutsStamp } from '~~/server/utils/dashboard/stamps'
+import { goalsStamp, rollupsStamp, workoutsStamp } from '~~/server/utils/dashboard/stamps'
 import { repCapFor, toRollupValues } from '~~/server/utils/workouts/rollups'
 import { CALENDAR_WEEKS, liftGoalProgress, liftStats, rankTrained } from '~~/shared/utils/dashboard'
 import { shiftDate } from '~~/shared/utils/nutritionSummary'
@@ -85,7 +85,13 @@ function lift(
 export async function loadStrength(ctx: DashboardContext): Promise<Strength> {
   const from = shiftDate(ctx.today, -(CALENDAR_WEEKS * 7 - 1))
   const window = { from, to: ctx.today }
-  const stamp = () => Promise.all([workoutsStamp(ctx.userId, window), goalsStamp(ctx.userId), repCapFor(ctx.userId)])
+  const stamp = () =>
+    Promise.all([
+      workoutsStamp(ctx.userId, window),
+      rollupsStamp(ctx.userId, window),
+      goalsStamp(ctx.userId),
+      repCapFor(ctx.userId)
+    ])
   return cachedPart('strength', ctx, stamp, async () => {
     const [rows, goalRows] = await Promise.all([windowRollups(ctx.userId, from, ctx.today), goals(ctx.userId)])
     const byExercise = new Map<number, RollupRow[]>()
