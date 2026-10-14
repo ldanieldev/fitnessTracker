@@ -61,7 +61,8 @@ const to = computed(() => (range.value ? format(range.value.end, 'yyyy-MM-dd') :
 const { data: summary, status: summaryStatus } = useNutritionFetch<SummaryResponse>(
   () => NUTRITION_KEYS.summary(from.value ?? 'pending', to.value ?? 'pending', windowSize.value),
   () => `/api/nutrition/diary/summary?from=${from.value}&to=${to.value}&window=${windowSize.value}`,
-  { watch: [from, to, windowSize], immediate: range.value !== null }
+  // Nuxt skips the fetch on a key change for non-immediate fetches, so wait for a range with enabled, not immediate.
+  { watch: [from, to, windowSize], enabled: () => range.value !== null }
 )
 
 const { tracked } = useTrackedNutrients()

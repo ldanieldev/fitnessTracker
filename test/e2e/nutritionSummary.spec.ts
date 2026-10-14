@@ -123,3 +123,10 @@ test('csv export covers only the tracked nutrients, carries each one\'s target, 
   expect(unlogged[0]).toBe('2026-06-02')
   expect(unlogged[3]).toBe('')
 })
+
+test('summary page loaded directly fetches its rows once the client knows today', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  await goto('/nutrition/diary/summary', { waitUntil: 'hydration' })
+  await expect(page.locator('[data-test^="summary-row-"]')).toHaveCount(14)
+})
