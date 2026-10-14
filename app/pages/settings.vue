@@ -24,6 +24,11 @@ const links = computed(() => [
       label: 'Nutrition',
       icon: 'i-lucide-utensils',
       to: '/settings/nutrition'
+    },
+    {
+      label: 'Data',
+      icon: 'i-lucide-database',
+      to: '/settings/data'
     }
   ].filter((item) => item !== false)
 ] satisfies NavigationMenuItem[][])
