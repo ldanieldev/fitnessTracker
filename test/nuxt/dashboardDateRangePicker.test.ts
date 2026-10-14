@@ -31,4 +31,10 @@ describe('DashboardDateRangePicker', () => {
     const { calendar } = await openPicker()
     expect(calendar.props('maxValue')?.compare(today(getLocalTimeZone()))).toBe(0)
   })
+
+  it('gives the labelled calendar root a group role', async () => {
+    const { calendar } = await openPicker()
+    expect(calendar.attributes('aria-label')).toBeTruthy()
+    expect(calendar.attributes('role')).toBe('group')
+  })
 })

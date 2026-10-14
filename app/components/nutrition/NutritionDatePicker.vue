@@ -36,7 +36,7 @@ function today() {
   <AppSheet v-if="narrow" v-model:open="open" title="Go to date">
     <template #body>
       <div class="flex flex-col items-center gap-3">
-        <UCalendar v-model="model" :week-starts-on="weekStart" data-test="day-calendar" />
+        <UCalendar v-model="model" :week-starts-on="weekStart" role="group" data-test="day-calendar" />
         <UButton label="Today" variant="soft" block data-test="day-picker-today" @click="today" />
       </div>
     </template>
@@ -45,7 +45,7 @@ function today() {
     <slot />
     <template #content>
       <div class="flex flex-col gap-2 p-2">
-        <UCalendar v-model="model" :week-starts-on="weekStart" data-test="day-calendar" />
+        <UCalendar v-model="model" :week-starts-on="weekStart" role="group" data-test="day-calendar" />
         <UButton label="Today" variant="soft" block data-test="day-picker-today" @click="today" />
       </div>
     </template>

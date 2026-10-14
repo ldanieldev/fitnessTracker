@@ -55,6 +55,7 @@ const selected = computed({
     :week-starts-on="weekStart"
     variant="subtle"
     class="w-full"
+    role="group"
     :ui="{ cellTrigger: 'mx-auto h-11 w-10 flex-col gap-0.5 rounded-md' }"
     data-test="workout-calendar"
   >

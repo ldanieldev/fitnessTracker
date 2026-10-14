@@ -94,4 +94,11 @@ describe('WorkoutCalendarMonth', () => {
     expect(marks[0]!.attributes('class')).toContain('bg-sky-500')
     expect(marks[1]!.attributes('class')).toContain('bg-amber-500')
   })
+
+  it('gives the labelled calendar root a group role', async () => {
+    const wrapper = await mountSuspended(WorkoutCalendarMonth, { props: { month: '2026-10', day: null, sessions: [] } })
+    const root = wrapper.get('[data-test="workout-calendar"]')
+    expect(root.attributes('aria-label')).toBeTruthy()
+    expect(root.attributes('role')).toBe('group')
+  })
 })

@@ -127,6 +127,7 @@ const selectRange = (range: { days?: number; months?: number; years?: number }) 
         <UCalendar
           :model-value="calendarRange"
           class="p-2"
+          role="group"
           :max-value="today(getLocalTimeZone())"
           :number-of-months="props.months"
           :week-starts-on="weekStart"
