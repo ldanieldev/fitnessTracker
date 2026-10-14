@@ -30,7 +30,7 @@ test('custom types: create, reject a duplicate name, edit, soft-delete; built-in
   expect(dup.status).toBe(409)
 
   const list = (await apiFetch<MeasurementType[]>(page, 'GET', '/api/body/types')).json
-  expect(list.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist', null])
+  expect(list.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist', 'sleep', null])
 
   const patched = await apiFetch<MeasurementType>(page, 'PATCH', `/api/body/types/${created.json.id}`, { precision: 1 })
   expect(patched.json.precision).toBe(1)
@@ -69,14 +69,15 @@ test('prefs: hiding a built-in removes it from the default list and the overview
   expect(series.json.type.hidden).toBe(true)
   expect((await apiFetch<MeasurementType[]>(page, 'GET', '/api/body/types')).json.map((t) => t.key)).toEqual([
     'bodyweight',
-    'body_fat'
+    'body_fat',
+    'sleep'
   ])
   expect(
     (await apiFetch<MeasurementType[]>(page, 'GET', '/api/body/types?includeHidden=1')).json.map((t) => t.key)
-  ).toEqual(['bodyweight', 'body_fat', 'waist'])
+  ).toEqual(['bodyweight', 'body_fat', 'waist', 'sleep'])
   expect(
     (await apiFetch<Array<{ type: { key: string } }>>(page, 'GET', '/api/body/overview')).json.map((m) => m.type.key)
-  ).toEqual(['bodyweight', 'body_fat'])
+  ).toEqual(['bodyweight', 'body_fat', 'sleep'])
 
   // omitted `hidden` keeps the stored true; omitted `sortOrder` (next call) keeps the stored 2
   const sortedHidden = await apiFetch<MeasurementType>(page, 'PUT', `/api/body/types/${waist.id}/prefs`, {
@@ -96,7 +97,8 @@ test('prefs: hiding a built-in removes it from the default list and the overview
   expect((await apiFetch<MeasurementType[]>(page, 'GET', '/api/body/types')).json.map((t) => t.key)).toEqual([
     'waist',
     'bodyweight',
-    'body_fat'
+    'body_fat',
+    'sleep'
   ])
 
   // PATCH must echo the caller's existing prefs row, not report hidden:false/sortOrder:null unconditionally
@@ -128,12 +130,12 @@ test('the hub creates a type from the sheet, hides a built-in from its menu, and
   await page.locator('input[data-test="type-name"]').fill(name)
   await page.locator('input[data-test="type-unit"]').fill('in')
   await page.locator('[data-test="type-save"]').click()
-  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(4)
+  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(5)
   await expect(page.getByText(name)).toBeVisible()
 
   await page.locator(`[data-test="metric-menu-${waist.id}"]`).click()
   await page.getByRole('menuitem', { name: 'Hide' }).click()
-  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(3)
-  await page.locator(`[data-test="show-type-${waist.id}"]`).click()
   await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(4)
+  await page.locator(`[data-test="show-type-${waist.id}"]`).click()
+  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(5)
 })

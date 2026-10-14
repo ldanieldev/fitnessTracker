@@ -52,7 +52,7 @@ describe('body schema', () => {
 
   it('seeds exactly the three built-ins with null user and stable keys', async () => {
     const { MEASUREMENT_TYPE_SEED } = await import('../../server/db/seed/body')
-    expect(MEASUREMENT_TYPE_SEED.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist'])
+    expect(MEASUREMENT_TYPE_SEED.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist', 'sleep'])
     for (const t of MEASUREMENT_TYPE_SEED) expect(t.userId).toBeNull()
   })
 

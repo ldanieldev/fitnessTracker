@@ -3,13 +3,13 @@ import { apiFetch, makeUser, registerViaApi } from './helpers'
 import type { MeasurementEntry, MeasurementType } from '../../shared/types/body'
 import { shiftDate, todayDate } from '../../shared/utils/nutritionSummary'
 
-test('a new user sees the three built-in types, none hidden', async ({ page, goto }) => {
+test('a new user sees the four built-in types, none hidden', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
   const types = await apiFetch<MeasurementType[]>(page, 'GET', '/api/body/types')
   expect(types.status).toBe(200)
-  expect(types.json.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist'])
+  expect(types.json.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist', 'sleep'])
   expect(types.json.every((t) => t.builtIn && !t.hidden)).toBe(true)
   expect(types.json[0]!.unit).toBe('lbs')
   expect(types.json[1]!.precision).toBe(2)
@@ -171,7 +171,7 @@ test('the hub lists built-ins, logs a reading from a card, and shows it with a d
   )!
 
   await goto('/body', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(3)
+  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(4)
   await expect(page.locator(`[data-test="metric-latest-${weight.id}"]`)).toHaveText('—')
 
   await page.locator(`[data-test="metric-log-${weight.id}"]`).click()
@@ -279,7 +279,7 @@ test('MTD lists only this month, the progress page charts every visible type, an
   await expect(rows.first()).toContainText('198.0')
 
   await goto('/body/progress', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test^="progress-card-"]')).toHaveCount(3)
+  await expect(page.locator('[data-test^="progress-card-"]')).toHaveCount(4)
   const card = page.locator(`[data-test="progress-card-${weight.id}"]`)
   await expect(card).toContainText('198.0')
   await expect(card.locator('[data-test="raw-path"]')).toHaveCount(1)
