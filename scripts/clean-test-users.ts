@@ -3,6 +3,7 @@ import { like, or } from 'drizzle-orm'
 import { users } from '../server/db/schema'
 import { db } from '../server/utils/db'
 import { deleteAccount } from '../server/utils/deleteAccount'
+import { restoreAdmin } from '../test/e2e/adminBorrow'
 
 // Domains reserved for testing (RFC 2606); e2e helpers and visual-check seeds register only these.
 const TEST_EMAIL = or(...['example.com', 'example.test', 'example.invalid'].map((d) => like(users.email, `%@${d}`)))
@@ -15,6 +16,7 @@ export async function cleanTestUsers(opts: { dryRun?: boolean } = {}): Promise<n
 
 if (import.meta.main) {
   const dryRun = process.argv.includes('--dry-run')
+  if (!dryRun) await restoreAdmin()
   const count = await cleanTestUsers({ dryRun })
   console.log(`${dryRun ? 'would delete' : 'deleted'} ${count} test users`)
   process.exit(0)
