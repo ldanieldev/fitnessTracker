@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, integer, numeric, smallint, unique, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, integer, numeric, smallint, unique, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../shared'
 
 export const users = appSchema.table(
@@ -24,7 +24,9 @@ export const users = appSchema.table(
     workoutsPerWeek: smallint('workouts_per_week').notNull().default(3),
     showBody: boolean('show_body').notNull().default(true),
     showWorkouts: boolean('show_workouts').notNull().default(true),
-    showNutrition: boolean('show_nutrition').notNull().default(true)
+    showNutrition: boolean('show_nutrition').notNull().default(true),
+    isAdmin: boolean('is_admin').notNull().default(false),
+    sessionEpoch: integer('session_epoch').notNull().default(0)
   },
   (table) => [
     unique('users_email_unique').on(table.email),
@@ -37,7 +39,10 @@ export const users = appSchema.table(
         and 0 < all(${table.plateSizes}) and 100 >= all(${table.plateSizes})`
     ),
     check('users_one_rep_max_rep_cap_check', sql`${table.oneRepMaxRepCap} between 1 and 20`),
-    check('users_height_in_check', sql`${table.heightIn} is null or ${table.heightIn} between 36 and 96`)
+    check('users_height_in_check', sql`${table.heightIn} is null or ${table.heightIn} between 36 and 96`),
+    uniqueIndex('users_one_admin')
+      .on(sql`(true)`)
+      .where(sql`${table.isAdmin}`)
   ]
 )
 

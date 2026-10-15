@@ -1,5 +1,6 @@
 import { and, eq, getTableColumns } from 'drizzle-orm'
 import { users, authProviders } from '~~/server/db/schema'
+import { insertUser } from '~~/server/utils/insertUser'
 
 interface OAuthProfile {
   email: string
@@ -73,17 +74,13 @@ export async function findOrCreateUserAndLinkProvider(
 
   if (!user) {
     // Create new user from OAuth profile
-    const result = await db
-      .insert(users)
-      .values({
-        email: profile.email,
-        name: profile.name,
-        avatarUrl: profile.avatarUrl,
-        age: 0,
-        isActive: true
-      })
-      .returning(userColumns)
-    user = result[0]!
+    user = await insertUser({
+      email: profile.email,
+      name: profile.name,
+      avatarUrl: profile.avatarUrl,
+      age: 0,
+      isActive: true
+    })
   } else if (profile.avatarUrl && !user.avatarUrl) {
     // Backfill avatar if missing
     await db.update(users).set({ avatarUrl: profile.avatarUrl }).where(eq(users.id, user.id))

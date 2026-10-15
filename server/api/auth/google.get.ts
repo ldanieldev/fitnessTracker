@@ -1,3 +1,4 @@
+import { validSessionUserId, writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const googleHandler = defineOAuthGoogleEventHandler({
@@ -12,9 +13,8 @@ const googleHandler = defineOAuthGoogleEventHandler({
     }
 
     try {
-      // If a session exists, this is a "link account" flow — attach the provider
-      // to the signed-in user.
-      const session = await getUserSession(event)
+      // Only a still-valid session links; a revoked cookie must not attach this provider to its user.
+      const linkUserId = await validSessionUserId(event)
       const user = await findOrCreateUserAndLinkProvider(
         {
           email,
@@ -25,10 +25,11 @@ const googleHandler = defineOAuthGoogleEventHandler({
           provider: 'google',
           providerAccountId: String(googleUser.sub)
         },
-        session.user?.id
+        linkUserId
       )
+      if (user.isActive === false) return loginError(event, 'account_disabled')
 
-      await replaceUserSession(event, { user: toSessionUser(user) })
+      await writeSession(event, toSessionUser(user), user.sessionEpoch)
 
       return oauthSuccessRedirect(event, 'google')
     } catch (error) {

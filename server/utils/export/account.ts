@@ -1,4 +1,4 @@
-import { and, eq, getTableColumns, gte, inArray, isNull, lte, type SQL } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNull, lte, type SQL } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import {
   authProviders,
@@ -55,6 +55,7 @@ import {
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import type { ExportRange } from '~~/server/utils/export/range'
+import { publicUserColumns } from '~~/server/utils/userColumns'
 
 export const EXPORT_FORMAT = 'my-fitness-journal-export'
 export const EXPORT_VERSION = 1
@@ -96,10 +97,9 @@ export function accountTables(userId: number, range: ExportRange = {}) {
   const myFoods = db.select({ id: foods.id }).from(foods).where(eq(foods.createdByUserId, userId))
   const myServings = db.select({ id: foodServings.id }).from(foodServings).where(inArray(foodServings.foodId, myFoods))
   const myExercises = db.select({ id: exercises.id }).from(exercises).where(eq(exercises.createdByUserId, userId))
-  const { password: _password, ...userColumns } = getTableColumns(users)
 
   return {
-    users: () => db.select(userColumns).from(users).where(eq(users.id, userId)) as unknown as Promise<Rows>,
+    users: () => db.select(publicUserColumns).from(users).where(eq(users.id, userId)) as unknown as Promise<Rows>,
     auth_providers: () =>
       db
         .select({

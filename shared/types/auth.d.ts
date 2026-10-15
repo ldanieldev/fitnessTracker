@@ -14,6 +14,11 @@ declare module '#auth-utils' {
     showBody: boolean
     showWorkouts: boolean
     showNutrition: boolean
+    isAdmin: boolean
+  }
+
+  interface SecureSessionData {
+    epoch: number
   }
 }
 

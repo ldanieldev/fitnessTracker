@@ -2,6 +2,7 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 const modules = useModules()
+const { user } = useUserSession()
 
 const links = computed(() => [
   [
@@ -29,6 +30,11 @@ const links = computed(() => [
       label: 'Data',
       icon: 'i-lucide-database',
       to: '/settings/data'
+    },
+    user.value?.isAdmin === true && {
+      label: 'Admin',
+      icon: 'i-lucide-shield',
+      to: '/settings/admin'
     }
   ].filter((item) => item !== false)
 ] satisfies NavigationMenuItem[][])

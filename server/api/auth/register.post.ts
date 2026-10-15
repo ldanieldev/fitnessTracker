@@ -1,7 +1,9 @@
-import { eq, getTableColumns } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users, authProviders } from '~~/server/db/schema'
 import { seedContainersForUser } from '~~/server/db/seed/nutrition'
+import { insertUser } from '~~/server/utils/insertUser'
+import { writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const registerSchema = z.object({
@@ -24,8 +26,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { password, ...userColumns } = getTableColumns(users)
-
   // Check if email already exists
   const existing = await db
     .select({ id: users.id })
@@ -40,18 +40,14 @@ export default defineEventHandler(async (event) => {
   // Create new user with credentials
   const hashedPassword = await hashPassword(parsed.data.password)
 
-  const user = await db
-    .insert(users)
-    .values({
-      name: parsed.data.name,
-      email: parsed.data.email,
-      password: hashedPassword,
-      age: parsed.data.age,
-      sex: parsed.data.sex,
-      isActive: true
-    })
-    .returning(userColumns)
-    .then((r) => r[0]!)
+  const user = await insertUser({
+    name: parsed.data.name,
+    email: parsed.data.email,
+    password: hashedPassword,
+    age: parsed.data.age,
+    sex: parsed.data.sex,
+    isActive: true
+  })
 
   await seedContainersForUser(user.id)
 
@@ -61,7 +57,7 @@ export default defineEventHandler(async (event) => {
     providerAccountId: parsed.data.email
   })
 
-  await replaceUserSession(event, { user: toSessionUser(user) })
+  await writeSession(event, toSessionUser(user), user.sessionEpoch)
 
   return { success: true }
 })

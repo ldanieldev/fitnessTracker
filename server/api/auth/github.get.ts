@@ -1,4 +1,5 @@
 import { fetchGitHubEmails, verifiedPrimaryEmail } from '~~/server/utils/githubEmail'
+import { validSessionUserId, writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const githubHandler = defineOAuthGitHubEventHandler({
@@ -19,9 +20,8 @@ const githubHandler = defineOAuthGitHubEventHandler({
     }
 
     try {
-      // If a session exists, this is a "link account" flow — attach the provider
-      // to the signed-in user.
-      const session = await getUserSession(event)
+      // Only a still-valid session links; a revoked cookie must not attach this provider to its user.
+      const linkUserId = await validSessionUserId(event)
       const user = await findOrCreateUserAndLinkProvider(
         {
           email,
@@ -32,10 +32,11 @@ const githubHandler = defineOAuthGitHubEventHandler({
           provider: 'github',
           providerAccountId: String(ghUser.id)
         },
-        session.user?.id
+        linkUserId
       )
+      if (user.isActive === false) return loginError(event, 'account_disabled')
 
-      await replaceUserSession(event, { user: toSessionUser(user) })
+      await writeSession(event, toSessionUser(user), user.sessionEpoch)
 
       return oauthSuccessRedirect(event, 'github')
     } catch (error) {

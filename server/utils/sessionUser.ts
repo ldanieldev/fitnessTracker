@@ -17,6 +17,7 @@ type SessionUserRow = Pick<
   | 'showBody'
   | 'showWorkouts'
   | 'showNutrition'
+  | 'isAdmin'
 >
 
 // Callers must use replaceUserSession: setUserSession defu-merges, which concatenates plateSizes onto the old array.
@@ -35,6 +36,7 @@ export function toSessionUser(user: SessionUserRow): User {
     workoutsPerWeek: user.workoutsPerWeek,
     showBody: user.showBody,
     showWorkouts: user.showWorkouts,
-    showNutrition: user.showNutrition
+    showNutrition: user.showNutrition,
+    isAdmin: user.isAdmin
   }
 }

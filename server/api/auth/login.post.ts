@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
+import { writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const loginSchema = z.object({
@@ -43,7 +44,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await replaceUserSession(event, { user: toSessionUser(user) })
+  if (user.isActive === false) throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
+
+  await writeSession(event, toSessionUser(user), user.sessionEpoch)
 
   return { success: true }
 })

@@ -14,6 +14,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
+  if (event.context.sessionIsAdmin) {
+    throw createError({ statusCode: 400, statusMessage: 'Move the admin role to another account first' })
+  }
+
   await deleteAccount(id)
   await clearUserSession(event)
 

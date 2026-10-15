@@ -18,6 +18,7 @@ ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
 RUN bun run build
+RUN bun build scripts/admin.ts --target=bun --outfile .output/admin.mjs
 
 # Production
 FROM base AS release

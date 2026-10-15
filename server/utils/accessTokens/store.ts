@@ -1,8 +1,9 @@
-import { and, desc, eq, getTableColumns, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { User } from '#auth-utils'
 import { accessTokens, users } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { toSessionUser } from '~~/server/utils/sessionUser'
+import { publicUserColumns } from '~~/server/utils/userColumns'
 import { generateToken, hashToken } from './token'
 
 export interface AccessTokenRow {
@@ -24,11 +25,10 @@ const rowColumns = {
 }
 
 export async function resolveToken(token: string): Promise<{ tokenId: number; user: User } | null> {
-  const { password: _password, ...userColumns } = getTableColumns(users)
   const row = await db
-    .select({ tokenId: accessTokens.id, user: userColumns })
+    .select({ tokenId: accessTokens.id, user: publicUserColumns })
     .from(accessTokens)
-    .innerJoin(users, eq(users.id, accessTokens.userId))
+    .innerJoin(users, and(eq(users.id, accessTokens.userId), sql`${users.isActive} is not false`))
     .where(eq(accessTokens.tokenHash, hashToken(token)))
     .limit(1)
     .then((r) => r[0])
@@ -64,6 +64,14 @@ export function listTokens(userId?: number): Promise<AccessTokenRow[]> {
     .select(rowColumns)
     .from(accessTokens)
     .where(userId === undefined ? undefined : eq(accessTokens.userId, userId))
+    .orderBy(desc(accessTokens.createdAt), desc(accessTokens.id))
+}
+
+export function listAllTokens(): Promise<Array<AccessTokenRow & { ownerEmail: string }>> {
+  return db
+    .select({ ...rowColumns, ownerEmail: users.email })
+    .from(accessTokens)
+    .innerJoin(users, eq(users.id, accessTokens.userId))
     .orderBy(desc(accessTokens.createdAt), desc(accessTokens.id))
 }
 

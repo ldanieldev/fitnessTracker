@@ -5,7 +5,8 @@ declare module 'h3' {
     authVia?: 'session' | 'token'
     accessTokenId?: number
     tokenUser?: User
-    sessionUserExists?: boolean
+    sessionUserValid?: boolean
+    sessionIsAdmin?: boolean
   }
 }
 

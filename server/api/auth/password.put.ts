@@ -1,7 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users, authProviders } from '~~/server/db/schema'
-import { forbidToken, requireSessionUser } from '~~/server/utils/session'
+import { nextEpoch } from '~~/server/utils/sessionEpoch'
+import { forbidToken, requireSessionUser, writeSession } from '~~/server/utils/session'
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().optional(),
@@ -42,7 +43,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const hashedPassword = await hashPassword(parsed.data.newPassword)
-  await db.update(users).set({ password: hashedPassword }).where(eq(users.id, sessionUser.id))
+  const { sessionEpoch } = await db
+    .update(users)
+    .set({ password: hashedPassword, sessionEpoch: nextEpoch })
+    .where(eq(users.id, sessionUser.id))
+    .returning({ sessionEpoch: users.sessionEpoch })
+    .then((r) => r[0]!)
+  await writeSession(event, sessionUser, sessionEpoch)
 
   // If user didn't have credentials provider, add it
   if (!user.password) {

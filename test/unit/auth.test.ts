@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { findOrCreateUserAndLinkProvider } from '../../server/utils/auth'
+import { insertUser } from '../../server/utils/insertUser'
 
-// insertReturn is what .insert().values().returning() resolves to (the new-user path).
-function createDbMock(selectResults: unknown[][], insertReturn: unknown[] = []) {
+vi.mock('../../server/utils/insertUser', () => ({ insertUser: vi.fn() }))
+
+function createDbMock(selectResults: unknown[][]) {
   const queue = [...selectResults]
-  const insertReturning = vi.fn(() => Promise.resolve(insertReturn))
-  // values() is both awaited (link insert) and has .returning() (create insert), so it's a thenable with a method.
-  const insertValues = vi.fn(() => Object.assign(Promise.resolve(), { returning: insertReturning }))
+  const insertValues = vi.fn(() => Promise.resolve())
   const insert = vi.fn(() => ({ values: insertValues }))
   const select = vi.fn(() => {
     const result = queue.shift() ?? []
@@ -19,7 +19,7 @@ function createDbMock(selectResults: unknown[][], insertReturn: unknown[] = []) 
   })
   const updateSet = vi.fn(() => ({ where: () => Promise.resolve() }))
   const update = vi.fn(() => ({ set: updateSet }))
-  return { db: { select, insert, update }, select, insert, insertValues, insertReturning, update, updateSet }
+  return { db: { select, insert, update }, select, insert, insertValues, update, updateSet }
 }
 
 const createError = (opts: { statusCode: number; statusMessage: string }) =>
@@ -115,13 +115,11 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
 
   it('creates a new user from the OAuth profile when no email match exists, then links the provider', async () => {
     const created = { id: 42, email: 'new@gmail.com', name: 'New User', avatarUrl: 'pic' }
-    const mock = createDbMock(
-      [
-        [], // existing-link check → not linked
-        [] // email lookup → no user found
-      ],
-      [created] // insert(users).returning() → the new row
-    )
+    vi.mocked(insertUser).mockResolvedValue(created as never)
+    const mock = createDbMock([
+      [], // existing-link check → not linked
+      [] // email lookup → no user found
+    ])
     stubDb(mock)
 
     const result = await findOrCreateUserAndLinkProvider(
@@ -130,12 +128,10 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
     )
 
     expect(result).toEqual(created)
-    // First insert creates the user (with .returning), second links the provider.
-    expect(mock.insert).toHaveBeenCalledTimes(2)
-    expect(mock.insertReturning).toHaveBeenCalledTimes(1)
-    expect(mock.insertValues).toHaveBeenCalledWith(
+    expect(insertUser).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'new@gmail.com', name: 'New User', avatarUrl: 'pic' })
     )
+    expect(mock.insert).toHaveBeenCalledTimes(1)
     expect(mock.insertValues).toHaveBeenCalledWith({
       userId: 42,
       provider: 'google',
@@ -159,7 +155,7 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
     expect(mock.update).toHaveBeenCalledTimes(1)
     expect(mock.updateSet).toHaveBeenCalledWith({ avatarUrl: 'fresh-pic' })
     expect(result.avatarUrl).toBe('fresh-pic')
-    expect(mock.insertReturning).not.toHaveBeenCalled()
+    expect(insertUser).not.toHaveBeenCalled()
     expect(mock.insertValues).toHaveBeenCalledWith({
       userId: 7,
       provider: 'google',

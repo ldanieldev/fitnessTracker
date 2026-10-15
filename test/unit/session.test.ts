@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { H3Event } from 'h3'
-import { forbidToken, requireSessionUser, requireUserId } from '../../server/utils/session'
+import { forbidToken, requireSessionUser, requireUserId, validSessionUserId } from '../../server/utils/session'
 import { resolveToken, touchToken } from '../../server/utils/accessTokens/store'
 
 vi.mock('../../server/utils/accessTokens/store', () => ({ resolveToken: vi.fn(), touchToken: vi.fn() }))
@@ -44,7 +44,7 @@ describe('requireSessionUser', () => {
 
   it('returns the session user when the row still exists, caching the check on event.context', async () => {
     const sessionUser = { id: 1, email: 'me@example.com' }
-    const dbMock = createDbMock([{ id: 1 }])
+    const dbMock = createDbMock([{ isActive: true, sessionEpoch: 0, isAdmin: false }])
     vi.stubGlobal('createError', createError)
     vi.stubGlobal(
       'getUserSession',
@@ -57,7 +57,7 @@ describe('requireSessionUser', () => {
 
     const result = await requireSessionUser(event)
     expect(result).toEqual(sessionUser)
-    expect(event.context.sessionUserExists).toBe(true)
+    expect(event.context.sessionUserValid).toBe(true)
     expect(event.context.authVia).toBe('session')
     expect(dbMock.select).toHaveBeenCalledTimes(1)
 
@@ -82,12 +82,32 @@ describe('requireSessionUser', () => {
     await expect(requireSessionUser(event)).rejects.toMatchObject({ statusCode: 401 })
     expect(clearUserSession).toHaveBeenCalledWith(event)
   })
+
+  it.each([
+    ['a stale epoch', { isActive: true, sessionEpoch: 1, isAdmin: false }],
+    ['a disabled user', { isActive: false, sessionEpoch: 0, isAdmin: false }]
+  ])('clears the session and throws 401 for %s', async (_name, row) => {
+    const dbMock = createDbMock([row])
+    const clearUserSession = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('createError', createError)
+    vi.stubGlobal(
+      'getUserSession',
+      vi.fn(() => Promise.resolve({ user: { id: 1, email: 'me@example.com' } }))
+    )
+    vi.stubGlobal('clearUserSession', clearUserSession)
+    vi.stubGlobal('db', dbMock)
+
+    const event = { context: {} } as unknown as H3Event
+
+    await expect(requireSessionUser(event)).rejects.toMatchObject({ statusCode: 401 })
+    expect(clearUserSession).toHaveBeenCalledWith(event)
+  })
 })
 
 describe('requireUserId', () => {
   it('resolves the numeric id of a valid session user', async () => {
     const sessionUser = { id: 42, email: 'me@example.com' }
-    const dbMock = createDbMock([{ id: 42 }])
+    const dbMock = createDbMock([{ isActive: true, sessionEpoch: 0, isAdmin: false }])
     vi.stubGlobal('createError', createError)
     vi.stubGlobal(
       'getUserSession',
@@ -99,6 +119,45 @@ describe('requireUserId', () => {
     const event = { context: {} } as unknown as H3Event
 
     await expect(requireUserId(event)).resolves.toBe(42)
+  })
+})
+
+describe('validSessionUserId', () => {
+  function stub(session: unknown, rows: unknown[]) {
+    const dbMock = createDbMock(rows)
+    const clearUserSession = vi.fn(() => Promise.resolve())
+    vi.stubGlobal(
+      'getUserSession',
+      vi.fn(() => Promise.resolve(session))
+    )
+    vi.stubGlobal('clearUserSession', clearUserSession)
+    vi.stubGlobal('db', dbMock)
+    return { dbMock, clearUserSession }
+  }
+
+  const event = () => ({ context: {} }) as unknown as H3Event
+
+  it('returns the id when the row matches the cookie epoch and is active', async () => {
+    const { clearUserSession } = stub({ user: { id: 5 }, secure: { epoch: 2 } }, [{ isActive: true, sessionEpoch: 2 }])
+    await expect(validSessionUserId(event())).resolves.toBe(5)
+    expect(clearUserSession).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['a stale epoch', [{ isActive: true, sessionEpoch: 3 }]],
+    ['a disabled user', [{ isActive: false, sessionEpoch: 2 }]],
+    ['a missing row', []]
+  ])('clears the cookie and returns undefined for %s', async (_name, rows) => {
+    const { clearUserSession } = stub({ user: { id: 5 }, secure: { epoch: 2 } }, rows)
+    const e = event()
+    await expect(validSessionUserId(e)).resolves.toBeUndefined()
+    expect(clearUserSession).toHaveBeenCalledWith(e)
+  })
+
+  it('returns undefined without querying the db when there is no session user', async () => {
+    const { dbMock } = stub({}, [])
+    await expect(validSessionUserId(event())).resolves.toBeUndefined()
+    expect(dbMock.select).not.toHaveBeenCalled()
   })
 })
 

@@ -1,8 +1,9 @@
-import { eq, getTableColumns } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
-import { forbidToken, isTokenRequest, requireSessionUser } from '~~/server/utils/session'
+import { forbidToken, isTokenRequest, requireSessionUser, writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
+import { publicUserColumns } from '~~/server/utils/userColumns'
 import { rebuildRollups, repCapFor } from '~~/server/utils/workouts/rollups'
 import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
 
@@ -64,8 +65,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const { password, ...userColumns } = getTableColumns(users)
-
   // Read before the update, and from the DB rather than the session cookie, which can be stale or predate the column.
   const currentRepCap = parsed.data.oneRepMaxRepCap !== undefined ? await repCapFor(id) : undefined
 
@@ -88,7 +87,7 @@ export default defineEventHandler(async (event) => {
       showNutrition: parsed.data.showNutrition
     })
     .where(eq(users.id, id))
-    .returning(userColumns)
+    .returning(publicUserColumns)
     .then((r) => r[0]!)
 
   // Rollups store bestE1rm computed with the old cap, so a cap change invalidates every one of this user's rows.
@@ -97,7 +96,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // A token must never mint a browser session.
-  if (!isTokenRequest(event)) await replaceUserSession(event, { user: toSessionUser(user) })
+  if (!isTokenRequest(event)) {
+    const epoch = (await getUserSession(event)).secure?.epoch ?? 0
+    await writeSession(event, toSessionUser(user), epoch)
+  }
 
   return user
 })
