@@ -1,21 +1,86 @@
-MIT License
+Personal Use License 1.0
 
-Copyright (c) 2025 Nuxt UI Templates
+Copyright (c) 2026 Le-Andris Daniel
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Acceptance
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+To receive this license, you must agree to its terms. By downloading, forking,
+copying, modifying, running or sharing the software, you agree to them. If you
+do not agree, you have no permission to do any of those things.
+
+2. Definitions
+
+"The software" means the source code, assets and documentation that this
+license accompanies, and any part of them.
+
+"You" means the individual person who accepts this license. A company or other
+organization cannot receive this license.
+
+"Personal use" means use by you, and by members of your household or family
+whom you let use your copy, for private purposes, such as tracking your own
+activity, personal study, experimentation or a hobby project, without any
+anticipated commercial application.
+
+"Commercial purpose" means any use intended for or directed toward commercial
+advantage or payment of any kind, including use in the course of a job or
+business, use on behalf of an employer or client, and use that earns money
+through sales, fees, subscriptions or advertising.
+
+"Others" means any person who is neither you nor a member of your household or
+family.
+
+3. License Grant
+
+The author grants you a free, non-exclusive, non-transferable copyright license
+to download, fork, copy, modify and run the software, and to share copies of
+it, for personal use only. This grant applies only while you meet every
+condition in section 4.
+
+4. Conditions
+
+Each permission in this license is granted only on the condition that:
+
+  a. you use the software, and any modified version of it, for personal use
+     only;
+  b. you do not use the software, or any modified version of it, for any
+     commercial purpose;
+  c. you do not sell, sublicense, rent or lease the software, or make it
+     available to others as a hosted or network service; and
+  d. anyone who gets a copy of any part of the software from you, including a
+     fork or modified version, also gets a copy of this license, unchanged, and
+     the copyright notice above.
+
+Any use of the software outside these conditions is not licensed.
+
+5. Recipients
+
+Anyone who gets a copy of the software, from the author or from anyone else,
+receives their license directly from the author under these same terms. No one
+other than the author may grant any other rights to the software.
+
+6. Violations
+
+If you break any condition in section 4, your license ends automatically. If
+this is your first violation, and you stop it and correct any past violations
+within 30 days of receiving written notice from the author, your license is
+restored. Otherwise, it stays ended.
+
+7. No Support
+
+The software is provided as is. The author takes no issue reports, feature
+requests or update requests, and has no obligation to provide support, fix
+problems, add features or release updates.
+
+8. No Warranty
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+9. Governing Law
+
+These terms are governed by the laws of the State of Missouri, without regard
+to its conflict-of-laws rules, and by applicable United States federal law.
