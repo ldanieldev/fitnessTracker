@@ -17,6 +17,7 @@ async function formPages(page: Page) {
     '/settings/profile',
     '/settings/workout',
     '/settings/nutrition',
+    '/settings/data',
     '/settings/security',
     '/workouts/progress',
     `/workouts/exercises/${exercise.id}`

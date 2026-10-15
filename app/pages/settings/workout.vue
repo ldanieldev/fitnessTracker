@@ -118,14 +118,5 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         <UButton type="submit" label="Save changes" :loading="loading" class="w-fit" />
       </UForm>
     </UPageCard>
-
-    <UPageCard
-      title="Import from FitNotes"
-      description="Upload a FitNotes CSV export to bring your training history in. Review how its exercises map first."
-      variant="subtle"
-      :ui="{ container: 'min-w-0' }"
-    >
-      <SettingsWorkoutFitNotesImport />
-    </UPageCard>
   </div>
 </template>

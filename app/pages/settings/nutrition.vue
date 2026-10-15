@@ -63,13 +63,5 @@ const { tracked } = useTrackedNutrients()
     >
       <SettingsNutritionTracked :catalog="catalog ?? []" :tracked="tracked ?? []" />
     </UPageCard>
-
-    <UPageCard
-      title="Import from My Macros+"
-      description="Upload daily export .txt files to bring your logged meals into the diary."
-      variant="subtle"
-    >
-      <SettingsNutritionImport />
-    </UPageCard>
   </div>
 </template>

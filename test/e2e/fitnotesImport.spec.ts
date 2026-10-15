@@ -144,7 +144,7 @@ test('FitNotes import: skips days that already have a workout unless told not to
 test('FitNotes import: the settings card previews, remaps from a suggestion and imports', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
-  await goto('/settings/workout', { waitUntil: 'hydration' })
+  await goto('/settings/data', { waitUntil: 'hydration' })
 
   await page.locator('input[data-test="fitnotes-file"]').setInputFiles({
     name: 'FitNotes_Export.csv',

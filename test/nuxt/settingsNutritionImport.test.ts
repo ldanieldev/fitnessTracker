@@ -14,6 +14,12 @@ function setFiles(input: DOMWrapper<Element>) {
   })
 }
 
+function dropFiles(zone: Element, files: File[]) {
+  const event = new Event('drop', { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'dataTransfer', { value: { files, items: files.map((file) => ({ type: file.type })) } })
+  zone.dispatchEvent(event)
+}
+
 describe('SettingsNutritionImport', () => {
   afterEach(() => {
     toastAddMock.mockClear()
@@ -96,6 +102,38 @@ describe('SettingsNutritionImport', () => {
 
     expect(wrapper.find('[data-test="import-submit"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.emitted('imported')).toHaveLength(1)
+  })
+
+  it('adds dropped .txt files to the upload, skipping other types and repeat names', async () => {
+    registerEndpoint('/api/nutrition/import/mymacros', { method: 'POST', handler: () => ({ jobId: 13 }) })
+    registerEndpoint('/api/nutrition/import/mymacros/13', () => ({
+      id: 13,
+      status: 'queued',
+      fileCount: 3,
+      result: null,
+      error: null,
+      createdAt: '2026-09-05T00:00:00Z'
+    }))
+    const appendSpy = vi.spyOn(FormData.prototype, 'append')
+
+    const wrapper = await mountSuspended(SettingsNutritionImport)
+    const zone = wrapper.find('[role="button"][data-slot="base"]').element
+    const txt = (name: string) => new File(['x'], name, { type: 'text/plain' })
+    dropFiles(zone, [txt('a.txt'), txt('b.txt'), new File(['%PDF'], 'c.pdf', { type: 'application/pdf' })])
+    await flushPromises()
+    dropFiles(zone, [txt('b.txt'), txt('d.TXT')])
+    await flushPromises()
+
+    expect(toastAddMock).toHaveBeenCalledTimes(1)
+    expect(toastAddMock.mock.calls[0]![0]).toMatchObject({ description: 'Skipped c.pdf', color: 'warning' })
+    expect(wrapper.text()).toContain('a.txt')
+    expect(wrapper.text()).not.toContain('c.pdf')
+
+    await wrapper.find('[data-test="import-submit"]').trigger('click')
+    await flushPromises()
+    expect(appendSpy.mock.calls.map((call) => (call[1] as File).name)).toEqual(['a.txt', 'b.txt', 'd.TXT'])
+    appendSpy.mockRestore()
+    wrapper.unmount()
   })
 
   it('renders failedFiles as alerts', async () => {

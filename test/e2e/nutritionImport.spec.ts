@@ -122,3 +122,37 @@ test('status route 404s on another user\'s job and on a non-numeric job id', asy
   const nonNumeric = await apiFetch(page, 'GET', '/api/nutrition/import/mymacros/abc')
   expect(nonNumeric.status).toBe(404)
 })
+
+test('settings Data tab queues a My Macros+ import of dropped and picked files', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  await goto('/settings/data', { waitUntil: 'hydration' })
+
+  const dropZone = page.locator('[data-test="import-mymacros-card"] [role="button"][data-slot="base"]')
+  const dataTransfer = await page.evaluateHandle((text) => {
+    const transfer = new DataTransfer()
+    transfer.items.add(new File([text], '2026-09-04.txt', { type: 'text/plain' }))
+    return transfer
+  }, fixture('2026-09-04.txt'))
+  await dropZone.dispatchEvent('dragenter', { dataTransfer })
+  await dropZone.dispatchEvent('drop', { dataTransfer })
+  await page.locator('input[data-test="import-files"]').setInputFiles({
+    name: '2026-09-05.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(fixture('2026-09-05.txt'))
+  })
+
+  const card = page.locator('[data-test="import-mymacros-card"]')
+  await expect(card).toContainText('2026-09-04.txt')
+  await expect(card).toContainText('2026-09-05.txt')
+
+  const upload = page.waitForResponse(
+    (response) => response.url().endsWith('/api/nutrition/import/mymacros') && response.request().method() === 'POST'
+  )
+  await page.locator('[data-test="import-submit"]').click()
+  const { jobId } = (await (await upload).json()) as { jobId: number }
+
+  const job = await apiFetch<ImportJobView>(page, 'GET', `/api/nutrition/import/mymacros/${jobId}`)
+  expect(job.json.fileCount).toBe(2)
+  await expect(page.locator('[data-test="import-status"]')).toContainText('queued')
+})

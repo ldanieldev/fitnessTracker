@@ -145,6 +145,33 @@ describe('SettingsWorkoutFitNotesImport', () => {
     wrapper.unmount()
   })
 
+  it('previews a dropped .csv and rejects a dropped file of another type without uploading it', async () => {
+    let previews = 0
+    registerEndpoint('/api/workouts/import/fitnotes/preview', {
+      method: 'POST',
+      handler: () => {
+        previews++
+        return preview
+      }
+    })
+    const wrapper = await mountSuspended(SettingsWorkoutFitNotesImport)
+    const drop = (file: File) => {
+      const event = new Event('drop', { bubbles: true, cancelable: true })
+      Object.defineProperty(event, 'dataTransfer', { value: { files: [file], items: [{ type: file.type }] } })
+      wrapper.find('[role="button"][data-slot="base"]').element.dispatchEvent(event)
+    }
+
+    drop(new File(['x'], 'notes.txt', { type: 'text/plain' }))
+    await flushPromises()
+    expect(toastAdd.mock.calls[0]![0]).toMatchObject({ title: 'Can’t read this file', color: 'error' })
+    expect(previews).toBe(0)
+
+    drop(new File(['csv'], 'FitNotes_Export.csv', { type: 'application/vnd.ms-excel' }))
+    await vi.waitFor(() => expect(wrapper.find('[data-test="fitnotes-summary"]').exists()).toBe(true))
+    expect(previews).toBe(1)
+    wrapper.unmount()
+  })
+
   it('toasts and stays on the file picker when the file is not a FitNotes export', async () => {
     registerEndpoint('/api/workouts/import/fitnotes/preview', {
       method: 'POST',

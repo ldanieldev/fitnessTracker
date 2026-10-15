@@ -7,6 +7,7 @@ import type {
 } from '~~/shared/types/fitnotes'
 import { errorMessage } from '~/utils/apiError'
 import { plural } from '~/utils/plural'
+import { hasExtension } from '~/utils/fileExtension'
 import WorkoutExercisePicker from '~/components/workout/WorkoutExercisePicker.vue'
 
 type JobStatus = 'queued' | 'running' | 'done' | 'failed'
@@ -32,8 +33,7 @@ const result = ref<FitNotesImportResult | null>(null)
 const jobError = ref<string | null>(null)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let unmounted = false
-// Null drops UInput's default autocomplete="off", invalid on a file input; the prop type has no null, hence untyped.
-const fileAttrs: Record<string, unknown> = { autocomplete: null }
+const file = ref<File | null>(null)
 
 const running = computed(() => status.value === 'queued' || status.value === 'running')
 const setCount = computed(() => {
@@ -50,14 +50,18 @@ const counts = computed(() => {
   return { mapped, created: all.length - mapped }
 })
 
-async function onFileChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  reset()
-  if (!file) return
-  fileName.value = file.name
+watch(file, async (picked) => {
+  clearImport()
+  if (!picked) return
+  if (!hasExtension(picked, '.csv')) {
+    toast.add({ title: 'Can’t read this file', description: 'Choose the FitNotes .csv export', color: 'error' })
+    file.value = null
+    return
+  }
+  fileName.value = picked.name
   previewing.value = true
   try {
-    const text = await file.text()
+    const text = await picked.text()
     const data = await apiFetch<FitNotesPreview>('/api/workouts/import/fitnotes/preview', {
       method: 'POST',
       body: { csv: text }
@@ -71,12 +75,18 @@ async function onFileChange(event: Event) {
       description: errorMessage(error, 'Not a FitNotes export'),
       color: 'error'
     })
+    file.value = null
   } finally {
     previewing.value = false
   }
-}
+})
 
 function reset() {
+  file.value = null
+  clearImport()
+}
+
+function clearImport() {
   clearPoll()
   csv.value = null
   fileName.value = ''
@@ -177,13 +187,18 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex w-full min-w-0 flex-col gap-4">
     <UFormField v-if="!preview" label="FitNotes export (.csv)" name="fitnotesFile">
-      <UInput
-        type="file"
-        accept=".csv,text/csv"
+      <UFileUpload
+        v-model="file"
+        accept=".csv"
+        layout="list"
+        label="Drop your FitNotes .csv here"
+        description="or tap to choose it"
+        :file-image="false"
+        :file-delete="false"
+        file-icon="i-lucide-file-spreadsheet"
         :disabled="previewing"
-        v-bind="fileAttrs"
+        class="w-full"
         data-test="fitnotes-file"
-        @change="onFileChange"
       />
     </UFormField>
     <p v-if="previewing" class="text-sm text-dimmed" data-test="fitnotes-reading">Reading the export…</p>

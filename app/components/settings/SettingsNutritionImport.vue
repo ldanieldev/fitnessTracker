@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { errorMessage } from '~/utils/apiError'
+import { splitByExtension } from '~/utils/fileExtension'
 import type { ImportResult } from '~~/shared/types/nutrition'
 
 interface ImportJob {
@@ -22,13 +23,22 @@ const result = ref<ImportResult | null>(null)
 const jobError = ref<string | null>(null)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let unmounted = false
-// Null drops UInput's default autocomplete="off", invalid on a file input; the prop type has no null, hence untyped.
-const fileAttrs: Record<string, unknown> = { autocomplete: null }
 
-function onFileChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  selectedFiles.value = input.files ? Array.from(input.files) : []
-}
+// UFileUpload appends each drop to the list, so a re-dropped file would otherwise be uploaded twice.
+const files = computed({
+  get: () => selectedFiles.value,
+  set: (picked: File[] | null | undefined) => {
+    const { kept, skipped } = splitByExtension(picked ?? [], '.txt')
+    if (skipped.length) {
+      toast.add({
+        title: 'Only .txt files can be imported',
+        description: `Skipped ${skipped.map((file) => file.name).join(', ')}`,
+        color: 'warning'
+      })
+    }
+    selectedFiles.value = [...new Map(kept.map((file) => [file.name, file])).values()]
+  }
+})
 
 function clearPoll() {
   if (pollTimer) {
@@ -105,15 +115,20 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex w-full min-w-0 flex-col gap-4">
     <UFormField label="My Macros+ daily export files (.txt)" name="files">
-      <UInput
-        type="file"
+      <UFileUpload
+        v-model="files"
         multiple
-        accept=".txt,text/plain"
-        v-bind="fileAttrs"
+        accept=".txt"
+        layout="list"
+        label="Drop .txt files here"
+        description="or tap to choose — add as many days as you like"
+        :file-image="false"
+        file-icon="i-lucide-file-text"
+        :disabled="uploading"
+        class="w-full"
         data-test="import-files"
-        @change="onFileChange"
       />
     </UFormField>
 
