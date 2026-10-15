@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users, authProviders } from '~~/server/db/schema'
-import { requireSessionUser } from '~~/server/utils/session'
+import { forbidToken, requireSessionUser } from '~~/server/utils/session'
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().optional(),
@@ -10,6 +10,7 @@ const changePasswordSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event)
+  forbidToken(event)
 
   const body = await readBody(event)
   const parsed = changePasswordSchema.safeParse(body)

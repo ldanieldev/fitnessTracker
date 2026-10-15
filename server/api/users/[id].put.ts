@@ -1,7 +1,7 @@
 import { eq, getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
-import { requireSessionUser } from '~~/server/utils/session'
+import { forbidToken, isTokenRequest, requireSessionUser } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 import { rebuildRollups, repCapFor } from '~~/server/utils/workouts/rollups'
 import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
@@ -47,6 +47,8 @@ export default defineEventHandler(async (event) => {
       data: z.flattenError(parsed.error)
     })
   }
+
+  if (parsed.data.email !== undefined) forbidToken(event)
 
   // Check email uniqueness if changed
   if (parsed.data.email !== undefined && parsed.data.email !== sessionUser.email) {
@@ -94,8 +96,8 @@ export default defineEventHandler(async (event) => {
     await rebuildRollups(id)
   }
 
-  // Update session with new data
-  await replaceUserSession(event, { user: toSessionUser(user) })
+  // A token must never mint a browser session.
+  if (!isTokenRequest(event)) await replaceUserSession(event, { user: toSessionUser(user) })
 
   return user
 })

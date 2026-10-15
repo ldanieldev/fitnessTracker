@@ -5,6 +5,7 @@ const exportDescription =
   'Everything you\'ve logged, in one JSON file: profile, body, steps, day notes, nutrition and workouts.'
 const fitnotesDescription =
   'Upload a FitNotes CSV export to bring your training history in. Review how its exercises map first.'
+const tokensDescription = 'Let a script or an AI assistant read and update your data over the API.'
 </script>
 
 <template>
@@ -63,6 +64,18 @@ const fitnotesDescription =
           <SettingsNutritionImport />
         </UPageCard>
       </div>
+    </section>
+
+    <section class="flex flex-col gap-3" aria-labelledby="data-tokens-heading" data-test="data-tokens">
+      <h2 id="data-tokens-heading" class="text-xs font-medium text-dimmed uppercase">Access tokens</h2>
+      <UPageCard
+        title="Personal access tokens"
+        :description="tokensDescription"
+        variant="subtle"
+        :ui="{ container: 'min-w-0' }"
+      >
+        <SettingsAccessTokens />
+      </UPageCard>
     </section>
   </div>
 </template>

@@ -1,8 +1,9 @@
 import { deleteAccount } from '~~/server/utils/deleteAccount'
-import { requireSessionUser } from '~~/server/utils/session'
+import { forbidToken, requireSessionUser } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event)
+  forbidToken(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (Number.isNaN(id) || id === 0) {

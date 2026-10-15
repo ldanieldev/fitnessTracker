@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { computed } from 'vue'
 import DataPage from '../../app/pages/settings/data.vue'
 
@@ -9,6 +9,8 @@ mockNuxtImport('useModules', () => () => ({
   workouts: computed(() => shown.workouts),
   nutrition: computed(() => shown.nutrition)
 }))
+
+registerEndpoint('/api/tokens', () => [])
 
 afterEach(() => {
   shown.workouts = true
@@ -24,6 +26,7 @@ describe('settings/data page', () => {
     Object.assign(shown, { workouts, nutrition })
     const wrapper = await mountSuspended(DataPage)
     expect(wrapper.find('[data-test="export-download"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="data-tokens"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="import-fitnotes-card"]').exists()).toBe(fitnotes)
     expect(wrapper.find('[data-test="import-mymacros-card"]').exists()).toBe(mymacros)
     wrapper.unmount()

@@ -1,11 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { authProviders } from '~~/server/db/schema'
+import { forbidToken, requireSessionUser } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  const user = await requireSessionUser(event)
+  forbidToken(event)
 
   const linked = await db
     .select({
@@ -14,7 +13,7 @@ export default defineEventHandler(async (event) => {
       createdAt: authProviders.createdAt
     })
     .from(authProviders)
-    .where(eq(authProviders.userId, session.user.id))
+    .where(eq(authProviders.userId, user.id))
 
   return linked
 })

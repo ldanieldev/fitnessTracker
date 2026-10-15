@@ -1,9 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import { authProviders } from '~~/server/db/schema'
-import { requireSessionUser } from '~~/server/utils/session'
+import { forbidToken, requireSessionUser } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event)
+  forbidToken(event)
 
   const provider = getRouterParam(event, 'provider')
   if (!provider || !['credentials', 'github', 'google'].includes(provider)) {

@@ -1,5 +1,5 @@
-import { and, eq, getTableColumns, inArray, isNull, type SQL } from 'drizzle-orm'
-import type { PgTable } from 'drizzle-orm/pg-core'
+import { and, eq, getTableColumns, gte, inArray, isNull, lte, type SQL } from 'drizzle-orm'
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import {
   authProviders,
   dayNotes,
@@ -54,6 +54,7 @@ import {
   workoutTemplates
 } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
+import type { ExportRange } from '~~/server/utils/export/range'
 
 export const EXPORT_FORMAT = 'my-fitness-journal-export'
 export const EXPORT_VERSION = 1
@@ -64,7 +65,8 @@ type Rows = Record<string, unknown>[]
 export const EXPORT_EXCLUDED_TABLES = {
   workout_exercise_rollups: 'derived from sessions; rebuilt on demand',
   import_jobs: 'transient job rows holding raw uploaded files',
-  search_outbox: 'search index queue, no user data'
+  search_outbox: 'search index queue, no user data',
+  access_tokens: 'credentials; hashes only'
 } as const
 
 /** Shared catalogue tables; only the rows the user's data points at are exported, under `reference`. */
@@ -74,16 +76,19 @@ function select(table: PgTable, where: SQL | undefined): Promise<Rows> {
   return db.select().from(table).where(where) as unknown as Promise<Rows>
 }
 
-export function accountTables(userId: number) {
-  const mySessions = db
-    .select({ id: workoutSessions.id })
-    .from(workoutSessions)
-    .where(eq(workoutSessions.userId, userId))
+function dated(column: PgColumn, range: ExportRange) {
+  return and(range.from ? gte(column, range.from) : undefined, range.to ? lte(column, range.to) : undefined)
+}
+
+export function accountTables(userId: number, range: ExportRange = {}) {
+  const sessionsWhere = and(eq(workoutSessions.userId, userId), dated(workoutSessions.performedOn, range))
+  const daysWhere = and(eq(diaryDays.userId, userId), dated(diaryDays.date, range))
+  const mySessions = db.select({ id: workoutSessions.id }).from(workoutSessions).where(sessionsWhere)
   const myEntries = db
     .select({ id: workoutEntries.id })
     .from(workoutEntries)
     .where(inArray(workoutEntries.sessionId, mySessions))
-  const myDays = db.select({ id: diaryDays.id }).from(diaryDays).where(eq(diaryDays.userId, userId))
+  const myDays = db.select({ id: diaryDays.id }).from(diaryDays).where(daysWhere)
   const myDiaryEntries = db
     .select({ id: diaryEntries.id })
     .from(diaryEntries)
@@ -104,12 +109,13 @@ export function accountTables(userId: number) {
         })
         .from(authProviders)
         .where(eq(authProviders.userId, userId)) as unknown as Promise<Rows>,
-    day_notes: () => select(dayNotes, eq(dayNotes.userId, userId)),
+    day_notes: () => select(dayNotes, and(eq(dayNotes.userId, userId), dated(dayNotes.day, range))),
     measurement_types: () => select(measurementTypes, eq(measurementTypes.userId, userId)),
     measurement_type_prefs: () => select(measurementTypePrefs, eq(measurementTypePrefs.userId, userId)),
-    measurements: () => select(measurements, eq(measurements.userId, userId)),
+    measurements: () =>
+      select(measurements, and(eq(measurements.userId, userId), dated(measurements.measuredOn, range))),
     measurement_goals: () => select(measurementGoals, eq(measurementGoals.userId, userId)),
-    step_days: () => select(stepDays, eq(stepDays.userId, userId)),
+    step_days: () => select(stepDays, and(eq(stepDays.userId, userId), dated(stepDays.day, range))),
     step_targets: () => select(stepTargets, eq(stepTargets.userId, userId)),
     meal_containers: () => select(mealContainers, eq(mealContainers.userId, userId)),
     goal_profiles: () => select(goalProfiles, eq(goalProfiles.userId, userId)),
@@ -146,7 +152,7 @@ export function accountTables(userId: number) {
           db.select({ id: savedMeals.id }).from(savedMeals).where(eq(savedMeals.userId, userId))
         )
       ),
-    diary_days: () => select(diaryDays, eq(diaryDays.userId, userId)),
+    diary_days: () => select(diaryDays, daysWhere),
     diary_day_targets: () => select(diaryDayTargets, inArray(diaryDayTargets.dayId, myDays)),
     diary_meal_times: () => select(diaryMealTimes, inArray(diaryMealTimes.dayId, myDays)),
     diary_entries: () => select(diaryEntries, inArray(diaryEntries.dayId, myDays)),
@@ -161,7 +167,8 @@ export function accountTables(userId: number) {
     exercise_variation_members: () => select(exerciseVariationMembers, eq(exerciseVariationMembers.userId, userId)),
     workout_exercise_goals: () => select(workoutExerciseGoals, eq(workoutExerciseGoals.userId, userId)),
     routines: () => select(routines, eq(routines.userId, userId)),
-    routine_day_skips: () => select(routineDaySkips, eq(routineDaySkips.userId, userId)),
+    routine_day_skips: () =>
+      select(routineDaySkips, and(eq(routineDaySkips.userId, userId), dated(routineDaySkips.skippedOn, range))),
     workout_templates: () => select(workoutTemplates, eq(workoutTemplates.userId, userId)),
     workout_template_entries: () =>
       select(
@@ -181,7 +188,7 @@ export function accountTables(userId: number) {
         )
       ),
     user_program_enrollments: () => select(userProgramEnrollments, eq(userProgramEnrollments.userId, userId)),
-    workout_sessions: () => select(workoutSessions, eq(workoutSessions.userId, userId)),
+    workout_sessions: () => select(workoutSessions, sessionsWhere),
     workout_entries: () => select(workoutEntries, inArray(workoutEntries.sessionId, mySessions)),
     workout_sets: () => select(workoutSets, inArray(workoutSets.entryId, myEntries))
   }
@@ -265,14 +272,15 @@ async function referenceRows(tables: Record<string, Rows>) {
   }
 }
 
-export async function buildAccountExport(userId: number) {
-  const loaders = accountTables(userId)
+export async function buildAccountExport(userId: number, range: ExportRange = {}) {
+  const loaders = accountTables(userId, range)
   const tables: Record<string, Rows> = {}
   for (const [name, load] of Object.entries(loaders)) tables[name] = await load()
   return {
     format: EXPORT_FORMAT,
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
+    ...(range.from || range.to ? { range: { from: range.from ?? null, to: range.to ?? null } } : {}),
     excluded: EXPORT_EXCLUDED_TABLES,
     tables,
     reference: await referenceRows(tables)

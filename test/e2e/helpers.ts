@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { APIRequestContext, Page } from '@playwright/test'
 
 /** Unique per-run email — the e2e DB persists between runs, so registration tests must not collide on users.email. */
 export function uniqueEmail(prefix = 'e2e') {
@@ -135,4 +135,28 @@ export async function rebuildSearchIndex(page: Page) {
   if (!process.env.NUXT_MEILI_HOST) return
   const res = await apiFetch(page, 'POST', '/api/nutrition/_test/search-rebuild')
   if (!res.ok) throw new Error(`test-only rebuild route failed: ${res.status}`)
+}
+
+// Needs a fresh playwright.request context: page.request would send the session cookie and mask a failed token auth.
+export async function tokenFetch<T = unknown>(
+  request: APIRequestContext,
+  base: string,
+  token: string,
+  method: string,
+  path: string,
+  body?: unknown
+): Promise<ApiResult<T> & { headers: Record<string, string> }> {
+  const res = await request.fetch(`${base}${path}`, {
+    method,
+    headers: { authorization: `Bearer ${token}` },
+    data: body
+  })
+  const text = await res.text()
+  let json: unknown
+  try {
+    json = text ? JSON.parse(text) : null
+  } catch {
+    json = text
+  }
+  return { status: res.status(), ok: res.ok(), json: json as T, headers: res.headers() }
 }
