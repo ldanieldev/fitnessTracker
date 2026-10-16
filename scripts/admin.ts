@@ -71,7 +71,7 @@ export async function runAdmin(argv: string[]): Promise<number> {
     console.error('DATABASE_URL is not set')
     return 1
   }
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, options: '-c TimeZone=UTC' })
   const client = drizzle({ client: pool, schema })
   try {
     const userId = await findUserIdByEmail(client, email)

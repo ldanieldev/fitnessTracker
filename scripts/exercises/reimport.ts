@@ -14,7 +14,7 @@ const statements = migration
 // pg would otherwise fall back to PG* variables and localhost, and could re-import into the wrong database.
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set')
 
-const client = new Client({ connectionString: process.env.DATABASE_URL })
+const client = new Client({ connectionString: process.env.DATABASE_URL, options: '-c TimeZone=UTC' })
 await client.connect()
 try {
   await client.query('begin')

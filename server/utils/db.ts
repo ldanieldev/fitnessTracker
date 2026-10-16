@@ -2,14 +2,20 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { trace, SpanStatusCode } from '@opentelemetry/api'
 import * as schema from '../db/schema'
+import { logger } from './logger'
 import { recordQueryDuration } from './metrics'
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  // Plain timestamp columns hold UTC, so now() must not follow a non-UTC server's TimeZone.
+  options: '-c TimeZone=UTC',
   max: 20,
   idleTimeoutMillis: 30000, // close idle connections after 30s
   connectionTimeoutMillis: 2000 // fail if can't connect in 2s
 })
+
+// An idle client dropped by a Postgres restart emits 'error' on the pool, which crashes the process when unhandled.
+pool.on('error', (err) => logger.warn({ err }, 'idle Postgres client error'))
 
 /**
  * Drizzle ORM database instance with schema bindings and connection pooling.
