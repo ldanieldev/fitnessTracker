@@ -1,6 +1,7 @@
-import { eq } from 'drizzle-orm'
-import { googleHealthConnections } from '../../../db/schema'
+import { and, eq } from 'drizzle-orm'
+import { googleHealthConnections, users } from '../../../db/schema'
 import { db } from '../../db'
+import { ACTIVE_USER } from '../../googleHealth/connection'
 import { DEFAULT_SYNC_CRON } from '../../googleHealth/scopes'
 import { inngest } from '../client'
 
@@ -14,6 +15,7 @@ export const googleHealthSyncScheduled = inngest.createFunction(
       db
         .select({ userId: googleHealthConnections.userId })
         .from(googleHealthConnections)
+        .innerJoin(users, and(eq(users.id, googleHealthConnections.userId), ACTIVE_USER))
         .where(eq(googleHealthConnections.status, 'active'))
     )
     if (rows.length) {

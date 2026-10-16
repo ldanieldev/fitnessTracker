@@ -6,7 +6,7 @@ import { inngest } from '~~/server/utils/inngest/client'
 import { logger } from '~~/server/utils/logger'
 import { createWeight, deleteWeights, GoogleAuthError, listWeightsAt, refreshAccessToken } from './api'
 import { googleHealthConfig } from './config'
-import { granted, loadConnection, markReconnect } from './connection'
+import { granted, loadActiveConnection, loadConnection, markReconnect } from './connection'
 import { decryptToken } from './crypto'
 import { lbsToGrams, pickOwnPoint } from './map'
 
@@ -38,7 +38,7 @@ async function deleteTolerant(access: string, names: string[]): Promise<void> {
 }
 
 export async function pushWeight(change: WeightChange): Promise<'pushed' | 'deleted' | 'skipped'> {
-  const conn = await loadConnection(change.userId)
+  const conn = await loadActiveConnection(change.userId)
   const config = googleHealthConfig()
   if (!conn || !config.available || !conn.pushWeight || conn.status !== 'active') return 'skipped'
   if (!granted(conn.scopes).weightWrite) return 'skipped'
@@ -70,8 +70,10 @@ export async function pushWeight(change: WeightChange): Promise<'pushed' | 'dele
     return 'skipped'
   }
 
-  if (change.previousExternalId) {
-    await deleteTolerant(access, [change.previousExternalId])
+  // A live row's own stored id replaces the event's, so a forged event can't name another Google point to delete.
+  const previous = row ? (change.previousExternalId && row.externalId) : change.previousExternalId
+  if (previous) {
+    await deleteTolerant(access, [previous])
     if (row) await db.update(measurements).set({ externalId: null }).where(eq(measurements.id, row.id))
   }
   if (!row || change.utcOffsetMinutes === null) return 'deleted'

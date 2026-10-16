@@ -1,7 +1,7 @@
 import { googleHealthConnections } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { googleHealthConfig } from '~~/server/utils/googleHealth/config'
-import { loadConnection } from '~~/server/utils/googleHealth/connection'
+import { connectValues, loadConnection } from '~~/server/utils/googleHealth/connection'
 import { encryptToken } from '~~/server/utils/googleHealth/crypto'
 import { revokeStoredGrant } from '~~/server/utils/googleHealth/disconnect'
 import { GOOGLE_HEALTH_SCOPES } from '~~/server/utils/googleHealth/scopes'
@@ -22,17 +22,14 @@ const oauth = defineOAuthGoogleEventHandler({
     const previous = await loadConnection(userId)
     // Revoking drops the app's whole grant, so a same-account reconnect keeps the old token to spare the new one.
     if (previous && previous.googleSub !== googleSub) await revokeStoredGrant(previous)
-    const values = {
+    const values = connectValues(previous, {
       googleSub,
       googleEmail: String(user.email),
       refreshTokenEnc: encryptToken(tokens.refresh_token, googleHealthConfig().tokenKey),
       scopes: String(tokens.scope ?? '')
         .split(' ')
-        .filter(Boolean),
-      status: 'active' as const,
-      lastError: null,
-      syncStartedAt: null
-    }
+        .filter(Boolean)
+    })
     await db
       .insert(googleHealthConnections)
       .values({ userId, ...values })

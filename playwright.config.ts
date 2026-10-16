@@ -14,6 +14,7 @@ process.env.NUXT_GOOGLE_HEALTH_TOKEN_KEY ??= Buffer.alloc(32, 7).toString('base6
 process.env.NUXT_GOOGLE_HEALTH_API_BASE = '/api/integrations/_test/google-health'
 process.env.NUXT_GOOGLE_HEALTH_TOKEN_URL = '/api/integrations/_test/google-health/token'
 process.env.NUXT_GOOGLE_HEALTH_REVOKE_URL = '/api/integrations/_test/google-health/revoke'
+process.env.NUXT_GOOGLE_HEALTH_SYNC_COOLDOWN_SECONDS = '0'
 process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID ??= 'e2e-google-client'
 process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET ??= 'e2e-google-secret'
 

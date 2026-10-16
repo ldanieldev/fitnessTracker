@@ -108,7 +108,8 @@ export default defineNuxtConfig({
       tokenKey: '',
       apiBase: 'https://health.googleapis.com',
       tokenUrl: 'https://oauth2.googleapis.com/token',
-      revokeUrl: 'https://oauth2.googleapis.com/revoke'
+      revokeUrl: 'https://oauth2.googleapis.com/revoke',
+      syncCooldownSeconds: 60
     },
     oauth: {
       google: {

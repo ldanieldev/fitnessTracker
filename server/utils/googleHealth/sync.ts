@@ -5,7 +5,7 @@ import { db } from '~~/server/utils/db'
 import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 import { dailyRollUp, GoogleAuthError, isRetryable, listPoints, refreshAccessToken } from './api'
 import { googleHealthConfig } from './config'
-import { granted, loadConnection, markReconnect } from './connection'
+import { granted, loadActiveConnection, markReconnect } from './connection'
 import { decryptToken } from './crypto'
 import {
   type DailyValue,
@@ -168,7 +168,7 @@ export type SyncRun =
   | (Extract<SyncResult, { outcome: 'ok' }> & { retryable: boolean })
 
 export async function syncGoogleHealth(userId: number, opts: { full?: boolean } = {}): Promise<SyncRun> {
-  const conn = await loadConnection(userId)
+  const conn = await loadActiveConnection(userId)
   if (!conn || !googleHealthConfig().available) return { outcome: 'not_connected' }
   if (conn.status === 'reconnect_required') return { outcome: 'reconnect_required' }
   if (!(await claim(userId))) return { outcome: 'busy' }
