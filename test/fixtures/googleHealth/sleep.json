@@ -1,0 +1,51 @@
+{
+  "dataPoints": [
+    {
+      "name": "users/1234567890/dataTypes/sleep/dataPoints/111",
+      "sleep": {
+        "interval": { "startUtcOffset": "-18000s", "endUtcOffset": "-18000s", "startTime": "2026-10-15T05:17:00Z", "endTime": "2026-10-15T12:20:00Z" },
+        "summary": {
+          "stagesSummary": [
+            { "count": "1", "minutes": "5", "type": "AWAKE" },
+            { "count": "9", "minutes": "236", "type": "LIGHT" },
+            { "count": "4", "minutes": "78", "type": "DEEP" },
+            { "count": "5", "minutes": "84", "type": "REM" }
+          ],
+          "minutesInSleepPeriod": "403",
+          "minutesAsleep": "398",
+          "minutesAwake": "5"
+        },
+        "type": "STAGES",
+        "metadata": { "mainSleep": true, "processed": true, "stagesStatus": "SUCCEEDED" }
+      },
+      "dataSource": { "device": { "displayName": "Google Fitbit Air" }, "recordingMethod": "DERIVED", "platform": "FITBIT" }
+    },
+    {
+      "name": "users/1234567890/dataTypes/sleep/dataPoints/222",
+      "sleep": {
+        "interval": { "startUtcOffset": "-18000s", "endUtcOffset": "-18000s", "startTime": "2026-10-15T19:00:00Z", "endTime": "2026-10-15T19:40:00Z" },
+        "summary": { "stagesSummary": [{ "count": "1", "minutes": "38", "type": "LIGHT" }], "minutesAsleep": "38", "minutesAwake": "2" },
+        "type": "CLASSIC",
+        "metadata": { "mainSleep": false }
+      }
+    },
+    {
+      "name": "users/1234567890/dataTypes/sleep/dataPoints/333",
+      "sleep": {
+        "interval": { "startUtcOffset": "-18000s", "endUtcOffset": "-18000s", "startTime": "2026-10-16T01:00:00Z", "endTime": "2026-10-16T03:30:00Z" },
+        "summary": {
+          "stagesSummary": [
+            { "count": "2", "minutes": "100", "type": "LIGHT" },
+            { "count": "1", "minutes": "30", "type": "DEEP" },
+            { "count": "1", "minutes": "15", "type": "REM" },
+            { "count": "1", "minutes": "5", "type": "AWAKE" }
+          ],
+          "minutesAsleep": "145",
+          "minutesAwake": "5"
+        },
+        "type": "STAGES",
+        "metadata": { "mainSleep": true }
+      }
+    }
+  ]
+}

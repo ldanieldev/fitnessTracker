@@ -22,7 +22,14 @@ describe('BodyGoalCard', () => {
         item: {
           type,
           goal: { typeId: 1, targetValue: 185, targetDate: '2026-12-16', startValue: 200, startDate: '2026-09-01' },
-          latest: { id: 5, typeId: 1, value: 197, measuredAt: '2026-09-15T08:00:00.000Z', measuredOn: '2026-09-15' }
+          latest: {
+            id: 5,
+            typeId: 1,
+            value: 197,
+            measuredAt: '2026-09-15T08:00:00.000Z',
+            measuredOn: '2026-09-15',
+            source: 'manual'
+          }
         }
       }
     })
@@ -41,7 +48,14 @@ describe('BodyGoalCard', () => {
         item: {
           type,
           goal: { typeId: 1, targetValue: 185, targetDate: null, startValue: 200, startDate: '2026-09-01' },
-          latest: { id: 5, typeId: 1, value: 184.5, measuredAt: '2026-09-15T08:00:00.000Z', measuredOn: '2026-09-15' }
+          latest: {
+            id: 5,
+            typeId: 1,
+            value: 184.5,
+            measuredAt: '2026-09-15T08:00:00.000Z',
+            measuredOn: '2026-09-15',
+            source: 'manual'
+          }
         }
       }
     })

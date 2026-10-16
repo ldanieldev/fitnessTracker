@@ -66,6 +66,18 @@ const tokensDescription = 'Let a script or an AI assistant read and update your 
       </div>
     </section>
 
+    <section class="flex flex-col gap-3" aria-labelledby="data-integrations-heading" data-test="data-integrations">
+      <h2 id="data-integrations-heading" class="text-xs font-medium text-dimmed uppercase">Integrations</h2>
+      <UPageCard
+        title="Google Health"
+        description="HRV, resting heart rate and sleep from your wearable, synced twice a day."
+        variant="subtle"
+        :ui="{ container: 'min-w-0' }"
+      >
+        <SettingsGoogleHealth />
+      </UPageCard>
+    </section>
+
     <section class="flex flex-col gap-3" aria-labelledby="data-tokens-heading" data-test="data-tokens">
       <h2 id="data-tokens-heading" class="text-xs font-medium text-dimmed uppercase">Access tokens</h2>
       <UPageCard

@@ -1,4 +1,5 @@
 import { deleteAccount } from '~~/server/utils/deleteAccount'
+import { disconnectGoogleHealth } from '~~/server/utils/googleHealth/disconnect'
 import { forbidToken, requireSessionUser } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Move the admin role to another account first' })
   }
 
+  await disconnectGoogleHealth(id)
   await deleteAccount(id)
   await clearUserSession(event)
 

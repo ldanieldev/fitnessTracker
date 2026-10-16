@@ -41,6 +41,7 @@ import {
   routines,
   savedMealItems,
   savedMeals,
+  sleepSessions,
   stepDays,
   stepTargets,
   userProgramEnrollments,
@@ -67,7 +68,8 @@ export const EXPORT_EXCLUDED_TABLES = {
   workout_exercise_rollups: 'derived from sessions; rebuilt on demand',
   import_jobs: 'transient job rows holding raw uploaded files',
   search_outbox: 'search index queue, no user data',
-  access_tokens: 'credentials; hashes only'
+  access_tokens: 'credentials; hashes only',
+  google_health_connections: 'credentials; encrypted Google refresh token'
 } as const
 
 /** Shared catalogue tables; only the rows the user's data points at are exported, under `reference`. */
@@ -115,6 +117,8 @@ export function accountTables(userId: number, range: ExportRange = {}) {
     measurements: () =>
       select(measurements, and(eq(measurements.userId, userId), dated(measurements.measuredOn, range))),
     measurement_goals: () => select(measurementGoals, eq(measurementGoals.userId, userId)),
+    sleep_sessions: () =>
+      select(sleepSessions, and(eq(sleepSessions.userId, userId), dated(sleepSessions.day, range))),
     step_days: () => select(stepDays, and(eq(stepDays.userId, userId), dated(stepDays.day, range))),
     step_targets: () => select(stepTargets, eq(stepTargets.userId, userId)),
     meal_containers: () => select(mealContainers, eq(mealContainers.userId, userId)),

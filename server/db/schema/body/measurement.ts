@@ -1,4 +1,5 @@
-import { date, index, integer, numeric, timestamp } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { date, index, integer, numeric, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 import { measurementTypes } from './types'
@@ -15,7 +16,16 @@ export const measurements = appSchema.table(
       .references(() => measurementTypes.id),
     value: numeric('value').notNull(),
     measuredAt: timestamp('measured_at').notNull().defaultNow(),
-    measuredOn: date('measured_on').notNull()
+    measuredOn: date('measured_on').notNull(),
+    source: varchar('source', { enum: ['manual', 'google'] })
+      .notNull()
+      .default('manual'),
+    externalId: varchar('external_id', { length: 255 }).default(sql`null`)
   },
-  (table) => [index('measurement_user_type_day').on(table.userId, table.typeId, table.measuredOn)]
+  (table) => [
+    index('measurement_user_type_day').on(table.userId, table.typeId, table.measuredOn),
+    uniqueIndex('measurement_google_one_per_day')
+      .on(table.userId, table.typeId, table.measuredOn)
+      .where(sql`source = 'google'`)
+  ]
 )

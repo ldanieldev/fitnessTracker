@@ -1,0 +1,12 @@
+{
+  "done": true,
+  "response": {
+    "weight": {
+      "sampleTime": { "physicalTime": "2026-09-01T12:00:00Z", "utcOffset": "-18000s", "civilTime": { "date": { "month": 9, "day": 1, "year": 2026 }, "time": { "hours": 7 } } },
+      "weightGrams": 90000
+    },
+    "@type": "type.googleapis.com/google.devicesandservices.health.v4.DataPoint",
+    "dataSource": { "recordingMethod": "UNKNOWN", "platform": "GOOGLE_WEB_API", "application": { "googleWebClientId": "e2e-google-client" } },
+    "name": "users/1234567890/dataTypes/weight/dataPoints/3001"
+  }
+}

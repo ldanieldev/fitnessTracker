@@ -57,6 +57,7 @@ const tone = (delta: number) => deltaTone(delta, props.direction ?? props.type.d
         <span class="font-medium tabular-nums">
           {{ formatValue(row.entry.value, type.precision) }} <span class="text-xs text-muted">{{ type.unit }}</span>
         </span>
+        <UBadge v-if="row.entry.source === 'google'" color="neutral" variant="outline" size="sm">Google</UBadge>
         <UBadge v-if="row.delta !== null" :color="tone(row.delta)" variant="subtle" class="tabular-nums">
           {{ formatDelta(row.delta, type.precision) }}
         </UBadge>

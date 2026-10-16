@@ -7,6 +7,9 @@ import { searchRebuild } from '~~/server/utils/inngest/functions/searchRebuild'
 import { searchNightlyRebuild } from '~~/server/utils/inngest/functions/searchNightlyRebuild'
 import { exerciseSearchOutboxDrain } from '~~/server/utils/inngest/functions/exerciseSearchOutboxDrain'
 import { exerciseSearchRebuild } from '~~/server/utils/inngest/functions/exerciseSearchRebuild'
+import { googleHealthSyncScheduled } from '~~/server/utils/inngest/functions/googleHealthSyncScheduled'
+import { googleHealthSyncUser } from '~~/server/utils/inngest/functions/googleHealthSyncUser'
+import { googleHealthWeightPush } from '~~/server/utils/inngest/functions/googleHealthWeightPush'
 import { rollupNightlyRebuild } from '~~/server/utils/inngest/functions/rollupNightlyRebuild'
 
 export default defineEventHandler(
@@ -20,7 +23,10 @@ export default defineEventHandler(
       exerciseSearchRebuild,
       rollupNightlyRebuild,
       importMyMacros,
-      importFitNotes
+      importFitNotes,
+      googleHealthSyncScheduled,
+      googleHealthSyncUser,
+      googleHealthWeightPush
     ]
   })
 )

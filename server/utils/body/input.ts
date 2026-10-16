@@ -11,20 +11,27 @@ export const isoDate = z
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === raw
   }, 'Date must be a real calendar date')
 
+const utcOffsetMinutes = z.number().int().min(-840).max(840).optional()
+
 export const entryCreateSchema = z.object({
   typeId: z.number().int().positive(),
   value: z.number(),
   measuredAt: z.coerce.date().optional(),
-  measuredOn: isoDate.optional()
+  measuredOn: isoDate.optional(),
+  utcOffsetMinutes
 })
 
 export const entryPatchSchema = z
   .object({
     value: z.number().optional(),
     measuredAt: z.coerce.date().optional(),
-    measuredOn: isoDate.optional()
+    measuredOn: isoDate.optional(),
+    utcOffsetMinutes
   })
-  .refine((body) => Object.keys(body).length > 0, 'Nothing to update')
+  .refine(
+    (body) => [body.value, body.measuredAt, body.measuredOn].some((v) => v !== undefined),
+    'Nothing to update'
+  )
 
 export const rangeQuerySchema = z.object({ from: isoDate.optional(), to: isoDate.optional() })
 

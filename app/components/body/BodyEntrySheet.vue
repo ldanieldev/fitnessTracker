@@ -46,10 +46,12 @@ function invalidate(typeId: number) {
 async function save() {
   if (!props.type || !canSave.value) return
   saving.value = true
+  const measuredAt = new Date(`${date.value}T${time.value}:00`)
   const body = {
     value: value.value,
-    measuredAt: new Date(`${date.value}T${time.value}:00`).toISOString(),
-    measuredOn: date.value
+    measuredAt: measuredAt.toISOString(),
+    measuredOn: date.value,
+    utcOffsetMinutes: -measuredAt.getTimezoneOffset()
   }
   try {
     if (props.entry) await apiFetch(`/api/body/entries/${props.entry.id}`, { method: 'PATCH', body })

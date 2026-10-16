@@ -1,0 +1,28 @@
+{
+  "dataPoints": [
+    {
+      "dataSource": { "device": { "displayName": "Google Fitbit Air" }, "recordingMethod": "DERIVED", "platform": "FITBIT" },
+      "dailyRestingHeartRate": {
+        "date": { "month": 10, "day": 15, "year": 2026 },
+        "dailyRestingHeartRateMetadata": { "calculationMethod": "WITH_SLEEP" },
+        "beatsPerMinute": "72"
+      }
+    },
+    {
+      "dataSource": { "device": { "displayName": "Google Fitbit Air" }, "recordingMethod": "DERIVED", "platform": "FITBIT" },
+      "dailyRestingHeartRate": {
+        "date": { "month": 10, "day": 14, "year": 2026 },
+        "dailyRestingHeartRateMetadata": { "calculationMethod": "WITH_SLEEP" },
+        "beatsPerMinute": "74"
+      }
+    },
+    {
+      "dataSource": { "device": { "displayName": "Google Fitbit Air" }, "recordingMethod": "DERIVED", "platform": "FITBIT" },
+      "dailyRestingHeartRate": {
+        "date": { "month": 10, "day": 12, "year": 2026 },
+        "dailyRestingHeartRateMetadata": { "calculationMethod": "ONLY_WITH_AWAKE_DATA" },
+        "beatsPerMinute": "76"
+      }
+    }
+  ]
+}

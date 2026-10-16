@@ -32,6 +32,8 @@ export default defineEventHandler(async (event): Promise<MetricOverview[]> => {
         value: measurements.value,
         measuredAt: measurements.measuredAt,
         measuredOn: measurements.measuredOn,
+        source: measurements.source,
+        externalId: measurements.externalId,
         createdAt: measurements.createdAt,
         updatedAt: measurements.updatedAt,
         // id breaks same-minute measuredAt ties deterministically.

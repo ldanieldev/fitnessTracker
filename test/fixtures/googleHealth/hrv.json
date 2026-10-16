@@ -1,0 +1,24 @@
+{
+  "dataPoints": [
+    {
+      "dailyHeartRateVariability": {
+        "date": { "month": 10, "day": 15, "year": 2026 },
+        "averageHeartRateVariabilityMilliseconds": 58.4,
+        "entropy": 2.8,
+        "nonRemHeartRateBeatsPerMinute": "70",
+        "deepSleepRootMeanSquareOfSuccessiveDifferencesMilliseconds": 61.2
+      },
+      "dataSource": { "device": { "displayName": "Google Fitbit Air" }, "recordingMethod": "DERIVED", "platform": "FITBIT" }
+    },
+    {
+      "dailyHeartRateVariability": {
+        "date": { "month": 10, "day": 14, "year": 2026 },
+        "averageHeartRateVariabilityMilliseconds": 61.1,
+        "entropy": 2.9,
+        "nonRemHeartRateBeatsPerMinute": "68",
+        "deepSleepRootMeanSquareOfSuccessiveDifferencesMilliseconds": 70.4
+      },
+      "dataSource": { "device": { "displayName": "Google Fitbit Air" }, "recordingMethod": "DERIVED", "platform": "FITBIT" }
+    }
+  ]
+}

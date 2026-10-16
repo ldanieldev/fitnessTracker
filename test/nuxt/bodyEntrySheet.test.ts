@@ -65,7 +65,14 @@ describe('BodyEntrySheet', () => {
       props: {
         open: true,
         type,
-        entry: { id: 4, typeId: 1, value: 198.8, measuredAt: '2026-03-03T09:51:00.000Z', measuredOn: '2026-03-03' }
+        entry: {
+          id: 4,
+          typeId: 1,
+          value: 198.8,
+          measuredAt: '2026-03-03T09:51:00.000Z',
+          measuredOn: '2026-03-03',
+          source: 'manual'
+        }
       }
     })
     await flushPromises()

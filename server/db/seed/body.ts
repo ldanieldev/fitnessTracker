@@ -16,7 +16,9 @@ export const MEASUREMENT_TYPE_SEED: MeasurementTypeSeed[] = [
   { userId: null, key: 'bodyweight', name: 'Bodyweight', unit: 'lbs', precision: 1, direction: 'neutral' },
   { userId: null, key: 'body_fat', name: 'Body Fat', unit: '%', precision: 2, direction: 'lower' },
   { userId: null, key: 'waist', name: 'Waist', unit: 'in', precision: 1, direction: 'lower' },
-  { userId: null, key: 'sleep', name: 'Sleep', unit: 'h', precision: 1, direction: 'higher' }
+  { userId: null, key: 'sleep', name: 'Sleep', unit: 'h', precision: 1, direction: 'higher' },
+  { userId: null, key: 'hrv', name: 'HRV', unit: 'ms', precision: 0, direction: 'higher' },
+  { userId: null, key: 'resting_hr', name: 'Resting HR', unit: 'bpm', precision: 0, direction: 'lower' }
 ]
 
 export async function seedMeasurementTypes() {

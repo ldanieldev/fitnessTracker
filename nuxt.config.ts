@@ -77,6 +77,12 @@ export default defineNuxtConfig({
       clientSecret: process.env.NUXT_FATSECRET_CLIENT_SECRET ?? '',
       scope: process.env.NUXT_FATSECRET_SCOPE ?? 'basic'
     },
+    googleHealth: {
+      tokenKey: process.env.NUXT_GOOGLE_HEALTH_TOKEN_KEY ?? '',
+      apiBase: process.env.NUXT_GOOGLE_HEALTH_API_BASE ?? 'https://health.googleapis.com',
+      tokenUrl: process.env.NUXT_GOOGLE_HEALTH_TOKEN_URL ?? 'https://oauth2.googleapis.com/token',
+      revokeUrl: process.env.NUXT_GOOGLE_HEALTH_REVOKE_URL ?? 'https://oauth2.googleapis.com/revoke'
+    },
     oauth: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID,

@@ -3,13 +3,13 @@ import { apiFetch, makeUser, registerViaApi } from './helpers'
 import type { MeasurementEntry, MeasurementType } from '../../shared/types/body'
 import { shiftDate, todayDate } from '../../shared/utils/nutritionSummary'
 
-test('a new user sees the four built-in types, none hidden', async ({ page, goto }) => {
+test('a new user sees the six built-in types, none hidden', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
   const types = await apiFetch<MeasurementType[]>(page, 'GET', '/api/body/types')
   expect(types.status).toBe(200)
-  expect(types.json.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist', 'sleep'])
+  expect(types.json.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist', 'sleep', 'hrv', 'resting_hr'])
   expect(types.json.every((t) => t.builtIn && !t.hidden)).toBe(true)
   expect(types.json[0]!.unit).toBe('lbs')
   expect(types.json[1]!.precision).toBe(2)
@@ -93,6 +93,31 @@ test('validation and ownership: bad body is 400, unknown type is 404, another us
   await other.close()
 })
 
+test('editing a reading of a deleted custom type is a 404 that changes nothing', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const type = await apiFetch<MeasurementType>(page, 'POST', '/api/body/types', {
+    name: 'Neck',
+    unit: 'in',
+    precision: 1,
+    direction: 'lower'
+  })
+  const entry = await apiFetch<MeasurementEntry>(page, 'POST', '/api/body/entries', {
+    typeId: type.json.id,
+    value: 15.5,
+    measuredOn: '2026-10-01'
+  })
+  expect((await apiFetch(page, 'DELETE', `/api/body/types/${type.json.id}`)).status).toBe(200)
+
+  expect((await apiFetch(page, 'PATCH', `/api/body/entries/${entry.json.id}`, { value: 16 })).status).toBe(404)
+  const exported = await apiFetch<{ tables: { measurements: { id: number; value: string }[] } }>(
+    page,
+    'GET',
+    '/api/export'
+  )
+  expect(exported.json.tables.measurements.find((m) => m.id === entry.json.id)?.value).toBe('15.5')
+})
+
 test('series reduces to the latest reading per day, echoes the range, and overview carries ' +
   'latest/previous/sparkline', async ({
   page,
@@ -171,7 +196,7 @@ test('the hub lists built-ins, logs a reading from a card, and shows it with a d
   )!
 
   await goto('/body', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(4)
+  await expect(page.locator('[data-test^="metric-card-"]')).toHaveCount(6)
   await expect(page.locator(`[data-test="metric-latest-${weight.id}"]`)).toHaveText('—')
 
   await page.locator(`[data-test="metric-log-${weight.id}"]`).click()
@@ -279,7 +304,7 @@ test('MTD lists only this month, the progress page charts every visible type, an
   await expect(rows.first()).toContainText('198.0')
 
   await goto('/body/progress', { waitUntil: 'hydration' })
-  await expect(page.locator('[data-test^="progress-card-"]')).toHaveCount(4)
+  await expect(page.locator('[data-test^="progress-card-"]')).toHaveCount(6)
   const card = page.locator(`[data-test="progress-card-${weight.id}"]`)
   await expect(card).toContainText('198.0')
   await expect(card.locator('[data-test="raw-path"]')).toHaveCount(1)

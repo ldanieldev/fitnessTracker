@@ -57,6 +57,7 @@ test('account export: every table of the userâ€™s data, nothing of anyone elseâ€
   expect(data).toMatchObject({ format: 'my-fitness-journal-export', version: 1 })
   expect(Object.keys(data.excluded).sort()).toEqual([
     'access_tokens',
+    'google_health_connections',
     'import_jobs',
     'search_outbox',
     'workout_exercise_rollups'

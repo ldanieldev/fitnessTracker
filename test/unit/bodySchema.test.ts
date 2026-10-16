@@ -23,9 +23,11 @@ describe('body schema', () => {
     ])
     expect(Object.keys(getTableColumns(schema.measurements)).sort()).toEqual([
       'createdAt',
+      'externalId',
       'id',
       'measuredAt',
       'measuredOn',
+      'source',
       'typeId',
       'updatedAt',
       'userId',
@@ -50,9 +52,16 @@ describe('body schema', () => {
     ])
   })
 
-  it('seeds exactly the three built-ins with null user and stable keys', async () => {
+  it('seeds exactly the six built-ins with null user and stable keys', async () => {
     const { MEASUREMENT_TYPE_SEED } = await import('../../server/db/seed/body')
-    expect(MEASUREMENT_TYPE_SEED.map((t) => t.key)).toEqual(['bodyweight', 'body_fat', 'waist', 'sleep'])
+    expect(MEASUREMENT_TYPE_SEED.map((t) => t.key)).toEqual([
+      'bodyweight',
+      'body_fat',
+      'waist',
+      'sleep',
+      'hrv',
+      'resting_hr'
+    ])
     for (const t of MEASUREMENT_TYPE_SEED) expect(t.userId).toBeNull()
   })
 

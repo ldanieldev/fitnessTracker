@@ -9,6 +9,13 @@ process.env.NUXT_TEST_FIXTURES ??= '1'
 process.env.NUXT_OFF_USER_AGENT ??= 'my-fitness-journal-e2e/1.0'
 process.env.NUXT_OFF_PRODUCT_URL = '/api/nutrition/_test/off/product'
 process.env.NUXT_OFF_SEARCH_URL = '/api/nutrition/_test/off/search'
+// Google Health specs talk to the in-app stub, never Google, even if .env holds a real client.
+process.env.NUXT_GOOGLE_HEALTH_TOKEN_KEY ??= Buffer.alloc(32, 7).toString('base64')
+process.env.NUXT_GOOGLE_HEALTH_API_BASE = '/api/integrations/_test/google-health'
+process.env.NUXT_GOOGLE_HEALTH_TOKEN_URL = '/api/integrations/_test/google-health/token'
+process.env.NUXT_GOOGLE_HEALTH_REVOKE_URL = '/api/integrations/_test/google-health/revoke'
+process.env.GOOGLE_CLIENT_ID ??= 'e2e-google-client'
+process.env.GOOGLE_CLIENT_SECRET ??= 'e2e-google-secret'
 
 export default defineConfig<ConfigOptions>({
   testDir: './test/e2e',

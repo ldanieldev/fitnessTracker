@@ -23,6 +23,7 @@ export interface MeasurementEntry {
   value: number
   measuredAt: string
   measuredOn: string
+  source: 'manual' | 'google'
 }
 
 export interface MeasurementGoal {

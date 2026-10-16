@@ -19,7 +19,8 @@ const entry = (id: number, value: number, day: string) => ({
   typeId: 1,
   value,
   measuredAt: `${day}T08:25:00.000Z`,
-  measuredOn: day
+  measuredOn: day,
+  source: 'manual' as const
 })
 
 describe('BodyMetricCard', () => {

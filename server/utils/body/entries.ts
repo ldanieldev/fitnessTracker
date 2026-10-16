@@ -11,7 +11,8 @@ export function toEntry(row: MeasurementRow): MeasurementEntry {
     typeId: row.typeId,
     value: Number(row.value),
     measuredAt: row.measuredAt.toISOString(),
-    measuredOn: row.measuredOn
+    measuredOn: row.measuredOn,
+    source: row.source
   }
 }
 
