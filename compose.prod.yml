@@ -1,0 +1,131 @@
+# Self-hosted production stack; see README "Deploying / self-hosting". Secrets come from .env.
+name: my-fitness-journal
+
+x-app: &app
+  build: .
+  image: localhost/my-fitness-journal:latest
+  env_file:
+    - .env
+
+services:
+  migrate:
+    <<: *app
+    command: ['bun', '.output/migrate.mjs']
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}
+      APP_DB_USER: ${APP_DB_USER:-journal}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  app:
+    <<: *app
+    environment:
+      DATABASE_URL: postgres://${APP_DB_USER:-journal}:${APP_DB_PASSWORD:?set APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}
+      NUXT_REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/1
+      NUXT_MEILI_HOST: http://meilisearch:7700
+      NUXT_MEILI_API_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      INNGEST_BASE_URL: http://inngest:8288
+      INNGEST_SERVE_ORIGIN: http://app:3000
+      INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:?set INNGEST_SIGNING_KEY}
+      INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:?set INNGEST_EVENT_KEY}
+      LOG_FILE: ''
+      PORT: '3000'
+    ports:
+      # Loopback by default: put the HTTPS reverse proxy in front. APP_BIND=0.0.0.0 for a proxy on another host.
+      - '${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000'
+    healthcheck:
+      test: ['CMD', 'bun', '-e', "process.exit((await fetch('http://127.0.0.1:3000/auth/login')).ok ? 0 : 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      inngest:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: docker.io/library/postgres:18.3-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      INNGEST_SCHEMA: ${INNGEST_SCHEMA:-inngest}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro,Z
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: docker.io/library/redis:8.6.1-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD:?set REDIS_PASSWORD}']
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  meilisearch:
+    image: docker.io/getmeili/meilisearch:v1.37.0
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      MEILI_NO_ANALYTICS: 'true'
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:7700/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  inngest:
+    image: docker.io/inngest/inngest:v1.17.5
+    # --poll-interval re-syncs the app's functions, so a redeploy needs no manual PUT /api/inngest.
+    command: ['inngest', 'start', '--sdk-url', 'http://app:3000/api/inngest', '--poll-interval', '60']
+    environment:
+      INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:?set INNGEST_EVENT_KEY}
+      INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:?set INNGEST_SIGNING_KEY}
+      INNGEST_POSTGRES_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}?search_path=${INNGEST_SCHEMA:-inngest}
+      INNGEST_REDIS_URI: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
+    ports:
+      # The dashboard and its GraphQL API have no login and can re-run functions; keep them on loopback.
+      - '127.0.0.1:${INNGEST_UI_PORT:-8288}:8288'
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8288/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  meili_data:
