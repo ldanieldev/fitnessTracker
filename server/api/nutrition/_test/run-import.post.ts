@@ -20,5 +20,5 @@ export default defineEventHandler(async (event) => {
     .then((r) => r[0])
   if (!job || job.userId !== userId) throw createError({ statusCode: 404, statusMessage: 'Import job not found' })
 
-  return runMyMacrosImport(db, body.jobId)
+  return runMyMacrosImport(db, body.jobId, userId)
 })

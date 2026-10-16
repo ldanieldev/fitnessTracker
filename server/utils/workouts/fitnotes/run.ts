@@ -214,31 +214,40 @@ export async function performFitNotesImport(
   return result
 }
 
-export async function runFitNotesImport(jobId: number): Promise<FitNotesImportResult> {
+export async function runFitNotesImport(jobId: number, userId: number): Promise<FitNotesImportResult> {
   const job = await db
     .select()
     .from(importJobs)
-    .where(and(eq(importJobs.id, jobId), eq(importJobs.source, 'fitnotes')))
+    .where(and(eq(importJobs.id, jobId), eq(importJobs.userId, userId), eq(importJobs.source, 'fitnotes')))
     .then((r) => r[0])
-  if (!job) throw new Error(`FitNotes import job ${jobId} not found`)
+  if (!job) throw new Error(`FitNotes import job ${jobId} not found for user ${userId}`)
 
   // Concurrent runs would create the same new exercises twice; a run untouched for an hour counts as crashed.
-  const claimed = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(${CLAIM_LOCK}, ${job.userId})`)
-    return tx
+  const claim = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${CLAIM_LOCK}, ${userId})`)
+    // Re-read under the lock: a replayed event for a job that already ran must not run it again or mark it failed.
+    const status = await tx
+      .select({ status: importJobs.status })
+      .from(importJobs)
+      .where(eq(importJobs.id, jobId))
+      .then((r) => r[0]?.status)
+    if (status !== 'queued') return 'not_queued' as const
+    const rows = await tx
       .update(importJobs)
       .set({ status: 'running' })
       .where(
         and(
           eq(importJobs.id, jobId),
-          sql`not exists (select 1 from ${importJobs} other where other.user_id = ${job.userId}
+          sql`not exists (select 1 from ${importJobs} other where other.user_id = ${userId}
             and other.source = 'fitnotes' and other.status = 'running' and other.id <> ${jobId}
             and other.updated_at > now() - interval '1 hour')`
         )
       )
       .returning({ id: importJobs.id })
+    return rows.length ? ('claimed' as const) : ('busy' as const)
   })
-  if (claimed.length === 0) {
+  if (claim === 'not_queued') throw new Error(`FitNotes import job ${jobId} is not queued`)
+  if (claim === 'busy') {
     const error = 'Another FitNotes import is still running; try again when it finishes'
     await db.update(importJobs).set({ status: 'failed', error }).where(eq(importJobs.id, jobId))
     throw new Error(error)

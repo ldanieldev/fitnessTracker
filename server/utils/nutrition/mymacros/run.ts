@@ -345,15 +345,22 @@ async function performImport(
   }
 }
 
-export async function runMyMacrosImport(db: RootDbClient, jobId: number): Promise<ImportResult> {
+export async function runMyMacrosImport(db: RootDbClient, jobId: number, userId: number): Promise<ImportResult> {
+  // Only a queued job is claimable, so a replayed or forged event can never import the same payload twice.
   const job = await db
-    .select()
-    .from(importJobs)
-    .where(eq(importJobs.id, jobId))
+    .update(importJobs)
+    .set({ status: 'running' })
+    .where(
+      and(
+        eq(importJobs.id, jobId),
+        eq(importJobs.userId, userId),
+        eq(importJobs.source, 'mymacros'),
+        eq(importJobs.status, 'queued')
+      )
+    )
+    .returning()
     .then((r) => r[0])
-  if (!job) throw new Error(`Import job ${jobId} not found`)
-
-  await db.update(importJobs).set({ status: 'running' }).where(eq(importJobs.id, jobId))
+  if (!job) throw new Error(`Import job ${jobId} is not a queued My Macros+ import for user ${userId}`)
 
   try {
     const result = await performImport(db, job.userId, job.payload as Array<{ name: string; text: string }>)

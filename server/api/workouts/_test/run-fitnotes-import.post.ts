@@ -18,5 +18,5 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(importJobs.id, jobId), eq(importJobs.userId, userId), eq(importJobs.source, 'fitnotes')))
     .then((r) => r[0])
   if (!job) throw createError({ statusCode: 404, statusMessage: 'Import job not found' })
-  return runFitNotesImport(jobId)
+  return runFitNotesImport(jobId, userId)
 })
