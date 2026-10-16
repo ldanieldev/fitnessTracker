@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { users } from '~~/server/db/schema'
+import { authProviders, users } from '~~/server/db/schema'
 import { emailSchema } from '~~/shared/utils/email'
+import { isUniqueViolation } from '~~/server/utils/pgError'
 import { forbidToken, isTokenRequest, requireSessionUser, writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 import { publicUserColumns } from '~~/server/utils/userColumns'
@@ -70,26 +71,42 @@ export default defineEventHandler(async (event) => {
   const currentRepCap = parsed.data.oneRepMaxRepCap !== undefined ? await repCapFor(id) : undefined
 
   const user = await db
-    .update(users)
-    .set({
-      name: parsed.data.name,
-      email: parsed.data.email,
-      age: parsed.data.age,
-      sex: parsed.data.sex,
-      heightIn: parsed.data.heightIn == null ? parsed.data.heightIn : String(roundTenth(parsed.data.heightIn)),
-      avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl || null : undefined,
-      weekStart: parsed.data.weekStart,
-      defaultRestSeconds: parsed.data.defaultRestSeconds,
-      plateSizes: parsed.data.plateSizes ? normalizePlateSizes(parsed.data.plateSizes).map(String) : undefined,
-      oneRepMaxRepCap: parsed.data.oneRepMaxRepCap,
-      workoutsPerWeek: parsed.data.workoutsPerWeek,
-      showBody: parsed.data.showBody,
-      showWorkouts: parsed.data.showWorkouts,
-      showNutrition: parsed.data.showNutrition
+    .transaction(async (tx) => {
+      const updated = await tx
+        .update(users)
+        .set({
+          name: parsed.data.name,
+          email: parsed.data.email,
+          age: parsed.data.age,
+          sex: parsed.data.sex,
+          heightIn: parsed.data.heightIn == null ? parsed.data.heightIn : String(roundTenth(parsed.data.heightIn)),
+          avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl || null : undefined,
+          weekStart: parsed.data.weekStart,
+          defaultRestSeconds: parsed.data.defaultRestSeconds,
+          plateSizes: parsed.data.plateSizes ? normalizePlateSizes(parsed.data.plateSizes).map(String) : undefined,
+          oneRepMaxRepCap: parsed.data.oneRepMaxRepCap,
+          workoutsPerWeek: parsed.data.workoutsPerWeek,
+          showBody: parsed.data.showBody,
+          showWorkouts: parsed.data.showWorkouts,
+          showNutrition: parsed.data.showNutrition
+        })
+        .where(eq(users.id, id))
+        .returning(publicUserColumns)
+        .then((r) => r[0]!)
+      if (parsed.data.email !== undefined) {
+        await tx
+          .update(authProviders)
+          .set({ providerAccountId: updated.email })
+          .where(and(eq(authProviders.userId, id), eq(authProviders.provider, 'credentials')))
+      }
+      return updated
     })
-    .where(eq(users.id, id))
-    .returning(publicUserColumns)
-    .then((r) => r[0]!)
+    .catch((error: unknown) => {
+      if (isUniqueViolation(error, 'users_email_unique')) {
+        throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
+      }
+      throw error
+    })
 
   // Rollups store bestE1rm computed with the old cap, so a cap change invalidates every one of this user's rows.
   if (parsed.data.oneRepMaxRepCap !== undefined && parsed.data.oneRepMaxRepCap !== currentRepCap) {

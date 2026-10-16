@@ -1,20 +1,23 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import type { DbTransaction } from '../../server/utils/db'
+import { insertUser } from '../../server/utils/insertUser'
 
-const state = vi.hoisted(() => ({ calls: [] as Array<Record<string, unknown>>, failures: [] as unknown[] }))
+const state = { calls: [] as Array<{ values: Record<string, unknown>; savepoint: boolean }>, failures: [] as unknown[] }
 
-vi.mock('../../server/utils/db', () => ({
-  db: {
+function fakeTx(savepoint = false): DbTransaction {
+  return {
     insert: () => ({
       values: (values: Record<string, unknown>) => ({
         returning: () => {
-          state.calls.push(values)
+          state.calls.push({ values, savepoint })
           const failure = state.failures.shift()
           return failure ? Promise.reject(failure) : Promise.resolve([{ id: 7, ...values }])
         }
       })
-    })
-  }
-}))
+    }),
+    transaction: (fn: (tx: DbTransaction) => Promise<unknown>) => fn(fakeTx(true))
+  } as unknown as DbTransaction
+}
 
 const oneAdmin = Object.assign(new Error('dup'), { cause: { code: '23505', constraint: 'users_one_admin' } })
 const dupEmail = Object.assign(new Error('dup'), { cause: { code: '23505', constraint: 'users_email_unique' } })
@@ -26,24 +29,23 @@ beforeEach(() => {
 })
 
 describe('insertUser', () => {
-  it('asks the database whether this is the first user', async () => {
-    const { insertUser } = await import('../../server/utils/insertUser')
-    await insertUser(values)
+  it('asks the database whether this is the first user, inside a savepoint', async () => {
+    await insertUser(fakeTx(), values)
     expect(state.calls).toHaveLength(1)
-    expect(typeof state.calls[0]!.isAdmin).toBe('object')
+    expect(typeof state.calls[0]!.values.isAdmin).toBe('object')
+    expect(state.calls[0]!.savepoint).toBe(true)
   })
   it('retries as a normal user when it loses the first-admin race', async () => {
-    const { insertUser } = await import('../../server/utils/insertUser')
     state.failures.push(oneAdmin)
-    const row = await insertUser(values)
+    const row = await insertUser(fakeTx(), values)
     expect(state.calls).toHaveLength(2)
-    expect(state.calls[1]!.isAdmin).toBe(false)
+    expect(state.calls[1]!.values.isAdmin).toBe(false)
+    expect(state.calls[1]!.savepoint).toBe(false)
     expect(row.id).toBe(7)
   })
   it('rethrows any other unique violation', async () => {
-    const { insertUser } = await import('../../server/utils/insertUser')
     state.failures.push(dupEmail)
-    await expect(insertUser(values)).rejects.toBe(dupEmail)
+    await expect(insertUser(fakeTx(), values)).rejects.toBe(dupEmail)
     expect(state.calls).toHaveLength(1)
   })
 })

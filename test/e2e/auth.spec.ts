@@ -115,6 +115,31 @@ test.describe('credentials register / login / logout', () => {
     expect(taken.status).toBe(409)
   })
 
+  test('an email change frees the old address for a new registration and moves the sign-in', async ({
+    page,
+    goto
+  }) => {
+    const user = makeUser()
+    const renamed = uniqueEmail()
+    await goto('/auth/login', { waitUntil: 'hydration' })
+    await registerViaApi(page, user)
+    const id = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
+    expect((await apiFetch(page, 'PUT', `/api/users/${id}`, { email: renamed })).status).toBe(200)
+    const providers = await apiFetch<Array<{ provider: string; providerAccountId: string }>>(
+      page,
+      'GET',
+      '/api/auth/providers'
+    )
+    expect(providers.json.map((p) => [p.provider, p.providerAccountId])).toEqual([['credentials', renamed]])
+
+    await page.context().clearCookies()
+    await registerViaApi(page, makeUser({ email: user.email }))
+
+    await page.context().clearCookies()
+    const login = await apiFetch(page, 'POST', '/api/auth/login', { email: renamed, password: user.password })
+    expect(login.status).toBe(200)
+  })
+
   test('logs out via the user menu and re-blocks protected routes', async ({ page, goto }) => {
     const user = makeUser()
     await goto('/auth/login', { waitUntil: 'hydration' })

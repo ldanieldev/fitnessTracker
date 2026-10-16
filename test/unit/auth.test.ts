@@ -19,7 +19,9 @@ function createDbMock(selectResults: unknown[][]) {
   })
   const updateSet = vi.fn(() => ({ where: () => Promise.resolve() }))
   const update = vi.fn(() => ({ set: updateSet }))
-  return { db: { select, insert, update }, select, insert, insertValues, update, updateSet }
+  const db: Record<string, unknown> = { select, insert, update }
+  db.transaction = (fn: (tx: unknown) => unknown) => fn(db)
+  return { db, select, insert, insertValues, update, updateSet }
 }
 
 const createError = (opts: { statusCode: number; statusMessage: string }) =>
@@ -129,6 +131,7 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
 
     expect(result).toEqual(created)
     expect(insertUser).toHaveBeenCalledWith(
+      mock.db,
       expect.objectContaining({ email: 'new@gmail.com', name: 'New User', avatarUrl: 'pic' })
     )
     expect(mock.insert).toHaveBeenCalledTimes(1)
@@ -145,7 +148,7 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
 
     await findOrCreateUserAndLinkProvider({ email: ' Mixed@Gmail.com', name: 'Mixed' }, provider)
 
-    expect(insertUser).toHaveBeenCalledWith(expect.objectContaining({ email: 'mixed@gmail.com' }))
+    expect(insertUser).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ email: 'mixed@gmail.com' }))
   })
 
   it('backfills the avatar on an existing user that has none', async () => {

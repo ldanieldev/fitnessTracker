@@ -4,6 +4,7 @@ import { users, authProviders } from '~~/server/db/schema'
 import { emailSchema } from '~~/shared/utils/email'
 import { seedContainersForUser } from '~~/server/db/seed/nutrition'
 import { insertUser } from '~~/server/utils/insertUser'
+import { isUniqueViolation } from '~~/server/utils/pgError'
 import { writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
@@ -14,6 +15,8 @@ const registerSchema = z.object({
   age: z.coerce.number().min(13).max(120),
   sex: z.enum(['m', 'f']).optional()
 })
+
+const emailTaken = () => createError({ statusCode: 409, statusMessage: 'Email already exists' })
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -27,7 +30,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Check if email already exists
   const existing = await db
     .select({ id: users.id })
     .from(users)
@@ -36,27 +38,32 @@ export default defineEventHandler(async (event) => {
     .then((r) => r[0])
 
   // Never set a password on an existing OAuth-only account here: knowing its email would be enough to take it over.
-  if (existing) throw createError({ statusCode: 409, statusMessage: 'Email already exists' })
+  if (existing) throw emailTaken()
 
-  // Create new user with credentials
   const hashedPassword = await hashPassword(parsed.data.password)
 
-  const user = await insertUser({
-    name: parsed.data.name,
-    email: parsed.data.email,
-    password: hashedPassword,
-    age: parsed.data.age,
-    sex: parsed.data.sex,
-    isActive: true
-  })
-
-  await seedContainersForUser(user.id)
-
-  await db.insert(authProviders).values({
-    userId: user.id,
-    provider: 'credentials',
-    providerAccountId: parsed.data.email
-  })
+  const user = await db
+    .transaction(async (tx) => {
+      const created = await insertUser(tx, {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        password: hashedPassword,
+        age: parsed.data.age,
+        sex: parsed.data.sex,
+        isActive: true
+      })
+      await seedContainersForUser(created.id, tx)
+      await tx.insert(authProviders).values({
+        userId: created.id,
+        provider: 'credentials',
+        providerAccountId: parsed.data.email
+      })
+      return created
+    })
+    .catch((error: unknown) => {
+      if (isUniqueViolation(error, 'users_email_unique')) throw emailTaken()
+      throw error
+    })
 
   await writeSession(event, toSessionUser(user), user.sessionEpoch)
 

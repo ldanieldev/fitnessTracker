@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import type { NutrientUnit, TargetDirection } from '../../../shared/types/nutrition'
-import { db } from '../../utils/db'
+import { db, type DbClient } from '../../utils/db'
 import { mealContainers, nutrients } from '../schema'
 
 export interface NutrientSeed {
@@ -43,8 +43,8 @@ export async function seedNutrients() {
     })
 }
 
-export async function seedContainersForUser(userId: number) {
-  await db
+export async function seedContainersForUser(userId: number, client: DbClient = db) {
+  await client
     .insert(mealContainers)
     .values(CONTAINER_SEED.map((name, i) => ({ userId, name, sortOrder: i })))
     .onConflictDoNothing()

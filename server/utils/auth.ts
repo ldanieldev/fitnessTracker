@@ -65,35 +65,36 @@ export async function findOrCreateUserAndLinkProvider(
       .then((r) => r[0]!)
   }
 
-  // Auto-link by email: find existing user
-  let user = await db
+  const email = normalizeEmail(profile.email)
+  const link = { provider: providerInfo.provider, providerAccountId: providerInfo.providerAccountId }
+
+  const user = await db
     .select(userColumns)
     .from(users)
-    .where(eq(users.email, normalizeEmail(profile.email)))
+    .where(eq(users.email, email))
     .limit(1)
     .then((r) => r[0])
 
   if (!user) {
-    // Create new user from OAuth profile
-    user = await insertUser({
-      email: normalizeEmail(profile.email),
-      name: profile.name,
-      avatarUrl: profile.avatarUrl,
-      age: 0,
-      isActive: true
+    return db.transaction(async (tx) => {
+      const created = await insertUser(tx, {
+        email,
+        name: profile.name,
+        avatarUrl: profile.avatarUrl,
+        age: 0,
+        isActive: true
+      })
+      await tx.insert(authProviders).values({ userId: created.id, ...link })
+      return created
     })
-  } else if (profile.avatarUrl && !user.avatarUrl) {
-    // Backfill avatar if missing
+  }
+
+  if (profile.avatarUrl && !user.avatarUrl) {
     await db.update(users).set({ avatarUrl: profile.avatarUrl }).where(eq(users.id, user.id))
     user.avatarUrl = profile.avatarUrl
   }
 
-  // Link the provider to the user
-  await db.insert(authProviders).values({
-    userId: user.id,
-    provider: providerInfo.provider,
-    providerAccountId: providerInfo.providerAccountId
-  })
+  await db.insert(authProviders).values({ userId: user.id, ...link })
 
   return user
 }
