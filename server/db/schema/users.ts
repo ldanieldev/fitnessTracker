@@ -1,5 +1,15 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, integer, numeric, smallint, unique, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  check,
+  integer,
+  numeric,
+  smallint,
+  timestamp,
+  unique,
+  uniqueIndex,
+  varchar
+} from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../shared'
 
 export const users = appSchema.table(
@@ -26,7 +36,8 @@ export const users = appSchema.table(
     showWorkouts: boolean('show_workouts').notNull().default(true),
     showNutrition: boolean('show_nutrition').notNull().default(true),
     isAdmin: boolean('is_admin').notNull().default(false),
-    sessionEpoch: integer('session_epoch').notNull().default(0)
+    sessionEpoch: integer('session_epoch').notNull().default(0),
+    onboardedAt: timestamp('onboarded_at', { withTimezone: true })
   },
   (table) => [
     unique('users_email_unique').on(table.email),

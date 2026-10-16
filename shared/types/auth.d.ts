@@ -15,6 +15,7 @@ declare module '#auth-utils' {
     showWorkouts: boolean
     showNutrition: boolean
     isAdmin: boolean
+    onboarded?: boolean
   }
 
   interface SecureSessionData {

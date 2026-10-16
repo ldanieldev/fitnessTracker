@@ -28,13 +28,18 @@ export function makeUser(overrides: Partial<TestUser> = {}): TestUser {
  * Register through the API instead of the multi-field form. The endpoint calls setUserSession, and page.request shares
  * its cookie jar with the browser context, so the page is authenticated afterwards. Requires a prior goto() so
  * page.url() has a real origin to resolve against.
+ * Completes onboarding unless `onboard: false`, so specs land on `/` as before.
  */
-export async function registerViaApi(page: Page, user: TestUser) {
+export async function registerViaApi(page: Page, user: TestUser, { onboard = true } = {}) {
   const base = new URL(page.url()).origin
   const res = await page.request.post(`${base}/api/auth/register`, {
     data: { name: user.name, email: user.email, password: user.password, age: user.age }
   })
   if (!res.ok()) throw new Error(`register failed: ${res.status()} ${await res.text()}`)
+  if (onboard) {
+    const done = await apiFetch(page, 'POST', '/api/onboarding/complete')
+    if (done.status !== 204) throw new Error(`onboarding complete failed: ${done.status}`)
+  }
   return user
 }
 

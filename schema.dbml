@@ -1,3 +1,19 @@
+table app.access_tokens {
+  id integer [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [default: `now()`]
+  user_id integer [not null]
+  name varchar(60) [not null]
+  token_hash varchar(64) [not null]
+  prefix varchar(8) [not null]
+  last_used_at timestamp [default: `null`]
+
+  indexes {
+    token_hash [name: 'access_token_hash', unique]
+    (user_id, name) [name: 'access_token_name_per_user', unique]
+  }
+}
+
 table app.auth_providers {
   id integer [pk, not null]
   created_at timestamp [not null, default: `now()`]
@@ -682,6 +698,9 @@ table app.users {
   show_body boolean [not null, default: true]
   show_workouts boolean [not null, default: true]
   show_nutrition boolean [not null, default: true]
+  is_admin boolean [not null, default: false]
+  session_epoch integer [not null, default: 0]
+  onboarded_at "timestamp with time zone"
 
   indexes {
     email [name: 'users_email_unique', unique]
@@ -691,6 +710,7 @@ table app.users {
     
     
     
+    () [name: 'users_one_admin', unique]
   }
 }
 
@@ -835,6 +855,8 @@ table app.workout_templates {
     (routine_id, sort_order) [name: 'workout_template_routine']
   }
 }
+
+ref access_tokens_user_id_users_id_fk: app.access_tokens.user_id > app.users.id [delete: cascade, update: no action]
 
 ref auth_providers_user_id_users_id_fk: app.auth_providers.user_id > app.users.id [delete: cascade, update: no action]
 
