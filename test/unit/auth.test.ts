@@ -139,6 +139,15 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
     })
   })
 
+  it('creates the user with a lower-cased email', async () => {
+    vi.mocked(insertUser).mockResolvedValue({ id: 43, email: 'mixed@gmail.com' } as never)
+    stubDb(createDbMock([[], []]))
+
+    await findOrCreateUserAndLinkProvider({ email: ' Mixed@Gmail.com', name: 'Mixed' }, provider)
+
+    expect(insertUser).toHaveBeenCalledWith(expect.objectContaining({ email: 'mixed@gmail.com' }))
+  })
+
   it('backfills the avatar on an existing user that has none', async () => {
     const existing = { id: 7, email: 'me@example.com', name: 'Me', avatarUrl: null }
     const mock = createDbMock([

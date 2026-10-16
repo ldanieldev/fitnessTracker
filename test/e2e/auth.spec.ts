@@ -90,6 +90,31 @@ test.describe('credentials register / login / logout', () => {
     await expect(page).toHaveURL(/\/auth\/login/)
   })
 
+  test('emails are case-insensitive across register, login and profile', async ({ page, goto }) => {
+    const user = makeUser()
+    const shouted = user.email.toUpperCase()
+    await goto('/auth/login', { waitUntil: 'hydration' })
+    await registerViaApi(page, { ...user, email: `  ${shouted} ` })
+    const session = await apiFetch<{ user: { id: number; email: string } }>(page, 'GET', '/api/_auth/session')
+    expect(session.json.user.email).toBe(user.email)
+
+    const again = await page.request.post(new URL('/api/auth/register', page.url()).toString(), {
+      data: { name: user.name, email: user.email, password: user.password, age: user.age }
+    })
+    expect(again.status()).toBe(409)
+
+    await page.context().clearCookies()
+    const login = await apiFetch(page, 'POST', '/api/auth/login', { email: shouted, password: user.password })
+    expect(login.status).toBe(200)
+
+    const other = makeUser()
+    await page.context().clearCookies()
+    await registerViaApi(page, other)
+    const otherId = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
+    const taken = await apiFetch(page, 'PUT', `/api/users/${otherId}`, { email: shouted })
+    expect(taken.status).toBe(409)
+  })
+
   test('logs out via the user menu and re-blocks protected routes', async ({ page, goto }) => {
     const user = makeUser()
     await goto('/auth/login', { waitUntil: 'hydration' })

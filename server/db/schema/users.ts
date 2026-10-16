@@ -41,6 +41,7 @@ export const users = appSchema.table(
   },
   (table) => [
     unique('users_email_unique').on(table.email),
+    check('users_email_normalized_check', sql`${table.email} = lower(btrim(${table.email}))`),
     check('users_week_start_check', sql`${table.weekStart} in (0, 1)`),
     check('users_workouts_per_week_check', sql`${table.workoutsPerWeek} between 1 and 7`),
     check('users_default_rest_seconds_check', sql`${table.defaultRestSeconds} between 10 and 600`),

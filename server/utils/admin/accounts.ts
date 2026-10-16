@@ -2,6 +2,7 @@ import { and, count, eq, max, sql } from 'drizzle-orm'
 import { accessTokens, authProviders, users } from '../../db/schema'
 import type { DbClient, RootDbClient } from '../db'
 import { nextEpoch } from '../sessionEpoch'
+import { normalizeEmail } from '../../../shared/utils/email'
 
 export interface AdminUserRow {
   id: number
@@ -19,7 +20,7 @@ export async function findUserIdByEmail(client: DbClient, email: string): Promis
   const row = await client
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.email, normalizeEmail(email)))
     .limit(1)
     .then((r) => r[0])
   return row?.id ?? null

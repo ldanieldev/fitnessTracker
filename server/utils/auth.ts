@@ -1,6 +1,7 @@
 import { and, eq, getTableColumns } from 'drizzle-orm'
 import { users, authProviders } from '~~/server/db/schema'
 import { insertUser } from '~~/server/utils/insertUser'
+import { normalizeEmail } from '~~/shared/utils/email'
 
 interface OAuthProfile {
   email: string
@@ -68,14 +69,14 @@ export async function findOrCreateUserAndLinkProvider(
   let user = await db
     .select(userColumns)
     .from(users)
-    .where(eq(users.email, profile.email))
+    .where(eq(users.email, normalizeEmail(profile.email)))
     .limit(1)
     .then((r) => r[0])
 
   if (!user) {
     // Create new user from OAuth profile
     user = await insertUser({
-      email: profile.email,
+      email: normalizeEmail(profile.email),
       name: profile.name,
       avatarUrl: profile.avatarUrl,
       age: 0,

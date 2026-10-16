@@ -134,6 +134,13 @@
       "when": 1792133166870,
       "tag": "0018_google_health",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792185706357,
+      "tag": "0019_email_lowercase",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,12 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
+import { emailSchema } from '~~/shared/utils/email'
 import { writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const loginSchema = z.object({
-  email: z.email(),
+  email: emailSchema,
   password: z.string().min(1)
 })
 

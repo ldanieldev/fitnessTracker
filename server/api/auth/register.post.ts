@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users, authProviders } from '~~/server/db/schema'
+import { emailSchema } from '~~/shared/utils/email'
 import { seedContainersForUser } from '~~/server/db/seed/nutrition'
 import { insertUser } from '~~/server/utils/insertUser'
 import { writeSession } from '~~/server/utils/session'
@@ -8,7 +9,7 @@ import { toSessionUser } from '~~/server/utils/sessionUser'
 
 const registerSchema = z.object({
   name: z.string().min(1),
-  email: z.email(),
+  email: emailSchema,
   password: z.string().min(8),
   age: z.coerce.number().min(13).max(120),
   sex: z.enum(['m', 'f']).optional()

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
+import { emailSchema } from '~~/shared/utils/email'
 import { forbidToken, isTokenRequest, requireSessionUser, writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 import { publicUserColumns } from '~~/server/utils/userColumns'
@@ -9,7 +10,7 @@ import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).optional(),
-  email: z.email().optional(),
+  email: emailSchema.optional(),
   age: z.coerce.number().min(13).max(120).optional(),
   sex: z.enum(['m', 'f']).optional(),
   heightIn: z.number().min(36).max(96).nullable().optional(),
