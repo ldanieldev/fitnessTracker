@@ -116,9 +116,10 @@ export async function importExternalFood(
   if (existing) return existing
 
   const mapped = mapExternalFood(external)
+  const nutrientIds = await nutrientIdMap()
   let prepared
   try {
-    prepared = buildServingRows(mapped.servings, await nutrientIdMap()).map((serving) => ({
+    prepared = buildServingRows(mapped.servings, nutrientIds).map((serving) => ({
       ...serving,
       origin: 'import' as const
     }))

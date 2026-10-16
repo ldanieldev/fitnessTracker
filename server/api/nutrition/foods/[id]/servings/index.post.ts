@@ -21,9 +21,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'This food already has a weight serving' })
   }
 
+  const nutrientIds = await nutrientIdMap()
   let prepared
   try {
-    prepared = buildServingRows([body], await nutrientIdMap())
+    prepared = buildServingRows([body], nutrientIds)
   } catch (err) {
     throw createError({ statusCode: 400, statusMessage: (err as Error).message })
   }

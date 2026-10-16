@@ -9,9 +9,10 @@ export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const body = await parseBody(event, foodCreateSchema)
 
+  const nutrientIds = await nutrientIdMap()
   let prepared
   try {
-    prepared = buildServingRows(body.servings, await nutrientIdMap())
+    prepared = buildServingRows(body.servings, nutrientIds)
   } catch (err) {
     throw createError({ statusCode: 400, statusMessage: (err as Error).message })
   }

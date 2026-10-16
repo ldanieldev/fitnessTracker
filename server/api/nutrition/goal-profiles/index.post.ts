@@ -13,9 +13,10 @@ export default defineEventHandler(async (event) => {
   const effectiveFrom = changeDate(event)
   const body = await parseBody(event, goalProfileSchema)
 
+  const catalog = await nutrientCatalog()
   let prepared
   try {
-    prepared = buildGoalTargetRows(body, await nutrientCatalog())
+    prepared = buildGoalTargetRows(body, catalog)
   } catch (err) {
     throw createError({ statusCode: 400, statusMessage: (err as Error).message })
   }

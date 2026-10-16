@@ -21,9 +21,10 @@ export default defineEventHandler(async (event) => {
     .then((r) => r[0])
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Goal profile not found' })
 
+  const catalog = await nutrientCatalog()
   let prepared
   try {
-    prepared = buildGoalTargetRows(body, await nutrientCatalog())
+    prepared = buildGoalTargetRows(body, catalog)
   } catch (err) {
     throw createError({ statusCode: 400, statusMessage: (err as Error).message })
   }
