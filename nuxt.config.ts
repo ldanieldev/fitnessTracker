@@ -10,6 +10,8 @@ function resolveSrvxBunAdapter() {
   }
 }
 
+const uploadSourcemaps = process.env.SENTRY_UPLOAD_SOURCEMAPS === 'true'
+
 // @opentelemetry/resources has no `exports` map, so Nitro's resolver loops (ENOTDIR) and dev dies; alias the ESM entry.
 function resolveOtelResources() {
   try {
@@ -110,7 +112,7 @@ export default defineNuxtConfig({
 
   routeRules: {},
 
-  sourcemap: { client: 'hidden' },
+  sourcemap: { client: uploadSourcemaps ? 'hidden' : false },
   compatibilityDate: '2025-01-15',
 
   nitro: {
@@ -155,7 +157,11 @@ export default defineNuxtConfig({
     authToken: process.env.SENTRY_AUTH_TOKEN,
     // Ungated, every production build uploads maps and cuts a release — including the one
     // @nuxt/test-utils makes per e2e run.
-    sourcemaps: { disable: process.env.SENTRY_UPLOAD_SOURCEMAPS !== 'true' },
+    sourcemaps: {
+      disable: !uploadSourcemaps,
+      // Setting sourcemap.client ourselves turns off the module's post-upload deletion, so name the public maps.
+      filesToDeleteAfterUpload: ['.*/**/public/**/*.map']
+    },
     telemetry: false
   }
 })
