@@ -68,37 +68,38 @@ export default defineNuxtConfig({
     },
     registration: 'open',
     trustProxy: false,
+    // Values come from NUXT_* env at boot; reading process.env here would bake secrets into .output.
     meili: {
-      host: process.env.NUXT_MEILI_HOST ?? '',
-      apiKey: process.env.NUXT_MEILI_API_KEY ?? ''
+      host: '',
+      apiKey: ''
     },
     off: {
-      userAgent: process.env.NUXT_OFF_USER_AGENT ?? '',
-      productUrl: process.env.NUXT_OFF_PRODUCT_URL ?? 'https://world.openfoodfacts.org/api/v2/product',
-      searchUrl: process.env.NUXT_OFF_SEARCH_URL ?? 'https://search.openfoodfacts.org/search'
+      userAgent: '',
+      productUrl: 'https://world.openfoodfacts.org/api/v2/product',
+      searchUrl: 'https://search.openfoodfacts.org/search'
     },
     usda: {
-      apiKey: process.env.NUXT_USDA_API_KEY ?? ''
+      apiKey: ''
     },
     fatsecret: {
-      clientId: process.env.NUXT_FATSECRET_CLIENT_ID ?? '',
-      clientSecret: process.env.NUXT_FATSECRET_CLIENT_SECRET ?? '',
-      scope: process.env.NUXT_FATSECRET_SCOPE ?? 'basic'
+      clientId: '',
+      clientSecret: '',
+      scope: 'basic'
     },
     googleHealth: {
-      tokenKey: process.env.NUXT_GOOGLE_HEALTH_TOKEN_KEY ?? '',
-      apiBase: process.env.NUXT_GOOGLE_HEALTH_API_BASE ?? 'https://health.googleapis.com',
-      tokenUrl: process.env.NUXT_GOOGLE_HEALTH_TOKEN_URL ?? 'https://oauth2.googleapis.com/token',
-      revokeUrl: process.env.NUXT_GOOGLE_HEALTH_REVOKE_URL ?? 'https://oauth2.googleapis.com/revoke'
+      tokenKey: '',
+      apiBase: 'https://health.googleapis.com',
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+      revokeUrl: 'https://oauth2.googleapis.com/revoke'
     },
     oauth: {
       google: {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET
+        clientId: '',
+        clientSecret: ''
       },
       github: {
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET
+        clientId: '',
+        clientSecret: ''
       }
     },
     public: {

@@ -78,8 +78,8 @@ Defaults live in `compose.yml`; set these only to override.
 | --- | --- | --- |
 | `APP_NAME` | `My Fitness Journal` | Display name, exposed via public runtime config. |
 | `PORT` | `3000` | HTTP port for the built server. |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | — | [GitHub OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app), callback `<origin>/api/auth/github`. Without either provider only credentials login works. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | [Google OAuth client](https://developers.google.com/identity/protocols/oauth2/web-server), redirect URI `<origin>/api/auth/google`. Also used by Google Health. |
+| `NUXT_OAUTH_GITHUB_CLIENT_ID` / `NUXT_OAUTH_GITHUB_CLIENT_SECRET` | — | [GitHub OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app), callback `<origin>/api/auth/github`. Without either provider only credentials login works. |
+| `NUXT_OAUTH_GOOGLE_CLIENT_ID` / `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | — | [Google OAuth client](https://developers.google.com/identity/protocols/oauth2/web-server), redirect URI `<origin>/api/auth/google`. Also used by Google Health. |
 | `NUXT_MEILI_HOST` / `NUXT_MEILI_API_KEY` | — | Meilisearch for food and exercise search. Unset falls back to Postgres. |
 | `NUXT_REDIS_URL` | — | Cache store. Unset uses Nitro's in-memory cache. |
 
