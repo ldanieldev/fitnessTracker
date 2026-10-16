@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { trustsProxy } from '../proxy'
 import {
   createMemoryStore,
   createRedisStore,
@@ -50,8 +51,7 @@ function tooMany(event: H3Event, count: RateCount): never {
 }
 
 export function clientIp(event: H3Event): string {
-  const trustProxy = String(useRuntimeConfig(event).trustProxy) === 'true'
-  const forwarded = trustProxy ? forwardedClientIp(getRequestHeader(event, 'x-forwarded-for')) : undefined
+  const forwarded = trustsProxy(event) ? forwardedClientIp(getRequestHeader(event, 'x-forwarded-for')) : undefined
   return forwarded ?? getRequestIP(event) ?? 'unknown'
 }
 
