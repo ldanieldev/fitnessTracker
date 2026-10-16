@@ -50,6 +50,12 @@ export default defineNuxtConfig({
     }
   },
 
+  $production: {
+    nitro: {
+      ignore: process.env.NUXT_TEST_FIXTURES === '1' ? [] : ['**/_test/**']
+    }
+  },
+
   devtools: {
     enabled: true
   },
