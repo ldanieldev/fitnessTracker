@@ -5,6 +5,7 @@ import { emailSchema } from '~~/shared/utils/email'
 import { seedContainersForUser } from '~~/server/db/seed/nutrition'
 import { insertUser } from '~~/server/utils/insertUser'
 import { isUniqueViolation } from '~~/server/utils/pgError'
+import { clientIp, consumeLimit, RATE_RULES } from '~~/server/utils/rateLimit/limit'
 import { registrationOpen } from '~~/server/utils/registration'
 import { writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
@@ -21,6 +22,7 @@ const emailTaken = () => createError({ statusCode: 409, statusMessage: 'Email al
 
 export default defineEventHandler(async (event) => {
   if (!(await registrationOpen())) throw createError({ statusCode: 403, statusMessage: 'Registration is closed' })
+  await consumeLimit(event, RATE_RULES.register, clientIp(event))
 
   const body = await readBody(event)
   const parsed = registerSchema.safeParse(body)

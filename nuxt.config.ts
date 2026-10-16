@@ -65,6 +65,7 @@ export default defineNuxtConfig({
       maxAge: 60 * 60 * 24 * 30
     },
     registration: 'open',
+    trustProxy: false,
     meili: {
       host: process.env.NUXT_MEILI_HOST ?? '',
       apiKey: process.env.NUXT_MEILI_API_KEY ?? ''
