@@ -1,8 +1,9 @@
 services:
   postgres:
-    image: postgres:18-alpine
+    # Digest-pinned: later 18.3-alpine builds refuse to start with a volume at /var/lib/postgresql/data (see README).
+    image: docker.io/library/postgres:18.3-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5432:5432'
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -20,17 +21,17 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:8-alpine
+    image: docker.io/library/redis:8.6.1-alpine
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
 
   meilisearch:
-    image: docker.io/getmeili/meilisearch:v1.37
+    image: docker.io/getmeili/meilisearch:v1.37.0
     ports:
-      - '7700:7700'
+      - '127.0.0.1:7700:7700'
     environment:
       MEILI_ENV: development
       MEILI_NO_ANALYTICS: 'true'
@@ -38,20 +39,21 @@ services:
       - meili_data:/meili_data
 
   redis-insight:
-    image: redis/redisinsight:latest
+    image: docker.io/redis/redisinsight:3.2.0
+    profiles: ['dev']
     ports:
-      - '5540:5540'
+      - '127.0.0.1:5540:5540'
     volumes:
       - redis_insight_data:/data
     depends_on:
       - redis
 
   inngest:
-    image: inngest/inngest
+    image: docker.io/inngest/inngest:v1.17.5
     command: 'inngest start'
     ports:
-      - '8288:8288'
-      - '8289:8289'
+      - '127.0.0.1:8288:8288'
+      - '127.0.0.1:8289:8289'
     environment:
       INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:-deadbeefdeadbeef}
       INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:-cafebabecafebabe}
@@ -77,8 +79,8 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
       - /etc/alloy/config.alloy
     ports:
-      - '4318:4318' # OTLP HTTP (app metrics)
-      - '12345:12345' # Alloy UI / health
+      - '127.0.0.1:4318:4318' # OTLP HTTP (app metrics)
+      - '127.0.0.1:12345:12345' # Alloy UI / health
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:Z,ro
       - ./logs:/logs:ro
