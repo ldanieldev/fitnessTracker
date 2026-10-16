@@ -50,7 +50,7 @@
     "ioredis": "6.0.0",
     "meilisearch": "0.62.0",
     "nuxt": "^4.6.1",
-    "nuxt-auth-utils": "0.5.30",
+    "nuxt-auth-utils": "0.5.32",
     "pg": "^8.23.0",
     "pinia": "^4.0.3",
     "pino": "^10.3.1",
