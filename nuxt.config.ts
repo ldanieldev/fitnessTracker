@@ -12,6 +12,15 @@ function resolveSrvxBunAdapter() {
 
 const uploadSourcemaps = process.env.SENTRY_UPLOAD_SOURCEMAPS === 'true'
 
+const SECURITY_HEADERS = {
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': `frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'`,
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=()',
+  'Strict-Transport-Security': 'max-age=15552000'
+}
+
 // @opentelemetry/resources has no `exports` map, so Nitro's resolver loops (ENOTDIR) and dev dies; alias the ESM entry.
 function resolveOtelResources() {
   try {
@@ -51,6 +60,9 @@ export default defineNuxtConfig({
   },
 
   $production: {
+    routeRules: {
+      '/**': { headers: SECURITY_HEADERS }
+    },
     nitro: {
       ignore: process.env.NUXT_TEST_FIXTURES === '1' ? [] : ['**/_test/**']
     }
