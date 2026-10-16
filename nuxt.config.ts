@@ -64,6 +64,7 @@ export default defineNuxtConfig({
       // Seconds since the session cookie was first issued; h3 enforces it on the cookie, seal TTL and unseal.
       maxAge: 60 * 60 * 24 * 30
     },
+    registration: 'open',
     meili: {
       host: process.env.NUXT_MEILI_HOST ?? '',
       apiKey: process.env.NUXT_MEILI_API_KEY ?? ''

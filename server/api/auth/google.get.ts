@@ -33,8 +33,9 @@ const googleHandler = defineOAuthGoogleEventHandler({
 
       return oauthSuccessRedirect(event, 'google')
     } catch (error) {
-      if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 409) {
-        return loginError(event, 'already_linked')
+      if (error && typeof error === 'object' && 'statusCode' in error) {
+        if (error.statusCode === 409) return loginError(event, 'already_linked')
+        if (error.statusCode === 403) return loginError(event, 'registration_closed')
       }
       // DB write (account link) or session persistence failed — the
       // user passed Google auth but we couldn't complete login.

@@ -51,6 +51,17 @@ test.describe('stale session', () => {
   })
 })
 
+test.describe('registration switch', () => {
+  // The e2e build runs with NUXT_REGISTRATION unset; the closed branches are unit-tested in registration/auth tests.
+  test('defaults to open: the endpoint says so and the register page shows its form', async ({ page, goto }) => {
+    await goto('/auth/register', { waitUntil: 'hydration' })
+    const res = await apiFetch<{ open: boolean }>(page, 'GET', '/api/auth/registration')
+    expect(res.json).toEqual({ open: true })
+    await expect(page.getByText('Create an account')).toBeVisible()
+    await expect(page.locator('[data-test="registration-closed"]')).toHaveCount(0)
+  })
+})
+
 test.describe('credentials register / login / logout', () => {
   test('a newly registered account lands authenticated on the dashboard', async ({ page, goto }) => {
     const user = makeUser()

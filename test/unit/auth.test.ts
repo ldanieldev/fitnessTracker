@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { findOrCreateUserAndLinkProvider } from '../../server/utils/auth'
 import { insertUser } from '../../server/utils/insertUser'
+import { registrationOpen } from '../../server/utils/registration'
 
 vi.mock('../../server/utils/insertUser', () => ({ insertUser: vi.fn() }))
+vi.mock('../../server/utils/registration', () => ({ registrationOpen: vi.fn(async () => true) }))
 
 function createDbMock(selectResults: unknown[][]) {
   const queue = [...selectResults]
@@ -37,6 +39,7 @@ function stubDb(mock: ReturnType<typeof createDbMock>) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(registrationOpen).mockReset().mockResolvedValue(true)
 })
 
 afterEach(() => {
@@ -140,6 +143,27 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
       provider: 'google',
       providerAccountId: 'g-123'
     })
+  })
+
+  it('refuses (403) to create a user while registration is closed', async () => {
+    vi.mocked(registrationOpen).mockResolvedValueOnce(false)
+    const mock = createDbMock([[], []])
+    stubDb(mock)
+
+    const attempt = findOrCreateUserAndLinkProvider({ email: 'new@gmail.com', name: 'New' }, provider)
+    await expect(attempt).rejects.toMatchObject({ statusCode: 403 })
+    expect(insertUser).not.toHaveBeenCalled()
+    expect(mock.insert).not.toHaveBeenCalled()
+  })
+
+  it('still signs an existing user in while registration is closed', async () => {
+    vi.mocked(registrationOpen).mockResolvedValue(false)
+    const existing = { id: 7, email: 'me@example.com', name: 'Me', avatarUrl: 'x' }
+    stubDb(createDbMock([[], [existing]]))
+
+    await expect(findOrCreateUserAndLinkProvider({ email: 'me@example.com', name: 'Me' }, provider)).resolves.toEqual(
+      existing
+    )
   })
 
   it('creates the user with a lower-cased email', async () => {

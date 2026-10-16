@@ -5,6 +5,7 @@ import { emailSchema } from '~~/shared/utils/email'
 import { seedContainersForUser } from '~~/server/db/seed/nutrition'
 import { insertUser } from '~~/server/utils/insertUser'
 import { isUniqueViolation } from '~~/server/utils/pgError'
+import { registrationOpen } from '~~/server/utils/registration'
 import { writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
@@ -19,6 +20,8 @@ const registerSchema = z.object({
 const emailTaken = () => createError({ statusCode: 409, statusMessage: 'Email already exists' })
 
 export default defineEventHandler(async (event) => {
+  if (!(await registrationOpen())) throw createError({ statusCode: 403, statusMessage: 'Registration is closed' })
+
   const body = await readBody(event)
   const parsed = registerSchema.safeParse(body)
 

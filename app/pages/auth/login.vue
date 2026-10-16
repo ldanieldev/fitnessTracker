@@ -13,7 +13,8 @@ const OAUTH_ERRORS: Record<OAuthErrorCode, string> = {
   email_unverified: 'That account’s email is not verified. Verify it with the provider or use another login method.',
   provider_error: 'Sign-in failed. Please try again.',
   already_linked: 'That account is already linked to a different user.',
-  account_disabled: 'This account is disabled.'
+  account_disabled: 'This account is disabled.',
+  registration_closed: 'Registration is closed, so no new account was created for that sign-in.'
 }
 
 onMounted(() => {

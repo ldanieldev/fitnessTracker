@@ -4,6 +4,7 @@ import type { FormSubmitEvent } from '@nuxt/ui'
 
 const { fetch: fetchSession } = useUserSession()
 const toast = useToast()
+const { data: registration } = await useFetch<{ open: boolean }>('/api/auth/registration')
 
 const fields = [
   {
@@ -119,7 +120,20 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
 <template>
   <div class="w-full max-w-md p-4">
-    <UPageCard class="w-full max-w-md">
+    <UPageCard v-if="registration?.open === false" class="w-full max-w-md" data-test="registration-closed">
+      <div class="flex flex-col items-center gap-4 text-center">
+        <AppLogo class="size-20 shrink-0 inline-block" />
+        <h1 class="text-xl font-semibold text-highlighted">Registration is closed</h1>
+        <p class="text-muted">
+          This instance isn't accepting new accounts.
+        </p>
+        <p class="text-sm text-muted">
+          Already have an account?
+          <ULink to="/auth/login" class="text-primary font-medium"> Login </ULink>
+        </p>
+      </div>
+    </UPageCard>
+    <UPageCard v-else class="w-full max-w-md">
       <UAuthForm
         :schema="schema"
         title="Create an account"

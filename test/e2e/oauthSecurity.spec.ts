@@ -11,6 +11,12 @@ test.describe('OAuth login-error surface', () => {
     await expect(page.getByText('That account is already linked to a different user.', { exact: true })).toBeVisible()
   })
 
+  test('shows the mapped error toast for ?error=registration_closed', async ({ page, goto }) => {
+    await goto('/auth/login?error=registration_closed', { waitUntil: 'hydration' })
+    const message = 'Registration is closed, so no new account was created for that sign-in.'
+    await expect(page.getByText(message, { exact: true })).toBeVisible()
+  })
+
   test('ignores an unknown error code (no error toast)', async ({ page, goto }) => {
     await goto('/auth/login?error=bogus', { waitUntil: 'hydration' })
     await expect(page.getByText('Login failed')).toHaveCount(0)
