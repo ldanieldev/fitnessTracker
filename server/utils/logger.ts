@@ -4,6 +4,7 @@ import { dirname } from 'node:path'
 import { hostname } from 'node:os'
 import pino from 'pino'
 import { trace, isSpanContextValid } from '@opentelemetry/api'
+import { redactQueryParams } from './redactQueryParams'
 import { sentryLogStream } from './sentryLogStream'
 
 /** Injects the active span's IDs into every log record; {} when no span is active or the context is all-zero. */
@@ -51,8 +52,40 @@ if (process.env.SENTRY_DSN) {
   streams.push({ level, stream: sentryLogStream })
 }
 
+export const REDACT_PATHS = [
+  'err.query',
+  'err.params',
+  'err.cause.query',
+  'err.cause.params',
+  'password',
+  'token',
+  'accessToken',
+  'refreshToken',
+  '*.password',
+  '*.token',
+  '*.accessToken',
+  '*.refreshToken',
+  'req.headers.authorization',
+  'req.headers.cookie'
+]
+
+function serializeErr(err: unknown) {
+  const out = pino.stdSerializers.err(err as Error)
+  if (out && typeof out === 'object') {
+    out.message = redactQueryParams(out.message)
+    out.stack = redactQueryParams(out.stack)
+  }
+  return out
+}
+
+export const redaction = {
+  redact: REDACT_PATHS,
+  serializers: { err: serializeErr }
+} satisfies pino.LoggerOptions
+
 export const logger = pino(
   {
+    ...redaction,
     level,
     mixin: traceContextMixin,
     // Identity in the line, not just Alloy's static label, so a stdout/docker collector can label the stream.

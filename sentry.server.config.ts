@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
+import { redactEventQueryParams } from './server/utils/redactQueryParams'
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -13,7 +14,9 @@ Sentry.init({
     httpHeaders: { request: false, response: false },
     httpBodies: [],
     urlQueryParams: false,
-    databaseQueryData: false
+    databaseQueryData: false,
+    stackFrameVariables: false
   },
+  beforeSend: redactEventQueryParams,
   tracesSampleRate: 1.0
 })
