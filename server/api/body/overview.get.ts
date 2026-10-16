@@ -5,7 +5,9 @@ import { measurements } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { toEntry } from '~~/server/utils/body/entries'
 import { loadGoals } from '~~/server/utils/body/goals'
+import { todayQuerySchema } from '~~/server/utils/body/input'
 import { listTypesForUser } from '~~/server/utils/body/types'
+import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 
@@ -17,7 +19,7 @@ export default defineEventHandler(async (event): Promise<MetricOverview[]> => {
   if (types.length === 0) return []
   const typeIds = types.map((t) => t.id)
   const goals = await loadGoals(userId, typeIds)
-  const today = todayDate()
+  const today = parseQuery(event, todayQuerySchema).today ?? todayDate()
   const sparkFrom = shiftDate(today, -(SPARKLINE_DAYS - 1))
 
   // One query for the two newest readings per type; window functions beat N small queries once a user has many types.

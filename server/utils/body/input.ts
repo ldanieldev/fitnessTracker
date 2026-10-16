@@ -28,6 +28,8 @@ export const entryPatchSchema = z
 
 export const rangeQuerySchema = z.object({ from: isoDate.optional(), to: isoDate.optional() })
 
+export const todayQuerySchema = z.object({ today: isoDate.optional() })
+
 export const typeCreateSchema = z.object({
   name: z.string().trim().min(1).max(64),
   unit: z.string().trim().min(1).max(16),

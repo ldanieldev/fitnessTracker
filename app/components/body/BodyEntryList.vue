@@ -51,7 +51,9 @@ const tone = (delta: number) => deltaTone(delta, props.direction ?? props.type.d
         :data-test="`entry-row-${row.entry.id}`"
         @click="emit('edit', row.entry)"
       >
-        <span class="flex-1 text-sm text-dimmed">{{ format(new Date(row.entry.measuredAt), 'h:mm a') }}</span>
+        <span class="flex-1 text-sm text-dimmed">
+          <ClientOnly>{{ format(new Date(row.entry.measuredAt), 'h:mm a') }}</ClientOnly>
+        </span>
         <span class="font-medium tabular-nums">
           {{ formatValue(row.entry.value, type.precision) }} <span class="text-xs text-muted">{{ type.unit }}</span>
         </span>

@@ -78,16 +78,18 @@ const displayTime = computed(() => deriveMealTime(props.container.mealTime, prop
         <div class="flex min-w-0 items-center gap-2">
           <span class="truncate font-semibold text-highlighted">{{ container.name }}</span>
           <span class="shrink-0 text-xs tabular-nums text-dimmed">{{ Math.round(energy) }} kcal</span>
-          <UButton
-            v-if="displayTime"
-            variant="ghost"
-            color="neutral"
-            size="xs"
-            icon="i-lucide-clock"
-            :label="displayTime"
-            data-test="container-time"
-            @click="emit('edit-time', container.id)"
-          />
+          <ClientOnly>
+            <UButton
+              v-if="displayTime"
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              icon="i-lucide-clock"
+              :label="displayTime"
+              data-test="container-time"
+              @click="emit('edit-time', container.id)"
+            />
+          </ClientOnly>
         </div>
         <div class="flex shrink-0 items-center gap-1">
           <UDropdownMenu :items="menu">
