@@ -1,7 +1,7 @@
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { users, authProviders } from '~~/server/db/schema'
-import { nextEpoch } from '~~/server/utils/sessionEpoch'
+import { users } from '~~/server/db/schema'
+import { overwritePassword } from '~~/server/utils/admin/accounts'
 import { forbidToken, requireSessionUser, writeSession } from '~~/server/utils/session'
 
 const changePasswordSchema = z.object({
@@ -31,42 +31,17 @@ export default defineEventHandler(async (event) => {
     .limit(1)
     .then((r) => r[0]!)
 
-  // If user already has a password, verify the current one
   if (user.password) {
     if (!parsed.data.currentPassword) {
       throw createError({ statusCode: 400, statusMessage: 'Current password is required' })
     }
     const valid = await verifyPassword(user.password, parsed.data.currentPassword)
-    if (!valid) {
-      throw createError({ statusCode: 401, statusMessage: 'Current password is incorrect' })
-    }
+    // Not 401: apiFetch reads any 401 as an expired session and signs the user out.
+    if (!valid) throw createError({ statusCode: 400, statusMessage: 'Current password is incorrect' })
   }
 
-  const hashedPassword = await hashPassword(parsed.data.newPassword)
-  const { sessionEpoch } = await db
-    .update(users)
-    .set({ password: hashedPassword, sessionEpoch: nextEpoch })
-    .where(eq(users.id, sessionUser.id))
-    .returning({ sessionEpoch: users.sessionEpoch })
-    .then((r) => r[0]!)
+  const sessionEpoch = await overwritePassword(db, sessionUser.id, await hashPassword(parsed.data.newPassword))
   await writeSession(event, sessionUser, sessionEpoch)
-
-  // If user didn't have credentials provider, add it
-  if (!user.password) {
-    const hasCredentials = await db
-      .select({ id: authProviders.id })
-      .from(authProviders)
-      .where(and(eq(authProviders.userId, sessionUser.id), eq(authProviders.provider, 'credentials')))
-      .limit(1)
-
-    if (!hasCredentials.length) {
-      await db.insert(authProviders).values({
-        userId: sessionUser.id,
-        provider: 'credentials',
-        providerAccountId: sessionUser.email
-      })
-    }
-  }
 
   return { success: true }
 })

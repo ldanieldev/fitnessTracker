@@ -51,13 +51,13 @@ export async function clearAdmin(client: DbClient) {
   await client.update(users).set({ isAdmin: false }).where(eq(users.isAdmin, true))
 }
 
-export async function overwritePassword(client: RootDbClient, userId: number, hash: string) {
-  await client.transaction(async (tx) => {
+export async function overwritePassword(client: RootDbClient, userId: number, hash: string): Promise<number> {
+  return client.transaction(async (tx) => {
     const user = await tx
       .update(users)
       .set({ password: hash, sessionEpoch: nextEpoch })
       .where(eq(users.id, userId))
-      .returning({ email: users.email })
+      .returning({ email: users.email, sessionEpoch: users.sessionEpoch })
       .then((r) => r[0])
     if (!user) throw new Error(`No user ${userId}`)
     const credentials = await tx
@@ -69,6 +69,7 @@ export async function overwritePassword(client: RootDbClient, userId: number, ha
       await tx.insert(authProviders).values({ userId, provider: 'credentials', providerAccountId: user.email })
     }
     await tx.delete(accessTokens).where(eq(accessTokens.userId, userId))
+    return user.sessionEpoch
   })
 }
 

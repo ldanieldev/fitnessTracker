@@ -1,5 +1,5 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
-import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { apiFetch, makeUser, registerViaApi, tokenFetch } from './helpers'
 
 test('own password change signs out other browsers, not this one', async ({ page, goto, browser }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -25,6 +25,37 @@ test('own password change signs out other browsers, not this one', async ({ page
     expect((await apiFetch(page2, 'GET', '/api/tokens')).status).toBe(200)
   } finally {
     await other.close()
+  }
+})
+
+test('a wrong current password is a 400 that keeps the session', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const wrong = await apiFetch(page, 'PUT', '/api/auth/password', {
+    currentPassword: 'not-my-password',
+    newPassword: 'password456'
+  })
+  expect(wrong.status).toBe(400)
+  expect((await apiFetch(page, 'GET', '/api/tokens')).status).toBe(200)
+})
+
+test('own password change revokes access tokens', async ({ page, goto, playwright }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  const user = await registerViaApi(page, makeUser())
+  const base = new URL(page.url()).origin
+  const created = await apiFetch<{ token: string }>(page, 'POST', '/api/tokens', { name: 'cli' })
+  const ctx = await playwright.request.newContext()
+  try {
+    expect((await tokenFetch(ctx, base, created.json.token, 'GET', '/api/export')).status).toBe(200)
+    const changed = await apiFetch(page, 'PUT', '/api/auth/password', {
+      currentPassword: user.password,
+      newPassword: 'password456'
+    })
+    expect(changed.status).toBe(200)
+    expect((await tokenFetch(ctx, base, created.json.token, 'GET', '/api/export')).status).toBe(401)
+    expect((await apiFetch<unknown[]>(page, 'GET', '/api/tokens')).json).toEqual([])
+  } finally {
+    await ctx.dispose()
   }
 })
 
