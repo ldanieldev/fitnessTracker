@@ -106,12 +106,12 @@ test('Cancel on Google\'s consent screen lands on the card with an error, not ba
 
 test('deleting an account with a connection revokes the grant and removes the account', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
+  const { email } = await registerViaApi(page, makeUser())
   const refreshToken = uniquePrefix('acct-del-')
   await apiFetch(page, 'POST', '/api/integrations/_test/seed-google-health', { refreshToken })
   const userId = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
 
-  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`)).status).toBe(200)
+  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`, { confirmEmail: email })).status).toBe(200)
   const revokes = (await apiFetch<string[]>(page, 'GET', '/api/integrations/_test/google-health/revokes')).json
   expect(revokes).toContain(refreshToken)
   await goto('/settings/data', { waitUntil: 'hydration' })

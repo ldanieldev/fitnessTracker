@@ -42,5 +42,6 @@ test('copying a workout brings exercises without sets, and deleting an account w
   expect(copy.json.entries[0]!.lastSets).toEqual([{ reps: 12 }])
 
   const session = await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')
-  expect((await apiFetch(page, 'DELETE', `/api/users/${session.json.user.id}`)).status).toBe(200)
+  const confirm = { confirmEmail: user.email }
+  expect((await apiFetch(page, 'DELETE', `/api/users/${session.json.user.id}`, confirm)).status).toBe(200)
 })

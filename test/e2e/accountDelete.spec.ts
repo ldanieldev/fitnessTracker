@@ -8,7 +8,7 @@ test('deleting an account removes every logged own food, recipe, saved meal, and
   goto
 }) => {
   await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
+  const { email } = await registerViaApi(page, makeUser())
   const session = await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')
   const userId = session.json.user.id
   const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
@@ -53,7 +53,7 @@ test('deleting an account removes every logged own food, recipe, saved meal, and
   })
   expect(type.ok && reading.ok).toBe(true)
 
-  const del = await apiFetch(page, 'DELETE', `/api/users/${userId}`)
+  const del = await apiFetch(page, 'DELETE', `/api/users/${userId}`, { confirmEmail: email })
   expect(del.status).toBe(200)
 
   await goto('/nutrition/diary/today', { waitUntil: 'hydration' })
@@ -63,7 +63,7 @@ test('deleting an account removes every logged own food, recipe, saved meal, and
 // workout_template_entries.exercise_id is RESTRICT, so a routine day using an own custom exercise blocked deletion.
 test('deleting an account removes routines that use its own custom exercises', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
-  await registerViaApi(page, makeUser())
+  const { email } = await registerViaApi(page, makeUser())
   const userId = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
 
   type Reference = { categories: { id: number; key: string }[] }
@@ -81,5 +81,24 @@ test('deleting an account removes routines that use its own custom exercises', a
   })
   expect(exercise.ok && entry.ok).toBe(true)
 
-  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`)).status).toBe(200)
+  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`, { confirmEmail: email })).status).toBe(200)
+})
+
+test('deleting an account needs the account email typed to confirm', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  const { email } = await registerViaApi(page, makeUser())
+  const userId = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
+
+  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`)).status).toBe(400)
+  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`, { confirmEmail: 'x@example.com' })).status).toBe(400)
+  expect((await apiFetch(page, 'GET', `/api/users/${userId}`)).status).toBe(200)
+
+  await goto('/settings/security', { waitUntil: 'hydration' })
+  await page.locator('[data-test="account-delete"]').click()
+  const confirm = page.locator('[data-test="account-delete-confirm"]')
+  await expect(confirm).toBeDisabled()
+  await page.locator('[data-test="account-delete-email"]').fill(` ${email.toUpperCase()} `)
+  await expect(confirm).toBeEnabled()
+  await confirm.click()
+  await expect(page).toHaveURL(/\/auth\/login/)
 })
