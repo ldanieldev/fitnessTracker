@@ -1,13 +1,20 @@
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
-// srvx reaches us transitively (@nuxt/image -> ipx), so resolve defensively rather than assume it.
-function resolveSrvxBunAdapter() {
-  try {
-    return [createRequire(import.meta.url).resolve('srvx/bun')]
-  } catch {
-    return []
+// Both reach us transitively (@nuxt/image -> ipx -> srvx, h3 -> uncrypto), so resolve defensively rather than assume.
+function resolveBunConditionEntries() {
+  const require = createRequire(import.meta.url)
+  const tryResolve = (resolve: () => string) => {
+    try {
+      return [resolve()]
+    } catch {
+      return []
+    }
   }
+  return [
+    ...tryResolve(() => require.resolve('srvx/bun')),
+    ...tryResolve(() => join(dirname(require.resolve('uncrypto')), 'crypto.web.mjs'))
+  ]
 }
 
 const uploadSourcemaps = process.env.SENTRY_UPLOAD_SOURCEMAPS === 'true'
@@ -138,12 +145,8 @@ export default defineNuxtConfig({
   nitro: {
     alias: resolveOtelResources(),
     externals: {
-      // Nitro traces srvx (pulled in by @nuxt/image's ipx) under the `node` export condition and
-      // copies only its node adapter, but the Dockerfile runs `bun --bun`, which resolves srvx's
-      // `bun` condition to a file that was never bundled. Tracing the bun adapter in as well keeps
-      // both runtimes working. Must be an absolute path: traceInclude entries go through rollup's
-      // resolver, which returns externals unresolved and leaves nft with a bare specifier.
-      traceInclude: resolveSrvxBunAdapter()
+      // Nitro copies only `node`-condition files but `bun --bun` loads `bun` ones; absolute, or nft sees bare names.
+      traceInclude: resolveBunConditionEntries()
     }
   },
   vite: {
