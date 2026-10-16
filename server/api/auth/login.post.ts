@@ -10,6 +10,8 @@ const loginSchema = z.object({
   password: z.string().min(1)
 })
 
+let dummyHash: Promise<string> | undefined
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const parsed = loginSchema.safeParse(body)
@@ -29,16 +31,11 @@ export default defineEventHandler(async (event) => {
     .limit(1)
     .then((r) => r[0])
 
-  if (!user || !user.password) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Invalid email or password'
-    })
-  }
+  // An unknown email still pays for one verify, so response time doesn't reveal which emails have accounts.
+  const hash = user?.password ?? (await (dummyHash ??= hashPassword('timing-equaliser-not-a-password')))
+  const valid = await verifyPassword(hash, parsed.data.password)
 
-  const valid = await verifyPassword(user.password, parsed.data.password)
-
-  if (!valid) {
+  if (!user?.password || !valid) {
     throw createError({
       statusCode: 401,
       statusMessage: 'Invalid email or password'
