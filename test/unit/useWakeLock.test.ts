@@ -113,6 +113,24 @@ describe('useWakeLock', () => {
     expect(request).toHaveBeenCalledOnce()
   })
 
+  it('does not request a second lock when the page turns visible while the first request is pending', async () => {
+    const { request, doc } = stubBrowser()
+    let grant!: (sentinel: FakeSentinel) => void
+    request.mockImplementationOnce(() => new Promise((resolve) => (grant = resolve)))
+    const wakeLock = useWakeLock()
+
+    const pending = wakeLock.enable()
+    setVisibility(doc, 'visible')
+    const first = new FakeSentinel()
+    grant(first)
+    await pending
+    await Promise.resolve()
+
+    expect(request).toHaveBeenCalledOnce()
+    expect(first.released).toBe(false)
+    expect(wakeLock.active.value).toBe(true)
+  })
+
   it('does not request a lock while the page is hidden', async () => {
     const { request } = stubBrowser({ visibilityState: 'hidden' })
     const wakeLock = useWakeLock()

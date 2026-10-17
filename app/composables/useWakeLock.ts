@@ -6,9 +6,26 @@ export function useWakeLock() {
   const active = ref(false)
   let wanted = false
   let sentinel: WakeLockSentinel | null = null
+  let pending: Promise<void> | null = null
+  let recheck = false
 
-  async function acquire() {
-    if (sentinel || document.visibilityState !== 'visible') return
+  function acquire(): Promise<void> {
+    if (pending) {
+      recheck = true
+      return pending
+    }
+    if (sentinel || document.visibilityState !== 'visible') return Promise.resolve()
+    pending = request().finally(() => {
+      pending = null
+      if (recheck) {
+        recheck = false
+        if (wanted) void acquire()
+      }
+    })
+    return pending
+  }
+
+  async function request() {
     try {
       const lock = await navigator.wakeLock.request('screen')
       if (!wanted) {
