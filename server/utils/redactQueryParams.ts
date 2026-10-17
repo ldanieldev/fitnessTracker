@@ -1,5 +1,5 @@
 // DrizzleQueryError puts the bound values (passwords, emails, notes) after "params:" in its message and stack.
-const PARAMS_LINE = /\nparams: [\s\S]*?(?=\n\s+at |$)/
+const PARAMS_LINE = /\nparams: [\s\S]*?(?=\n\s+at |$)/g
 
 export function redactQueryParams<T>(text: T): T {
   return (typeof text === 'string' ? text.replace(PARAMS_LINE, '\nparams: [Redacted]') : text) as T

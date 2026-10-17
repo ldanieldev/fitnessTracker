@@ -24,6 +24,15 @@ describe('redactQueryParams', () => {
     expect(redacted).toMatch(/params: \[Redacted\]\n\s+at /)
   })
 
+  it('redacts every params section when two failed queries share one text', () => {
+    const inner = new DrizzleQueryError('select $1', ['first-secret'])
+    const outer = new DrizzleQueryError('select $2', ['second-secret'], inner)
+    const redacted = redactQueryParams(`${outer.stack}\ncaused by: ${inner.stack}`)!
+    expect(redacted).not.toContain('first-secret')
+    expect(redacted).not.toContain('second-secret')
+    expect(redacted.match(/params: \[Redacted\]/g)).toHaveLength(2)
+  })
+
   it('leaves other text and non-strings alone', () => {
     expect(redactQueryParams('plain message')).toBe('plain message')
     expect(redactQueryParams(undefined)).toBeUndefined()
@@ -48,6 +57,14 @@ describe('logger redaction', () => {
     expect(text()).not.toContain('hunter2')
     expect(text()).not.toContain('secret@example.com')
     expect(text()).toContain('params: [Redacted]')
+  })
+
+  it('drops the params of both DrizzleQueryErrors in one cause chain', () => {
+    const { log, text } = capture()
+    const inner = new DrizzleQueryError('select $1', ['first-secret'])
+    log.error({ err: new DrizzleQueryError('select $2', ['second-secret'], inner) }, 'chained failure')
+    expect(text()).not.toContain('first-secret')
+    expect(text()).not.toContain('second-secret')
   })
 
   it('censors credentials and auth headers', () => {
