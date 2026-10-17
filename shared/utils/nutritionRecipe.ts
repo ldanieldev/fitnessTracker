@@ -9,7 +9,7 @@ export interface IngredientSnapshotItem {
   nutrients: Record<string, number>
 }
 
-export function scaleIngredientSnapshot(items: IngredientSnapshotItem[], ratio: number): IngredientSnapshotItem[] {
+function scaleIngredientSnapshot(items: IngredientSnapshotItem[], ratio: number): IngredientSnapshotItem[] {
   return items.map((item) => ({
     ...item,
     quantity: item.quantity * ratio,

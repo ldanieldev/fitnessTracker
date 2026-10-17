@@ -1,7 +1,7 @@
 import type { MassUnit, NormalizedUnit } from '../types/nutrition'
 
 // International avoirdupois, exact by definition — not approximations to be tidied.
-export const MASS_GRAMS: Record<MassUnit, number> = {
+const MASS_GRAMS: Record<MassUnit, number> = {
   g: 1,
   oz: 28.349523125,
   lb: 453.59237

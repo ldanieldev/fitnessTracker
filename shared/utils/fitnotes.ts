@@ -2,7 +2,7 @@ import type { TrackingType } from '../types/workout'
 import { isCalendarDate } from './calendarDate'
 import { SET_LIMITS } from './setRules'
 
-export const FITNOTES_HEADER = [
+const FITNOTES_HEADER = [
   'Date',
   'Exercise',
   'Category',
@@ -144,7 +144,7 @@ export function parseAssist(comment: string | null, weightUnit: string): number 
   return toPounds(Number(match[1]), match[2] ?? weightUnit)
 }
 
-export function isFitNotesHeader(cells: string[]): boolean {
+function isFitNotesHeader(cells: string[]): boolean {
   return FITNOTES_HEADER.every((name, i) => cells[i]?.trim().replace(/^\uFEFF/, '') === name)
 }
 

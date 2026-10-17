@@ -1,7 +1,7 @@
 import type { HistoryStamp, OneRepMaxResult, OneRepMaxSource } from '../types/workout'
 
-export const MAX_ESTIMATE_REPS = 10
-export const ESTIMATE_WINDOW_DAYS = 90
+const MAX_ESTIMATE_REPS = 10
+const ESTIMATE_WINDOW_DAYS = 90
 export const REP_MAX_TABLE_REPS = 15
 
 export interface EstimateSet {

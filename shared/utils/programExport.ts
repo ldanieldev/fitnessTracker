@@ -40,7 +40,7 @@ const routine = z.object({
     .max(30)
 })
 
-export const PROGRAM_IMPORT_LIMITS = { entries: 2000, customExercises: 500 } as const
+const PROGRAM_IMPORT_LIMITS = { entries: 2000, customExercises: 500 } as const
 
 function programEntries(data: { routines: { days: { entries: z.infer<typeof entry>[] }[] }[] }) {
   return data.routines.flatMap((r) => r.days.flatMap((d) => d.entries))

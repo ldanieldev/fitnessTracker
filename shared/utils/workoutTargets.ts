@@ -16,7 +16,7 @@ export function targetMetricFor(trackingType: TrackingType): TargetMetric | null
   return null
 }
 
-export function targetValueOf(metric: TargetMetric, set: SetMeasures): number | null {
+function targetValueOf(metric: TargetMetric, set: SetMeasures): number | null {
   return set[METRIC_FIELD[metric]] ?? null
 }
 

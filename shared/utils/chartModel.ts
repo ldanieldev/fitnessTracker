@@ -24,7 +24,7 @@ export function scaleLinear(domain: [number, number], range: [number, number]): 
 }
 
 // d3's tick thresholds (√50, √10, √2) pick the 1/2/5/10 multiple nearest the rough step on a log scale.
-export function niceStep(rough: number): number {
+function niceStep(rough: number): number {
   const base = 10 ** Math.floor(Math.log10(rough))
   const f = rough / base
   return base * (f >= 7.07 ? 10 : f >= 3.16 ? 5 : f >= 1.41 ? 2 : 1)
@@ -70,7 +70,7 @@ export function pathFrom(segments: XY[][]): string {
     .join(' ')
 }
 
-export function areaFrom(segments: XY[][], baselineY: number): string {
+function areaFrom(segments: XY[][], baselineY: number): string {
   return segments
     .filter((s) => s.length > 0)
     .map((s) => `${lineOf(s)} L${fmt(s[s.length - 1]!.x)} ${fmt(baselineY)} L${fmt(s[0]!.x)} ${fmt(baselineY)} Z`)

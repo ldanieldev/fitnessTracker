@@ -1,5 +1,5 @@
 import { asc } from 'drizzle-orm'
-import { DEFAULT_TRACKED_NUTRIENTS } from '~~/app/constants/nutrition'
+import { DEFAULT_TRACKED_NUTRIENTS } from '~~/shared/utils/nutrientDefaults'
 import type { NutrientKey, NutrientUnit, TargetDirection } from '~~/shared/types/nutrition'
 import { nutrients } from '~~/server/db/schema'
 import { db } from '../db'

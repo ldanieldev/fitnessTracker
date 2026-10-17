@@ -4,5 +4,3 @@ export const NUTRITION_MACROS = [
   { key: 'carbohydrate', name: 'Carbs', unit: 'g' },
   { key: 'fat', name: 'Fat', unit: 'g' }
 ] as const
-
-export const DEFAULT_TRACKED_NUTRIENTS = ['energy', 'protein', 'carbohydrate', 'fat', 'fiber'] as const

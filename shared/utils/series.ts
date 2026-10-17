@@ -1,7 +1,7 @@
 import type { ChartRange, SeriesGranularity, SeriesPoint } from '../types/series'
 import { enumerateDates, rollingAverage, shiftDate } from './nutritionSummary'
 
-export const RANGE_DAYS: Record<Exclude<ChartRange, 'all' | 'mtd'>, number> = {
+const RANGE_DAYS: Record<Exclude<ChartRange, 'all' | 'mtd'>, number> = {
   '1m': 30,
   '3m': 90,
   '6m': 182,
