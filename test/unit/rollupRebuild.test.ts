@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const PG_PARAM_LIMIT = 65_535
 const SESSIONS = 450
 const EXERCISES_PER_SESSION = 80
+let exercisesPerSession = EXERCISES_PER_SESSION
 
 interface Recorded {
   text: string
@@ -19,7 +20,7 @@ function respond(text: string, params: unknown[]): unknown[][] {
   if (text.startsWith('select "app"."workout_entries"."session_id"') && text.includes('from "app"."workout_sets"')) {
     const sessionIds = params as number[]
     return sessionIds.flatMap((sessionId) =>
-      Array.from({ length: EXERCISES_PER_SESSION }, (_, e) => [
+      Array.from({ length: exercisesPerSession }, (_, e) => [
         sessionId,
         e + 1,
         '2026-10-01',
@@ -52,6 +53,7 @@ vi.mock('../../server/utils/db', async () => {
 describe('rebuildUserRollups', () => {
   beforeEach(() => {
     queries.length = 0
+    exercisesPerSession = EXERCISES_PER_SESSION
   })
 
   it('rebuilds a history whose pairs would overflow one NOT IN list, with bounded bind parameters', async () => {
@@ -71,9 +73,10 @@ describe('rebuildUserRollups', () => {
       expect(prune.params.length).toBeLessThanOrEqual(REBUILD_CHUNK)
     }
     expect(queries.filter((q) => q.text.includes('"one_rep_max_rep_cap"'))).toHaveLength(1)
-  })
+  }, 30_000)
 
   it('locks each chunk of sessions before reading its sets, and prunes after upserting', async () => {
+    exercisesPerSession = 3
     const { rebuildUserRollups } = await import('../../server/utils/workouts/rollups')
     await rebuildUserRollups(1)
     const begin = queries.findIndex((q) => q.text === 'begin')

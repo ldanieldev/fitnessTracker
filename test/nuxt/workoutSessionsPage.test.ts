@@ -31,7 +31,8 @@ registerEndpoint('/api/workouts/sessions', {
   handler: (event: H3Event) => {
     const query = getQuery(event) as Record<string, string>
     calls.push(query)
-    return Array.from({ length: Math.min(Number(query.limit), TOTAL) }, (_, i) => summary(i + 1))
+    const below = query.before ? Number(query.before) : TOTAL + 1
+    return Array.from({ length: below - 1 }, (_, i) => summary(below - 1 - i)).slice(0, Number(query.limit))
   }
 })
 registerEndpoint('/api/workouts/programs', async () => {
@@ -93,7 +94,7 @@ describe('workouts/sessions page', () => {
     expect(document.querySelectorAll('[data-test="session-row"]')).toHaveLength(20)
     q('session-load-more')!.click()
     await settle()
-    expect(calls.at(-1)!.limit).toBe('40')
+    expect(calls.at(-1)).toMatchObject({ limit: '20', before: '6' })
     expect(document.querySelectorAll('[data-test="session-row"]')).toHaveLength(25)
     expect(q('session-load-more')).toBeNull()
 
@@ -122,14 +123,14 @@ describe('workouts/sessions page', () => {
   it('changes a workout date from the row menu and deletes only after confirming', async () => {
     const patches: unknown[] = []
     let deleted = 0
-    registerEndpoint('/api/workouts/sessions/1', {
+    registerEndpoint('/api/workouts/sessions/25', {
       method: 'PATCH',
       handler: async (event: H3Event) => {
         patches.push(await readBody(event))
         return {}
       }
     })
-    registerEndpoint('/api/workouts/sessions/1', {
+    registerEndpoint('/api/workouts/sessions/25', {
       method: 'DELETE',
       handler: () => {
         deleted++
@@ -142,9 +143,9 @@ describe('workouts/sessions page', () => {
     })
     await settle()
 
-    await wrapper.find('[data-test="session-menu-1"]').trigger('click')
+    await wrapper.find('[data-test="session-menu-25"]').trigger('click')
     await settle()
-    q('session-times-1')!.click()
+    q('session-times-25')!.click()
     await settle()
     const start = document.querySelector<HTMLInputElement>('input[data-test="session-start-input"]')!
     start.value = '2026-08-30T07:15'
@@ -155,9 +156,9 @@ describe('workouts/sessions page', () => {
     expect(patches).toHaveLength(1)
     expect(patches[0]).toMatchObject({ performedOn: '2026-08-30' })
 
-    await wrapper.find('[data-test="session-menu-1"]').trigger('click')
+    await wrapper.find('[data-test="session-menu-25"]').trigger('click')
     await settle()
-    q('session-delete-1')!.click()
+    q('session-delete-25')!.click()
     await settle()
     expect(q('session-delete')).toBeNull()
     expect(deleted).toBe(0)
