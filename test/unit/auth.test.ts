@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { findOrCreateUserAndLinkProvider } from '../../server/utils/auth'
 import { insertUser } from '../../server/utils/insertUser'
-import { registrationOpen } from '../../server/utils/registration'
+import { assertRegistrationOpenIn, registrationOpen } from '../../server/utils/registration'
 
 vi.mock('../../server/utils/insertUser', () => ({ insertUser: vi.fn() }))
-vi.mock('../../server/utils/registration', () => ({ registrationOpen: vi.fn(async () => true) }))
+vi.mock('../../server/utils/registration', () => ({
+  registrationOpen: vi.fn(async () => true),
+  assertRegistrationOpenIn: vi.fn()
+}))
 
 function createDbMock(selectResults: unknown[][]) {
   const queue = [...selectResults]
@@ -143,6 +146,17 @@ describe('findOrCreateUserAndLinkProvider — login/signup (no session)', () => 
       provider: 'google',
       providerAccountId: 'g-123'
     })
+  })
+
+  it('re-checks registration inside the creating transaction, so a racing first signup loses', async () => {
+    vi.mocked(assertRegistrationOpenIn).mockRejectedValueOnce(createError({ statusCode: 403, statusMessage: 'closed' }))
+    const mock = createDbMock([[], []])
+    stubDb(mock)
+
+    const attempt = findOrCreateUserAndLinkProvider({ email: 'new@gmail.com', name: 'New' }, provider)
+    await expect(attempt).rejects.toMatchObject({ statusCode: 403 })
+    expect(assertRegistrationOpenIn).toHaveBeenCalledWith(mock.db)
+    expect(insertUser).not.toHaveBeenCalled()
   })
 
   it('refuses (403) to create a user while registration is closed', async () => {

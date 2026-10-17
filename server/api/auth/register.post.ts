@@ -6,7 +6,7 @@ import { seedContainersForUser } from '~~/server/db/seed/nutrition'
 import { insertUser } from '~~/server/utils/insertUser'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { clientIp, consumeLimit, RATE_RULES } from '~~/server/utils/rateLimit/limit'
-import { registrationOpen } from '~~/server/utils/registration'
+import { assertRegistrationOpenIn, registrationOpen } from '~~/server/utils/registration'
 import { writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 
@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
 
   const user = await db
     .transaction(async (tx) => {
+      await assertRegistrationOpenIn(tx)
       const created = await insertUser(tx, {
         name: parsed.data.name,
         email: parsed.data.email,

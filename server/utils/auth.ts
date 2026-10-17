@@ -2,7 +2,7 @@ import { and, eq, getTableColumns } from 'drizzle-orm'
 import { users, authProviders } from '~~/server/db/schema'
 import { insertUser } from '~~/server/utils/insertUser'
 import { normalizeEmail } from '~~/shared/utils/email'
-import { registrationOpen } from '~~/server/utils/registration'
+import { assertRegistrationOpenIn, registrationOpen } from '~~/server/utils/registration'
 
 interface OAuthProfile {
   email: string
@@ -79,6 +79,7 @@ export async function findOrCreateUserAndLinkProvider(
   if (!user) {
     if (!(await registrationOpen())) throw createError({ statusCode: 403, statusMessage: 'Registration is closed' })
     return db.transaction(async (tx) => {
+      await assertRegistrationOpenIn(tx)
       const created = await insertUser(tx, {
         email,
         name: profile.name,
