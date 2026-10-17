@@ -1,5 +1,7 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { holdLocks } from './dbLock'
+import { Client } from 'pg'
 import { todayDate } from '../../shared/utils/nutritionSummary'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../shared/types/workout'
 
@@ -110,4 +112,44 @@ test('workout sets: cardio measures round-trip and take the pace record', async 
   expect(wrongMeasure.status).toBe(400)
 
   await apiFetch(page, 'PATCH', `/api/workouts/sessions/${session.id}`, { finish: true })
+})
+
+test('workout sets: a double-tapped add gets distinct sort orders and a rollup of both', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+
+  const bench = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json[0]!
+  const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn: todayDate() }))
+    .json
+  const entryId = (
+    await apiFetch<WorkoutSession>(page, 'POST', `/api/workouts/sessions/${session.id}/entries`, {
+      exerciseId: bench.id
+    })
+  ).json.entries[0]!.id
+
+  const lock = await holdLocks('select id from app.workout_sessions where id = $1 for no key update', [session.id])
+  let adds: Promise<{ status: number }>[]
+  try {
+    adds = [100, 110].map((weight) =>
+      apiFetch(page, 'POST', `/api/workouts/entries/${entryId}/sets`, { weight, reps: 5 })
+    )
+    await lock.waitForBlocked(2)
+  } finally {
+    await lock.release()
+  }
+  expect((await Promise.all(adds!)).map((r) => r.status)).toEqual([200, 200])
+
+  const sets = (await apiFetch<WorkoutSession>(page, 'GET', `/api/workouts/sessions/${session.id}`)).json.entries[0]!
+    .sets
+  expect(sets.map((s) => s.sortOrder).sort()).toEqual([0, 1])
+  const db = new Client({ connectionString: process.env.DATABASE_URL })
+  await db.connect()
+  try {
+    const rollup = await db.query('select set_count from app.workout_exercise_rollups where session_id = $1', [
+      session.id
+    ])
+    expect(rollup.rows).toEqual([{ set_count: 2 }])
+  } finally {
+    await db.end()
+  }
 })

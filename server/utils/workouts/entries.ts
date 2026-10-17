@@ -1,7 +1,7 @@
 import { and, count, eq, inArray } from 'drizzle-orm'
 import type { WorkoutEntry, WorkoutSession, WorkoutSet } from '~~/shared/types/workout'
 import { exercisePrefs, exercises, users, workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
+import { db, type DbClient } from '~~/server/utils/db'
 import type { WorkoutEntryPatchInput } from '~~/server/utils/workouts/input'
 import { loadExerciseSettings } from '~~/server/utils/workouts/exercises'
 import { assertOwnSession, loadSession } from '~~/server/utils/workouts/sessions'
@@ -135,7 +135,7 @@ export async function addEntry(userId: number, sessionId: number, exerciseId: nu
       .for('no key update')
     if (!owned.length) throw createError({ statusCode: 404, statusMessage: 'Workout not found' })
     await lockGroupRows(tx, SESSION_ENTRY_GROUPS, sessionId)
-    const exercise = await loadExerciseSettings(userId, exerciseId)
+    const exercise = await loadExerciseSettings(userId, exerciseId, tx)
     const entries = await tx
       .select({ n: count() })
       .from(workoutEntries)
@@ -152,8 +152,8 @@ export async function addEntry(userId: number, sessionId: number, exerciseId: nu
   return loadSession(userId, sessionId)
 }
 
-export async function loadOwnedEntry(userId: number, entryId: number) {
-  const row = await db
+export async function loadOwnedEntry(userId: number, entryId: number, client: DbClient = db) {
+  const row = await client
     .select({
       id: workoutEntries.id,
       sessionId: workoutEntries.sessionId,
@@ -168,6 +168,22 @@ export async function loadOwnedEntry(userId: number, entryId: number) {
     .then((r) => r[0])
   if (!row) throw createError(NOT_FOUND_ERROR)
   return row
+}
+
+export async function lockOwnedEntry(tx: DbClient, userId: number, entryId: number) {
+  const entry = await loadOwnedEntry(userId, entryId, tx)
+  await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(eq(workoutSessions.id, entry.sessionId))
+    .for('no key update')
+  const locked = await tx
+    .select({ id: workoutEntries.id })
+    .from(workoutEntries)
+    .where(and(eq(workoutEntries.id, entryId), eq(workoutEntries.sessionId, entry.sessionId)))
+    .for('no key update')
+  if (!locked.length) throw createError(NOT_FOUND_ERROR)
+  return entry
 }
 
 export async function patchEntry(
@@ -208,8 +224,8 @@ export async function deleteEntry(userId: number, entryId: number): Promise<Work
     await lockGroupRows(tx, SESSION_ENTRY_GROUPS, entry.sessionId)
     await tx.delete(workoutEntries).where(eq(workoutEntries.id, entryId))
     await regroup(tx, SESSION_ENTRY_GROUPS, entry.sessionId, normalizeGroups)
+    await refreshRollup(userId, entry.sessionId, entry.exerciseId, tx)
   })
-  await refreshRollup(userId, entry.sessionId, entry.exerciseId)
   return loadSession(userId, entry.sessionId)
 }
 

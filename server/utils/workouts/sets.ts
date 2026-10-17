@@ -4,15 +4,15 @@ import { validateSetInput } from '~~/shared/utils/setRules'
 import { workoutEntries, workoutSessions, workoutSets } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
 import type { SetWriteInput } from '~~/server/utils/workouts/input'
-import { loadOwnedEntry } from '~~/server/utils/workouts/entries'
+import { lockOwnedEntry } from '~~/server/utils/workouts/entries'
 import { loadSession } from '~~/server/utils/workouts/sessions'
 import { refreshRollup } from '~~/server/utils/workouts/rollups'
 import { siblingIds, renumberSiblings } from '~~/server/utils/workouts/sortOrder'
 
 const SET_NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Set not found' } as const
 
-async function loadOwnedSet(userId: number, setId: number) {
-  const row = await db
+async function loadOwnedSet(userId: number, setId: number, client: DbClient = db) {
+  const row = await client
     .select({
       id: workoutSets.id,
       entryId: workoutSets.entryId,
@@ -34,6 +34,13 @@ async function loadOwnedSet(userId: number, setId: number) {
   return row
 }
 
+// Re-read after the locks: a write that queued behind another must start from what that one committed.
+async function lockOwnedSet(tx: DbClient, userId: number, setId: number) {
+  const { entryId } = await loadOwnedSet(userId, setId, tx)
+  await lockOwnedEntry(tx, userId, entryId)
+  return loadOwnedSet(userId, setId, tx)
+}
+
 async function setSiblingIds(tx: DbClient, entryId: number): Promise<number[]> {
   return siblingIds(tx, workoutSets, workoutSets.id, workoutSets.sortOrder, workoutSets.entryId, entryId)
 }
@@ -50,35 +57,37 @@ export async function addSet(
   entryId: number,
   input: SetWriteInput
 ): Promise<{ session: WorkoutSession; set: WorkoutSet }> {
-  const entry = await loadOwnedEntry(userId, entryId)
   const measures: SetMeasures = {
     weight: input.weight ?? null,
     reps: input.reps ?? null,
     distanceMeters: input.distanceMeters ?? null,
     durationSeconds: input.durationSeconds ?? null
   }
-  const message = validateSetInput(entry.trackingType, measures)
-  if (message) throw createError({ statusCode: 400, statusMessage: message })
+  const { sessionId, setId } = await db.transaction(async (tx) => {
+    const entry = await lockOwnedEntry(tx, userId, entryId)
+    const message = validateSetInput(entry.trackingType, measures)
+    if (message) throw createError({ statusCode: 400, statusMessage: message })
 
-  const sortOrder = (await setSiblingIds(db, entryId)).length
-  const row = await db
-    .insert(workoutSets)
-    .values({
-      entryId,
-      sortOrder,
-      weight: measures.weight != null ? String(measures.weight) : null,
-      reps: measures.reps,
-      distanceMeters: measures.distanceMeters != null ? String(measures.distanceMeters) : null,
-      durationSeconds: measures.durationSeconds,
-      done: input.done ?? false,
-      comment: input.comment ?? null
-    })
-    .returning()
-    .then((r) => r[0]!)
-
-  await refreshRollup(userId, entry.sessionId, entry.exerciseId)
-  const session = await loadSession(userId, entry.sessionId)
-  return { session, set: extractSet(session, entryId, row.id) }
+    const sortOrder = (await setSiblingIds(tx, entryId)).length
+    const row = await tx
+      .insert(workoutSets)
+      .values({
+        entryId,
+        sortOrder,
+        weight: measures.weight != null ? String(measures.weight) : null,
+        reps: measures.reps,
+        distanceMeters: measures.distanceMeters != null ? String(measures.distanceMeters) : null,
+        durationSeconds: measures.durationSeconds,
+        done: input.done ?? false,
+        comment: input.comment ?? null
+      })
+      .returning({ id: workoutSets.id })
+      .then((r) => r[0]!)
+    await refreshRollup(userId, entry.sessionId, entry.exerciseId, tx)
+    return { sessionId: entry.sessionId, setId: row.id }
+  })
+  const session = await loadSession(userId, sessionId)
+  return { session, set: extractSet(session, entryId, setId) }
 }
 
 export async function patchSet(
@@ -86,46 +95,49 @@ export async function patchSet(
   setId: number,
   patch: SetWriteInput
 ): Promise<{ session: WorkoutSession; set: WorkoutSet }> {
-  const existing = await loadOwnedSet(userId, setId)
-  const measures: SetMeasures = {
-    weight: patch.weight !== undefined ? patch.weight : existing.weight != null ? Number(existing.weight) : null,
-    reps: patch.reps !== undefined ? patch.reps : existing.reps,
-    distanceMeters:
-      patch.distanceMeters !== undefined
-        ? patch.distanceMeters
-        : existing.distanceMeters != null
-          ? Number(existing.distanceMeters)
-          : null,
-    durationSeconds: patch.durationSeconds !== undefined ? patch.durationSeconds : existing.durationSeconds
-  }
-  const message = validateSetInput(existing.trackingType, measures)
-  if (message) throw createError({ statusCode: 400, statusMessage: message })
+  const existing = await db.transaction(async (tx) => {
+    const existing = await lockOwnedSet(tx, userId, setId)
+    const measures: SetMeasures = {
+      weight: patch.weight !== undefined ? patch.weight : existing.weight != null ? Number(existing.weight) : null,
+      reps: patch.reps !== undefined ? patch.reps : existing.reps,
+      distanceMeters:
+        patch.distanceMeters !== undefined
+          ? patch.distanceMeters
+          : existing.distanceMeters != null
+            ? Number(existing.distanceMeters)
+            : null,
+      durationSeconds: patch.durationSeconds !== undefined ? patch.durationSeconds : existing.durationSeconds
+    }
+    const message = validateSetInput(existing.trackingType, measures)
+    if (message) throw createError({ statusCode: 400, statusMessage: message })
 
-  // Write only what the patch carries: a done/comment patch must not re-write measures a concurrent save just changed.
-  const values: Partial<typeof workoutSets.$inferInsert> = {}
-  if (patch.weight !== undefined) values.weight = measures.weight != null ? String(measures.weight) : null
-  if (patch.reps !== undefined) values.reps = measures.reps
-  if (patch.distanceMeters !== undefined) {
-    values.distanceMeters = measures.distanceMeters != null ? String(measures.distanceMeters) : null
-  }
-  if (patch.durationSeconds !== undefined) values.durationSeconds = measures.durationSeconds
-  if (patch.done !== undefined) values.done = patch.done
-  if (patch.comment !== undefined) values.comment = patch.comment
+    // Write only what the patch carries: a done/comment patch must not re-write measures another save just changed.
+    const values: Partial<typeof workoutSets.$inferInsert> = {}
+    if (patch.weight !== undefined) values.weight = measures.weight != null ? String(measures.weight) : null
+    if (patch.reps !== undefined) values.reps = measures.reps
+    if (patch.distanceMeters !== undefined) {
+      values.distanceMeters = measures.distanceMeters != null ? String(measures.distanceMeters) : null
+    }
+    if (patch.durationSeconds !== undefined) values.durationSeconds = measures.durationSeconds
+    if (patch.done !== undefined) values.done = patch.done
+    if (patch.comment !== undefined) values.comment = patch.comment
 
-  if (Object.keys(values).length > 0) await db.update(workoutSets).set(values).where(eq(workoutSets.id, setId))
-
-  await refreshRollup(userId, existing.sessionId, existing.exerciseId)
+    if (Object.keys(values).length > 0) await tx.update(workoutSets).set(values).where(eq(workoutSets.id, setId))
+    await refreshRollup(userId, existing.sessionId, existing.exerciseId, tx)
+    return existing
+  })
   const session = await loadSession(userId, existing.sessionId)
   return { session, set: extractSet(session, existing.entryId, setId) }
 }
 
 export async function deleteSet(userId: number, setId: number): Promise<WorkoutSession> {
-  const existing = await loadOwnedSet(userId, setId)
-  await db.transaction(async (tx) => {
+  const existing = await db.transaction(async (tx) => {
+    const existing = await lockOwnedSet(tx, userId, setId)
     await tx.delete(workoutSets).where(eq(workoutSets.id, setId))
     const ids = await setSiblingIds(tx, existing.entryId)
     await renumberSiblings(tx, workoutSets, workoutSets.id, workoutSets.sortOrder, ids)
+    await refreshRollup(userId, existing.sessionId, existing.exerciseId, tx)
+    return existing
   })
-  await refreshRollup(userId, existing.sessionId, existing.exerciseId)
   return loadSession(userId, existing.sessionId)
 }

@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
 import type { GraphMetric, LoadStyle, TrackingType } from '~~/shared/types/workout'
 import {
   latestLoadStyle,
@@ -16,12 +16,12 @@ import {
   workoutSessions,
   workoutSets
 } from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
+import { db, type DbClient } from '~~/server/utils/db'
 
 const num = (value: string | null) => (value != null ? Number(value) : null)
 
-export async function repCapFor(userId: number): Promise<number> {
-  const row = await db
+export async function repCapFor(userId: number, client: DbClient = db): Promise<number> {
+  const row = await client
     .select({ cap: users.oneRepMaxRepCap })
     .from(users)
     .where(eq(users.id, userId))
@@ -52,15 +52,15 @@ interface RollupContext {
   sets: RollupSet[]
 }
 
-async function contextFor(sessionId: number, exerciseId: number): Promise<RollupContext | null> {
-  const session = await db
+async function contextFor(client: DbClient, sessionId: number, exerciseId: number): Promise<RollupContext | null> {
+  const session = await client
     .select({ performedOn: workoutSessions.performedOn })
     .from(workoutSessions)
     .where(eq(workoutSessions.id, sessionId))
     .then((r) => r[0])
   if (!session) return null
 
-  const rows = await db
+  const rows = await client
     .select({
       trackingType: workoutEntries.trackingType,
       loadStyle: workoutEntries.loadStyle,
@@ -110,42 +110,59 @@ function toRow(userId: number, sessionId: number, exerciseId: number, context: R
   }
 }
 
-async function writeRollup(userId: number, sessionId: number, exerciseId: number): Promise<void> {
-  const context = await contextFor(sessionId, exerciseId)
+async function writeRollup(client: DbClient, userId: number, sessionId: number, exerciseId: number): Promise<void> {
+  const context = await contextFor(client, sessionId, exerciseId)
   const where = and(eq(workoutExerciseRollups.sessionId, sessionId), eq(workoutExerciseRollups.exerciseId, exerciseId))
   if (!context) {
-    await db.delete(workoutExerciseRollups).where(where)
+    await client.delete(workoutExerciseRollups).where(where)
     return
   }
-  const values = rollupFrom(context.sets, context.loadStyle, await repCapFor(userId))
-  const row = toRow(userId, sessionId, exerciseId, context, values)
-  const { sessionId: _s, exerciseId: _e, ...update } = row
-  await db
+  const values = rollupFrom(context.sets, context.loadStyle, await repCapFor(userId, client))
+  await upsertRollups(client, [toRow(userId, sessionId, exerciseId, context, values)])
+}
+
+const UPDATED_ON_CONFLICT = Object.fromEntries(
+  Object.entries(getTableColumns(workoutExerciseRollups))
+    .filter(([key]) => key !== 'sessionId' && key !== 'exerciseId')
+    .map(([key, column]) => [key, sql.raw(`excluded.${column.name}`)])
+)
+
+async function upsertRollups(client: DbClient, rows: ReturnType<typeof toRow>[]): Promise<void> {
+  if (!rows.length) return
+  await client
     .insert(workoutExerciseRollups)
-    .values(row)
+    .values(rows)
     .onConflictDoUpdate({
       target: [workoutExerciseRollups.sessionId, workoutExerciseRollups.exerciseId],
-      set: update
+      set: UPDATED_ON_CONFLICT
     })
 }
 
-export async function refreshRollup(userId: number, sessionId: number, exerciseId: number): Promise<void> {
-  await writeRollup(userId, sessionId, exerciseId)
-  await stampGoals(userId, exerciseId)
+export async function refreshRollup(
+  userId: number,
+  sessionId: number,
+  exerciseId: number,
+  client: DbClient = db
+): Promise<void> {
+  await writeRollup(client, userId, sessionId, exerciseId)
+  await stampGoals(userId, exerciseId, client)
 }
 
-export async function refreshSessionDate(sessionId: number, performedOn: string): Promise<void> {
-  await db.update(workoutExerciseRollups).set({ performedOn }).where(eq(workoutExerciseRollups.sessionId, sessionId))
+export async function refreshSessionDate(sessionId: number, performedOn: string, client: DbClient = db) {
+  await client
+    .update(workoutExerciseRollups)
+    .set({ performedOn })
+    .where(eq(workoutExerciseRollups.sessionId, sessionId))
 }
 
-export async function stampGoals(userId: number, exerciseId: number): Promise<void> {
-  const goals = await db
+export async function stampGoals(userId: number, exerciseId: number, client: DbClient = db): Promise<void> {
+  const goals = await client
     .select()
     .from(workoutExerciseGoals)
     .where(and(eq(workoutExerciseGoals.userId, userId), eq(workoutExerciseGoals.exerciseId, exerciseId)))
   if (goals.length === 0) return
 
-  const rows = await db
+  const rows = await client
     .select()
     .from(workoutExerciseRollups)
     .where(and(eq(workoutExerciseRollups.userId, userId), eq(workoutExerciseRollups.exerciseId, exerciseId)))
@@ -160,7 +177,7 @@ export async function stampGoals(userId: number, exerciseId: number): Promise<vo
       return metricLowerIsBetter(goal.metric as GraphMetric, loadStyle) ? value <= target : value >= target
     })
     if (reached === (goal.achievedAt != null)) continue
-    await db
+    await client
       .update(workoutExerciseGoals)
       .set({ achievedAt: reached ? new Date() : null })
       .where(
@@ -173,42 +190,115 @@ export async function stampGoals(userId: number, exerciseId: number): Promise<vo
   }
 }
 
-export async function rebuildRollups(userId?: number): Promise<{ rows: number }> {
-  const pairs = await db
-    .selectDistinct({
-      userId: workoutSessions.userId,
+// Sessions per transaction: bounds every query's bind parameters and how long a live set write waits on the locks.
+export const REBUILD_CHUNK = 200
+// Rows per upsert: 500 × 17 columns stays far below Postgres's 65,535 bind-parameter limit.
+const UPSERT_BATCH = 500
+
+async function rebuildChunk(tx: DbClient, userId: number, repCap: number, sessionIds: number[]): Promise<number> {
+  // Session rows first, as live set writes lock them, so no set lands between this read and the upsert or prune.
+  await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(and(eq(workoutSessions.userId, userId), inArray(workoutSessions.id, sessionIds)))
+    .orderBy(asc(workoutSessions.id))
+    .for('no key update')
+  const sets = await tx
+    .select({
       sessionId: workoutEntries.sessionId,
-      exerciseId: workoutEntries.exerciseId
+      exerciseId: workoutEntries.exerciseId,
+      performedOn: workoutSessions.performedOn,
+      trackingType: workoutEntries.trackingType,
+      loadStyle: workoutEntries.loadStyle,
+      weight: workoutSets.weight,
+      reps: workoutSets.reps,
+      distanceMeters: workoutSets.distanceMeters,
+      durationSeconds: workoutSets.durationSeconds
     })
-    .from(workoutEntries)
+    .from(workoutSets)
+    .innerJoin(workoutEntries, eq(workoutEntries.id, workoutSets.entryId))
     .innerJoin(workoutSessions, eq(workoutSessions.id, workoutEntries.sessionId))
-    .innerJoin(workoutSets, eq(workoutSets.entryId, workoutEntries.id))
-    .where(userId === undefined ? undefined : eq(workoutSessions.userId, userId))
+    .where(inArray(workoutEntries.sessionId, sessionIds))
+    .orderBy(
+      workoutEntries.sessionId,
+      workoutEntries.exerciseId,
+      workoutEntries.sortOrder,
+      workoutSets.sortOrder,
+      workoutSets.id
+    )
 
-  // Refresh before deleting so a crash mid-loop leaves stale rows rather than an empty table.
-  for (const pair of pairs) await writeRollup(pair.userId, pair.sessionId, pair.exerciseId)
+  const contexts = new Map<string, RollupContext & { sessionId: number; exerciseId: number }>()
+  for (const set of sets) {
+    const key = `${set.sessionId}:${set.exerciseId}`
+    let context = contexts.get(key)
+    if (!context) {
+      context = { ...set, sets: [] }
+      contexts.set(key, context)
+    }
+    context.sets.push({
+      weight: num(set.weight),
+      reps: set.reps,
+      distanceMeters: num(set.distanceMeters),
+      durationSeconds: set.durationSeconds
+    })
+  }
+  const rows = [...contexts.values()].map((context) =>
+    toRow(
+      userId,
+      context.sessionId,
+      context.exerciseId,
+      context,
+      rollupFrom(context.sets, context.loadStyle, repCap)
+    )
+  )
+  for (let i = 0; i < rows.length; i += UPSERT_BATCH) await upsertRollups(tx, rows.slice(i, i + UPSERT_BATCH))
 
-  const scope = userId === undefined ? undefined : eq(workoutExerciseRollups.userId, userId)
-  if (pairs.length === 0) {
-    await db.delete(workoutExerciseRollups).where(scope)
-  } else {
-    const keys = pairs.map((pair) => sql`(${pair.sessionId}, ${pair.exerciseId})`)
-    await db
-      .delete(workoutExerciseRollups)
-      .where(
-        and(
-          scope,
-          sql`(${workoutExerciseRollups.sessionId}, ${workoutExerciseRollups.exerciseId})
-            not in (${sql.join(keys, sql`, `)})`
-        )
-      )
+  await tx.delete(workoutExerciseRollups).where(
+    and(
+      inArray(workoutExerciseRollups.sessionId, sessionIds),
+      sql`not exists (
+        select 1 from ${workoutSets}
+        inner join ${workoutEntries} on ${workoutEntries.id} = ${workoutSets.entryId}
+        where ${workoutEntries.sessionId} = ${workoutExerciseRollups.sessionId}
+          and ${workoutEntries.exerciseId} = ${workoutExerciseRollups.exerciseId}
+      )`
+    )
+  )
+  return rows.length
+}
+
+export async function rebuildUserRollups(userId: number): Promise<{ rows: number }> {
+  const repCap = await repCapFor(userId)
+  const sessionIds = await db
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(eq(workoutSessions.userId, userId))
+    .orderBy(asc(workoutSessions.id))
+    .then((r) => r.map((row) => row.id))
+
+  let rows = 0
+  for (let i = 0; i < sessionIds.length; i += REBUILD_CHUNK) {
+    const chunk = sessionIds.slice(i, i + REBUILD_CHUNK)
+    rows += await db.transaction((tx) => rebuildChunk(tx, userId, repCap, chunk))
   }
 
-  const goalPairs = await db
-    .selectDistinct({ userId: workoutExerciseGoals.userId, exerciseId: workoutExerciseGoals.exerciseId })
+  const goals = await db
+    .selectDistinct({ exerciseId: workoutExerciseGoals.exerciseId })
     .from(workoutExerciseGoals)
-    .where(userId === undefined ? undefined : eq(workoutExerciseGoals.userId, userId))
+    .where(eq(workoutExerciseGoals.userId, userId))
   // Stamped after the prune so a goal whose earning rows were just removed loses its Reached stamp.
-  for (const goal of goalPairs) await stampGoals(goal.userId, goal.exerciseId)
-  return { rows: pairs.length }
+  for (const goal of goals) await stampGoals(userId, goal.exerciseId)
+  return { rows }
+}
+
+export async function rollupUserIds(): Promise<number[]> {
+  const rows = await db.select({ id: users.id }).from(users).orderBy(asc(users.id))
+  return rows.map((row) => row.id)
+}
+
+export async function rebuildRollups(userId?: number): Promise<{ rows: number }> {
+  if (userId !== undefined) return rebuildUserRollups(userId)
+  let rows = 0
+  for (const id of await rollupUserIds()) rows += (await rebuildUserRollups(id)).rows
+  return { rows }
 }

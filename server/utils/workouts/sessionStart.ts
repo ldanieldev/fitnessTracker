@@ -25,11 +25,11 @@ interface PlannedEntry {
   restSeconds: number | null
 }
 
-async function resolveExercises<T extends { exerciseId: number }>(userId: number, rows: T[]) {
+async function resolveExercises<T extends { exerciseId: number }>(tx: DbClient, userId: number, rows: T[]) {
   const resolved: (T & { trackingType: TrackingType; loadStyle: LoadStyle | null })[] = []
   for (const row of rows) {
     try {
-      const exercise = await loadExerciseSettings(userId, row.exerciseId)
+      const exercise = await loadExerciseSettings(userId, row.exerciseId, tx)
       resolved.push({ ...row, trackingType: exercise.trackingType, loadStyle: exercise.loadStyle })
     } catch (err) {
       if (!(err instanceof Error && 'statusCode' in err && err.statusCode === 404)) throw err
@@ -79,7 +79,7 @@ async function routineDayEntries(tx: DbClient, userId: number, dayId: number): P
     .from(workoutTemplateEntries)
     .where(eq(workoutTemplateEntries.templateId, dayId))
     .orderBy(asc(workoutTemplateEntries.sortOrder), asc(workoutTemplateEntries.id))
-  const resolved = await resolveExercises(userId, rows)
+  const resolved = await resolveExercises(tx, userId, rows)
   return normalizeGroups(
     resolved.map((row) => ({
       id: row.id,
@@ -96,6 +96,7 @@ async function routineDayEntries(tx: DbClient, userId: number, dayId: number): P
 }
 
 async function copiedEntries(
+  tx: DbClient,
   userId: number,
   copyFromId: number,
   entryIds: number[] | undefined
@@ -106,6 +107,7 @@ async function copiedEntries(
   }
   const picked = entryIds ? source.entries.filter((entry) => entryIds.includes(entry.id)) : source.entries
   const resolved = await resolveExercises(
+    tx,
     userId,
     picked.map((entry) => ({
       id: entry.id,
@@ -164,7 +166,7 @@ export async function startSession(userId: number, input: SessionStartInput): Pr
       const entries = claim
         ? await routineDayEntries(tx, userId, claim.dayId)
         : input.copyFromId !== undefined
-          ? await copiedEntries(userId, input.copyFromId, input.entryIds)
+          ? await copiedEntries(tx, userId, input.copyFromId, input.entryIds)
           : []
       for (const [index, entry] of entries.entries()) {
         await tx.insert(workoutEntries).values({

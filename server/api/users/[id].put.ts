@@ -6,7 +6,7 @@ import { isUniqueViolation } from '~~/server/utils/pgError'
 import { forbidToken, isTokenRequest, requireSessionUser, writeSession } from '~~/server/utils/session'
 import { toSessionUser } from '~~/server/utils/sessionUser'
 import { publicUserColumns } from '~~/server/utils/userColumns'
-import { rebuildRollups, repCapFor } from '~~/server/utils/workouts/rollups'
+import { rebuildUserRollups, repCapFor } from '~~/server/utils/workouts/rollups'
 import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
 import { routeId } from '~~/server/utils/validation'
 
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
 
   // Rollups store bestE1rm computed with the old cap, so a cap change invalidates every one of this user's rows.
   if (parsed.data.oneRepMaxRepCap !== undefined && parsed.data.oneRepMaxRepCap !== currentRepCap) {
-    await rebuildRollups(id)
+    await rebuildUserRollups(id)
   }
 
   // A token must never mint a browser session.

@@ -9,7 +9,7 @@ import type {
   ExerciseRow
 } from '~~/shared/types/workout'
 import { exercisePrefs, exercises, exerciseVariationMembers } from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
+import { db, type DbClient } from '~~/server/utils/db'
 import { listCategoriesForUser, loadCategoriesByIds } from '~~/server/utils/workouts/categories'
 import { loadCatalogue, queryExerciseRows } from '~~/server/utils/workouts/catalogue'
 import { getExerciseSearchProvider, markExerciseSearchUnhealthy } from '~~/server/utils/workouts/searchProvider'
@@ -30,8 +30,12 @@ export async function loadExerciseRows(userId: number): Promise<CatalogueExercis
 }
 
 // Same visibility rule as reads: own rows or shared catalogue rows, never another user's private exercise.
-export async function loadVisibleExerciseRow(userId: number, exerciseId: number): Promise<ExerciseRow> {
-  const [row] = await queryExerciseRows(and(visibleTo(userId), eq(exercises.id, exerciseId)))
+export async function loadVisibleExerciseRow(
+  userId: number,
+  exerciseId: number,
+  client: DbClient = db
+): Promise<ExerciseRow> {
+  const [row] = await queryExerciseRows(and(visibleTo(userId), eq(exercises.id, exerciseId)), client)
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Exercise not found' })
   return row
 }
@@ -111,19 +115,23 @@ async function loadVariations(userId: number, exerciseId: number): Promise<{ id:
     .orderBy(exercises.name)
 }
 
-async function resolveRow(userId: number, row: ExerciseRow): Promise<Exercise> {
-  const pref = await db
+async function resolveRow(userId: number, row: ExerciseRow, client: DbClient = db): Promise<Exercise> {
+  const pref = await client
     .select()
     .from(exercisePrefs)
     .where(and(eq(exercisePrefs.userId, userId), eq(exercisePrefs.exerciseId, row.id)))
     .then((r) => r[0] ?? null)
   const ids = pref?.categoryId != null ? [row.categoryId, pref.categoryId] : [row.categoryId]
-  const categoriesById = await loadCategoriesByIds(userId, ids)
+  const categoriesById = await loadCategoriesByIds(userId, ids, client)
   return resolveExerciseRow(row, pref, categoriesById)
 }
 
-export async function loadExerciseSettings(userId: number, exerciseId: number): Promise<Exercise> {
-  return resolveRow(userId, await loadVisibleExerciseRow(userId, exerciseId))
+export async function loadExerciseSettings(
+  userId: number,
+  exerciseId: number,
+  client: DbClient = db
+): Promise<Exercise> {
+  return resolveRow(userId, await loadVisibleExerciseRow(userId, exerciseId, client), client)
 }
 
 export async function loadExerciseForUser(userId: number, exerciseId: number): Promise<ExerciseDetail> {

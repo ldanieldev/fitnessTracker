@@ -8,7 +8,7 @@ import {
   exercises,
   muscles
 } from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
+import { db, type DbClient } from '~~/server/utils/db'
 
 export interface Catalogue {
   exercises: CatalogueExerciseRow[]
@@ -22,8 +22,8 @@ const MAX_AGE = 60 * 60 * 24
 // Part of the cache key: the data stamps alone would keep serving a cached old shape until it expires.
 const SHAPE_VERSION = 2
 
-export async function queryExerciseRows(where: SQL | undefined): Promise<ExerciseRow[]> {
-  const rows = await db
+export async function queryExerciseRows(where: SQL | undefined, client: DbClient = db): Promise<ExerciseRow[]> {
+  const rows = await client
     .select({
       id: exercises.id,
       name: exercises.name,
@@ -41,13 +41,13 @@ export async function queryExerciseRows(where: SQL | undefined): Promise<Exercis
   if (rows.length === 0) return []
   const ids = rows.map((r) => r.id)
 
-  const muscleRows = await db
+  const muscleRows = await client
     .select({ exerciseId: exerciseMuscles.exerciseId, key: muscles.key, isPrimary: exerciseMuscles.isPrimary })
     .from(exerciseMuscles)
     .innerJoin(muscles, eq(muscles.id, exerciseMuscles.muscleId))
     .where(inArray(exerciseMuscles.exerciseId, ids))
 
-  const equipmentRows = await db
+  const equipmentRows = await client
     .select({ exerciseId: exerciseEquipment.exerciseId, key: equipment.key })
     .from(exerciseEquipment)
     .innerJoin(equipment, eq(equipment.id, exerciseEquipment.equipmentId))

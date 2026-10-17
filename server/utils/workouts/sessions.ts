@@ -153,13 +153,14 @@ export async function patchSession(userId: number, id: number, patch: SessionPat
 
   if (Object.keys(values).length) {
     try {
-      await db.update(workoutSessions).set(values).where(eq(workoutSessions.id, id))
+      await db.transaction(async (tx) => {
+        await tx.update(workoutSessions).set(values).where(eq(workoutSessions.id, id))
+        if (values.performedOn !== undefined) await refreshSessionDate(id, values.performedOn, tx)
+      })
     } catch (err) {
       await rethrowOpenSessionConflict(userId, err)
     }
   }
-
-  if (values.performedOn !== undefined) await refreshSessionDate(id, values.performedOn)
 
   return loadSession(userId, id)
 }
@@ -170,7 +171,9 @@ export async function deleteSession(userId: number, id: number): Promise<void> {
     .selectDistinct({ exerciseId: workoutEntries.exerciseId })
     .from(workoutEntries)
     .where(eq(workoutEntries.sessionId, id))
-  await db.delete(workoutSessions).where(and(eq(workoutSessions.id, id), eq(workoutSessions.userId, userId)))
-  // The cascade drops this session's rollups, so goals it earned are re-checked against what is left.
-  for (const { exerciseId } of touched) await stampGoals(userId, exerciseId)
+  await db.transaction(async (tx) => {
+    await tx.delete(workoutSessions).where(and(eq(workoutSessions.id, id), eq(workoutSessions.userId, userId)))
+    // The cascade drops this session's rollups, so goals it earned are re-checked against what is left.
+    for (const { exerciseId } of touched) await stampGoals(userId, exerciseId, tx)
+  })
 }

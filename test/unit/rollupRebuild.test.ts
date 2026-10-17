@@ -1,102 +1,99 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getTableName, type Table } from 'drizzle-orm'
 
-const ops: string[] = []
-const state = { inserts: 0, failOnInsert: 0 }
+const PG_PARAM_LIMIT = 65_535
+const SESSIONS = 450
+const EXERCISES_PER_SESSION = 80
 
-const rows: Record<string, unknown[]> = {
-  workout_entries: [10, 11, 12].map((sessionId) => ({ userId: 1, sessionId, exerciseId: 5 })),
-  workout_sessions: [{ performedOn: '2026-10-01' }],
-  workout_sets: [
-    {
-      trackingType: 'weight_reps',
-      loadStyle: 'plain',
-      weight: '100',
-      reps: 5,
-      distanceMeters: null,
-      durationSeconds: null
-    }
-  ],
-  users: [{ cap: 10 }],
-  workout_exercise_goals: [
-    { userId: 1, exerciseId: 5, metric: 'max_weight', targetValue: '300', targetReps: null, achievedAt: null }
-  ],
-  workout_exercise_rollups: []
+interface Recorded {
+  text: string
+  params: unknown[]
 }
 
-interface FakeQuery extends PromiseLike<unknown[]> {
-  from: (table: Table) => FakeQuery
-  innerJoin: () => FakeQuery
-  where: () => FakeQuery
-  orderBy: () => FakeQuery
-  values: () => FakeQuery
-  set: () => FakeQuery
-  onConflictDoUpdate: () => FakeQuery
-}
+const queries: Recorded[] = []
 
-// Stands in for Drizzle's builders: awaiting a chain records `op:table` and serves canned rows for that table.
-function query(op: string, table?: Table): FakeQuery {
-  let name = table ? getTableName(table) : ''
-  const chain: FakeQuery = {
-    from: (t: Table) => {
-      name = getTableName(t)
-      return chain
-    },
-    innerJoin: () => chain,
-    where: () => chain,
-    orderBy: () => chain,
-    values: () => chain,
-    set: () => chain,
-    onConflictDoUpdate: () => chain,
-    then<A = unknown[], B = never>(
-      onfulfilled?: ((value: unknown[]) => A | PromiseLike<A>) | null,
-      onrejected?: ((reason: unknown) => B | PromiseLike<B>) | null
-    ): PromiseLike<A | B> {
-      ops.push(`${op}:${name}`)
-      const crash = op === 'insert' && ++state.inserts === state.failOnInsert
-      const result: Promise<unknown[]> = crash
-        ? Promise.reject(new Error('crash'))
-        : Promise.resolve(op.startsWith('select') ? (rows[name] ?? []) : [])
-      return result.then(onfulfilled, onrejected)
-    }
+function respond(text: string, params: unknown[]): unknown[][] {
+  if (text.includes('"one_rep_max_rep_cap"')) return [[10]]
+  if (/^select "id" from "app"."workout_sessions" where "app"."workout_sessions"."user_id" = \$1 order/.test(text)) {
+    return Array.from({ length: SESSIONS }, (_, i) => [i + 1])
   }
-  return chain
+  if (text.startsWith('select "app"."workout_entries"."session_id"') && text.includes('from "app"."workout_sets"')) {
+    const sessionIds = params as number[]
+    return sessionIds.flatMap((sessionId) =>
+      Array.from({ length: EXERCISES_PER_SESSION }, (_, e) => [
+        sessionId,
+        e + 1,
+        '2026-10-01',
+        'weight_reps',
+        'plain',
+        '100',
+        5,
+        null,
+        null
+      ])
+    )
+  }
+  return []
 }
 
-vi.mock('../../server/utils/db', () => ({
-  db: {
-    select: () => query('select'),
-    selectDistinct: () => query('selectDistinct'),
-    insert: (table: Table) => query('insert', table),
-    update: (table: Table) => query('update', table),
-    delete: (table: Table) => query('delete', table)
+const fakeClient = {
+  query(config: { text: string } | string, params: unknown[] = []) {
+    const text = typeof config === 'string' ? config : config.text
+    queries.push({ text, params })
+    return Promise.resolve({ rows: respond(text, params), rowCount: 0 })
   }
-}))
+}
 
-describe('rebuildRollups', () => {
+vi.mock('../../server/utils/db', async () => {
+  const { drizzle } = await import('drizzle-orm/node-postgres')
+  const schema = await import('../../server/db/schema')
+  return { db: drizzle({ client: fakeClient as never, schema }) }
+})
+
+describe('rebuildUserRollups', () => {
   beforeEach(() => {
-    ops.length = 0
-    state.inserts = 0
-    state.failOnInsert = 0
+    queries.length = 0
   })
 
-  it('writes every pair before pruning, then stamps each goal once', async () => {
-    const { rebuildRollups } = await import('../../server/utils/workouts/rollups')
-    expect(await rebuildRollups(1)).toEqual({ rows: 3 })
+  it('rebuilds a history whose pairs would overflow one NOT IN list, with bounded bind parameters', async () => {
+    const { rebuildUserRollups, REBUILD_CHUNK } = await import('../../server/utils/workouts/rollups')
+    const pairs = SESSIONS * EXERCISES_PER_SESSION
+    expect(pairs * 2).toBeGreaterThan(PG_PARAM_LIMIT)
 
-    const inserts = ops.flatMap((op, i) => (op === 'insert:workout_exercise_rollups' ? [i] : []))
-    const prune = ops.indexOf('delete:workout_exercise_rollups')
-    expect(inserts).toHaveLength(3)
-    expect(prune).toBeGreaterThan(inserts.at(-1)!)
-    const goalReads = ops.flatMap((op, i) => (op === 'select:workout_exercise_goals' ? [i] : []))
-    expect(goalReads).toHaveLength(1)
-    expect(goalReads[0]).toBeGreaterThan(prune)
+    const result = await rebuildUserRollups(1)
+    expect(result).toEqual({ rows: pairs })
+
+    for (const query of queries) expect(query.params.length).toBeLessThan(PG_PARAM_LIMIT)
+    const prunes = queries.filter((q) => q.text.startsWith('delete from "app"."workout_exercise_rollups"'))
+    expect(prunes).toHaveLength(Math.ceil(SESSIONS / REBUILD_CHUNK))
+    for (const prune of prunes) {
+      expect(prune.text).toContain('not exists')
+      expect(prune.text).not.toContain('not in')
+      expect(prune.params.length).toBeLessThanOrEqual(REBUILD_CHUNK)
+    }
+    expect(queries.filter((q) => q.text.includes('"one_rep_max_rep_cap"'))).toHaveLength(1)
   })
 
-  it('a crash mid-loop leaves the existing rows alone', async () => {
-    const { rebuildRollups } = await import('../../server/utils/workouts/rollups')
-    state.failOnInsert = 2
-    await expect(rebuildRollups(1)).rejects.toThrow('crash')
-    expect(ops.filter((op) => op.startsWith('delete:'))).toEqual([])
+  it('locks each chunk of sessions before reading its sets, and prunes after upserting', async () => {
+    const { rebuildUserRollups } = await import('../../server/utils/workouts/rollups')
+    await rebuildUserRollups(1)
+    const begin = queries.findIndex((q) => q.text === 'begin')
+    const chunk = queries.slice(begin, queries.findIndex((q, i) => i > begin && q.text === 'commit') + 1)
+    const kinds = chunk.map((q) =>
+      q.text === 'begin' || q.text === 'commit'
+        ? q.text
+        : q.text.endsWith('for no key update')
+          ? 'lock'
+          : q.text.startsWith('insert')
+            ? 'upsert'
+            : q.text.startsWith('delete')
+              ? 'prune'
+              : 'read'
+    )
+    expect(kinds[0]).toBe('begin')
+    expect(kinds[1]).toBe('lock')
+    expect(kinds[2]).toBe('read')
+    expect(kinds.filter((k) => k === 'upsert').length).toBeGreaterThan(1)
+    expect(kinds.at(-2)).toBe('prune')
+    expect(kinds.at(-1)).toBe('commit')
   })
 })
