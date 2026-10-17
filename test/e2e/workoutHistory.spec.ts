@@ -35,7 +35,7 @@ test('workout history: newest first, records and totals, paged by limit', async 
   expect(paged.map((s) => s.sessionId)).toEqual([newer])
 })
 
-test('workout history: a keyset cursor pages past any limit without gaps or repeats, and the list loads more', async ({
+test('workout history: keyset pages have no gaps or repeats, and the list loads more past a deleted cursor', async ({
   page,
   goto
 }) => {
@@ -67,7 +67,10 @@ test('workout history: a keyset cursor pages past any limit without gaps or repe
   await page.locator('[data-test="history-view-list"]').click()
   const rows = page.locator('[data-test="session-row"]')
   await expect(rows).toHaveCount(20)
+  // Deleting the last loaded workout elsewhere removes the cursor the next page asks for.
+  await apiFetch(page, 'DELETE', `/api/workouts/sessions/${all[19]}`)
+  expect((await apiFetch(page, 'GET', `/api/workouts/sessions?limit=7&before=${all[19]}`)).status).toBe(410)
   await page.locator('[data-test="session-list-end"]').scrollIntoViewIfNeeded()
-  await expect(rows).toHaveCount(25)
+  await expect(rows).toHaveCount(24)
   await expect(page.locator('[data-test="session-list-end"]')).toHaveCount(0)
 })

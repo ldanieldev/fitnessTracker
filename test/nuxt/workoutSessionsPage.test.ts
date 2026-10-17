@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
-import { getQuery, readBody, type H3Event } from 'h3'
+import { createError, getQuery, readBody, type H3Event } from 'h3'
 import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import SessionsPage from '../../app/pages/workouts/sessions/index.vue'
 
-const { calls } = vi.hoisted(() => ({ calls: [] as Array<Record<string, string>> }))
+const { calls, deleted } = vi.hoisted(() => ({
+  calls: [] as Array<Record<string, string>>,
+  deleted: new Set<number>()
+}))
 
 // The global auth middleware runs on the test navigation, so the session must read as signed in.
 mockNuxtImport('useUserSession', () => () => ({
@@ -31,8 +34,11 @@ registerEndpoint('/api/workouts/sessions', {
   handler: (event: H3Event) => {
     const query = getQuery(event) as Record<string, string>
     calls.push(query)
+    if (deleted.has(Number(query.before))) throw createError({ statusCode: 410 })
     const below = query.before ? Number(query.before) : TOTAL + 1
-    return Array.from({ length: below - 1 }, (_, i) => summary(below - 1 - i)).slice(0, Number(query.limit))
+    return Array.from({ length: below - 1 }, (_, i) => summary(below - 1 - i))
+      .filter((row) => !deleted.has(row.id))
+      .slice(0, Number(query.limit))
   }
 })
 registerEndpoint('/api/workouts/programs', async () => {
@@ -54,6 +60,7 @@ const q = (sel: string) => document.querySelector<HTMLElement>(`[data-test="${se
 
 afterEach(() => {
   calls.length = 0
+  deleted.clear()
   clearNuxtData()
   document.body.innerHTML = ''
 })
@@ -117,6 +124,23 @@ describe('workouts/sessions page', () => {
     await settle()
     expect(calls.length).toBeGreaterThan(0)
     expect(calls.every((query) => query.limit === '20' && !query.categories)).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('starts over from the top when the cursor workout was deleted before loading more', async () => {
+    const wrapper = await mountSuspended(SessionsPage, {
+      route: '/workouts/sessions?view=list',
+      attachTo: document.body
+    })
+    await settle()
+    expect(document.querySelectorAll('[data-test="session-row"]')).toHaveLength(20)
+    deleted.add(6)
+    calls.length = 0
+    q('session-load-more')!.click()
+    await settle()
+    expect(calls.map((query) => query.before)).toEqual(['6', undefined, '5'])
+    expect(document.querySelectorAll('[data-test="session-row"]')).toHaveLength(24)
+    expect(q('session-load-more')).toBeNull()
     wrapper.unmount()
   })
 

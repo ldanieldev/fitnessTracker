@@ -121,13 +121,22 @@ const requestFetch = useRequestFetch()
 
 async function fetchPages(count: number, filter: string): Promise<WorkoutSessionSummary[]> {
   const kept = loaded?.filter === filter && loaded.rows.length === (count - 1) * PAGE_SIZE ? loaded.rows : []
-  const rows = [...kept]
+  let rows = [...kept]
   let last = PAGE_SIZE
+  let restarts = 0
   while (rows.length < count * PAGE_SIZE && last === PAGE_SIZE) {
     const before = rows.at(-1)?.id
-    const page = await (import.meta.server ? requestFetch : apiFetch)<WorkoutSessionSummary[]>(
-      `/api/workouts/sessions?limit=${PAGE_SIZE}${before ? `&before=${before}` : ''}${filter ? `&${filter}` : ''}`
-    )
+    let page: WorkoutSessionSummary[]
+    try {
+      page = await (import.meta.server ? requestFetch : apiFetch)<WorkoutSessionSummary[]>(
+        `/api/workouts/sessions?limit=${PAGE_SIZE}${before ? `&before=${before}` : ''}${filter ? `&${filter}` : ''}`
+      )
+    } catch (error) {
+      // 410: the last loaded workout was deleted, so its cursor is gone and the pages reload from the top.
+      if ((error as { statusCode?: number }).statusCode !== 410 || restarts++ >= 2) throw error
+      rows = []
+      continue
+    }
     rows.push(...page)
     last = page.length
   }

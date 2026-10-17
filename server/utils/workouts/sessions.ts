@@ -76,6 +76,15 @@ function olderThan(userId: number, sessionId: number) {
   )`
 }
 
+// A deleted cursor row makes the keyset comparison NULL; 410 tells the client to restart, not read it as the end.
+async function assertCursorExists(userId: number, sessionId: number) {
+  const [cursor] = await db
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(and(eq(workoutSessions.id, sessionId), eq(workoutSessions.userId, userId)))
+  if (!cursor) throw createError({ statusCode: 410, statusMessage: 'The cursor workout no longer exists; start over' })
+}
+
 export async function listSessions(userId: number, query: SessionListQuery): Promise<WorkoutSessionSummary[]> {
   const rows = await db
     .select({
@@ -96,6 +105,7 @@ export async function listSessions(userId: number, query: SessionListQuery): Pro
     .where(and(sessionFilterWhere(userId, query), query.before ? olderThan(userId, query.before) : undefined))
     .orderBy(desc(workoutSessions.performedOn), desc(workoutSessions.startedAt), desc(workoutSessions.id))
     .limit(query.limit)
+  if (!rows.length && query.before) await assertCursorExists(userId, query.before)
 
   const dots = sessionCategoryDots(
     await loadEntryCategories(
