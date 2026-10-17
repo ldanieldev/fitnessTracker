@@ -69,9 +69,12 @@ registerEndpoint('/api/workouts/routines', () => {
   hit('routines')
   return routines
 })
-registerEndpoint('/api/workouts/enrollment', () => {
-  hit('enrollment')
-  return null
+registerEndpoint('/api/workouts/enrollment/sync', {
+  method: 'POST',
+  handler: () => {
+    hit('enrollment')
+    return null
+  }
 })
 registerEndpoint('/api/dashboard/consistency', () => {
   hit('consistency')

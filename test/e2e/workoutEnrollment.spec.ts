@@ -19,7 +19,8 @@ async function program(page: Page, phases: { name: string; weeks: number; routin
   return (await apiFetch<Program>(page, 'GET', `/api/workouts/programs/${created.id}`)).json
 }
 
-const read = (page: Page, today: string) => apiFetch<Enrollment>(page, 'GET', `/api/workouts/enrollment?today=${today}`)
+const read = (page: Page, today: string) =>
+  apiFetch<Enrollment>(page, 'POST', '/api/workouts/enrollment/sync', { today })
 const active = async (page: Page) =>
   (await apiFetch<RoutineSummary[]>(page, 'GET', '/api/workouts/routines')).json
     .filter((r) => r.active)
@@ -605,4 +606,18 @@ test('changing the current phase\'s routine re-applies it on the next sync witho
   expect((await read(page, '2026-01-07')).json).toMatchObject({ notice: null, nextDay: { id: a.days[1]!.id } })
   expect(await active(page)).toEqual([a.id])
   expect(await pointer(page, a.id)).toBe(a.days[1]!.id)
+})
+
+test('reading the enrollment never syncs it', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const a = await routine(page, ['A1'])
+  const p = await program(page, [{ name: 'Build', weeks: 1, routineId: a.id }])
+  await apiFetch(page, 'POST', `/api/workouts/programs/${p.id}/enroll`, { when: 'now', today: '2026-01-07' })
+
+  const future = await apiFetch<Enrollment>(page, 'GET', '/api/workouts/enrollment?today=2999-01-01')
+  expect(future.json).toMatchObject({ status: 'active', state: 'finished', notice: null })
+  expect(await active(page)).toEqual([a.id])
+  expect((await read(page, '2026-01-08')).json).toMatchObject({ status: 'active', state: 'current' })
+  expect(await active(page)).toEqual([a.id])
 })

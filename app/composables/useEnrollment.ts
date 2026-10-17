@@ -4,11 +4,12 @@ import { todayDate } from '~~/shared/utils/nutritionSummary'
 export function useEnrollment() {
   const stored = useToday()
   const today = computed(() => stored.value ?? todayDate())
-  const fetch = useWorkoutFetch<Enrollment | null>(
+  const fetch = useAsyncData(
     WORKOUT_KEYS.enrollment,
-    () => `/api/workouts/enrollment?today=${today.value}`,
-    // 204 reaches useFetch as undefined; client-only because "today" is the device's local date.
-    { lazy: true, server: false, transform: (value: Enrollment | null) => value ?? null }
+    () =>
+      apiFetch<Enrollment | null>('/api/workouts/enrollment/sync', { method: 'POST', body: { today: today.value } }),
+    // A 204 resolves as undefined; client-only because "today" is the device's local date.
+    { lazy: true, server: false, watch: [today], dedupe: 'defer', transform: (value) => value ?? null }
   )
 
   async function post(path: string, body: Record<string, unknown> = {}) {

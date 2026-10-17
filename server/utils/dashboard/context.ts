@@ -4,8 +4,8 @@ import { z } from 'zod'
 import { users } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
-import { calendarDateSchema } from '~~/server/utils/validation'
-import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
+import { calendarDateSchema, isNearServerDate } from '~~/server/utils/validation'
+import { todayDate } from '~~/shared/utils/nutritionSummary'
 
 export interface DashboardContext {
   userId: number
@@ -20,8 +20,7 @@ const todayQuerySchema = z.object({ today: calendarDateSchema.optional() })
 export function parseTodayQuery(event: H3Event): string | undefined {
   const { today } = parseQuery(event, todayQuerySchema)
   if (today === undefined) return undefined
-  const server = todayDate()
-  if (today < shiftDate(server, -1) || today > shiftDate(server, 1)) {
+  if (!isNearServerDate(today)) {
     throw createError({ statusCode: 400, statusMessage: 'today must be within a day of the server date' })
   }
   return today

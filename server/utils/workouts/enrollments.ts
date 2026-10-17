@@ -139,8 +139,13 @@ async function nextDayOf(routineId: number) {
   return due ? { id: due.id, name: due.name } : null
 }
 
-export async function loadEnrollment(userId: number, today = utcToday()): Promise<Enrollment | null> {
+export async function syncAndLoadEnrollment(userId: number, today = utcToday()): Promise<Enrollment | null> {
   await db.transaction((tx) => syncEnrollment(tx, userId, today))
+  return loadEnrollment(userId, today)
+}
+
+// Read-only: the position is computed for display, while phase rollovers persist only through POST routes.
+export async function loadEnrollment(userId: number, today = utcToday()): Promise<Enrollment | null> {
   const row = await db
     .select()
     .from(userProgramEnrollments)

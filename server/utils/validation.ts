@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { z } from 'zod'
 import { isCalendarDate } from '~~/shared/utils/calendarDate'
+import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 
 export const INT4_MAX = 2_147_483_647
 export const SMALLINT_MAX = 32_767
@@ -19,6 +20,18 @@ export const calendarDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
   .refine(isCalendarDate, 'Date must be a real calendar date')
+
+/** Within a day of the server's date: the most a client's local "today" can differ from it. */
+export function isNearServerDate(date: string): boolean {
+  const server = todayDate()
+  return date >= shiftDate(server, -1) && date <= shiftDate(server, 1)
+}
+
+/** A client "today" that drives a write; e2e builds accept any date so specs can simulate weeks passing. */
+export const nearTodaySchema = calendarDateSchema.refine(
+  (date) => process.env.NUXT_TEST_FIXTURES === '1' || isNearServerDate(date),
+  'today must be within a day of the server date'
+)
 
 /** Reads a numeric route param, answering 400 for anything that is not a valid id. */
 export function routeId(event: H3Event, name = 'id'): number {

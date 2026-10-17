@@ -6,10 +6,12 @@ import {
   calendarDateSchema,
   idParamSchema,
   INT4_MAX,
+  nearTodaySchema,
   routeId,
   zId
 } from '../../server/utils/validation'
 import { isCalendarDate } from '../../shared/utils/calendarDate'
+import { shiftDate, todayDate } from '../../shared/utils/nutritionSummary'
 import { scaleStoredIngredientSnapshot } from '../../shared/utils/nutritionRecipe'
 
 describe('isCalendarDate', () => {
@@ -196,5 +198,28 @@ describe('scaleStoredIngredientSnapshot', () => {
       { ...item, quantity: 60, gramsResolved: 60, nutrients: { energy: 225 } }
     ])
     expect(scaleStoredIngredientSnapshot(null, 2)).toBeNull()
+  })
+})
+
+describe('nearTodaySchema', () => {
+  const fixtures = process.env.NUXT_TEST_FIXTURES
+  afterEach(() => {
+    process.env.NUXT_TEST_FIXTURES = fixtures
+    if (fixtures === undefined) delete process.env.NUXT_TEST_FIXTURES
+  })
+
+  it('accepts a day either side of the server date and rejects anything further', () => {
+    delete process.env.NUXT_TEST_FIXTURES
+    const server = todayDate()
+    for (const days of [-1, 0, 1]) expect(nearTodaySchema.safeParse(shiftDate(server, days)).success).toBe(true)
+    expect(nearTodaySchema.safeParse(shiftDate(server, 2)).success).toBe(false)
+    expect(nearTodaySchema.safeParse(shiftDate(server, -2)).success).toBe(false)
+    expect(nearTodaySchema.safeParse('2999-01-01').success).toBe(false)
+  })
+
+  it('lets e2e builds simulate any date', () => {
+    process.env.NUXT_TEST_FIXTURES = '1'
+    expect(nearTodaySchema.safeParse('2999-01-01').success).toBe(true)
+    expect(nearTodaySchema.safeParse('2026-02-30').success).toBe(false)
   })
 })

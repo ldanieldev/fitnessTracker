@@ -9,7 +9,14 @@ import { CATEGORY_COLORS } from '~~/shared/utils/categoryColors'
 import { START_WHEN_VALUES } from '~~/shared/types/program'
 import { plateSizesSchema } from '~~/shared/utils/plates'
 import { SET_LIMITS } from '~~/shared/utils/setRules'
-import { calendarDateSchema, idParamSchema, INT4_MAX, SMALLINT_MAX, zId } from '~~/server/utils/validation'
+import {
+  calendarDateSchema,
+  idParamSchema,
+  INT4_MAX,
+  nearTodaySchema,
+  SMALLINT_MAX,
+  zId
+} from '~~/server/utils/validation'
 
 const isoDate = calendarDateSchema
 
@@ -215,7 +222,7 @@ export const routinePatchSchema = z.object({
   active: z.boolean().optional(),
   nextDayId: zId.optional(),
   pauseProgram: z.boolean().optional(),
-  today: isoDate.optional()
+  today: nearTodaySchema.optional()
 })
 
 export type RoutineCreateInput = z.infer<typeof routineCreateSchema>
@@ -285,13 +292,13 @@ export const enrollmentQuerySchema = z.object({ today: isoDate.optional() })
 
 export const enrollSchema = z.object({
   when: z.enum(START_WHEN_VALUES),
-  today: isoDate.optional(),
+  today: nearTodaySchema.optional(),
   replace: z.boolean().optional()
 })
 
-export const enrollmentPauseSchema = z.object({ today: isoDate.optional() })
+export const enrollmentTodaySchema = z.object({ today: nearTodaySchema.optional() })
 
-export const enrollmentResumeSchema = z.object({ when: z.enum(START_WHEN_VALUES), today: isoDate.optional() })
+export const enrollmentResumeSchema = z.object({ when: z.enum(START_WHEN_VALUES), today: nearTodaySchema.optional() })
 
 export type EnrollInput = z.infer<typeof enrollSchema>
 export type EnrollmentResumeInput = z.infer<typeof enrollmentResumeSchema>
