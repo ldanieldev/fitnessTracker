@@ -35,7 +35,7 @@ test('search and recent hits carry perDefault; favorites=1 lists favourites only
   expect(favs.json.map((r) => r.id)).toEqual([egg.json.id])
 })
 
-test('diary/logged returns the dates with a diary row in range', async ({ page, goto }) => {
+test('diary/logged returns the dates with food logged in range', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const containers = (await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')).json
@@ -61,7 +61,7 @@ test('diary/logged returns the dates with a diary row in range', async ({ page, 
     'GET',
     '/api/nutrition/diary/logged?from=2026-09-07&to=2026-09-13'
   )
-  expect(logged.json.dates).toEqual(['2026-09-08', '2026-09-10'])
+  expect(logged.json.dates).toEqual(['2026-09-08'])
   const tooWide = await apiFetch(page, 'GET', '/api/nutrition/diary/logged?from=2026-01-01&to=2026-12-31')
   expect(tooWide.status).toBe(400)
 })

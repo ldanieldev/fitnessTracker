@@ -1,6 +1,6 @@
-import { and, asc, between, eq } from 'drizzle-orm'
+import { and, asc, between, eq, exists } from 'drizzle-orm'
 import { z } from 'zod'
-import { diaryDays } from '~~/server/db/schema'
+import { diaryDays, diaryEntries } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
@@ -21,7 +21,13 @@ export default defineEventHandler(async (event) => {
   const rows = await db
     .select({ date: diaryDays.date })
     .from(diaryDays)
-    .where(and(eq(diaryDays.userId, userId), between(diaryDays.date, from, to)))
+    .where(
+      and(
+        eq(diaryDays.userId, userId),
+        between(diaryDays.date, from, to),
+        exists(db.select({ id: diaryEntries.id }).from(diaryEntries).where(eq(diaryEntries.dayId, diaryDays.id)))
+      )
+    )
     .orderBy(asc(diaryDays.date))
   return { dates: rows.map((r) => String(r.date)) }
 })

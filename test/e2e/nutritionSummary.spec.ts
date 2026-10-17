@@ -44,6 +44,30 @@ test('rolling summary excludes an unlogged day rather than treating it as zero',
   expect(fifth.rolling.energy).toBe((1900 + 2000) / 2)
 })
 
+test('a day with a diary row but no food is unlogged, not a 0 kcal day', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  await logDay(page, '2026-03-01', 1800)
+  await logDay(page, '2026-03-03', 2000)
+  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
+  await apiFetch(page, 'PUT', '/api/nutrition/diary/2026-03-02/meal-time', {
+    containerId: containers.json[0]!.id,
+    time: '08:00'
+  })
+
+  const summary = await apiFetch<{
+    days: Array<{
+      date: string
+      logged: boolean
+      totals: Record<string, number | null>
+      rolling: Record<string, number | null>
+    }>
+  }>(page, 'GET', '/api/nutrition/diary/summary?from=2026-03-01&to=2026-03-03&window=3')
+  const empty = summary.json.days.find((d) => d.date === '2026-03-02')!
+  expect(empty).toMatchObject({ logged: false, totals: { energy: null } })
+  expect(summary.json.days.find((d) => d.date === '2026-03-03')!.rolling.energy).toBe((1800 + 2000) / 2)
+})
+
 test('export returns json with nulled unlogged totals', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())

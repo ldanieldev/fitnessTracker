@@ -118,6 +118,17 @@ export async function loadIntakeRange(
     targetsByDay.set(row.dayId, rec)
   }
 
+  const daysWithEntries = new Set(
+    dayIds.length
+      ? (
+          await db
+            .selectDistinct({ dayId: diaryEntries.dayId })
+            .from(diaryEntries)
+            .where(inArray(diaryEntries.dayId, dayIds))
+        ).map((row) => row.dayId)
+      : []
+  )
+
   const totalsByDay = new Map<number, Record<string, number>>()
   for (const row of totalRows) {
     const rec = totalsByDay.get(row.dayId) ?? {}
@@ -130,10 +141,11 @@ export async function loadIntakeRange(
 
   const days: RangeDay[] = dates.map((date) => {
     const day = dayByDate.get(date)
-    if (!day) {
+    // A diary_days row also exists for a day with only a goal profile, flag or meal time: that is no food, not 0 kcal.
+    if (!day || !daysWithEntries.has(day.id)) {
       const totals: Record<string, number | null> = {}
       for (const n of nutrientRows) totals[n.key] = null
-      return { date, logged: false, incomplete: false, totals, targets: null, profileName: null }
+      return { date, logged: false, incomplete: day?.incomplete ?? false, totals, targets: null, profileName: null }
     }
 
     const dayTotals = totalsByDay.get(day.id) ?? {}
