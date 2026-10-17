@@ -1,6 +1,6 @@
 const NUMERIC = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/
-// Spreadsheets run a cell starting with one of these as a formula (CSV injection); OWASP's fix is a leading quote.
-const FORMULA_START = /^[=+\-@\t\r]/
+// Spreadsheets run a cell led by one of these, even after spaces or full width, as a formula; OWASP's fix is a quote.
+const FORMULA_START = /^(?:[\t\r]|\s*[=+\-@\uFF1D\uFF0B\uFF0D\uFF20])/
 
 export function csvCell(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return ''

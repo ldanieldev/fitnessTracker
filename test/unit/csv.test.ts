@@ -28,6 +28,17 @@ describe('csvCell formula injection', () => {
     expect(csvCell('\rcmd')).toBe(`"'\rcmd"`)
   })
 
+  it('also catches a trigger after leading whitespace and the full-width trigger characters', () => {
+    expect(csvCell('  =1+1')).toBe(`'  =1+1`)
+    expect(csvCell('\n@SUM(A1)')).toBe(`"'\n@SUM(A1)"`)
+    expect(csvCell('\u3000-2+3')).toBe(`'\u3000-2+3`)
+    expect(csvCell('＝HYPERLINK("http://x")')).toBe(`"'＝HYPERLINK(""http://x"")"`)
+    expect(csvCell('＋1')).toBe(`'＋1`)
+    expect(csvCell('－1')).toBe(`'－1`)
+    expect(csvCell('＠SUM(A1)')).toBe(`'＠SUM(A1)`)
+    expect(csvCell(' Bench = heavy')).toBe(' Bench = heavy')
+  })
+
   it('leaves numbers, numeric text and safe text alone', () => {
     expect(csvCell(-5)).toBe('-5')
     expect(csvCell(-0.5)).toBe('-0.5')
