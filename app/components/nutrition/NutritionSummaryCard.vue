@@ -92,8 +92,8 @@ const energyColor = computed(() => (energyRow.value?.state === 'over' ? 'error' 
 const energyTotalText = computed(() => {
   const row = energyRow.value
   if (!row) return '—'
-  const consumedText = Math.round(row.consumed).toLocaleString()
-  return row.amount === null ? consumedText : `${consumedText} / ${Math.round(row.amount).toLocaleString()}`
+  const consumedText = Math.round(row.consumed).toLocaleString('en-US')
+  return row.amount === null ? consumedText : `${consumedText} / ${Math.round(row.amount).toLocaleString('en-US')}`
 })
 
 function barValue(row: SummaryRow): string {

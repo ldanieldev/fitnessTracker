@@ -99,7 +99,7 @@ function display(measure: SetMeasure) {
 const volume = computed(() => {
   if (!measures.value.includes('weight') || !measures.value.includes('reps')) return null
   if (props.set.weight == null || props.set.reps == null) return null
-  return (props.set.weight * props.set.reps).toLocaleString()
+  return (props.set.weight * props.set.reps).toLocaleString('en-US')
 })
 
 const recordLabel = computed(() => props.set.records.map((record) => RECORD_LABEL[record.kind]).join(', '))

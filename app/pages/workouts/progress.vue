@@ -58,7 +58,7 @@ function goalDate(date: string) {
 }
 
 function formatNumber(value: number) {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+  return value.toLocaleString('en-US', { maximumFractionDigits: 1 })
 }
 
 function goalAmount(metric: GraphMetric, value: number | null) {

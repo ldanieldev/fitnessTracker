@@ -86,7 +86,7 @@ const showBar = computed(() => props.entry.loadStyle === 'barbell' && props.entr
 const totalVolume = computed(() => {
   if (!measures.value.includes('weight') || !measures.value.includes('reps') || props.entry.sets.length === 0)
     return null
-  return props.entry.sets.reduce((sum, set) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0).toLocaleString()
+  return props.entry.sets.reduce((sum, set) => sum + (set.weight ?? 0) * (set.reps ?? 0), 0).toLocaleString('en-US')
 })
 
 const menu = computed<DropdownMenuItem[][]>(() => [

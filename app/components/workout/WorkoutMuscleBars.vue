@@ -10,7 +10,7 @@ function widthFor(volume: number): string {
 }
 
 function formatVolume(volume: number): string {
-  return volume.toLocaleString(undefined, { maximumFractionDigits: 1 })
+  return volume.toLocaleString('en-US', { maximumFractionDigits: 1 })
 }
 </script>
 
