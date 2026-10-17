@@ -134,14 +134,24 @@ async function captureFrame() {
       const hit = await decodeBarcode(imageData)
       if (hit && isSupportedBarcodeFormat(hit.format)) await handleHit(hit.text)
     }
+  } catch {
+    cameraFailed('Barcode scanning stopped — use manual entry below')
   } finally {
     processingFrame = false
   }
 }
 
+function cameraFailed(message = 'Camera unavailable — use manual entry below') {
+  stopScanning()
+  if (!unmounted && !permissionError.value) permissionError.value = message
+}
+
+const cancelled = () => unmounted || stopped
+
 async function startCamera() {
+  let media: MediaStream
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
   } catch (err: unknown) {
     const name = typeof err === 'object' && err !== null && 'name' in err ? (err as { name: unknown }).name : undefined
     permissionError.value =
@@ -150,13 +160,25 @@ async function startCamera() {
         : 'Camera unavailable — use manual entry below'
     return
   }
-  await nextTick()
-  const video = videoEl.value
-  if (!video) return
-  video.srcObject = stream
-  await video.play()
-  await setupDetector()
-  frameTimer = setInterval(captureFrame, FRAME_INTERVAL_MS)
+  if (cancelled()) {
+    for (const track of media.getTracks()) track.stop()
+    return
+  }
+  stream = media
+  try {
+    await nextTick()
+    const video = videoEl.value
+    if (cancelled() || !video) return stopScanning()
+    video.srcObject = stream
+    await video.play()
+    if (cancelled()) return stopScanning()
+    await setupDetector()
+    if (cancelled()) return stopScanning()
+    frameTimer = setInterval(captureFrame, FRAME_INTERVAL_MS)
+  } catch {
+    if (cancelled()) stopScanning()
+    else cameraFailed()
+  }
 }
 
 async function submitManual() {

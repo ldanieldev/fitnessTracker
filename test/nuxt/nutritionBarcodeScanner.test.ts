@@ -179,4 +179,51 @@ describe('NutritionBarcodeScanner', () => {
 
     expect(navigateToMock).not.toHaveBeenCalled()
   })
+
+  it('stops the camera tracks when unmounted while getUserMedia is still pending', async () => {
+    stubSecureContext(true)
+    const stop = vi.fn()
+    let grant: (stream: MediaStream) => void = () => {}
+    stubMediaDevices(() => new Promise((resolve) => (grant = resolve)))
+
+    const wrapper = await mountSuspended(NutritionBarcodeScanner, { props: { date: '2026-01-01' } })
+    await flushPromises()
+    wrapper.unmount()
+    grant({ getTracks: () => [{ stop }] } as unknown as MediaStream)
+    await flushPromises()
+
+    expect(stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops scanning and shows the manual-entry hint once when frames keep failing', async () => {
+    stubSecureContext(true)
+    const stop = vi.fn()
+    stubMediaDevices(() => Promise.resolve({ getTracks: () => [{ stop }] } as unknown as MediaStream))
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    const srcObject = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'srcObject')
+    Object.defineProperty(HTMLMediaElement.prototype, 'srcObject', { set: () => {}, configurable: true })
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', { get: () => 640, configurable: true })
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get: () => 480, configurable: true })
+    const drawImage = vi.fn(() => {
+      throw new Error('frame failed')
+    })
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage
+    } as unknown as CanvasRenderingContext2D)
+
+    const wrapper = await mountSuspended(NutritionBarcodeScanner, { props: { date: '2026-01-01' } })
+    await vi.waitFor(() => expect(wrapper.find('[data-test="scan-permission-notice"]').exists()).toBe(true))
+    await new Promise((resolve) => setTimeout(resolve, 600))
+
+    expect(drawImage).toHaveBeenCalledTimes(1)
+    expect(stop).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-test="scan-permission-notice"]').text()).toContain('manual entry')
+    expect(wrapper.find('[data-test="scan-manual-input"]').exists()).toBe(true)
+    wrapper.unmount()
+    vi.restoreAllMocks()
+    Reflect.deleteProperty(HTMLVideoElement.prototype, 'videoWidth')
+    Reflect.deleteProperty(HTMLVideoElement.prototype, 'videoHeight')
+    if (srcObject) Object.defineProperty(HTMLMediaElement.prototype, 'srcObject', srcObject)
+    else Reflect.deleteProperty(HTMLMediaElement.prototype, 'srcObject')
+  })
 })
