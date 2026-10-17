@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { isDiaryDateRoute } from '~/utils/nutrition/diaryDateParam'
+
+definePageMeta({ validate: isDiaryDateRoute })
+
 const route = useRoute()
 const date = computed(() => String(route.params.date))
 const containerId = computed(() => {

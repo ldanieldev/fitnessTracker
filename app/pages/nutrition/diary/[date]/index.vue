@@ -5,14 +5,14 @@ import type { CopyOverride } from '~~/shared/utils/nutritionCopy'
 import type { DayAction } from '~/components/nutrition/NutritionDayHeader.vue'
 import { weekOf } from '~/utils/nutrition/week'
 import { deriveMealTime } from '~/utils/nutrition/mealTime'
+import { isCalendarDate } from '~~/shared/utils/calendarDate'
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MODE_STORAGE_KEY = 'nutrition.diary.mode'
 
 const route = useRoute()
 const rawParam = computed(() => String(route.params.date))
 
-if (!DATE_RE.test(rawParam.value)) {
+if (!isCalendarDate(rawParam.value)) {
   await navigateTo('/nutrition/diary/today', { replace: true })
 }
 

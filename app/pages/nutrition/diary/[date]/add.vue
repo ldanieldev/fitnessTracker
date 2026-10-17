@@ -2,6 +2,9 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import NutritionFoodPicker from '~/components/nutrition/NutritionFoodPicker.vue'
 import type { DiaryEntryInput } from '~/composables/useDiaryDay'
+import { isDiaryDateRoute } from '~/utils/nutrition/diaryDateParam'
+
+definePageMeta({ validate: isDiaryDateRoute })
 
 interface RecipeRow {
   id: number
