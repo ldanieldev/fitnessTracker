@@ -3,6 +3,7 @@ import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { DEFAULT_PLATE_SIZES, plateSizesSchema } from '~~/shared/utils/plates'
 import WorkoutPlateSizesPicker from '~/components/workout/WorkoutPlateSizesPicker.vue'
+import { errorMessage } from '~/utils/apiError'
 
 const { user, fetch: fetchSession } = useUserSession()
 const { defaultRestSeconds, plateSizes, oneRepMaxRepCap, workoutsPerWeek } = useWorkoutPrefs()
@@ -49,13 +50,9 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       color: 'success'
     })
   } catch (error: unknown) {
-    const message =
-      error instanceof Error && 'data' in error
-        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-        : undefined
     toast.add({
       title: 'Update failed',
-      description: message || 'Could not update preferences',
+      description: errorMessage(error, 'Could not update preferences'),
       color: 'error'
     })
   } finally {

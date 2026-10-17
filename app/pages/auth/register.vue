@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { errorMessage } from '~/utils/apiError'
 
 const { fetch: fetchSession } = useUserSession()
 const toast = useToast()
@@ -103,13 +104,9 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     await fetchSession()
     await navigateTo('/')
   } catch (error: unknown) {
-    const message =
-      error instanceof Error && 'data' in error
-        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-        : undefined
     toast.add({
       title: 'Registration failed',
-      description: message || 'Registration failed',
+      description: errorMessage(error, 'Registration failed'),
       color: 'error'
     })
   } finally {

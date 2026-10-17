@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
   hasCredentials: boolean
@@ -60,13 +61,9 @@ async function onSubmit(payload: FormSubmitEvent<SchemaWithCurrent | SchemaWitho
     state.newPassword = ''
     state.confirmPassword = ''
   } catch (error: unknown) {
-    const message =
-      error instanceof Error && 'data' in error
-        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-        : undefined
     toast.add({
       title: 'Failed',
-      description: message || 'Could not update password',
+      description: errorMessage(error, 'Could not update password'),
       color: 'error'
     })
   } finally {

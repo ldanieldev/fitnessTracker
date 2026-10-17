@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { errorMessage } from '~/utils/apiError'
+
 interface LinkedProvider {
   provider: string
   providerAccountId: string
@@ -61,13 +63,9 @@ async function unlink(provider: string) {
     })
     emit('unlinked')
   } catch (error: unknown) {
-    const message =
-      error instanceof Error && 'data' in error
-        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-        : undefined
     toast.add({
       title: 'Failed to unlink',
-      description: message || 'Could not unlink provider',
+      description: errorMessage(error, 'Could not unlink provider'),
       color: 'error'
     })
   } finally {
