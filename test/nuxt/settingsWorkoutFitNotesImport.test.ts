@@ -186,4 +186,39 @@ describe('SettingsWorkoutFitNotesImport', () => {
     expect(wrapper.find('input[data-test="fitnotes-file"]').exists()).toBe(true)
     wrapper.unmount()
   })
+
+  it('ignores a slower preview of an earlier pick once a newer file is chosen', async () => {
+    let releaseFirst: () => void = () => {}
+    registerEndpoint('/api/workouts/import/fitnotes/preview', {
+      method: 'POST',
+      handler: async (event) => {
+        const { csv } = await readBody<{ csv: string }>(event)
+        if (csv === 'first') {
+          await new Promise<void>((resolve) => (releaseFirst = resolve))
+          return { ...preview, sets: 111 }
+        }
+        return { ...preview, sets: 222 }
+      }
+    })
+    const wrapper = await mountSuspended(SettingsWorkoutFitNotesImport)
+    // The file input is disabled while previewing, so the test sets the model directly to start an overlapping preview.
+    const pick = (text: string, name: string) => {
+      ;(wrapper.vm as unknown as { file: File | null }).file = new File([text], name, { type: 'text/csv' })
+    }
+
+    pick('first', 'first.csv')
+    await vi.waitFor(() => expect(wrapper.find('[data-test="fitnotes-reading"]').exists()).toBe(true))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    pick('second', 'second.csv')
+    await vi.waitFor(() => expect(wrapper.find('[data-test="fitnotes-summary"]').exists()).toBe(true))
+    expect(wrapper.find('[data-test="fitnotes-summary"]').text()).toContain('222 sets')
+
+    releaseFirst()
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(wrapper.find('[data-test="fitnotes-summary"]').text()).toContain('222 sets')
+    expect(wrapper.find('[data-test="fitnotes-summary"]').text()).toContain('second.csv')
+    wrapper.unmount()
+  })
 })

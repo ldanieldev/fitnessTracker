@@ -19,6 +19,8 @@ interface ImportJob {
   error: string | null
 }
 
+const LOST_MESSAGE = 'It may still be running. Reload this page later before importing this file again.'
+
 const toast = useToast()
 
 const csv = ref<string | null>(null)
@@ -31,8 +33,9 @@ const onlyNew = ref(false)
 const status = ref<JobStatus | null>(null)
 const result = ref<FitNotesImportResult | null>(null)
 const jobError = ref<string | null>(null)
-let pollTimer: ReturnType<typeof setTimeout> | null = null
-let unmounted = false
+const lost = ref(false)
+const poller = useJobPoll<ImportJob>()
+let previewRun = 0
 const file = ref<File | null>(null)
 
 const running = computed(() => status.value === 'queued' || status.value === 'running')
@@ -58,6 +61,7 @@ watch(file, async (picked) => {
     file.value = null
     return
   }
+  const current = ++previewRun
   fileName.value = picked.name
   previewing.value = true
   try {
@@ -66,10 +70,12 @@ watch(file, async (picked) => {
       method: 'POST',
       body: { csv: text }
     })
+    if (current !== previewRun) return
     csv.value = text
     preview.value = data
     targets.value = Object.fromEntries(data.exercises.map((e) => [e.name, e.match]))
   } catch (error: unknown) {
+    if (current !== previewRun) return
     toast.add({
       title: 'Can’t read this file',
       description: errorMessage(error, 'Not a FitNotes export'),
@@ -77,7 +83,7 @@ watch(file, async (picked) => {
     })
     file.value = null
   } finally {
-    previewing.value = false
+    if (current === previewRun) previewing.value = false
   }
 })
 
@@ -87,7 +93,9 @@ function reset() {
 }
 
 function clearImport() {
-  clearPoll()
+  previewRun++
+  previewing.value = false
+  poller.stop()
   csv.value = null
   fileName.value = ''
   preview.value = null
@@ -134,36 +142,30 @@ function years(row: FitNotesPreviewExercise) {
   return first === last ? first : `${first}–${last}`
 }
 
-function clearPoll() {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = null
-  }
-}
-
 function poll(jobId: number) {
-  pollTimer = setTimeout(async () => {
-    try {
-      const job = await apiFetch<ImportJob>(`/api/workouts/import/fitnotes/${jobId}`)
-      if (unmounted) return
+  poller.start(`/api/workouts/import/fitnotes/${jobId}`, {
+    onJob: async (job) => {
       status.value = job.status
-      if (job.status === 'done' || job.status === 'failed') {
-        result.value = job.result
-        jobError.value = job.error
-        if (job.status === 'done') await invalidateWorkouts()
-      } else {
-        poll(jobId)
-      }
-    } catch (error: unknown) {
-      if (unmounted) return
+      if (job.status !== 'done' && job.status !== 'failed') return false
+      result.value = job.result
+      jobError.value = job.error
+      if (job.status === 'done') await invalidateWorkouts()
+      return true
+    },
+    onGiveUp: (error, mayBeRunning) => {
       status.value = null
-      toast.add({ title: 'Import failed', description: errorMessage(error, 'Import failed'), color: 'error' })
+      lost.value = mayBeRunning
+      toast.add({
+        title: mayBeRunning ? 'Lost track of the import' : 'Import failed',
+        description: mayBeRunning ? LOST_MESSAGE : errorMessage(error, 'Import failed'),
+        color: 'error'
+      })
     }
-  }, 2000)
+  })
 }
 
 async function submit() {
-  if (!csv.value || running.value) return
+  if (!csv.value || running.value || lost.value) return
   status.value = 'queued'
   const mapping = Object.fromEntries(Object.entries(targets.value).map(([name, option]) => [name, option?.id ?? null]))
   try {
@@ -177,11 +179,6 @@ async function submit() {
     toast.add({ title: 'Import failed', description: errorMessage(error, 'Import failed'), color: 'error' })
   }
 }
-
-onBeforeUnmount(() => {
-  unmounted = true
-  clearPoll()
-})
 </script>
 
 <template>
@@ -292,7 +289,7 @@ onBeforeUnmount(() => {
         <UButton
           label="Import"
           :loading="running"
-          :disabled="running"
+          :disabled="running || lost"
           data-test="fitnotes-submit"
           @click="submit"
         />
@@ -307,6 +304,9 @@ onBeforeUnmount(() => {
       </div>
       <p v-if="running" class="text-sm text-dimmed" data-test="fitnotes-status">
         Importing… this can take a minute for years of history.
+      </p>
+      <p v-if="lost" class="text-sm text-warning" data-test="fitnotes-lost">
+        Lost track of the import. {{ LOST_MESSAGE }}
       </p>
     </template>
 

@@ -14,6 +14,8 @@ interface ImportJob {
 
 const emit = defineEmits<{ imported: [] }>()
 
+const LOST_MESSAGE = 'It may still be running. Reload this page later before importing these files again.'
+
 const toast = useToast()
 
 const selectedFiles = ref<File[]>([])
@@ -21,8 +23,8 @@ const uploading = ref(false)
 const status = ref<ImportJob['status'] | null>(null)
 const result = ref<ImportResult | null>(null)
 const jobError = ref<string | null>(null)
-let pollTimer: ReturnType<typeof setTimeout> | null = null
-let unmounted = false
+const lost = ref(false)
+const poller = useJobPoll<ImportJob>()
 
 // UFileUpload appends each drop to the list, so a re-dropped file would otherwise be uploaded twice.
 const files = computed({
@@ -40,46 +42,40 @@ const files = computed({
   }
 })
 
-function clearPoll() {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = null
-  }
-}
-
 function poll(jobId: number) {
-  pollTimer = setTimeout(async () => {
-    try {
-      const job = await apiFetch<ImportJob>(`/api/nutrition/import/mymacros/${jobId}`)
-      if (unmounted) return
+  poller.start(`/api/nutrition/import/mymacros/${jobId}`, {
+    onJob: async (job) => {
       status.value = job.status
-      if (job.status === 'done' || job.status === 'failed') {
-        result.value = job.result
-        jobError.value = job.error
-        uploading.value = false
-        if (job.status === 'done') {
-          await invalidateNutrition(
-            NUTRITION_KEYS.foods,
-            NUTRITION_KEYS.containers,
-            NUTRITION_KEYS.containersAll,
-            'nutrition:day:',
-            'nutrition:logged:'
-          )
-          emit('imported')
-        }
-      } else {
-        poll(jobId)
-      }
-    } catch (error: unknown) {
-      if (unmounted) return
+      if (job.status !== 'done' && job.status !== 'failed') return false
+      result.value = job.result
+      jobError.value = job.error
       uploading.value = false
-      toast.add({ title: 'Import failed', description: errorMessage(error, 'Import failed'), color: 'error' })
+      if (job.status === 'done') {
+        await invalidateNutrition(
+          NUTRITION_KEYS.foods,
+          NUTRITION_KEYS.containers,
+          NUTRITION_KEYS.containersAll,
+          'nutrition:day:',
+          'nutrition:logged:'
+        )
+        emit('imported')
+      }
+      return true
+    },
+    onGiveUp: (error, mayBeRunning) => {
+      uploading.value = false
+      lost.value = mayBeRunning
+      toast.add({
+        title: mayBeRunning ? 'Lost track of the import' : 'Import failed',
+        description: mayBeRunning ? LOST_MESSAGE : errorMessage(error, 'Import failed'),
+        color: 'error'
+      })
     }
-  }, 2000)
+  })
 }
 
 async function submit() {
-  if (!selectedFiles.value.length || uploading.value) return
+  if (!selectedFiles.value.length || uploading.value || lost.value) return
   uploading.value = true
   status.value = null
   result.value = null
@@ -107,11 +103,6 @@ async function submit() {
     })
   }
 }
-
-onBeforeUnmount(() => {
-  unmounted = true
-  clearPoll()
-})
 </script>
 
 <template>
@@ -138,9 +129,11 @@ onBeforeUnmount(() => {
       data-test="import-submit"
       class="self-start"
       :loading="uploading"
-      :disabled="uploading || !selectedFiles.length"
+      :disabled="uploading || lost || !selectedFiles.length"
       @click="submit"
     />
+
+    <p v-if="lost" data-test="import-lost" class="text-sm text-warning">Lost track of the import. {{ LOST_MESSAGE }}</p>
 
     <p v-if="status" data-test="import-status" class="text-sm text-dimmed">Status: {{ status }}</p>
 

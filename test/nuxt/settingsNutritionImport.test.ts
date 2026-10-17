@@ -252,4 +252,98 @@ describe('SettingsNutritionImport', () => {
     expect(call.description).toContain('42')
     expect(wrapper.find('[data-test="import-submit"]').attributes('disabled')).toBeUndefined()
   })
+
+  async function startImport(jobId: number, status: () => unknown) {
+    registerEndpoint('/api/nutrition/import/mymacros', { method: 'POST', handler: () => ({ jobId }) })
+    registerEndpoint(`/api/nutrition/import/mymacros/${jobId}`, status)
+    const wrapper = await mountSuspended(SettingsNutritionImport)
+    const input = wrapper.find('[data-test="import-files"]')
+    setFiles(input)
+    await input.trigger('change')
+    vi.useFakeTimers()
+    await wrapper.find('[data-test="import-submit"]').trigger('click')
+    await vi.advanceTimersByTimeAsync(0)
+    return wrapper
+  }
+
+  const doneJob = (id: number) => ({
+    id,
+    status: 'done',
+    fileCount: 2,
+    result: {
+      days: 1,
+      entries: 3,
+      entriesSkipped: 0,
+      foodsCreated: 0,
+      foodsReused: 0,
+      containersCreated: 0,
+      warnings: [],
+      failedFiles: []
+    },
+    error: null,
+    createdAt: '2026-09-05T00:00:00Z'
+  })
+
+  it('retries a transient status failure with backoff and still finishes the import', async () => {
+    let calls = 0
+    const wrapper = await startImport(21, () => {
+      calls++
+      if (calls <= 2) throw createError({ statusCode: 503, statusMessage: 'Service Unavailable' })
+      return doneJob(21)
+    })
+
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(calls).toBe(1)
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(calls).toBe(2)
+    await vi.advanceTimersByTimeAsync(8000)
+    vi.useRealTimers()
+
+    await vi.waitFor(() => expect(wrapper.find('[data-test="import-summary"]').exists()).toBe(true))
+    expect(calls).toBe(3)
+    expect(toastAddMock).not.toHaveBeenCalled()
+    expect(wrapper.emitted('imported')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('keeps Import disabled after giving up on repeated transient failures, since the job may still run', async () => {
+    let calls = 0
+    const wrapper = await startImport(22, () => {
+      calls++
+      throw createError({ statusCode: 502, statusMessage: 'Bad Gateway' })
+    })
+
+    await vi.advanceTimersByTimeAsync(2000 + 4000 + 8000 + 16000 + 30000 + 30000)
+    vi.useRealTimers()
+    await flushPromises()
+
+    expect(calls).toBe(6)
+    expect(toastAddMock).toHaveBeenCalledTimes(1)
+    expect(toastAddMock.mock.calls[0]![0]).toMatchObject({ title: 'Lost track of the import' })
+    expect(wrapper.find('[data-test="import-lost"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="import-submit"]').attributes('disabled')).toBeDefined()
+    wrapper.unmount()
+  })
+
+  it('stops at once and re-enables Import when the job is gone (404)', async () => {
+    let calls = 0
+    const wrapper = await startImport(23, () => {
+      calls++
+      throw createError({ statusCode: 404, statusMessage: 'Import job not found' })
+    })
+
+    await vi.advanceTimersByTimeAsync(2000)
+    await vi.advanceTimersByTimeAsync(60000)
+    vi.useRealTimers()
+    await flushPromises()
+
+    expect(calls).toBe(1)
+    expect(toastAddMock.mock.calls[0]![0]).toMatchObject({
+      title: 'Import failed',
+      description: 'Import job not found'
+    })
+    expect(wrapper.find('[data-test="import-lost"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="import-submit"]').attributes('disabled')).toBeUndefined()
+    wrapper.unmount()
+  })
 })
