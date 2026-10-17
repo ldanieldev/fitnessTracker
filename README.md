@@ -38,14 +38,6 @@ curl -X PUT http://localhost:3000/api/inngest # register the app's functions wit
 
 `inngest start` doesn't poll the app, so re-run the `PUT` whenever a function or its cron changes.
 
-> [!WARNING]
-> **Dev Postgres data lives in an anonymous volume.** Postgres 18 images keep data in `/var/lib/postgresql/18/docker`,
-> not in the `postgres_data` volume `compose.yml` mounts at `/var/lib/postgresql/data`, so `podman compose down -v`
-> or a volume prune deletes it. `compose.yml` pins the image by digest because newer `18.3-alpine` builds refuse to
-> start with that mount at all. To move to the named volume: `pg_dump` (see [Backups](#4-backups)), change the mount
-> to `postgres_data:/var/lib/postgresql`, drop the digest, recreate the container and restore the dump into it.
-> `compose.prod.yml` already mounts it correctly.
-
 ### Other container runtimes
 
 The commands in this README assume **rootless Podman on Linux**. If you're using something else:

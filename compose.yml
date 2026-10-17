@@ -1,7 +1,6 @@
 services:
   postgres:
-    # Digest-pinned: later 18.3-alpine builds refuse to start with a volume at /var/lib/postgresql/data (see README).
-    image: docker.io/library/postgres:18.3-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
+    image: docker.io/library/postgres:18.3-alpine
     ports:
       - '127.0.0.1:5432:5432'
     environment:
@@ -10,7 +9,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-app}
       INNGEST_SCHEMA: ${INNGEST_SCHEMA:-inngest}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       # initdb.d runs only on an empty volume, so a populated one needs a teardown to pick this up
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro,Z
     healthcheck:
