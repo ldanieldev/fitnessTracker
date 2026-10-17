@@ -1,5 +1,6 @@
 -- Fails on users_email_unique if two accounts differ only by case; merge or rename one by hand, then re-run.
 UPDATE "app"."users" SET "email" = lower(btrim("email")) WHERE "email" <> lower(btrim("email"));--> statement-breakpoint
--- Also repairs credentials rows left on an old address by email changes made before the change kept them in step.
-UPDATE "app"."auth_providers" AS "ap" SET "provider_account_id" = "u"."email" FROM "app"."users" AS "u" WHERE "ap"."user_id" = "u"."id" AND "ap"."provider" = 'credentials' AND "ap"."provider_account_id" <> "u"."email";--> statement-breakpoint
+-- Also repairs credentials rows left on an old address by earlier email changes, via a temp value so swapped ones can't collide.
+UPDATE "app"."auth_providers" AS "ap" SET "provider_account_id" = 'tmp:' || "ap"."id" FROM "app"."users" AS "u" WHERE "ap"."user_id" = "u"."id" AND "ap"."provider" = 'credentials' AND "ap"."provider_account_id" <> "u"."email";--> statement-breakpoint
+UPDATE "app"."auth_providers" AS "ap" SET "provider_account_id" = "u"."email" FROM "app"."users" AS "u" WHERE "ap"."user_id" = "u"."id" AND "ap"."provider" = 'credentials' AND "ap"."provider_account_id" = 'tmp:' || "ap"."id";--> statement-breakpoint
 ALTER TABLE "app"."users" ADD CONSTRAINT "users_email_normalized_check" CHECK ("app"."users"."email" = lower(btrim("app"."users"."email")));
