@@ -30,9 +30,12 @@ const memory = createMemoryStore()
 const disabled = () => process.env.NUXT_TEST_FIXTURES === '1'
 
 function currentStore(): RateStore {
-  const driver = useStorage().getMount('cache').driver as { name?: string; getInstance?: () => RedisLike }
-  if (driver.name === 'redis' && driver.getInstance) return createRedisStore(driver.getInstance())
-  return memory
+  const driver = useStorage().getMount('cache').driver as {
+    name?: string
+    getInstance?: () => RedisLike & { status?: string }
+  }
+  const redis = driver.name === 'redis' ? driver.getInstance?.() : undefined
+  return redis?.status === 'ready' ? createRedisStore(redis) : memory
 }
 
 // A store outage must not lock everyone out of signing in, so it fails open.
