@@ -121,10 +121,12 @@ async function ensureContainer(
   userId: number,
   name: string
 ): Promise<{ id: number; created: boolean }> {
+  const mine = eq(mealContainers.userId, userId)
+  const liveNamed = and(mine, eq(mealContainers.name, name), eq(mealContainers.isArchived, false))
   const existing = await db
     .select({ id: mealContainers.id })
     .from(mealContainers)
-    .where(and(eq(mealContainers.userId, userId), eq(mealContainers.name, name)))
+    .where(liveNamed)
     .then((r) => r[0])
   if (existing) return { id: existing.id, created: false }
 
@@ -146,7 +148,7 @@ async function ensureContainer(
     const recovered = await db
       .select({ id: mealContainers.id })
       .from(mealContainers)
-      .where(and(eq(mealContainers.userId, userId), eq(mealContainers.name, name)))
+      .where(liveNamed)
       .then((r) => r[0]!)
     return { id: recovered.id, created: false }
   }

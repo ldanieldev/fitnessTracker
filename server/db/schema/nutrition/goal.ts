@@ -30,6 +30,7 @@ export const goalProfiles = appSchema.table(
     deletedAt: timestamp('deleted_at').default(sql`null`)
   },
   (table) => [
+    index('goal_profile_user').on(table.userId),
     uniqueIndex('goal_profile_one_default')
       .on(table.userId)
       .where(sql`is_default and deleted_at is null`)

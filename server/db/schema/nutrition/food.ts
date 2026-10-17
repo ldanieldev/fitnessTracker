@@ -81,6 +81,7 @@ export const foodServings = appSchema.table(
     deletedAt: timestamp('deleted_at').default(sql`null`)
   },
   (table) => [
+    index('food_serving_food').on(table.foodId),
     uniqueIndex('food_one_weight_serving')
       .on(table.foodId)
       .where(sql`kind = 'weight' and deleted_at is null`),

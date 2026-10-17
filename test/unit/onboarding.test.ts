@@ -90,9 +90,7 @@ describe('mealNameErrors', () => {
     })
   })
 
-  it('treats a removed meal\'s name as taken and skips removed rows', () => {
-    expect(mealNameErrors([meal(1, 'Snack', '', true), meal(2, 'B', 'snack')])).toEqual({
-      2: 'Meal names must be different'
-    })
+  it('frees a removed meal\'s name and skips removed rows', () => {
+    expect(mealNameErrors([meal(1, 'Snack', '', true), meal(2, 'B', 'Snack')])).toEqual({})
   })
 })

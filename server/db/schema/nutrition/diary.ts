@@ -32,7 +32,11 @@ export const mealContainers = appSchema.table(
     sortOrder: integer('sort_order').notNull(),
     isArchived: boolean('is_archived').notNull().default(false)
   },
-  (table) => [unique('meal_container_user_name_unique').on(table.userId, table.name)]
+  (table) => [
+    uniqueIndex('meal_container_user_name_unique')
+      .on(table.userId, table.name)
+      .where(sql`not is_archived`)
+  ]
 )
 
 export const diaryDays = appSchema.table(
@@ -115,6 +119,8 @@ export const diaryEntries = appSchema.table(
   (table) => [
     check('entry_quantity_positive', sql`quantity > 0`),
     index('diary_entry_day_container_order').on(table.dayId, table.containerId, table.sortOrder),
+    index('diary_entry_food').on(table.foodId),
+    index('diary_entry_recipe').on(table.recipeId),
     uniqueIndex('diary_entry_import_key_unique')
       .on(table.importKey)
       .where(sql`import_key is not null`)

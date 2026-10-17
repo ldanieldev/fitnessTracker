@@ -126,12 +126,14 @@ async function save() {
       profileId.value = saved.id
     }
     // Local state is updated per request, so after a mid-loop failure a retry neither skips nor repeats finished work.
+    for (const c of containers.value.filter((candidate) => removed.value.has(candidate.id))) {
+      await apiFetch(`/api/nutrition/meal-containers/${c.id}`, { method: 'DELETE' })
+      forgetContainer(c.id)
+    }
+    // After the archives: an archived meal frees its name, so a rename may take the name of a meal just removed.
     for (const c of [...containers.value]) {
       const name = drafts.value[c.id]!.trim()
-      if (removed.value.has(c.id)) {
-        await apiFetch(`/api/nutrition/meal-containers/${c.id}`, { method: 'DELETE' })
-        forgetContainer(c.id)
-      } else if (name !== c.name) {
+      if (name !== c.name) {
         await apiFetch(`/api/nutrition/meal-containers/${c.id}`, { method: 'PUT', body: { name } })
         c.name = name
       }

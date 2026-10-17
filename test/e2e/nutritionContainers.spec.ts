@@ -39,3 +39,21 @@ test('rejects a duplicate container name for the same user', async ({ page, goto
   const res = await apiFetch(page, 'POST', '/api/nutrition/meal-containers', { name: 'Snack' })
   expect(res.status).toBe(409)
 })
+
+test('an archived container frees its name for a new or renamed container', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+
+  type Container = { id: number; name: string }
+  const containers = (await apiFetch<Container[]>(page, 'GET', '/api/nutrition/meal-containers')).json
+  const snack = containers.find((c) => c.name === 'Snack')!
+  expect((await apiFetch(page, 'DELETE', `/api/nutrition/meal-containers/${snack.id}`)).ok).toBe(true)
+  expect((await apiFetch(page, 'POST', '/api/nutrition/meal-containers', { name: 'Snack' })).status).toBe(200)
+  const other = containers.find((c) => c.name === 'Meal 5')!
+  expect((await apiFetch(page, 'DELETE', `/api/nutrition/meal-containers/${other.id}`)).ok).toBe(true)
+  const meal4 = containers.find((c) => c.name === 'Meal 4')!
+  expect((await apiFetch(page, 'PUT', `/api/nutrition/meal-containers/${meal4.id}`, { name: 'Meal 5' })).status).toBe(
+    200
+  )
+  expect((await apiFetch(page, 'POST', '/api/nutrition/meal-containers', { name: 'Snack' })).status).toBe(409)
+})

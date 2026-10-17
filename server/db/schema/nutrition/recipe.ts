@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { check, integer, numeric, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { check, index, integer, numeric, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 import { appSchema, commonColumns } from '../../shared'
 import { users } from '../users'
 import { foods, foodServings } from './food'
@@ -21,22 +21,29 @@ export const recipes = appSchema.table(
   () => [check('recipe_servings_positive', sql`servings > 0`)]
 )
 
-export const recipeIngredients = appSchema.table('recipe_ingredients', {
-  ...commonColumns,
-  recipeId: integer('recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }),
-  foodId: integer('food_id')
-    .notNull()
-    .references(() => foods.id),
-  foodServingId: integer('food_serving_id')
-    .notNull()
-    .references(() => foodServings.id),
-  quantity: numeric('quantity').notNull(),
-  unitLabel: varchar('unit_label', { length: 64 }).notNull(),
-  gramsResolved: numeric('grams_resolved').default(sql`null`),
-  sortOrder: integer('sort_order').notNull()
-})
+export const recipeIngredients = appSchema.table(
+  'recipe_ingredients',
+  {
+    ...commonColumns,
+    recipeId: integer('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    foodId: integer('food_id')
+      .notNull()
+      .references(() => foods.id),
+    foodServingId: integer('food_serving_id')
+      .notNull()
+      .references(() => foodServings.id),
+    quantity: numeric('quantity').notNull(),
+    unitLabel: varchar('unit_label', { length: 64 }).notNull(),
+    gramsResolved: numeric('grams_resolved').default(sql`null`),
+    sortOrder: integer('sort_order').notNull()
+  },
+  (table) => [
+    index('recipe_ingredient_recipe').on(table.recipeId),
+    index('recipe_ingredient_food').on(table.foodId)
+  ]
+)
 
 export const savedMeals = appSchema.table('saved_meals', {
   ...commonColumns,
@@ -47,19 +54,23 @@ export const savedMeals = appSchema.table('saved_meals', {
   deletedAt: timestamp('deleted_at').default(sql`null`)
 })
 
-export const savedMealItems = appSchema.table('saved_meal_items', {
-  ...commonColumns,
-  savedMealId: integer('saved_meal_id')
-    .notNull()
-    .references(() => savedMeals.id, { onDelete: 'cascade' }),
-  foodId: integer('food_id')
-    .notNull()
-    .references(() => foods.id),
-  foodServingId: integer('food_serving_id')
-    .notNull()
-    .references(() => foodServings.id),
-  quantity: numeric('quantity').notNull(),
-  unitLabel: varchar('unit_label', { length: 64 }).notNull(),
-  gramsResolved: numeric('grams_resolved').default(sql`null`),
-  sortOrder: integer('sort_order').notNull()
-})
+export const savedMealItems = appSchema.table(
+  'saved_meal_items',
+  {
+    ...commonColumns,
+    savedMealId: integer('saved_meal_id')
+      .notNull()
+      .references(() => savedMeals.id, { onDelete: 'cascade' }),
+    foodId: integer('food_id')
+      .notNull()
+      .references(() => foods.id),
+    foodServingId: integer('food_serving_id')
+      .notNull()
+      .references(() => foodServings.id),
+    quantity: numeric('quantity').notNull(),
+    unitLabel: varchar('unit_label', { length: 64 }).notNull(),
+    gramsResolved: numeric('grams_resolved').default(sql`null`),
+    sortOrder: integer('sort_order').notNull()
+  },
+  (table) => [index('saved_meal_item_meal').on(table.savedMealId)]
+)

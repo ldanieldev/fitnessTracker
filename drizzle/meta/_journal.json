@@ -148,6 +148,13 @@
       "when": 1792190528915,
       "tag": "0020_search_outbox_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792204060840,
+      "tag": "0021_indexes_and_archived_meal_names",
+      "breakpoints": true
     }
   ]
 }

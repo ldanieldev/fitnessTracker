@@ -60,8 +60,7 @@ export function mealNameErrors(
   meals: Array<{ id: number; name: string; draft: string; removed: boolean }>
 ): Record<number, string> {
   const errors: Record<number, string> = {}
-  // Archived meals keep their names under meal_container_user_name_unique, so removed names start out taken.
-  const taken = new Set(meals.filter((m) => m.removed).map((m) => m.name.toLowerCase()))
+  const taken = new Set<string>()
   for (const meal of meals) {
     if (meal.removed) continue
     const name = meal.draft.trim().toLowerCase()

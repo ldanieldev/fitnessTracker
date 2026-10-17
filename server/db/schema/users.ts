@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  index,
   integer,
   numeric,
   smallint,
@@ -68,5 +69,8 @@ export const authProviders = appSchema.table(
     provider: varchar({ length: 50 }).notNull(),
     providerAccountId: varchar('provider_account_id', { length: 255 }).notNull()
   },
-  (table) => [unique('auth_providers_provider_account_unique').on(table.provider, table.providerAccountId)]
+  (table) => [
+    unique('auth_providers_provider_account_unique').on(table.provider, table.providerAccountId),
+    index('auth_provider_user').on(table.userId)
+  ]
 )
