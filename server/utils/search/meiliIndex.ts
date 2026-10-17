@@ -63,31 +63,28 @@ export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
     }
   }
 
-  // A lost index (Meilisearch restarted on an empty volume) or one a document write recreated lacks settings and data.
+  // Never deletes an existing index, so processes sharing one Meilisearch adopt each other's recreated index.
   private async checkIndex(): Promise<boolean> {
     if (this.recovering) return false
     const createdAt = await this.currentCreatedAt()
     if (createdAt !== null && createdAt === this.knownCreatedAt) return true
-    if (createdAt !== null && this.knownCreatedAt === null) {
+    if (createdAt !== null) {
       await this.ensureIndex()
       this.knownCreatedAt = createdAt
-      return true
+      if (!(await this.isEmpty())) return true
     }
-    this.recovering = this.recover().finally(() => {
+    this.recovering = this.recover(createdAt === null).finally(() => {
       this.recovering = null
     })
     return false
   }
 
-  private async recover(): Promise<void> {
+  private async recover(missing: boolean): Promise<void> {
     try {
-      await this.client
-        .deleteIndex(this.config.name)
-        .waitTask()
-        .catch(() => undefined)
       await this.applyRebuild(false)
       this.knownCreatedAt = await this.currentCreatedAt()
-      logger.info({ index: this.config.name }, 'search index was missing or replaced; recreated and rebuilding')
+      const reason = missing ? 'was missing; recreated' : 'was replaced empty'
+      logger.info({ index: this.config.name }, `search index ${reason} and rebuilding`)
     } catch (err) {
       logger.warn({ err, index: this.config.name }, 'search index recovery failed')
     }

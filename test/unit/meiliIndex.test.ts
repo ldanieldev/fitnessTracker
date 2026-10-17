@@ -39,6 +39,7 @@ beforeEach(() => {
   deleteAllDocuments.mockImplementation(enqueued)
   addDocuments.mockImplementation(enqueued)
   search.mockResolvedValue({ hits: [{ id: '9', _rankingScore: 0.5 }] })
+  getStats.mockResolvedValue({ numberOfDocuments: 1 })
 })
 
 describe('MeiliIndexProvider', () => {
@@ -85,11 +86,39 @@ describe('MeiliIndexProvider resilience', () => {
     getRawIndex.mockResolvedValue({ createdAt: '2026-10-02T00:00:00Z' })
     expect(await provider.healthy()).toBe(false)
     await vi.waitFor(() => expect(addDocuments).toHaveBeenCalledWith([{ id: 1 }], { primaryKey: 'id' }))
-    expect(deleteIndex).toHaveBeenCalledWith('exercises')
+    expect(deleteIndex).not.toHaveBeenCalled()
     expect(createIndex).toHaveBeenCalledTimes(2)
     expect(updateSettings).toHaveBeenCalledTimes(2)
     await vi.waitFor(async () => expect(await provider.healthy()).toBe(true))
     expect(createIndex).toHaveBeenCalledTimes(2)
+  })
+
+  it('adopts an index another process recreated without deleting it, re-applying settings', async () => {
+    const provider = new ExerciseMeiliProvider('http://localhost:7700', '')
+    vi.spyOn(provider as never, 'loadAllDocuments').mockResolvedValue([{ id: 1 }] as never)
+    getStats.mockResolvedValue({ numberOfDocuments: 5 })
+    expect(await provider.healthy()).toBe(true)
+
+    getRawIndex.mockResolvedValue({ createdAt: '2026-10-02T00:00:00Z' })
+    expect(await provider.healthy()).toBe(true)
+    expect(await provider.healthy()).toBe(true)
+    expect(deleteIndex).not.toHaveBeenCalled()
+    expect(deleteAllDocuments).not.toHaveBeenCalled()
+    expect(updateSettings).toHaveBeenCalledTimes(2)
+  })
+
+  it('rebuilds a recreated index only when it is empty', async () => {
+    const provider = new ExerciseMeiliProvider('http://localhost:7700', '')
+    vi.spyOn(provider as never, 'loadAllDocuments').mockResolvedValue([{ id: 1 }] as never)
+    getStats.mockResolvedValue({ numberOfDocuments: 5 })
+    expect(await provider.healthy()).toBe(true)
+
+    getRawIndex.mockResolvedValue({ createdAt: '2026-10-02T00:00:00Z' })
+    getStats.mockResolvedValueOnce({ numberOfDocuments: 0 })
+    expect(await provider.healthy()).toBe(false)
+    await vi.waitFor(() => expect(addDocuments).toHaveBeenCalledWith([{ id: 1 }], { primaryKey: 'id' }))
+    expect(deleteIndex).not.toHaveBeenCalled()
+    await vi.waitFor(async () => expect(await provider.healthy()).toBe(true))
   })
 
   it('treats a missing index as empty but any other stats failure as not known empty', async () => {
