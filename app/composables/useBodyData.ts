@@ -1,4 +1,5 @@
 import type { UseFetchOptions } from 'nuxt/app'
+import { executeAsyncData } from '~/utils/asyncData'
 import type { BodyRange } from '~~/shared/types/body'
 
 export const BODY_KEYS = {
@@ -24,13 +25,6 @@ export function useBodyFetch<T>(
   return useNutritionFetch<T>(key, url, { dedupe: 'defer', ...opts })
 }
 
-// Runs targets with dedupe 'cancel': useBodyFetch's 'defer' would return an invalidated key's stale in-flight promise.
-export async function invalidateBody(...keys: string[]) {
-  const exact = keys.filter((k) => !k.endsWith(':'))
-  const prefixes = keys.filter((k) => k.endsWith(':'))
-  const nuxtApp = useNuxtApp()
-  const mounted = Object.keys(nuxtApp._asyncData ?? {})
-  const targets = new Set(exact.filter((k) => mounted.includes(k)))
-  for (const key of mounted) if (prefixes.some((p) => key.startsWith(p))) targets.add(key)
-  await Promise.all([...targets].map((key) => nuxtApp._asyncData[key]?.execute({ dedupe: 'cancel' })))
+export function invalidateBody(...keys: string[]) {
+  return executeAsyncData(keys)
 }

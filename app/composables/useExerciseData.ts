@@ -1,4 +1,5 @@
 import type { UseFetchOptions } from 'nuxt/app'
+import { executeAsyncData } from '~/utils/asyncData'
 import { EXERCISE_KEYS, exerciseListKey } from '~~/shared/utils/exerciseKeys'
 
 export { EXERCISE_KEYS, exerciseListKey }
@@ -12,14 +13,6 @@ export function useExerciseFetch<T>(
   return useNutritionFetch<T>(key, url, { dedupe: 'defer', ...opts })
 }
 
-// dedupe 'cancel' avoids the stale in-flight promise refreshNuxtData reuses; no keys clears the workouts: prefix.
-export async function invalidateExercises(...keys: string[]) {
-  const targets = keys.length ? keys : ['workouts:']
-  const exact = targets.filter((k) => !k.endsWith(':'))
-  const prefixes = targets.filter((k) => k.endsWith(':'))
-  const nuxtApp = useNuxtApp()
-  const mounted = Object.keys(nuxtApp._asyncData ?? {})
-  const matched = new Set(exact.filter((k) => mounted.includes(k)))
-  for (const key of mounted) if (prefixes.some((p) => key.startsWith(p))) matched.add(key)
-  await Promise.all([...matched].map((key) => nuxtApp._asyncData[key]?.execute({ dedupe: 'cancel' })))
+export function invalidateExercises(...keys: string[]) {
+  return executeAsyncData(keys.length ? keys : ['workouts:'])
 }

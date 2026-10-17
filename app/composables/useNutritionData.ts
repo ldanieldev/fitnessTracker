@@ -1,5 +1,6 @@
 import type { UseFetchOptions } from 'nuxt/app'
 import type { FetchContext, FetchResponse } from 'ofetch'
+import { mountedAsyncDataKeys } from '~/utils/asyncData'
 
 export const NUTRITION_KEYS = {
   containers: 'nutrition:containers',
@@ -14,16 +15,6 @@ export const NUTRITION_KEYS = {
   logged: (from: string) => `nutrition:logged:${from}`,
   summary: (from: string, to: string, window: number) => `nutrition:summary:${from}:${to}:${window}`
 } as const
-
-export const NUTRITION_LIST_KEYS = [
-  NUTRITION_KEYS.containers,
-  NUTRITION_KEYS.containersAll,
-  NUTRITION_KEYS.recipes,
-  NUTRITION_KEYS.savedMeals,
-  NUTRITION_KEYS.foods,
-  NUTRITION_KEYS.profiles,
-  NUTRITION_KEYS.tracked
-]
 
 // useFetch binds $fetch from '#build/fetch' at module load, so apiFetch can't intercept it; 401s are handled here.
 export function useNutritionFetch<T>(
@@ -43,13 +34,7 @@ export function useNutritionFetch<T>(
   } as Parameters<typeof useFetch<T>>[1]) // getCachedData's NoInfer<T> rejects UseFetchOptions<T> under a generic T
 }
 
-// A key ending in ':' is a prefix matching every mounted fetch under it (logged weeks, days).
 export async function invalidateNutrition(...keys: string[]) {
-  const exact = keys.filter((k) => !k.endsWith(':'))
-  const prefixes = keys.filter((k) => k.endsWith(':'))
-  const nuxtApp = useNuxtApp()
-  const mounted = Object.keys(nuxtApp._asyncData ?? {})
-  const targets = new Set(exact.filter((k) => mounted.includes(k)))
-  for (const key of mounted) if (prefixes.some((p) => key.startsWith(p))) targets.add(key)
-  if (targets.size) await refreshNuxtData([...targets])
+  const targets = mountedAsyncDataKeys(keys)
+  if (targets.length) await refreshNuxtData(targets)
 }
