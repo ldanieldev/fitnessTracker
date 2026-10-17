@@ -126,7 +126,7 @@ export default defineEventHandler(async (event) => {
         ? scaleStoredIngredientSnapshot(source.ingredientSnapshot, ratio)
         : source.ingredientSnapshot
 
-      // A copy to another day keeps the source's time of day, which that day's meal time is derived from.
+      // Keeps the source's UTC time of day (no client timezone here), so across a DST change local time shifts an hour.
       const loggedAt =
         source.date === targetDate
           ? new Date()
