@@ -22,7 +22,7 @@ const { status, run: load } = useStepLoad(async () => {
   const type = types.find((t) => t.key === 'bodyweight') ?? null
   if (type) {
     const [entries, goals] = await Promise.all([
-      apiFetch<MeasurementEntry[]>(`/api/body/types/${type.id}/entries`, { query: { to: today } }),
+      apiFetch<MeasurementEntry[]>(`/api/body/types/${type.id}/entries`, { query: { to: today, limit: 1 } }),
       apiFetch<GoalOverview[]>('/api/body/goals')
     ])
     latest.value = entries[0] ?? null

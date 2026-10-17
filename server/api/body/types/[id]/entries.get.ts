@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte } from 'drizzle-orm'
 import { measurements } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { toEntry } from '~~/server/utils/body/entries'
-import { rangeQuerySchema } from '~~/server/utils/body/input'
+import { entriesQuerySchema } from '~~/server/utils/body/input'
 import { loadTypeForUser } from '~~/server/utils/body/types'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
@@ -12,11 +12,11 @@ import { routeId } from '~~/server/utils/validation'
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const typeId = routeId(event)
-  const query = parseQuery(event, rangeQuerySchema)
+  const query = parseQuery(event, entriesQuerySchema)
   await loadTypeForUser(userId, typeId)
   const to = query.to ?? todayDate()
 
-  const rows = await db
+  const rows = db
     .select()
     .from(measurements)
     .where(
@@ -30,5 +30,5 @@ export default defineEventHandler(async (event) => {
     // id breaks same-minute measuredAt ties deterministically
     .orderBy(desc(measurements.measuredOn), desc(measurements.measuredAt), desc(measurements.id))
 
-  return rows.map(toEntry)
+  return (query.limit ? await rows.limit(query.limit) : await rows).map(toEntry)
 })

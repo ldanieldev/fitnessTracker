@@ -38,7 +38,7 @@ async function loadBody() {
   const type = types.find((t) => t.key === 'bodyweight')
   if (!type) return
   const [entries, goals] = await Promise.all([
-    apiFetch<MeasurementEntry[]>(`/api/body/types/${type.id}/entries`, { query: { to: todayDate() } }),
+    apiFetch<MeasurementEntry[]>(`/api/body/types/${type.id}/entries`, { query: { to: todayDate(), limit: 1 } }),
     apiFetch<GoalOverview[]>('/api/body/goals')
   ])
   const latest = entries[0]

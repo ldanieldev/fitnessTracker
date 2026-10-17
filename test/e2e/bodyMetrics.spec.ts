@@ -52,6 +52,13 @@ test('readings round-trip: create with defaults, list newest first, patch, delet
     `/api/body/types/${weight.id}/entries?from=2026-03-01&to=2026-03-31`
   )
   expect(list.json.map((e) => e.value)).toEqual([198.8, 202])
+  const latest = await apiFetch<MeasurementEntry[]>(
+    page,
+    'GET',
+    `/api/body/types/${weight.id}/entries?to=2026-03-31&limit=1`
+  )
+  expect(latest.json.map((e) => e.value)).toEqual([198.8])
+  expect((await apiFetch(page, 'GET', `/api/body/types/${weight.id}/entries?limit=0`)).status).toBe(400)
 
   const patched = await apiFetch<MeasurementEntry>(page, 'PATCH', `/api/body/entries/${b.json.id}`, { value: 199 })
   expect(patched.json.value).toBe(199)
