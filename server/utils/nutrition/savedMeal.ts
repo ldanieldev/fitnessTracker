@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { savedMealItems, savedMeals } from '~~/server/db/schema'
 import type { DbClient } from '../db'
 
@@ -38,6 +38,13 @@ export async function loadSavedMeal(
     .where(eq(savedMealItems.savedMealId, savedMealId))
     .orderBy(asc(savedMealItems.sortOrder))
 
+  return toLoadedSavedMeal(head, itemRows)
+}
+
+function toLoadedSavedMeal(
+  head: typeof savedMeals.$inferSelect,
+  itemRows: (typeof savedMealItems.$inferSelect)[]
+): LoadedSavedMeal {
   return {
     id: head.id,
     userId: head.userId,
@@ -52,4 +59,28 @@ export async function loadSavedMeal(
       sortOrder: row.sortOrder
     }))
   }
+}
+
+export async function loadUserSavedMeals(client: DbClient, userId: number): Promise<LoadedSavedMeal[]> {
+  const heads = await client
+    .select()
+    .from(savedMeals)
+    .where(and(eq(savedMeals.userId, userId), isNull(savedMeals.deletedAt)))
+  if (!heads.length) return []
+  const itemRows = await client
+    .select()
+    .from(savedMealItems)
+    .where(
+      inArray(
+        savedMealItems.savedMealId,
+        heads.map((head) => head.id)
+      )
+    )
+    .orderBy(asc(savedMealItems.sortOrder))
+  return heads.map((head) =>
+    toLoadedSavedMeal(
+      head,
+      itemRows.filter((row) => row.savedMealId === head.id)
+    )
+  )
 }

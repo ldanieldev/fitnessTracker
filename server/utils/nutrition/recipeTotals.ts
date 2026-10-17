@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import type { FoodForResolve, ResolveResult } from '~~/shared/types/nutrition'
 import { recipeIngredients, recipes } from '~~/server/db/schema'
 import { resolveNutrition } from '~~/shared/utils/nutritionResolve'
@@ -6,7 +6,7 @@ import { normalizeUnitLabel } from '~~/shared/utils/nutritionUnits'
 import { perServingNutrition, sumIngredients } from '~~/shared/utils/nutritionRecipe'
 import type { DbClient } from '../db'
 import { selectUnit } from './entry'
-import { loadFood } from './loadFood'
+import { loadFoods, type LoadedFood } from './loadFood'
 
 export interface RecipeIngredientRow {
   id: number
@@ -45,21 +45,10 @@ export interface RecipeNutrition {
   ingredients: ResolvedIngredient[]
 }
 
-export async function loadRecipe(client: DbClient, userId: number, recipeId: number): Promise<LoadedRecipe | null> {
-  const head = await client
-    .select()
-    .from(recipes)
-    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId), isNull(recipes.deletedAt)))
-    .limit(1)
-    .then((r) => r[0])
-  if (!head) return null
+type RecipeHead = typeof recipes.$inferSelect
+type RecipeIngredientDbRow = typeof recipeIngredients.$inferSelect
 
-  const ingredientRows = await client
-    .select()
-    .from(recipeIngredients)
-    .where(eq(recipeIngredients.recipeId, recipeId))
-    .orderBy(asc(recipeIngredients.sortOrder))
-
+function toLoadedRecipe(head: RecipeHead, ingredientRows: RecipeIngredientDbRow[]): LoadedRecipe {
   return {
     id: head.id,
     userId: head.userId,
@@ -78,6 +67,48 @@ export async function loadRecipe(client: DbClient, userId: number, recipeId: num
       sortOrder: row.sortOrder
     }))
   }
+}
+
+export async function loadRecipe(client: DbClient, userId: number, recipeId: number): Promise<LoadedRecipe | null> {
+  const head = await client
+    .select()
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId), isNull(recipes.deletedAt)))
+    .limit(1)
+    .then((r) => r[0])
+  if (!head) return null
+
+  const ingredientRows = await client
+    .select()
+    .from(recipeIngredients)
+    .where(eq(recipeIngredients.recipeId, recipeId))
+    .orderBy(asc(recipeIngredients.sortOrder))
+
+  return toLoadedRecipe(head, ingredientRows)
+}
+
+export async function loadUserRecipes(client: DbClient, userId: number): Promise<LoadedRecipe[]> {
+  const heads = await client
+    .select()
+    .from(recipes)
+    .where(and(eq(recipes.userId, userId), isNull(recipes.deletedAt)))
+  if (!heads.length) return []
+  const ingredientRows = await client
+    .select()
+    .from(recipeIngredients)
+    .where(
+      inArray(
+        recipeIngredients.recipeId,
+        heads.map((head) => head.id)
+      )
+    )
+    .orderBy(asc(recipeIngredients.sortOrder))
+  return heads.map((head) =>
+    toLoadedRecipe(
+      head,
+      ingredientRows.filter((row) => row.recipeId === head.id)
+    )
+  )
 }
 
 export interface IngredientLineInput {
@@ -99,13 +130,21 @@ export function resolveIngredientLine(food: FoodForResolve, line: IngredientLine
 export async function computeRecipeNutrition(
   client: DbClient,
   userId: number,
-  recipe: LoadedRecipe
+  recipe: LoadedRecipe,
+  preloaded?: Map<number, LoadedFood>
 ): Promise<RecipeNutrition> {
   const brokenIngredients: number[] = []
   const ingredients: ResolvedIngredient[] = []
+  const foodsById =
+    preloaded ??
+    (await loadFoods(
+      client,
+      userId,
+      recipe.ingredients.map((ingredient) => ingredient.foodId)
+    ))
 
   for (const ingredient of recipe.ingredients) {
-    const food = await loadFood(client, userId, ingredient.foodId)
+    const food = foodsById.get(ingredient.foodId)
     if (!food) {
       brokenIngredients.push(ingredient.foodId)
       continue

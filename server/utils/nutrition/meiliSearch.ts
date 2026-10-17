@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, type SQL } from 'drizzle-orm'
 import { foodServings, foodSources, foods } from '~~/server/db/schema'
 import { db } from '../db'
 import { MeiliIndexProvider } from '../search/meiliIndex'
@@ -16,18 +16,17 @@ export class MeiliSearchProvider extends MeiliIndexProvider<SearchDocument> impl
     super(host, apiKey, { name: SEARCH_INDEX, settings: SEARCH_INDEX_SETTINGS, visibleTo: visibilityFilter })
   }
 
-  protected loadDocument(foodId: number): Promise<SearchDocument | null> {
-    return loadSearchDocument(foodId)
+  protected async loadDocument(foodId: number): Promise<SearchDocument | null> {
+    return (await loadSearchDocuments(and(eq(foods.id, foodId), isNull(foods.deletedAt))))[0] ?? null
   }
 
-  protected async loadAllDocuments(): Promise<SearchDocument[]> {
-    const rows = await db.select({ id: foods.id }).from(foods).where(isNull(foods.deletedAt))
-    return (await Promise.all(rows.map((r) => loadSearchDocument(r.id)))).filter((d) => d !== null)
+  protected loadAllDocuments(): Promise<SearchDocument[]> {
+    return loadSearchDocuments(isNull(foods.deletedAt))
   }
 }
 
-async function loadSearchDocument(foodId: number): Promise<SearchDocument | null> {
-  const head = await db
+async function loadSearchDocuments(where: SQL | undefined): Promise<SearchDocument[]> {
+  const heads = await db
     .select({
       id: foods.id,
       name: foods.name,
@@ -38,14 +37,19 @@ async function loadSearchDocument(foodId: number): Promise<SearchDocument | null
     })
     .from(foods)
     .leftJoin(foodSources, eq(foodSources.id, foods.sourceId))
-    .where(and(eq(foods.id, foodId), isNull(foods.deletedAt)))
-    .limit(1)
-    .then((r) => r[0])
-  if (!head) return null
+    .where(where)
+  if (!heads.length) return []
   const servings = await db
-    .select({ label: foodServings.label, quantity: foodServings.quantity })
+    .select({ foodId: foodServings.foodId, label: foodServings.label, quantity: foodServings.quantity })
     .from(foodServings)
-    .where(and(eq(foodServings.foodId, foodId), isNull(foodServings.deletedAt)))
-  const labels = servings.map((s) => (Number(s.quantity) === 1 ? s.label : `${Number(s.quantity)} ${s.label}`))
-  return foodToSearchDocument(head, labels, head.sourceKey ?? 'user')
+    .innerJoin(foods, eq(foods.id, foodServings.foodId))
+    .where(and(where, isNull(foodServings.deletedAt)))
+    .orderBy(foodServings.id)
+  const labels = new Map<number, string[]>()
+  for (const s of servings) {
+    const list = labels.get(s.foodId) ?? []
+    list.push(Number(s.quantity) === 1 ? s.label : `${Number(s.quantity)} ${s.label}`)
+    labels.set(s.foodId, list)
+  }
+  return heads.map((head) => foodToSearchDocument(head, labels.get(head.id) ?? [], head.sourceKey ?? 'user'))
 }

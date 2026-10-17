@@ -1,4 +1,4 @@
-import { and, eq, isNull, or } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { FoodForResolve, ServingBasis, ServingKind } from '~~/shared/types/nutrition'
 import { foodNutrients, foods, foodServings } from '~~/server/db/schema'
 import type { DbClient } from '../db'
@@ -48,23 +48,28 @@ export function toFoodForResolve(foodId: number, rows: ServingNutrientRow[]): Fo
 }
 
 export async function loadFood(client: DbClient, userId: number, foodId: number): Promise<LoadedFood | null> {
-  const head = await client
+  return (await loadFoods(client, userId, [foodId])).get(foodId) ?? null
+}
+
+/** Batch `loadFood` in two queries; foods the user cannot see, or deleted ones, are missing from the map. */
+export async function loadFoods(client: DbClient, userId: number, foodIds: number[]): Promise<Map<number, LoadedFood>> {
+  const ids = [...new Set(foodIds)]
+  if (!ids.length) return new Map()
+  const heads = await client
     .select()
     .from(foods)
     .where(
       and(
-        eq(foods.id, foodId),
+        inArray(foods.id, ids),
         isNull(foods.deletedAt),
         or(isNull(foods.createdByUserId), eq(foods.createdByUserId, userId))
       )
     )
-    .limit(1)
-    .then((r) => r[0])
-
-  if (!head) return null
+  if (!heads.length) return new Map()
 
   const rows = await client
     .select({
+      foodId: foodServings.foodId,
       servingId: foodServings.id,
       kind: foodServings.kind,
       label: foodServings.label,
@@ -76,15 +81,34 @@ export async function loadFood(client: DbClient, userId: number, foodId: number)
     })
     .from(foodServings)
     .leftJoin(foodNutrients, eq(foodNutrients.foodServingId, foodServings.id))
-    .where(and(eq(foodServings.foodId, foodId), isNull(foodServings.deletedAt)))
-
-  return {
-    ...toFoodForResolve(foodId, rows as ServingNutrientRow[]),
-    name: head.name,
-    brand: head.brand,
-    barcode: head.barcode,
-    createdByUserId: head.createdByUserId,
-    sourceId: head.sourceId,
-    deletedAt: head.deletedAt
+    .where(
+      and(
+        inArray(
+          foodServings.foodId,
+          heads.map((head) => head.id)
+        ),
+        isNull(foodServings.deletedAt)
+      )
+    )
+  const rowsByFood = new Map<number, ServingNutrientRow[]>()
+  for (const { foodId, ...row } of rows) {
+    const list = rowsByFood.get(foodId) ?? []
+    list.push(row as ServingNutrientRow)
+    rowsByFood.set(foodId, list)
   }
+
+  return new Map(
+    heads.map((head) => [
+      head.id,
+      {
+        ...toFoodForResolve(head.id, rowsByFood.get(head.id) ?? []),
+        name: head.name,
+        brand: head.brand,
+        barcode: head.barcode,
+        createdByUserId: head.createdByUserId,
+        sourceId: head.sourceId,
+        deletedAt: head.deletedAt
+      }
+    ])
+  )
 }
