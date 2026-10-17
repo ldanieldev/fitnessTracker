@@ -1,6 +1,10 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import { searchOutbox } from '~~/server/db/schema'
 import { db } from '../db'
+import { logger } from '../logger'
+
+export const OUTBOX_MAX_ATTEMPTS = 10
+const OUTBOX_RETENTION = sql`now() - interval '7 days'`
 
 interface OutboxRow {
   id: number
@@ -46,10 +50,18 @@ export async function drainOutbox(
     rebuilt = true
   }
 
+  await pruneOutbox(entity)
+
   const rows = await db
     .select({ id: searchOutbox.id, entityId: searchOutbox.entityId, op: searchOutbox.op })
     .from(searchOutbox)
-    .where(and(isNull(searchOutbox.processedAt), eq(searchOutbox.entity, entity)))
+    .where(
+      and(
+        isNull(searchOutbox.processedAt),
+        eq(searchOutbox.entity, entity),
+        lt(searchOutbox.attempts, OUTBOX_MAX_ATTEMPTS)
+      )
+    )
     .orderBy(asc(searchOutbox.id))
     .limit(limit)
   if (rows.length === 0) return { processed: 0, failed: 0, skipped: false, rebuilt }
@@ -62,20 +74,43 @@ export async function drainOutbox(
   }
 
   const succeededIds: number[] = []
+  const failedIds: number[] = []
   let failed = 0
   for (const item of coalesceOutboxRows(rows)) {
     try {
       if (item.op === 'delete') await provider.delete(item.entityId)
       else await provider.index(item.entityId)
       succeededIds.push(...(rowIdsByEntity.get(item.entityId) ?? []))
-    } catch {
+    } catch (err) {
       failed++
+      failedIds.push(...(rowIdsByEntity.get(item.entityId) ?? []))
+      logger.warn({ err, entity, entityId: item.entityId, op: item.op }, 'search outbox item failed')
     }
   }
 
   if (succeededIds.length) {
     await db.update(searchOutbox).set({ processedAt: new Date() }).where(inArray(searchOutbox.id, succeededIds))
   }
+  if (failedIds.length) {
+    await db
+      .update(searchOutbox)
+      .set({ attempts: sql`${searchOutbox.attempts} + 1` })
+      .where(inArray(searchOutbox.id, failedIds))
+  }
 
   return { processed: succeededIds.length, failed, skipped: false, rebuilt }
+}
+
+async function pruneOutbox(entity: OutboxEntity): Promise<void> {
+  await db
+    .delete(searchOutbox)
+    .where(
+      and(
+        eq(searchOutbox.entity, entity),
+        or(
+          and(isNotNull(searchOutbox.processedAt), lt(searchOutbox.processedAt, OUTBOX_RETENTION)),
+          and(gte(searchOutbox.attempts, OUTBOX_MAX_ATTEMPTS), lt(searchOutbox.updatedAt, OUTBOX_RETENTION))
+        )
+      )
+    )
 }

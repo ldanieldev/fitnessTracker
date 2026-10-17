@@ -1,0 +1,1 @@
+ALTER TABLE "app"."search_outbox" ADD COLUMN "attempts" smallint DEFAULT 0 NOT NULL;

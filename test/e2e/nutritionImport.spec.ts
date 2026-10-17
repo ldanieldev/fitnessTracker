@@ -46,6 +46,43 @@ test('imports two export files, is idempotent, and lands the entries in the diar
   expect(day.json.entries.every((e) => e.description !== null && e.description !== '')).toBe(true)
 })
 
+test('two imports of the same files racing each other insert every entry exactly once', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const files = ['2026-09-04.txt', '2026-09-05.txt'].map((name) => ({ name, text: fixture(name) }))
+
+  const jobs = await Promise.all(
+    [0, 1].map(() => apiFetch<{ jobId: number }>(page, 'POST', '/api/nutrition/_test/import-job', { files }))
+  )
+  const run = (jobId: number) => apiFetch<ImportResult>(page, 'POST', '/api/nutrition/_test/run-import', { jobId })
+  const runs = await Promise.all(jobs.map(({ json }) => run(json.jobId)))
+  expect(runs.map((r) => r.status)).toEqual([200, 200])
+  expect(runs[0]!.json.entries + runs[1]!.json.entries).toBe(29)
+  expect(runs[0]!.json.entriesSkipped + runs[1]!.json.entriesSkipped).toBe(29)
+
+  const day = await apiFetch<DayView>(page, 'GET', '/api/nutrition/diary/2026-09-05')
+  expect(day.json.entries).toHaveLength(18)
+})
+
+test('an imported food can be forked more than once', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const files = [{ name: '2026-09-05.txt', text: fixture('2026-09-05.txt') }]
+  const job = await apiFetch<{ jobId: number }>(page, 'POST', '/api/nutrition/_test/import-job', { files })
+  await apiFetch(page, 'POST', '/api/nutrition/_test/run-import', { jobId: job.json.jobId })
+
+  const day = await apiFetch<{ entries: Array<{ foodId: number | null }> }>(
+    page,
+    'GET',
+    '/api/nutrition/diary/2026-09-05'
+  )
+  const foodId = day.json.entries.find((e) => e.foodId !== null)!.foodId!
+  const first = await apiFetch<{ id: number }>(page, 'POST', `/api/nutrition/foods/${foodId}/fork`)
+  const second = await apiFetch<{ id: number }>(page, 'POST', `/api/nutrition/foods/${foodId}/fork`)
+  expect([first.status, second.status]).toEqual([200, 200])
+  expect(first.json.id).not.toBe(second.json.id)
+})
+
 interface ImportJobView {
   id: number
   status: string
@@ -106,7 +143,7 @@ test('upload route rejects an empty submission and a file whose first line is no
   expect((bad.json as { data: { fileName: string } }).data.fileName).toBe('not-an-export.txt')
 })
 
-test('status route 404s on another user\'s job and on a non-numeric job id', async ({ page, goto }) => {
+test('status route 404s on another user\'s job and 400s on a non-numeric job id', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
 
@@ -120,7 +157,7 @@ test('status route 404s on another user\'s job and on a non-numeric job id', asy
   expect(stolen.status).toBe(404)
 
   const nonNumeric = await apiFetch(page, 'GET', '/api/nutrition/import/mymacros/abc')
-  expect(nonNumeric.status).toBe(404)
+  expect(nonNumeric.status).toBe(400)
 })
 
 test('settings Data tab queues a My Macros+ import of dropped and picked files', async ({ page, goto }) => {

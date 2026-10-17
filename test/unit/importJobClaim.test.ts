@@ -75,7 +75,11 @@ describe('runFitNotesImport', () => {
     expect(ops).toEqual(['select', 'execute', 'select', 'update', 'update'])
     expect(sets).toEqual([
       { status: 'running' },
-      { status: 'failed', error: 'Another FitNotes import is still running; try again when it finishes' }
+      {
+        status: 'failed',
+        error: 'Another FitNotes import is still running; try again when it finishes',
+        payload: {}
+      }
     ])
   })
 })

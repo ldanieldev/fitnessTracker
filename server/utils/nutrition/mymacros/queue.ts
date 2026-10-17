@@ -10,7 +10,7 @@ export async function queueImportJob(db: RootDbClient, jobId: number, userId: nu
     const message = err instanceof Error ? err.message : String(err)
     await db
       .update(importJobs)
-      .set({ status: 'failed', error: `Could not queue the import job: ${message}` })
+      .set({ status: 'failed', error: `Could not queue the import job: ${message}`, payload: {} })
       .where(eq(importJobs.id, jobId))
     throw err
   }

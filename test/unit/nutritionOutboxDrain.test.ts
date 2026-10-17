@@ -36,9 +36,12 @@ const update = vi.fn()
 vi.mock('../../server/utils/db', () => ({
   db: {
     select: (...args: unknown[]) => select(...args),
-    update: (...args: unknown[]) => update(...args)
+    update: (...args: unknown[]) => update(...args),
+    delete: () => ({ where: async () => undefined })
   }
 }))
+
+vi.mock('../../server/utils/logger', () => ({ logger: { warn: vi.fn() } }))
 
 class FakeMeiliSearchProvider {
   isEmpty = isEmpty
@@ -89,13 +92,14 @@ describe('drainSearchOutbox per-item isolation', () => {
       { id: 2, entityId: 8, op: 'upsert' }
     ])
     stubUpdateResult()
+    stubUpdateResult()
 
     const result = await drainSearchOutbox()
 
     expect(result.processed).toBe(1)
     expect(result.failed).toBe(1)
     expect(result.rebuilt).toBe(false)
-    expect(update).toHaveBeenCalledTimes(1)
+    expect(update).toHaveBeenCalledTimes(2)
     expect(index).toHaveBeenCalledWith(7)
     expect(index).toHaveBeenCalledWith(8)
   })
@@ -112,6 +116,7 @@ describe('drainSearchOutbox per-item isolation', () => {
       { id: 2, entityId: 8, op: 'upsert' },
       { id: 3, entityId: 7, op: 'delete' }
     ])
+    stubUpdateResult()
     stubUpdateResult()
 
     const result = await drainSearchOutbox()

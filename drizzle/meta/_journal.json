@@ -141,6 +141,13 @@
       "when": 1792185706357,
       "tag": "0019_email_lowercase",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792190528915,
+      "tag": "0020_search_outbox_attempts",
+      "breakpoints": true
     }
   ]
 }

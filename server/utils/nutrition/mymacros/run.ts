@@ -10,7 +10,6 @@ import {
 } from '~~/server/db/schema'
 import type { ImportResult, ImportWarning } from '~~/shared/types/nutrition'
 import type { RootDbClient } from '../../db'
-import { inngest } from '../../inngest/client'
 import { isUniqueViolation } from '../../pgError'
 import { createFoodRecord } from '../createFood'
 import { ensureDay } from '../day'
@@ -19,6 +18,8 @@ import { buildServingRows, type ServingInput } from '../foodInput'
 import { insertOrRecover } from '../importFood'
 import { nutrientIdMap } from '../nutrientIds'
 import { enqueueSearchOutbox } from '../searchOutbox'
+import { drainSearchOutbox } from '../searchOutboxDrain'
+import { logger } from '../../logger'
 import { MyMacrosParseError, parseMyMacrosExport, type ParsedDay } from './parse'
 import { planImport, type PlannedEntry, type PlannedFood } from './plan'
 
@@ -299,38 +300,44 @@ async function performImport(
             ? (servingIdByLabelByFoodKey.get(entry.foodKey!)?.get(entry.servingLabel) ?? null)
             : null
 
-        await writeEntry(tx, {
-          dayId: day.id,
-          containerId,
-          sortOrder,
-          entryType: entry.kind,
-          quantity: entry.quantity,
-          unitLabel: entry.unitLabel,
-          gramsResolved: entry.gramsResolved,
-          foodId,
-          foodServingId,
-          description: entry.description,
-          loggedAt: new Date(`${entry.date}T00:00:00Z`),
-          importKey: entry.importKey,
-          nutrients: {
-            [energyId]: entry.nutrients.kcal,
-            [proteinId]: entry.nutrients.protein,
-            [carbId]: entry.nutrients.carbs,
-            [fatId]: entry.nutrients.fat
+        const written = await tx.transaction(async (savepoint) => {
+          await writeEntry(savepoint, {
+            dayId: day.id,
+            containerId,
+            sortOrder,
+            entryType: entry.kind,
+            quantity: entry.quantity,
+            unitLabel: entry.unitLabel,
+            gramsResolved: entry.gramsResolved,
+            foodId,
+            foodServingId,
+            description: entry.description,
+            loggedAt: new Date(`${entry.date}T00:00:00Z`),
+            importKey: entry.importKey,
+            nutrients: {
+              [energyId]: entry.nutrients.kcal,
+              [proteinId]: entry.nutrients.protein,
+              [carbId]: entry.nutrients.carbs,
+              [fatId]: entry.nutrients.fat
+            }
+          })
+        }).then(
+          () => true,
+          (err: unknown) => {
+            if (isUniqueViolation(err, 'diary_entry_import_key_unique')) return false
+            throw err
           }
-        })
-        entriesInserted++
+        )
+        if (written) entriesInserted++
+        else entriesSkipped++
       }
     })
   }
 
-  if (foodsCreated > 0) {
-    try {
-      await inngest.send({ name: 'search/rebuild.requested', data: { userId } })
-    } catch (err) {
-      // The nightly rebuild (search-nightly-rebuild) covers this if the dev Inngest server is unreachable.
-      console.warn('inngest.send failed for search/rebuild.requested', err)
-    }
+  try {
+    await drainSearchOutbox()
+  } catch (err) {
+    logger.warn({ err }, 'search outbox drain after a My Macros+ import failed; the per-minute drain retries')
   }
 
   return {
@@ -364,11 +371,11 @@ export async function runMyMacrosImport(db: RootDbClient, jobId: number, userId:
 
   try {
     const result = await performImport(db, job.userId, job.payload as Array<{ name: string; text: string }>)
-    await db.update(importJobs).set({ status: 'done', result }).where(eq(importJobs.id, jobId))
+    await db.update(importJobs).set({ status: 'done', result, payload: {} }).where(eq(importJobs.id, jobId))
     return result
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    await db.update(importJobs).set({ status: 'failed', error: message }).where(eq(importJobs.id, jobId))
+    await db.update(importJobs).set({ status: 'failed', error: message, payload: {} }).where(eq(importJobs.id, jobId))
     throw err
   }
 }

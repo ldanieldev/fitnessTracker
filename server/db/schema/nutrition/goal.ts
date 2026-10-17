@@ -7,6 +7,7 @@ import {
   jsonb,
   numeric,
   primaryKey,
+  smallint,
   timestamp,
   uniqueIndex,
   varchar
@@ -58,7 +59,8 @@ export const searchOutbox = appSchema.table(
     entity: varchar('entity', { length: 32 }).notNull(),
     entityId: integer('entity_id').notNull(),
     op: varchar('op', { enum: ['upsert', 'delete'] }).notNull(),
-    processedAt: timestamp('processed_at').default(sql`null`)
+    processedAt: timestamp('processed_at').default(sql`null`),
+    attempts: smallint('attempts').notNull().default(0)
   },
   (table) => [
     index('search_outbox_pending')

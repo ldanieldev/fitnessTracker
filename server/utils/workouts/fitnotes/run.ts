@@ -15,6 +15,7 @@ import { listCategoriesForUser } from '~~/server/utils/workouts/categories'
 import { insertExercise } from '~~/server/utils/workouts/exerciseWrites'
 import { loadExerciseSettings } from '~~/server/utils/workouts/exercises'
 import { rebuildRollups } from '~~/server/utils/workouts/rollups'
+import { SMALLINT_MAX } from '~~/server/utils/validation'
 import {
   exactExerciseMatch,
   fitNotesCategoryKey,
@@ -64,7 +65,7 @@ async function categoryResolver(userId: number) {
     const hit = (key ? byKey.get(key) : undefined) ?? byName.get(category.trim().toLowerCase())
     if (hit !== undefined) return hit
     const name = category.trim() || 'FitNotes'
-    const sortOrder = categories.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1 + created
+    const sortOrder = Math.min(categories.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1 + created, SMALLINT_MAX)
     const row = await db
       .insert(exerciseCategories)
       .values({ userId, name, color: IMPORT_CATEGORY_COLOR, sortOrder })
@@ -89,7 +90,7 @@ async function resolveExercises(
   for (const s of summary) {
     const loadStyle = s.assisted ? 'assisted' : null
     // Omitted names take the same exact match the preview showed; only an explicit null asks for a new exercise.
-    const mapped = s.name in mapping ? mapping[s.name] : (exactExerciseMatch(s.name, options)?.id ?? null)
+    const mapped = Object.hasOwn(mapping, s.name) ? mapping[s.name] : (exactExerciseMatch(s.name, options)?.id ?? null)
     if (mapped != null) {
       const exercise = await loadExerciseSettings(userId, mapped)
       const trackingType = fitsTrackingType(s.trackingType, exercise.trackingType)
@@ -249,16 +250,16 @@ export async function runFitNotesImport(jobId: number, userId: number): Promise<
   if (claim === 'not_queued') throw new Error(`FitNotes import job ${jobId} is not queued`)
   if (claim === 'busy') {
     const error = 'Another FitNotes import is still running; try again when it finishes'
-    await db.update(importJobs).set({ status: 'failed', error }).where(eq(importJobs.id, jobId))
+    await db.update(importJobs).set({ status: 'failed', error, payload: {} }).where(eq(importJobs.id, jobId))
     throw new Error(error)
   }
   try {
     const result = await performFitNotesImport(job.userId, job.payload as FitNotesImportPayload)
-    await db.update(importJobs).set({ status: 'done', result }).where(eq(importJobs.id, jobId))
+    await db.update(importJobs).set({ status: 'done', result, payload: {} }).where(eq(importJobs.id, jobId))
     return result
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    await db.update(importJobs).set({ status: 'failed', error: message }).where(eq(importJobs.id, jobId))
+    await db.update(importJobs).set({ status: 'failed', error: message, payload: {} }).where(eq(importJobs.id, jobId))
     throw err
   }
 }
