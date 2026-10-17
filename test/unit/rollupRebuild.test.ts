@@ -13,6 +13,7 @@ interface Recorded {
 const queries: Recorded[] = []
 
 function respond(text: string, params: unknown[]): unknown[][] {
+  if (text.includes(' union ')) return [[7], [2]]
   if (text.includes('"one_rep_max_rep_cap"')) return [[10]]
   if (/^select "id" from "app"."workout_sessions" where "app"."workout_sessions"."user_id" = \$1 order/.test(text)) {
     return Array.from({ length: SESSIONS }, (_, i) => [i + 1])
@@ -98,5 +99,14 @@ describe('rebuildUserRollups', () => {
     expect(kinds.filter((k) => k === 'upsert').length).toBeGreaterThan(1)
     expect(kinds.at(-2)).toBe('prune')
     expect(kinds.at(-1)).toBe('commit')
+  })
+
+  it('lists only users with workout sessions or goals for the nightly rebuild', async () => {
+    const { rollupUserIds } = await import('../../server/utils/workouts/rollups')
+    expect(await rollupUserIds()).toEqual([2, 7])
+    const [listing] = queries
+    expect(listing!.text).toContain('from "app"."workout_sessions"')
+    expect(listing!.text).toContain('from "app"."workout_exercise_goals"')
+    expect(listing!.text).not.toContain('"app"."users"')
   })
 })

@@ -1,4 +1,5 @@
 import { and, asc, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
+import { union } from 'drizzle-orm/pg-core'
 import type { GraphMetric, LoadStyle, TrackingType } from '~~/shared/types/workout'
 import {
   latestLoadStyle,
@@ -291,9 +292,12 @@ export async function rebuildUserRollups(userId: number): Promise<{ rows: number
   return { rows }
 }
 
+// Rollups cascade with their sessions and stamps live on goals, so a user with neither has nothing to rebuild.
 export async function rollupUserIds(): Promise<number[]> {
-  const rows = await db.select({ id: users.id }).from(users).orderBy(asc(users.id))
-  return rows.map((row) => row.id)
+  const sessionUsers = db.selectDistinct({ id: workoutSessions.userId }).from(workoutSessions)
+  const goalUsers = db.selectDistinct({ id: workoutExerciseGoals.userId }).from(workoutExerciseGoals)
+  const rows = await union(sessionUsers, goalUsers)
+  return rows.map((row) => row.id).sort((a, b) => a - b)
 }
 
 export async function rebuildRollups(userId?: number): Promise<{ rows: number }> {
