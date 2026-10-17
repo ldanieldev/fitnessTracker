@@ -33,15 +33,15 @@ function readCapped(req: CachedRequest, limit: number): Promise<Buffer> {
 export default defineEventHandler(async (event) => {
   if (!PAYLOAD_METHODS.has(event.method)) return
   const limit = bodyLimitFor(event.path)
-  const declared = getRequestHeader(event, 'content-length')
-  if (declared !== undefined) {
-    if (declaredLengthTooLarge(declared, limit)) {
+  // Transfer-Encoding overrides Content-Length (RFC 9112 6.3), so a small declared length must not skip the stream cap.
+  if (!/\bchunked\b/i.test(getRequestHeader(event, 'transfer-encoding') ?? '')) {
+    const declared = getRequestHeader(event, 'content-length')
+    if (declared !== undefined && declaredLengthTooLarge(declared, limit)) {
       setResponseHeader(event, 'Connection', 'close')
       throw tooLarge(limit)
     }
     return
   }
-  if (!/\bchunked\b/i.test(getRequestHeader(event, 'transfer-encoding') ?? '')) return
   const req = event.node.req as CachedRequest
   const body = readCapped(req, limit)
   req[RAW_BODY] = body
