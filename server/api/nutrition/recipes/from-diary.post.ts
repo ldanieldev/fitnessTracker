@@ -4,10 +4,11 @@ import { flattenContainerEntries, loadContainerEntriesForUser } from '~~/server/
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { createRecipe } from '~~/server/utils/nutrition/recipeInput'
 import { requireUserId } from '~~/server/utils/session'
+import { zId } from '~~/server/utils/validation'
 
 const fromDiarySchema = z.object({
   date: z.string(),
-  containerId: z.number().int(),
+  containerId: zId,
   name: z.string().min(1).max(255),
   servings: z.number().positive(),
   servingName: z.string().min(1).max(64)

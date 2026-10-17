@@ -6,13 +6,11 @@ import { db } from '~~/server/utils/db'
 import { loadFood } from '~~/server/utils/nutrition/loadFood'
 import { requireUserId } from '~~/server/utils/session'
 import { getNutrientId } from '~~/server/utils/nutrition/nutrientIds'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
-  if (Number.isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid food ID' })
-  }
+  const id = routeId(event)
 
   const food = await loadFood(db, userId, id)
   if (!food) {

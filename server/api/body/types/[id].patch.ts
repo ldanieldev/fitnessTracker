@@ -6,10 +6,11 @@ import { loadTypeForUser, toMeasurementType } from '~~/server/utils/body/types'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
   const body = await parseBody(event, typePatchSchema)
   const existing = await loadTypeForUser(userId, id)
   if (existing.userId === null)

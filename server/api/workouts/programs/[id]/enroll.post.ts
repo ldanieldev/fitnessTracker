@@ -1,5 +1,6 @@
 import { enrollProgram } from '~~/server/utils/workouts/enrollments'
-import { enrollSchema, idParamSchema } from '~~/server/utils/workouts/input'
+import { enrollSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 

@@ -116,6 +116,7 @@ async function resolveExercise(
   userId: number,
   wanted: ExportExercise,
   catalogue: Map<string, number>,
+  categoryIds: Map<string, number>,
   result: ProgramImportResult['exercises']
 ): Promise<number> {
   const hit = wanted.externalId ? catalogue.get(wanted.externalId) : undefined
@@ -139,13 +140,15 @@ async function resolveExercise(
     result.matched++
     return decision.id
   }
-  const categories = await listCategoriesForUser(userId, { includeHidden: true, client: tx })
-  const category =
-    categories.find((c) => c.name.toLowerCase() === wanted.category.name.toLowerCase()) ??
-    (await createCategory(userId, { name: wanted.category.name, color: wanted.category.color }, tx))
+  const categoryKey = wanted.category.name.toLowerCase()
+  let categoryId = categoryIds.get(categoryKey)
+  if (categoryId === undefined) {
+    categoryId = (await createCategory(userId, { name: wanted.category.name, color: wanted.category.color }, tx)).id
+    categoryIds.set(categoryKey, categoryId)
+  }
   const id = await insertExercise(tx, userId, {
     name: decision.name,
-    categoryId: category.id,
+    categoryId,
     trackingType: wanted.trackingType,
     loadStyle: wanted.loadStyle,
     barWeight: wanted.barWeight,
@@ -171,6 +174,8 @@ export async function importProgram(userId: number, data: ProgramExport): Promis
 
   const programId = await db.transaction(async (tx) => {
     const cache = new Map<string, number>()
+    const categories = await listCategoriesForUser(userId, { includeHidden: true, client: tx })
+    const categoryIds = new Map(categories.map((c) => [c.name.toLowerCase(), c.id]))
     const exerciseIds: number[][][] = []
     for (const routine of data.routines) {
       const days: number[][] = []
@@ -180,7 +185,7 @@ export async function importProgram(userId: number, data: ProgramExport): Promis
           const key = JSON.stringify(entry.exercise)
           let id = cache.get(key)
           if (id === undefined) {
-            id = await resolveExercise(tx, userId, entry.exercise, catalogue, result)
+            id = await resolveExercise(tx, userId, entry.exercise, catalogue, categoryIds, result)
             cache.set(key, id)
           }
           ids.push(id)

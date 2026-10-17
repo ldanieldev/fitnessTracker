@@ -7,10 +7,11 @@ import { loadTypeForUser } from '~~/server/utils/body/types'
 import { queueWeightPush } from '~~/server/utils/googleHealth/weightPush'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
   const body = await parseBody(event, entryPatchSchema)
   const before = await loadEntryForUser(userId, id)
   const type = await loadTypeForUser(userId, before.typeId)

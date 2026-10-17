@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { isoDate } from '~~/server/utils/body/input'
 import { parseWith } from '~~/server/utils/nutrition/parseBody'
 import { skipRoutineDay } from '~~/server/utils/workouts/routines'
-import { idParamSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { requireUserId } from '~~/server/utils/session'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
 

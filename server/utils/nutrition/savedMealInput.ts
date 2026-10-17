@@ -3,17 +3,18 @@ import { savedMealItems, savedMeals } from '~~/server/db/schema'
 import type { DbClient } from '../db'
 import { loadFood } from './loadFood'
 import { type PreparedIngredient, resolveIngredientGrams } from './recipeInput'
+import { zId } from '~~/server/utils/validation'
 
 export const savedMealItemInputSchema = z.object({
-  foodId: z.number().int(),
-  foodServingId: z.number().int().optional(),
+  foodId: zId,
+  foodServingId: zId.optional(),
   quantity: z.number().positive(),
   unitLabel: z.string().trim().min(1).max(64)
 })
 
 export const savedMealSchema = z.object({
   name: z.string().min(1).max(255),
-  items: z.array(savedMealItemInputSchema).min(1)
+  items: z.array(savedMealItemInputSchema).min(1).max(100)
 })
 
 export type SavedMealInput = z.infer<typeof savedMealSchema>

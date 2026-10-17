@@ -7,13 +7,11 @@ import { type PreparedIngredient, resolveIngredientGrams } from '~~/server/utils
 import { loadSavedMeal } from '~~/server/utils/nutrition/savedMeal'
 import { savedMealSchema } from '~~/server/utils/nutrition/savedMealInput'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
-  if (Number.isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid saved meal ID' })
-  }
+  const id = routeId(event)
 
   const existing = await loadSavedMeal(db, userId, id)
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Saved meal not found' })

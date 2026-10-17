@@ -40,6 +40,16 @@ const routine = z.object({
     .max(30)
 })
 
+export const PROGRAM_IMPORT_LIMITS = { entries: 2000, customExercises: 500 } as const
+
+function programEntries(data: { routines: { days: { entries: z.infer<typeof entry>[] }[] }[] }) {
+  return data.routines.flatMap((r) => r.days.flatMap((d) => d.entries))
+}
+
+function customExerciseCount(data: Parameters<typeof programEntries>[0]): number {
+  return new Set(programEntries(data).flatMap((e) => ('name' in e.exercise ? [JSON.stringify(e.exercise)] : []))).size
+}
+
 export const programExportSchema = z
   .object({
     format: z.literal('mfj-program'),
@@ -64,6 +74,14 @@ export const programExportSchema = z
     (data) => data.program.phases.every((phase) => phase.routine === null || phase.routine < data.routines.length),
     { message: 'A phase points at a routine that is not in the file', path: ['program', 'phases'] }
   )
+  .refine((data) => programEntries(data).length <= PROGRAM_IMPORT_LIMITS.entries, {
+    message: `A program may hold at most ${PROGRAM_IMPORT_LIMITS.entries} exercise entries`,
+    path: ['routines']
+  })
+  .refine((data) => customExerciseCount(data) <= PROGRAM_IMPORT_LIMITS.customExercises, {
+    message: `A program may name at most ${PROGRAM_IMPORT_LIMITS.customExercises} custom exercises`,
+    path: ['routines']
+  })
 
 export type ProgramExport = z.infer<typeof programExportSchema>
 export type ExportExercise = ProgramExport['routines'][number]['days'][number]['entries'][number]['exercise']

@@ -5,11 +5,12 @@ import { loadEditableFood } from '~~/server/utils/nutrition/loadEditableFood'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
 import { assertCanDeleteServing, ServingInUseError } from '~~/server/utils/nutrition/servingGuards'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const foodId = Number(getRouterParam(event, 'id'))
-  const servingId = Number(getRouterParam(event, 'servingId'))
+  const foodId = routeId(event)
+  const servingId = routeId(event, 'servingId')
 
   const food = await loadEditableFood(db, userId, foodId)
 

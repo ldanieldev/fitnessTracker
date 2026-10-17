@@ -6,7 +6,7 @@ import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 
-const trackedSchema = z.object({ keys: z.array(z.string()).min(1).max(20) })
+const trackedSchema = z.object({ keys: z.array(z.string().max(64)).min(1).max(20) })
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

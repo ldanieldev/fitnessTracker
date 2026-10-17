@@ -4,10 +4,11 @@ import { db } from '~~/server/utils/db'
 import { loadEditableFood } from '~~/server/utils/nutrition/loadEditableFood'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
 
   await loadEditableFood(db, userId, id)
 

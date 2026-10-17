@@ -8,7 +8,7 @@ import { requireUserId } from '~~/server/utils/session'
 
 const importSchema = z.object({
   source: z.enum(['off', 'usda', 'fatsecret']),
-  externalId: z.string().min(1)
+  externalId: z.string().min(1).max(64)
 })
 
 const ERROR_STATUS: Record<Exclude<ExternalSourceError['kind'], 'not_found'>, number> = {

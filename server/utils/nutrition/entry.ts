@@ -8,22 +8,23 @@ import type { DbClient } from '../db'
 import { loadFood } from './loadFood'
 import { computeRecipeNutrition, loadRecipe } from './recipeTotals'
 import { recordFoodUsage } from './usage'
+import { boundedRecord, zId } from '~~/server/utils/validation'
 
 export const entryInputSchema = z.object({
   entryType: z.enum(['food', 'quick_add', 'recipe']),
-  containerId: z.number().int(),
+  containerId: zId,
   quantity: z.number().positive(),
   unitLabel: z.string().trim().min(1).max(64),
-  foodId: z.number().int().nullish(),
-  recipeId: z.number().int().nullish(),
-  savedMealId: z.number().int().nullish(),
+  foodId: zId.nullish(),
+  recipeId: zId.nullish(),
+  savedMealId: zId.nullish(),
   description: z.string().max(255).nullish(),
   loggedAt: z.coerce.date().optional(),
   notes: z.string().max(2000).nullish(),
-  nutrients: z.record(z.string(), z.number()).optional()
+  nutrients: boundedRecord(z.number(), 100).optional()
 })
 
-export const entryPostSchema = z.array(entryInputSchema).min(1)
+export const entryPostSchema = z.array(entryInputSchema).min(1).max(100)
 
 export type EntryInput = z.infer<typeof entryInputSchema>
 

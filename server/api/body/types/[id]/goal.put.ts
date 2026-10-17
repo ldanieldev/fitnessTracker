@@ -6,10 +6,11 @@ import { goalPutSchema } from '~~/server/utils/body/input'
 import { loadTypeForUser } from '~~/server/utils/body/types'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event): Promise<MeasurementGoal> => {
   const userId = await requireUserId(event)
-  const typeId = Number(getRouterParam(event, 'id'))
+  const typeId = routeId(event)
   const body = await parseBody(event, goalPutSchema)
   await loadTypeForUser(userId, typeId)
 

@@ -1,5 +1,6 @@
 import { groupSessionEntries } from '~~/server/utils/workouts/entries'
-import { idParamSchema, workoutEntryGroupSchema } from '~~/server/utils/workouts/input'
+import { workoutEntryGroupSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 

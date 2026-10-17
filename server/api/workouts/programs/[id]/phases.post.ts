@@ -1,5 +1,6 @@
 import { addProgramPhase } from '~~/server/utils/workouts/programs'
-import { idParamSchema, programPhaseCreateSchema } from '~~/server/utils/workouts/input'
+import { programPhaseCreateSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 

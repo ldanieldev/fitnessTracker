@@ -2,9 +2,10 @@ import { z } from 'zod'
 import { pushWeight } from '~~/server/utils/googleHealth/weightPush'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { zId } from '~~/server/utils/validation'
 
 const bodySchema = z.object({
-  measurementId: z.number().int(),
+  measurementId: zId,
   utcOffsetMinutes: z.number().int().nullable().default(null),
   previousExternalId: z.string().nullable().default(null),
   deleted: z.boolean().default(false)

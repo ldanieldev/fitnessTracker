@@ -5,8 +5,9 @@ import { db } from '~~/server/utils/db'
 import { ensureDay, parseDiaryDate, snapshotTargets } from '~~/server/utils/nutrition/day'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { zId } from '~~/server/utils/validation'
 
-const goalPutSchema = z.object({ profileId: z.number().int() })
+const goalPutSchema = z.object({ profileId: zId })
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)

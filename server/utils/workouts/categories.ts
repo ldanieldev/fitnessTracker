@@ -7,6 +7,7 @@ import { isUniqueViolation } from '~~/server/utils/pgError'
 import { loadCatalogue, type Catalogue } from '~~/server/utils/workouts/catalogue'
 import { resolveCategory } from '~~/shared/utils/exerciseResolve'
 import { writeSparsePref } from '~~/server/utils/workouts/sparsePrefs'
+import { SMALLINT_MAX } from '~~/server/utils/validation'
 
 const NAME_CONFLICT_ERROR = { statusCode: 409, statusMessage: 'You already have a category with that name' } as const
 const NOT_FOUND_ERROR = { statusCode: 404, statusMessage: 'Category not found' } as const
@@ -114,7 +115,7 @@ export async function createCategory(
   client: DbClient = db
 ): Promise<ExerciseCategory> {
   const existing = await listCategoriesForUser(userId, { client })
-  const sortOrder = existing.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1
+  const sortOrder = Math.min(existing.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1, SMALLINT_MAX)
 
   let created: { id: number }
   try {

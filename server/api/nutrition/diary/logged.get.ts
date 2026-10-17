@@ -4,11 +4,12 @@ import { diaryDays } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { calendarDateSchema } from '~~/server/utils/validation'
 import { enumerateDates } from '~~/shared/utils/nutritionSummary'
 
 const querySchema = z.object({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+  from: calendarDateSchema,
+  to: calendarDateSchema
 })
 
 export default defineEventHandler(async (event) => {

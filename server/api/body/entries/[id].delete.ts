@@ -5,10 +5,11 @@ import { loadEntryForUser } from '~~/server/utils/body/entries'
 import { loadTypeForUser } from '~~/server/utils/body/types'
 import { queueWeightPush } from '~~/server/utils/googleHealth/weightPush'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
   const before = await loadEntryForUser(userId, id)
   await db.delete(measurements).where(eq(measurements.id, id))
   if (before.externalId) {

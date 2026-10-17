@@ -1,5 +1,6 @@
 import { patchProgram } from '~~/server/utils/workouts/programs'
-import { idParamSchema, programPatchSchema } from '~~/server/utils/workouts/input'
+import { programPatchSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 

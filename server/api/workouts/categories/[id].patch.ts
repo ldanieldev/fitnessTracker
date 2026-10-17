@@ -1,5 +1,6 @@
 import { patchCategory } from '~~/server/utils/workouts/categories'
-import { categoryPatchSchema, idParamSchema } from '~~/server/utils/workouts/input'
+import { categoryPatchSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 

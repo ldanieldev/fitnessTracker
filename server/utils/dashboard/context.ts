@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { users } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
+import { calendarDateSchema } from '~~/server/utils/validation'
 import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 
 export interface DashboardContext {
@@ -14,7 +15,7 @@ export interface DashboardContext {
   modules: { body: boolean; workouts: boolean; nutrition: boolean }
 }
 
-const todayQuerySchema = z.object({ today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })
+const todayQuerySchema = z.object({ today: calendarDateSchema.optional() })
 
 export function parseTodayQuery(event: H3Event): string | undefined {
   const { today } = parseQuery(event, todayQuerySchema)

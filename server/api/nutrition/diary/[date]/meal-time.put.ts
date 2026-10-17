@@ -5,9 +5,10 @@ import { db } from '~~/server/utils/db'
 import { ensureDay, parseDiaryDate } from '~~/server/utils/nutrition/day'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { zId } from '~~/server/utils/validation'
 
 const mealTimePutSchema = z.object({
-  containerId: z.number().int(),
+  containerId: zId,
   time: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)

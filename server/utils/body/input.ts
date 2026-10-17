@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { STEPS_MAX, STEP_WEEKS_MAX } from '~~/shared/utils/steps'
+import { INT4_MAX, zId } from '~~/server/utils/validation'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -12,19 +13,21 @@ export const isoDate = z
   }, 'Date must be a real calendar date')
 
 const utcOffsetMinutes = z.number().int().min(-840).max(840).optional()
+const measurementValue = z.number().min(-1_000_000).max(1_000_000)
+const measuredAt = z.coerce.date().min(new Date('1900-01-01T00:00:00Z')).max(new Date('2100-01-01T00:00:00Z'))
 
 export const entryCreateSchema = z.object({
-  typeId: z.number().int().positive(),
-  value: z.number(),
-  measuredAt: z.coerce.date().optional(),
+  typeId: zId,
+  value: measurementValue,
+  measuredAt: measuredAt.optional(),
   measuredOn: isoDate.optional(),
   utcOffsetMinutes
 })
 
 export const entryPatchSchema = z
   .object({
-    value: z.number().optional(),
-    measuredAt: z.coerce.date().optional(),
+    value: measurementValue.optional(),
+    measuredAt: measuredAt.optional(),
     measuredOn: isoDate.optional(),
     utcOffsetMinutes
   })
@@ -50,11 +53,11 @@ export const typePatchSchema = typeCreateSchema
 
 export const prefsPutSchema = z.object({
   hidden: z.boolean().optional(),
-  sortOrder: z.number().int().nullable().optional()
+  sortOrder: z.number().int().min(-INT4_MAX).max(INT4_MAX).nullable().optional()
 })
 
 export const goalPutSchema = z.object({
-  targetValue: z.number(),
+  targetValue: measurementValue,
   targetDate: isoDate.nullable().optional()
 })
 

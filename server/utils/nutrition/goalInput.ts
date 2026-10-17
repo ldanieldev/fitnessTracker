@@ -5,7 +5,7 @@ import { ensureEnergyTarget } from '~~/shared/utils/nutritionTargets'
 import type { NutrientCatalogEntry } from './nutrientIds'
 
 export const goalTargetInputSchema = z.object({
-  nutrient: z.string().min(1),
+  nutrient: z.string().min(1).max(64),
   amount: z.number().nonnegative().optional(),
   ratioPercent: z.number().min(0).max(100).optional(),
   direction: z.enum(['min', 'max', 'target']).optional()
@@ -16,7 +16,11 @@ export const goalProfileSchema = z.object({
   inputMode: z.enum(['grams', 'ratio']),
   calories: z.number().positive().nullish(),
   isDefault: z.boolean().default(false),
-  targets: z.array(goalTargetInputSchema).min(1)
+  targets: z
+    .array(goalTargetInputSchema)
+    .min(1)
+    .max(100)
+    .refine((t) => new Set(t.map((target) => target.nutrient)).size === t.length, 'Each nutrient may appear once')
 })
 
 export type GoalTargetInput = z.infer<typeof goalTargetInputSchema>

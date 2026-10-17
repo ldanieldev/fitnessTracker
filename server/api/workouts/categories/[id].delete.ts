@@ -1,5 +1,6 @@
 import { deleteCategory } from '~~/server/utils/workouts/categories'
-import { categoryDeleteQuerySchema, idParamSchema } from '~~/server/utils/workouts/input'
+import { categoryDeleteQuerySchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 

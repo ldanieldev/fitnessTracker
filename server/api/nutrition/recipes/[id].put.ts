@@ -6,13 +6,11 @@ import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { loadRecipe } from '~~/server/utils/nutrition/recipeTotals'
 import { type PreparedIngredient, recipeSchema, resolveIngredientGrams } from '~~/server/utils/nutrition/recipeInput'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
-  if (Number.isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid recipe ID' })
-  }
+  const id = routeId(event)
 
   const existing = await loadRecipe(db, userId, id)
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Recipe not found' })

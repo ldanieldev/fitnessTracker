@@ -2,14 +2,11 @@ import { eq } from 'drizzle-orm'
 import { users } from '~~/server/db/schema'
 import { requireUserId } from '~~/server/utils/session'
 import { publicUserColumns } from '~~/server/utils/userColumns'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const sessionUserId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
-
-  if (Number.isNaN(id) || id === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid user ID' })
-  }
+  const id = routeId(event)
 
   if (id !== sessionUserId) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })

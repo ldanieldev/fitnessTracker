@@ -188,14 +188,14 @@ test('self, bad body and unknown id', async ({ page, goto }) => {
     ).status
   ).toBe(404)
   expect((await apiFetch(page, 'DELETE', '/api/admin/users/2147483646')).status).toBe(404)
-  expect((await apiFetch(page, 'DELETE', '/api/admin/users/abc')).status).toBe(404)
+  expect((await apiFetch(page, 'DELETE', '/api/admin/users/abc')).status).toBe(400)
   for (const [method, path] of [
     ['PATCH', '/api/admin/users/2147483648'],
     ['DELETE', '/api/admin/users/2147483648'],
     ['DELETE', '/api/admin/tokens/2147483648']
   ] as const) {
     const res = await apiFetch(page, method, path, method === 'PATCH' ? { isActive: false } : undefined)
-    expect(res.status, `${method} ${path}`).toBe(404)
+    expect(res.status, `${method} ${path}`).toBe(400)
   }
 })
 

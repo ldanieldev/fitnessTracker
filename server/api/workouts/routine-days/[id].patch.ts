@@ -1,5 +1,6 @@
 import { patchRoutineDay } from '~~/server/utils/workouts/routineDays'
-import { idParamSchema, routineDayPatchSchema } from '~~/server/utils/workouts/input'
+import { routineDayPatchSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 

@@ -2,13 +2,11 @@ import { and, eq } from 'drizzle-orm'
 import { importJobs } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const jobId = Number(getRouterParam(event, 'jobId'))
-  if (!Number.isInteger(jobId) || jobId <= 0) {
-    throw createError({ statusCode: 404, statusMessage: 'Import job not found' })
-  }
+  const jobId = routeId(event, 'jobId')
 
   const job = await db
     .select({

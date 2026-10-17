@@ -2,10 +2,11 @@ import { and, eq } from 'drizzle-orm'
 import { diaryDays, diaryEntries } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const entryId = Number(getRouterParam(event, 'id'))
+  const entryId = routeId(event)
 
   await db.transaction(async (tx) => {
     const entry = await tx

@@ -8,15 +8,10 @@ import {
 import { CATEGORY_COLORS } from '~~/shared/utils/categoryColors'
 import { START_WHEN_VALUES } from '~~/shared/types/program'
 import { plateSizesSchema } from '~~/shared/utils/plates'
+import { SET_LIMITS } from '~~/shared/utils/setRules'
+import { calendarDateSchema, idParamSchema, INT4_MAX, SMALLINT_MAX, zId } from '~~/server/utils/validation'
 
-// Regex alone lets 2026-02-30 through, which throws downstream and again in Postgres as an unhandled 500.
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((raw) => {
-    const day = new Date(`${raw}T00:00:00Z`)
-    return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === raw
-  }, 'Invalid date')
+const isoDate = calendarDateSchema
 
 const csv = z.string().transform((v) =>
   v
@@ -28,7 +23,7 @@ const flag = z.enum(['1', 'true', '0', 'false']).transform((v) => v === '1' || v
 
 export const exerciseQuerySchema = z.object({
   q: z.string().max(100).default(''),
-  categoryId: z.coerce.number().int().positive().optional(),
+  categoryId: z.coerce.number().pipe(zId).optional(),
   muscles: csv.optional(),
   equipment: csv.optional(),
   difficulty: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
@@ -37,12 +32,11 @@ export const exerciseQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(1000).optional()
 })
 
-export const idParamSchema = z.coerce.number().int().positive()
 export const exerciseIdParamSchema = idParamSchema
 
 export const exerciseCreateSchema = z.object({
   name: z.string().trim().min(1).max(255),
-  categoryId: z.number().int().positive(),
+  categoryId: zId,
   trackingType: z.enum(TRACKING_TYPE_VALUES),
   loadStyle: z.enum(LOAD_STYLE_VALUES).nullish(),
   barWeight: z.number().positive().max(500).nullish(),
@@ -55,7 +49,7 @@ export const exerciseCreateSchema = z.object({
 export const exerciseUpdateSchema = exerciseCreateSchema.partial()
 
 export const exercisePrefsSchema = z.object({
-  categoryId: z.number().int().positive().nullable().optional(),
+  categoryId: zId.nullable().optional(),
   trackingType: z.enum(TRACKING_TYPE_VALUES).nullable().optional(),
   loadStyle: z.enum(LOAD_STYLE_VALUES).nullable().optional(),
   barWeight: z.number().positive().max(500).nullable().optional(),
@@ -63,7 +57,7 @@ export const exercisePrefsSchema = z.object({
   restSeconds: z.number().int().min(5).max(3600).nullable().optional(),
   plateSizes: plateSizesSchema.nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
-  link: z.string().url().max(500).nullable().optional(),
+  link: z.url({ protocol: /^https?$/ }).max(500).nullable().optional(),
   defaultGraph: z.enum(GRAPH_METRIC_VALUES).nullable().optional()
 })
 
@@ -83,7 +77,7 @@ export const categoryCreateSchema = z.object({
 export const categoryPatchSchema = z.object({
   name: z.string().trim().min(1).max(64).optional(),
   color: z.enum(CATEGORY_COLORS).optional(),
-  sortOrder: z.number().int().min(0).optional(),
+  sortOrder: z.number().int().min(0).max(SMALLINT_MAX).optional(),
   hidden: z.boolean().optional()
 })
 
@@ -93,13 +87,13 @@ export const categoryDeleteQuerySchema = z.object({
 
 export const variationCreateSchema = z.object({
   name: z.string().trim().min(1).max(64),
-  exerciseIds: z.array(z.number().int().positive()).max(50).default([])
+  exerciseIds: z.array(zId).max(50).default([])
 })
 
 export const variationPatchSchema = z.object({
   name: z.string().trim().min(1).max(64).optional(),
-  addExerciseIds: z.array(z.number().int().positive()).max(50).optional(),
-  removeExerciseIds: z.array(z.number().int().positive()).max(50).optional()
+  addExerciseIds: z.array(zId).max(50).optional(),
+  removeExerciseIds: z.array(zId).max(50).optional()
 })
 
 export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>
@@ -109,20 +103,17 @@ export type VariationPatchInput = z.infer<typeof variationPatchSchema>
 
 export const sessionStartSchema = z.object({
   name: z.string().trim().max(255).nullish(),
-  performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  copyFromId: z.number().int().positive().optional(),
-  entryIds: z.array(z.number().int().positive()).min(1).max(100).optional(),
-  routineDayId: z.number().int().positive().optional(),
+  performedOn: isoDate,
+  copyFromId: zId.optional(),
+  entryIds: z.array(zId).min(1).max(100).optional(),
+  routineDayId: zId.optional(),
   pointer: z.enum(POINTER_CHOICE_VALUES).optional()
 })
 
 export const sessionPatchSchema = z.object({
   name: z.string().trim().max(255).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
-  performedOn: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  performedOn: isoDate.optional(),
   startedAt: z.iso.datetime().optional(),
   endedAt: z.iso.datetime().nullable().optional(),
   finish: z.boolean().optional()
@@ -136,9 +127,9 @@ const sessionFilterShape = {
   to: isoDate.optional(),
   categories: csv.pipe(z.array(z.string().transform(Number).pipe(categoryIdNumber)).max(50)).optional(),
   match: z.enum(['any', 'all']).default('any'),
-  exerciseId: z.coerce.number().int().positive().optional(),
-  programId: z.coerce.number().int().positive().optional(),
-  phaseId: z.coerce.number().int().positive().optional(),
+  exerciseId: z.coerce.number().pipe(zId).optional(),
+  programId: z.coerce.number().pipe(zId).optional(),
+  phaseId: z.coerce.number().pipe(zId).optional(),
   minWeight: z.coerce.number().min(0).max(2000).optional(),
   minReps: z.coerce.number().int().min(1).max(1000).optional()
 }
@@ -166,26 +157,26 @@ export type SessionListQuery = z.infer<typeof sessionListQuerySchema>
 export type SessionStartInput = z.infer<typeof sessionStartSchema>
 export type SessionPatchInput = z.infer<typeof sessionPatchSchema>
 
-export const workoutEntryAddSchema = z.object({ exerciseId: z.number().int().positive() })
+export const workoutEntryAddSchema = z.object({ exerciseId: zId })
 
 export const workoutEntryPatchSchema = z.object({
-  sortOrder: z.number().int().min(0).optional(),
+  sortOrder: z.number().int().min(0).max(INT4_MAX).optional(),
   notes: z.string().max(2000).nullable().optional(),
   supersetGroup: z.null().optional()
 })
 
-export const workoutEntryGroupSchema = z.object({ entryIds: z.array(z.number().int().positive()).min(2).max(50) })
+export const workoutEntryGroupSchema = z.object({ entryIds: z.array(zId).min(2).max(50) })
 
 export type WorkoutEntryAddInput = z.infer<typeof workoutEntryAddSchema>
 export type WorkoutEntryPatchInput = z.infer<typeof workoutEntryPatchSchema>
 
 export const setWriteSchema = z.object({
-  weight: z.number().min(0).max(2000).nullable().optional(),
-  reps: z.number().int().min(0).max(1000).nullable().optional(),
-  distanceMeters: z.number().min(0).max(1000000).nullable().optional(),
-  durationSeconds: z.number().int().min(0).max(86400).nullable().optional(),
+  weight: z.number().min(0).max(SET_LIMITS.weight).nullable().optional(),
+  reps: z.number().int().min(0).max(SET_LIMITS.reps).nullable().optional(),
+  distanceMeters: z.number().min(0).max(SET_LIMITS.distanceMeters).nullable().optional(),
+  durationSeconds: z.number().int().min(0).max(SET_LIMITS.durationSeconds).nullable().optional(),
   done: z.boolean().optional(),
-  comment: z.string().max(500).nullable().optional()
+  comment: z.string().max(SET_LIMITS.comment).nullable().optional()
 })
 
 export type SetWriteInput = z.infer<typeof setWriteSchema>
@@ -222,7 +213,7 @@ export const routinePatchSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   notes: z.string().max(2000).nullable().optional(),
   active: z.boolean().optional(),
-  nextDayId: z.number().int().positive().optional(),
+  nextDayId: zId.optional(),
   pauseProgram: z.boolean().optional(),
   today: isoDate.optional()
 })
@@ -239,10 +230,10 @@ export const routineDayPatchSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   description: z.string().trim().max(255).nullable().optional(),
   floating: z.boolean().optional(),
-  sortOrder: z.number().int().min(0).optional()
+  sortOrder: z.number().int().min(0).max(INT4_MAX).optional()
 })
 
-export const routineEntryAddSchema = z.object({ exerciseId: z.number().int().positive() })
+export const routineEntryAddSchema = z.object({ exerciseId: zId })
 
 export const routineEntryPatchSchema = z.object({
   targetSets: z.number().int().min(1).max(50).nullable().optional(),
@@ -252,7 +243,7 @@ export const routineEntryPatchSchema = z.object({
   optional: z.boolean().optional(),
   restSeconds: z.number().int().min(0).max(3600).nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
-  sortOrder: z.number().int().min(0).optional(),
+  sortOrder: z.number().int().min(0).max(INT4_MAX).optional(),
   supersetGroup: z.null().optional()
 })
 
@@ -273,16 +264,16 @@ export const programPatchSchema = z.object({
 export const programPhaseCreateSchema = z.object({
   name: z.string().trim().min(1).max(255),
   weeks: z.number().int().min(1).max(104),
-  routineId: z.number().int().positive().nullish(),
+  routineId: zId.nullish(),
   deload: z.boolean().optional()
 })
 
 export const programPhasePatchSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   weeks: z.number().int().min(1).max(104).optional(),
-  routineId: z.number().int().positive().nullable().optional(),
+  routineId: zId.nullable().optional(),
   deload: z.boolean().optional(),
-  sortOrder: z.number().int().min(0).optional()
+  sortOrder: z.number().int().min(0).max(INT4_MAX).optional()
 })
 
 export type ProgramCreateInput = z.infer<typeof programCreateSchema>

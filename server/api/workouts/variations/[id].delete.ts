@@ -1,5 +1,5 @@
 import { deleteVariationGroup } from '~~/server/utils/workouts/variations'
-import { idParamSchema } from '~~/server/utils/workouts/input'
+import { idParamSchema } from '~~/server/utils/validation'
 import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {

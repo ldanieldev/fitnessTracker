@@ -8,6 +8,7 @@ import { toSessionUser } from '~~/server/utils/sessionUser'
 import { publicUserColumns } from '~~/server/utils/userColumns'
 import { rebuildRollups, repCapFor } from '~~/server/utils/workouts/rollups'
 import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
+import { routeId } from '~~/server/utils/validation'
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).optional(),
@@ -31,10 +32,7 @@ const roundTenth = (value: number) => Math.round(value * 10) / 10
 export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event)
 
-  const id = Number(getRouterParam(event, 'id'))
-  if (Number.isNaN(id) || id === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid user ID' })
-  }
+  const id = routeId(event)
 
   if (sessionUser.id !== id) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })

@@ -7,10 +7,11 @@ import { loadTypeForUser } from '~~/server/utils/body/types'
 import { parseQuery } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const typeId = Number(getRouterParam(event, 'id'))
+  const typeId = routeId(event)
   const query = parseQuery(event, rangeQuerySchema)
   await loadTypeForUser(userId, typeId)
   const to = query.to ?? todayDate()

@@ -4,13 +4,11 @@ import { keyNutrients } from '~~/shared/utils/nutritionKeyed'
 import { nutrientCatalog } from '~~/server/utils/nutrition/nutrientIds'
 import { computeRecipeNutrition, loadRecipe } from '~~/server/utils/nutrition/recipeTotals'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
-  if (Number.isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid recipe ID' })
-  }
+  const id = routeId(event)
 
   const recipe = await loadRecipe(db, userId, id)
   if (!recipe) throw createError({ statusCode: 404, statusMessage: 'Recipe not found' })

@@ -5,15 +5,13 @@ import { normalizeEmail } from '~~/shared/utils/email'
 import { deleteAccount } from '~~/server/utils/deleteAccount'
 import { disconnectGoogleHealth } from '~~/server/utils/googleHealth/disconnect'
 import { forbidToken, requireSessionUser } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event)
   forbidToken(event)
 
-  const id = Number(getRouterParam(event, 'id'))
-  if (Number.isNaN(id) || id === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid user ID' })
-  }
+  const id = routeId(event)
 
   if (sessionUser.id !== id) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })

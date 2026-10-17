@@ -5,8 +5,9 @@ import { db } from '~~/server/utils/db'
 import { runMyMacrosImport } from '~~/server/utils/nutrition/mymacros/run'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import { zId } from '~~/server/utils/validation'
 
-const bodySchema = z.object({ jobId: z.number().int() })
+const bodySchema = z.object({ jobId: zId })
 
 export default defineEventHandler(async (event) => {
   if (process.env.NUXT_TEST_FIXTURES !== '1') throw createError({ statusCode: 404 })

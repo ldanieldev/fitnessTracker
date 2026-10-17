@@ -2,20 +2,21 @@ import { z } from 'zod'
 import type { ServingKind } from '~~/shared/types/nutrition'
 import { deriveEnergy } from '~~/shared/utils/nutritionDerive'
 import { normalizeUnitLabel, toGrams } from '~~/shared/utils/nutritionUnits'
+import { boundedRecord } from '~~/server/utils/validation'
 
 export const servingInputSchema = z.object({
   kind: z.enum(['weight', 'named']),
   label: z.string().min(1).max(64),
   quantity: z.number().positive(),
   basisGrams: z.number().positive().nullish(),
-  nutrients: z.record(z.string(), z.number()).optional()
+  nutrients: boundedRecord(z.number(), 100).optional()
 })
 
 export const foodCreateSchema = z.object({
   name: z.string().min(1).max(255),
   brand: z.string().max(255).nullish(),
   barcode: z.string().max(64).nullish(),
-  servings: z.array(servingInputSchema).min(1)
+  servings: z.array(servingInputSchema).min(1).max(50)
 })
 
 export type ServingInput = z.infer<typeof servingInputSchema>

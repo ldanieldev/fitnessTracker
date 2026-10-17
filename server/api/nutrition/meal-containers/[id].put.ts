@@ -6,15 +6,16 @@ import { containerColumns } from '~~/server/utils/nutrition/containerColumns'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 import { isUniqueViolation } from '~~/server/utils/pgError'
+import { INT4_MAX, routeId } from '~~/server/utils/validation'
 
 const containerSchema = z.object({
   name: z.string().min(1).max(64),
-  sortOrder: z.number().int().optional()
+  sortOrder: z.number().int().min(0).max(INT4_MAX).optional()
 })
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
   const body = await parseBody(event, containerSchema)
 
   const existing = await db

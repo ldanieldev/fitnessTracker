@@ -4,10 +4,11 @@ import { recipeIngredients, recipes } from '~~/server/db/schema'
 import type { DbClient } from '../db'
 import { selectUnit } from './entry'
 import { loadFood, type LoadedFood } from './loadFood'
+import { zId } from '~~/server/utils/validation'
 
 export const recipeIngredientInputSchema = z.object({
-  foodId: z.number().int(),
-  foodServingId: z.number().int().optional(),
+  foodId: zId,
+  foodServingId: zId.optional(),
   quantity: z.number().positive(),
   unitLabel: z.string().min(1).max(64)
 })
@@ -17,7 +18,7 @@ export const recipeSchema = z.object({
   servings: z.number().positive(),
   servingName: z.string().min(1).max(64),
   notes: z.string().max(5000).nullish(),
-  ingredients: z.array(recipeIngredientInputSchema).min(1)
+  ingredients: z.array(recipeIngredientInputSchema).min(1).max(200)
 })
 
 export type RecipeInput = z.infer<typeof recipeSchema>

@@ -6,6 +6,7 @@ import { loadEditableFood } from '~~/server/utils/nutrition/loadEditableFood'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 const foodUpdateSchema = z.object({
   name: z.string().min(1).max(255),
@@ -15,7 +16,7 @@ const foodUpdateSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
 
   const body = await parseBody(event, foodUpdateSchema)
 
