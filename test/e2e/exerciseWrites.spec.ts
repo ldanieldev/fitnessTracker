@@ -115,6 +115,8 @@ test('exercise writes: custom exercises, prefs, favourite, hide, fork', async ({
   const afterFork = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=barbell%20bench')).json
   expect(afterFork.filter((e) => e.name === shared.name)).toHaveLength(1)
   expect(afterFork.find((e) => e.name === shared.name)!.shared).toBe(false)
+  const forkAgain = await apiFetch(page, 'POST', `/api/workouts/exercises/${shared.id}/fork`)
+  expect(forkAgain.status).toBe(409)
 
   expect((await apiFetch(page, 'DELETE', `/api/workouts/exercises/${mine}`)).json).toEqual({ ok: true })
   const afterDelete = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises')).json

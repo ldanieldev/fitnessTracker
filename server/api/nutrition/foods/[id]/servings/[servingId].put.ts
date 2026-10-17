@@ -8,11 +8,13 @@ import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
 import { assertCanReplaceServing, ServingInUseError } from '~~/server/utils/nutrition/servingGuards'
 import { requireUserId } from '~~/server/utils/session'
+import { isUniqueViolation } from '~~/server/utils/pgError'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const foodId = Number(getRouterParam(event, 'id'))
-  const servingId = Number(getRouterParam(event, 'servingId'))
+  const foodId = routeId(event)
+  const servingId = routeId(event, 'servingId')
 
   const body = await parseBody(event, servingInputSchema)
 
@@ -75,5 +77,10 @@ export default defineEventHandler(async (event) => {
     await enqueueSearchOutbox(tx, foodId, 'upsert')
 
     return { id: servingId }
+  }).catch((err: unknown) => {
+    if (isUniqueViolation(err, 'food_one_weight_serving')) {
+      throw createError({ statusCode: 409, statusMessage: 'This food already has a weight serving' })
+    }
+    throw err
   })
 })

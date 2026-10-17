@@ -18,6 +18,11 @@ export function scaleIngredientSnapshot(items: IngredientSnapshotItem[], ratio: 
   }))
 }
 
+/** Scales a stored `ingredient_snapshot` (an item list, or null for non-recipe entries) by a quantity ratio. */
+export function scaleStoredIngredientSnapshot(snapshot: unknown, ratio: number): unknown {
+  return Array.isArray(snapshot) ? scaleIngredientSnapshot(snapshot as IngredientSnapshotItem[], ratio) : snapshot
+}
+
 export function sumIngredients(resolved: ResolveResult[]): Record<number, number> {
   const total: Record<number, number> = {}
   for (const item of resolved) {

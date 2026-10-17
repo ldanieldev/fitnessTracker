@@ -238,6 +238,8 @@ export async function forkExercise(userId: number, exerciseId: number): Promise<
     // Fork replaces the original in this user's list — hide it so both copies don't show side by side.
     await writePrefPatch(tx, userId, exerciseId, { hiddenAt: new Date() })
     return copy
+  }).catch((err: unknown) => {
+    throw exerciseWriteError(err)
   })
 
   return loadExerciseForUser(userId, forked.id)

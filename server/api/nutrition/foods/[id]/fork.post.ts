@@ -4,10 +4,11 @@ import { db } from '~~/server/utils/db'
 import { loadFood } from '~~/server/utils/nutrition/loadFood'
 import { enqueueSearchOutbox } from '~~/server/utils/nutrition/searchOutbox'
 import { requireUserId } from '~~/server/utils/session'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const sourceId = Number(getRouterParam(event, 'id'))
+  const sourceId = routeId(event)
 
   const source = await loadFood(db, userId, sourceId)
   if (!source) throw createError({ statusCode: 404, statusMessage: 'Food not found' })
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
         brand: head.brand,
         barcode: head.barcode,
         sourceId: head.sourceId,
-        externalId: head.externalId,
+        externalId: null,
         createdByUserId: userId,
         forkedFromFoodId: sourceId
       })

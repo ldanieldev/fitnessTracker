@@ -7,13 +7,15 @@ import { loadFood } from '~~/server/utils/nutrition/loadFood'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 import { scaleSnapshot } from '~~/shared/utils/nutritionDerive'
+import { scaleStoredIngredientSnapshot } from '~~/shared/utils/nutritionRecipe'
 import { NoWeightBasisError, resolveNutrition } from '~~/shared/utils/nutritionResolve'
 import { normalizeUnitLabel } from '~~/shared/utils/nutritionUnits'
+import { routeId, zId } from '~~/server/utils/validation'
 
 const entryPatchSchema = z.object({
   quantity: z.number().positive().optional(),
   unitLabel: z.string().trim().min(1).max(64).optional(),
-  containerId: z.number().int().optional(),
+  containerId: zId.optional(),
   loggedAt: z.coerce.date().optional(),
   notes: z.string().max(2000).nullish()
 })
@@ -25,7 +27,7 @@ function normalizedLabelValue(raw: string): string {
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const entryId = Number(getRouterParam(event, 'id'))
+  const entryId = routeId(event)
 
   const body = await parseBody(event, entryPatchSchema)
 
@@ -37,7 +39,8 @@ export default defineEventHandler(async (event) => {
         foodId: diaryEntries.foodId,
         quantity: diaryEntries.quantity,
         unitLabel: diaryEntries.unitLabel,
-        gramsResolved: diaryEntries.gramsResolved
+        gramsResolved: diaryEntries.gramsResolved,
+        ingredientSnapshot: diaryEntries.ingredientSnapshot
       })
       .from(diaryEntries)
       .innerJoin(diaryDays, eq(diaryDays.id, diaryEntries.dayId))
@@ -114,7 +117,8 @@ export default defineEventHandler(async (event) => {
         .update(diaryEntries)
         .set({
           quantity: String(body.quantity),
-          gramsResolved: gramsResolved === null ? null : String(gramsResolved)
+          gramsResolved: gramsResolved === null ? null : String(gramsResolved),
+          ingredientSnapshot: scaleStoredIngredientSnapshot(entry.ingredientSnapshot, ratio)
         })
         .where(eq(diaryEntries.id, entry.id))
     }

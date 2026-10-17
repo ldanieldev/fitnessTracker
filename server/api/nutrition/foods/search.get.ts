@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { foodFavorites, foodNutrients, foods, foodServings, foodUsageStats } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
@@ -55,7 +55,13 @@ export default defineEventHandler(async (event) => {
     .from(foods)
     .leftJoin(foodFavorites, and(eq(foodFavorites.foodId, foods.id), eq(foodFavorites.userId, userId)))
     .leftJoin(foodUsageStats, and(eq(foodUsageStats.foodId, foods.id), eq(foodUsageStats.userId, userId)))
-    .where(inArray(foods.id, ids))
+    .where(
+      and(
+        inArray(foods.id, ids),
+        isNull(foods.deletedAt),
+        or(isNull(foods.createdByUserId), eq(foods.createdByUserId, userId))
+      )
+    )
 
   const energyNutrientId = await getNutrientId('energy')
   const densityRows = await db

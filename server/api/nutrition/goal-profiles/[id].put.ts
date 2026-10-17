@@ -1,4 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, isNull, ne } from 'drizzle-orm'
 import { goalProfiles, goalProfileTargets } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { buildGoalTargetRows, goalProfileSchema } from '~~/server/utils/nutrition/goalInput'
@@ -7,17 +7,18 @@ import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 import { changeDate, recordDefaultTargets } from '~~/server/utils/nutrition/targetHistory'
 import { isUniqueViolation } from '~~/server/utils/pgError'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const effectiveFrom = changeDate(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
   const body = await parseBody(event, goalProfileSchema)
 
   const existing = await db
     .select({ id: goalProfiles.id })
     .from(goalProfiles)
-    .where(and(eq(goalProfiles.id, id), eq(goalProfiles.userId, userId)))
+    .where(and(eq(goalProfiles.id, id), eq(goalProfiles.userId, userId), isNull(goalProfiles.deletedAt)))
     .then((r) => r[0])
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Goal profile not found' })
 

@@ -1,17 +1,18 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { goalProfiles } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { requireUserId } from '~~/server/utils/session'
 import { changeDate, recordDefaultTargets } from '~~/server/utils/nutrition/targetHistory'
+import { routeId } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const id = routeId(event)
 
   const existing = await db
     .select({ id: goalProfiles.id })
     .from(goalProfiles)
-    .where(and(eq(goalProfiles.id, id), eq(goalProfiles.userId, userId)))
+    .where(and(eq(goalProfiles.id, id), eq(goalProfiles.userId, userId), isNull(goalProfiles.deletedAt)))
     .then((r) => r[0])
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Goal profile not found' })
 

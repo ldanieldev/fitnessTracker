@@ -10,22 +10,24 @@ import { requireUserId } from '~~/server/utils/session'
 import { recordFoodUsage } from '~~/server/utils/nutrition/usage'
 import { applyOverrides } from '~~/shared/utils/nutritionCopy'
 import { scaleSnapshot } from '~~/shared/utils/nutritionDerive'
-import { type IngredientSnapshotItem, scaleIngredientSnapshot } from '~~/shared/utils/nutritionRecipe'
+import { scaleStoredIngredientSnapshot } from '~~/shared/utils/nutritionRecipe'
 import { NoWeightBasisError, resolveNutrition } from '~~/shared/utils/nutritionResolve'
+import { calendarDateSchema, zId } from '~~/server/utils/validation'
 
 const copySchema = z.object({
-  sourceEntryIds: z.array(z.number().int()).min(1),
-  targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  targetContainerId: z.number().int().nullable().default(null),
+  sourceEntryIds: z.array(zId).min(1).max(200),
+  targetDate: calendarDateSchema,
+  targetContainerId: zId.nullable().default(null),
   overrides: z
     .array(
       z.object({
-        sourceEntryId: z.number().int(),
+        sourceEntryId: zId,
         quantity: z.number().optional(),
         unitLabel: z.string().max(64).optional(),
         exclude: z.boolean().optional()
       })
     )
+    .max(200)
     .default([])
 })
 
@@ -106,10 +108,9 @@ export default defineEventHandler(async (event) => {
         : sourceSnapshot
       const sourceGrams = source.gramsResolved === null ? null : Number(source.gramsResolved)
       const scaledGrams = sourceGrams === null ? null : quantityChanged ? sourceGrams * ratio : sourceGrams
-      const scaledIngredientSnapshot =
-        quantityChanged && Array.isArray(source.ingredientSnapshot)
-          ? scaleIngredientSnapshot(source.ingredientSnapshot as IngredientSnapshotItem[], ratio)
-          : source.ingredientSnapshot
+      const scaledIngredientSnapshot = quantityChanged
+        ? scaleStoredIngredientSnapshot(source.ingredientSnapshot, ratio)
+        : source.ingredientSnapshot
 
       let args: Omit<WriteEntryArgs, 'dayId' | 'sortOrder'>
 
