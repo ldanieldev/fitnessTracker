@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { normalizeEmail } from '#shared/utils/email'
+import { errorMessage } from '~/utils/apiError'
 
-const { user, clear: clearSession } = useUserSession()
+const { user } = useUserSession()
 const { data: providers, refresh } = await useFetch('/api/auth/providers')
 const toast = useToast()
 const accountDescription =
@@ -29,16 +30,11 @@ async function deleteAccount() {
   deleting.value = true
   try {
     await apiFetch(`/api/users/${user.value!.id}`, { method: 'DELETE', body: { confirmEmail: deleteEmail.value } })
-    await clearSession()
-    await navigateTo('/auth/login')
+    await signOut()
   } catch (error: unknown) {
-    const message =
-      error instanceof Error && 'data' in error
-        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
-        : undefined
     toast.add({
       title: 'Failed to delete account',
-      description: message || 'Could not delete account',
+      description: errorMessage(error, 'Could not delete account'),
       color: 'error'
     })
   } finally {

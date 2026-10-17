@@ -157,11 +157,14 @@ test.describe('credentials register / login / logout', () => {
     await registerViaApi(page, user)
     await goto('/', { waitUntil: 'hydration' })
 
+    await page.evaluate(() => Object.assign(window, { __beforeLogout: true }))
     await page.getByRole('button', { name: user.name }).click()
     await page.getByRole('menuitem', { name: 'Log out' }).click()
 
-    // The default layout watches loggedIn and redirects on sign-out.
     await expect(page).toHaveURL(/\/auth\/login/)
+    await expect
+      .poll(() => page.evaluate(() => (window as { __beforeLogout?: boolean }).__beforeLogout ?? null))
+      .toBeNull()
     await goto('/', { waitUntil: 'hydration' })
     await expect(page).toHaveURL(/\/auth\/login/)
   })

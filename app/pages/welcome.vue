@@ -5,7 +5,7 @@ import { errorMessage } from '~/utils/apiError'
 definePageMeta({ layout: 'onboarding' })
 
 const { appName } = useRuntimeConfig().public
-const { fetch: fetchSession, clear } = useUserSession()
+const { fetch: fetchSession } = useUserSession()
 const modules = useModules()
 const toast = useToast()
 
@@ -66,7 +66,7 @@ async function finish() {
           color="neutral"
           :disabled="busy"
           data-test="onboarding-logout"
-          @click="clear"
+          @click="signOut"
         />
         <UButton
           v-if="current !== 'done'"

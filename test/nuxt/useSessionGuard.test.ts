@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 
 const { clearMock, navigateToMock, routeState, fetchMock } = vi.hoisted(() => ({
@@ -13,6 +13,15 @@ mockNuxtImport('navigateTo', () => navigateToMock)
 mockNuxtImport('useRoute', () => () => routeState)
 mockNuxtImport('$fetch', () => fetchMock)
 
+const assignMock = vi.fn()
+beforeEach(() => {
+  vi.spyOn(window.location, 'assign').mockImplementation(assignMock)
+})
+afterEach(() => {
+  assignMock.mockClear()
+  vi.restoreAllMocks()
+})
+
 describe('handleUnauthorized', () => {
   afterEach(() => {
     clearMock.mockClear()
@@ -21,11 +30,12 @@ describe('handleUnauthorized', () => {
     routeState.path = '/nutrition/diary/2026-01-01'
   })
 
-  it('clears the session, redirects to login, and reports that it acted', async () => {
+  it('clears the session, reloads into login, and reports that it acted', async () => {
     const { handleUnauthorized } = await import('../../app/composables/useSessionGuard')
     await expect(handleUnauthorized()).resolves.toBe(true)
     expect(clearMock).toHaveBeenCalledTimes(1)
-    expect(navigateToMock).toHaveBeenCalledWith('/auth/login')
+    expect(assignMock).toHaveBeenCalledWith('/auth/login')
+    expect(navigateToMock).not.toHaveBeenCalled()
   })
 
   it('does nothing and reports false when already on an auth page (no redirect loop)', async () => {
@@ -33,7 +43,7 @@ describe('handleUnauthorized', () => {
     const { handleUnauthorized } = await import('../../app/composables/useSessionGuard')
     await expect(handleUnauthorized()).resolves.toBe(false)
     expect(clearMock).not.toHaveBeenCalled()
-    expect(navigateToMock).not.toHaveBeenCalled()
+    expect(assignMock).not.toHaveBeenCalled()
   })
 
   it('collapses a burst of concurrent 401s into a single redirect', async () => {
@@ -41,7 +51,25 @@ describe('handleUnauthorized', () => {
     const results = await Promise.all([handleUnauthorized(), handleUnauthorized(), handleUnauthorized()])
     expect(results).toEqual([true, true, true])
     expect(clearMock).toHaveBeenCalledTimes(1)
-    expect(navigateToMock).toHaveBeenCalledTimes(1)
+    expect(assignMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('signOut', () => {
+  afterEach(() => {
+    clearMock.mockClear()
+  })
+
+  it('clears the session before reloading into login', async () => {
+    const order: string[] = []
+    clearMock.mockImplementationOnce(async () => {
+      order.push('clear')
+    })
+    assignMock.mockImplementationOnce(() => order.push('assign'))
+    const { signOut } = await import('../../app/composables/useSessionGuard')
+    await signOut()
+    expect(order).toEqual(['clear', 'assign'])
+    expect(assignMock).toHaveBeenCalledWith('/auth/login')
   })
 })
 
@@ -64,7 +92,7 @@ describe('apiFetch', () => {
     fetchMock.mockRejectedValueOnce(error)
     const { apiFetch } = await import('../../app/composables/useSessionGuard')
     await expect(apiFetch('/api/whatever')).rejects.toBe(error)
-    expect(navigateToMock).not.toHaveBeenCalled()
+    expect(assignMock).not.toHaveBeenCalled()
   })
 
   it('on a 401 away from an auth page, redirects and never settles', async () => {
@@ -79,7 +107,7 @@ describe('apiFetch', () => {
     await Promise.resolve()
 
     expect(settled).toBe(sentinel)
-    expect(navigateToMock).toHaveBeenCalledWith('/auth/login')
+    expect(assignMock).toHaveBeenCalledWith('/auth/login')
   })
 
   it('on a 401 on an auth page (bad credentials), rethrows so the caller can show its own error', async () => {
@@ -88,6 +116,6 @@ describe('apiFetch', () => {
     fetchMock.mockRejectedValueOnce(error)
     const { apiFetch } = await import('../../app/composables/useSessionGuard')
     await expect(apiFetch('/api/auth/login')).rejects.toBe(error)
-    expect(navigateToMock).not.toHaveBeenCalled()
+    expect(assignMock).not.toHaveBeenCalled()
   })
 })

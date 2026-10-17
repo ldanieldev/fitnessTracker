@@ -11,12 +11,18 @@ export async function handleUnauthorized(): Promise<boolean> {
   if (route.path.startsWith('/auth')) return false
   redirecting = true
   try {
-    await useUserSession().clear()
-    await navigateTo('/auth/login')
+    await signOut()
     return true
   } finally {
     redirecting = false
   }
+}
+
+// A full reload drops useState (add tray), the rest timer and cached async data so none of it leaks to the next user.
+export async function signOut(): Promise<void> {
+  await useUserSession().clear()
+  if (import.meta.client) window.location.assign('/auth/login')
+  else await navigateTo('/auth/login')
 }
 
 function isUnauthorized(error: unknown): boolean {
