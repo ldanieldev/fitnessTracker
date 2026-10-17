@@ -6,10 +6,8 @@ import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 export const INT4_MAX = 2_147_483_647
 export const SMALLINT_MAX = 32_767
 
-/** A positive id that fits a Postgres `integer` column. */
 export const zId = z.number().int().positive().max(INT4_MAX)
 
-/** A route `[id]` param: digits only, positive, within `integer` range. */
 export const idParamSchema = z
   .string()
   .regex(/^\d{1,10}$/)

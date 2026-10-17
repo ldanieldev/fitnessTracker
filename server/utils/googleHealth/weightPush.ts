@@ -70,7 +70,7 @@ export async function pushWeight(change: WeightChange): Promise<'pushed' | 'dele
     return 'skipped'
   }
 
-  // Read now, not from the event: no forged event names another point, and an edit queued before the push still counts.
+  // A live row's point id is read now so an edit queued before the push counts; a deleted row only has the event's id.
   const previous = row ? row.externalId : change.previousExternalId
   if (previous) {
     await deleteTolerant(access, [previous])
