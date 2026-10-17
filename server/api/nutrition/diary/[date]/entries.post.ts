@@ -58,6 +58,7 @@ export default defineEventHandler(async (event) => {
             entryType: 'food' as const,
             containerId: input.containerId,
             foodId: item.foodId,
+            foodServingId: item.foodServingId,
             quantity: item.quantity,
             unitLabel: item.unitLabel,
             loggedAt: input.loggedAt

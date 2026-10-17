@@ -214,3 +214,37 @@ test('saved-meal reads carry item names, nutrients, item count, and total', asyn
   )
   expect(list.json.find((m) => m.id === created.json.id)).toMatchObject({ itemCount: 2 })
 })
+
+test('logging a saved meal uses the stored serving, not the first serving with the same label', async ({
+  page,
+  goto
+}) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+    name: 'Whey',
+    servings: [
+      { kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 80 } },
+      { kind: 'named', label: 'scoop', quantity: 1, basisGrams: 30 },
+      { kind: 'named', label: 'scoop', quantity: 1, basisGrams: 45 }
+    ]
+  })
+  const food = await apiFetch<{ servings: Array<{ id: number; basisGrams: number | null }> }>(
+    page,
+    'GET',
+    `/api/nutrition/foods/${created.json.id}`
+  )
+  const big = food.json.servings.find((s) => s.basisGrams === 45)!
+  const meal = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/saved-meals', {
+    name: 'Shake',
+    items: [{ foodId: created.json.id, foodServingId: big.id, quantity: 1, unitLabel: 'scoop' }]
+  })
+  expect(meal.status).toBe(200)
+
+  await apiFetch(page, 'POST', '/api/nutrition/diary/2026-06-03/entries', [
+    { entryType: 'food', savedMealId: meal.json.id, containerId: containers.json[0].id, quantity: 1, unitLabel: 'meal' }
+  ])
+  const day = await apiFetch<{ totals: Record<string, number> }>(page, 'GET', '/api/nutrition/diary/2026-06-03')
+  expect(Number(day.json.totals.protein)).toBeCloseTo(80 * 0.45, 6)
+})

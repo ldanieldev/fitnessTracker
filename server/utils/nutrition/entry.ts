@@ -16,6 +16,7 @@ export const entryInputSchema = z.object({
   quantity: z.number().positive(),
   unitLabel: z.string().trim().min(1).max(64),
   foodId: zId.nullish(),
+  foodServingId: zId.nullish(),
   recipeId: zId.nullish(),
   savedMealId: zId.nullish(),
   description: z.string().max(255).nullish(),
@@ -98,6 +99,20 @@ export function selectUnit(
     unitLabel: normalized.label,
     foodServingId: serving.id
   }
+}
+
+/** `selectUnit`, except that a known serving id wins over the label, which two servings of a food may share. */
+export function selectStoredUnit(
+  food: FoodForResolve,
+  rawLabel: string,
+  foodServingId: number | null | undefined
+): ReturnType<typeof selectUnit> {
+  const pinned =
+    foodServingId != null && normalizeUnitLabel(rawLabel).kind !== 'weight'
+      ? food.servings.find((s) => s.id === foodServingId)
+      : undefined
+  if (!pinned) return selectUnit(food, rawLabel)
+  return { selection: { type: 'serving', servingId: pinned.id }, unitLabel: pinned.label, foodServingId: pinned.id }
 }
 
 export async function resolveEntryInput(
@@ -206,7 +221,7 @@ export async function resolveEntryInput(
   const food = await loadFood(tx, userId, input.foodId)
   if (!food) throw createError({ statusCode: 404, statusMessage: 'Food not found' })
 
-  const { selection, unitLabel, foodServingId } = selectUnit(food, input.unitLabel)
+  const { selection, unitLabel, foodServingId } = selectStoredUnit(food, input.unitLabel, input.foodServingId)
 
   let resolved
   try {

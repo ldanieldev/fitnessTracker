@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { NoWeightBasisError, resolveNutrition, selectGramBasis } from '~~/shared/utils/nutritionResolve'
 import { recipeIngredients, recipes } from '~~/server/db/schema'
 import type { DbClient } from '../db'
-import { selectUnit } from './entry'
+import { selectStoredUnit } from './entry'
 import { loadFood, type LoadedFood } from './loadFood'
 import { zId } from '~~/server/utils/validation'
 
@@ -33,7 +33,7 @@ export interface PreparedIngredient {
 }
 
 export function resolveIngredientGrams(food: LoadedFood, ingredient: RecipeIngredientInput): PreparedIngredient {
-  const { selection, unitLabel, foodServingId } = selectUnit(food, ingredient.unitLabel)
+  const { selection, unitLabel, foodServingId } = selectStoredUnit(food, ingredient.unitLabel, ingredient.foodServingId)
 
   let resolved
   try {
