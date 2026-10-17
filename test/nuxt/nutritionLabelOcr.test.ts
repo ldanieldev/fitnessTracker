@@ -104,4 +104,37 @@ describe('NutritionLabelOcr', () => {
 
     expect(terminate).toHaveBeenCalledTimes(1)
   })
+
+  it('disables the picker while reading, and a stale run neither wins nor terminates the newer worker', async () => {
+    const pendingWorker = (text: string) => {
+      let finish: () => void = () => {}
+      const done = new Promise<{ data: { text: string } }>((resolve) => {
+        finish = () => resolve({ data: { text } })
+      })
+      return { worker: { recognize: () => done, terminate: vi.fn(async () => {}) }, finish: () => finish() }
+    }
+    const first = pendingWorker(usLabel)
+    const second = pendingWorker('Calories 99')
+    vi.mocked(createWorker)
+      .mockImplementationOnce(async () => first.worker as never)
+      .mockImplementationOnce(async () => second.worker as never)
+
+    const wrapper = await mountSuspended(NutritionLabelOcr)
+    await selectFile(wrapper)
+    await flushPromises()
+    expect(wrapper.find('[data-test="ocr-file"]').attributes('disabled')).toBeDefined()
+
+    wrapper.find('[data-test="ocr-file"]').element.dispatchEvent(new Event('change'))
+    await flushPromises()
+    second.finish()
+    await vi.waitFor(() => expect(wrapper.find('[data-test="ocr-raw"]').text()).toBe('Calories 99'))
+    expect(second.worker.terminate).toHaveBeenCalledTimes(1)
+    expect(first.worker.terminate).not.toHaveBeenCalled()
+
+    first.finish()
+    await flushPromises()
+    expect(wrapper.find('[data-test="ocr-raw"]').text()).toBe('Calories 99')
+    expect(first.worker.terminate).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-test="ocr-file"]').attributes('disabled')).toBeUndefined()
+  })
 })

@@ -42,46 +42,45 @@ const statusText = computed(() => {
 
 type TesseractWorker = Awaited<ReturnType<typeof import('tesseract.js').createWorker>>
 
-const worker = shallowRef<TesseractWorker | undefined>()
+const workers = new Set<TesseractWorker>()
+let run = 0
 let unmounted = false
-
-async function terminateWorker() {
-  const current = worker.value
-  if (!current) return
-  worker.value = undefined
-  await current.terminate()
-}
 
 async function handleFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  const current = ++run
+  const isCurrent = () => !unmounted && current === run
   status.value = 'recognizing'
   errorText.value = ''
   parsed.value = null
   rawText.value = ''
+  let worker: TesseractWorker | undefined
   try {
     const canvas = await loadImageToCanvas(file)
     preprocessForOcr(canvas)
     const { createWorker } = await import('tesseract.js')
-    worker.value = await createWorker('eng', undefined, {
+    worker = await createWorker('eng', undefined, {
       workerPath: '/ocr/worker.min.js',
       corePath: '/ocr/tesseract-core-lstm.wasm.js',
       langPath: '/ocr/'
     })
-    const { data } = await worker.value.recognize(canvas)
-    if (unmounted) return
+    workers.add(worker)
+    if (!isCurrent()) return
+    const { data } = await worker.recognize(canvas)
+    if (!isCurrent()) return
     rawText.value = data.text
     parsed.value = parseNutritionLabel(data.text)
     status.value = 'done'
   } catch (err: unknown) {
-    if (!unmounted) {
+    if (isCurrent()) {
       status.value = 'error'
       errorText.value = err instanceof Error ? err.message : 'Could not read this label'
     }
   } finally {
-    await terminateWorker()
     input.value = ''
+    if (worker && workers.delete(worker)) await worker.terminate()
   }
 }
 
@@ -92,7 +91,8 @@ function apply() {
 
 onUnmounted(() => {
   unmounted = true
-  void terminateWorker()
+  for (const worker of workers) void worker.terminate()
+  workers.clear()
 })
 </script>
 
@@ -104,6 +104,7 @@ onUnmounted(() => {
         accept="image/*"
         capture="environment"
         aria-label="Scan nutrition label photo"
+        :disabled="status === 'recognizing'"
         data-test="ocr-file"
         @change="handleFileChange"
       />
