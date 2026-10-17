@@ -288,6 +288,19 @@ test('strength: a rep-cap change busts the cache and falls back to max weight', 
   })
 })
 
+test('strength: renaming or deleting a lift busts the cache', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await signUp(page)
+  const lift = await makeExercise(page)
+  await logWorkout(page, shiftDate(todayDate(), -2), [{ exerciseId: lift.id, weight: 100, reps: 5 }])
+  expect((await get<Strength>(page, 'strength')).json.lifts[0]).toMatchObject({ name: lift.name })
+  const renamed = uniquePrefix('Renamed ')
+  await apiFetch(page, 'PUT', `/api/workouts/exercises/${lift.id}`, { name: renamed })
+  expect((await get<Strength>(page, 'strength')).json.lifts[0]).toMatchObject({ name: renamed })
+  await apiFetch(page, 'DELETE', `/api/workouts/exercises/${lift.id}`)
+  expect((await get<Strength>(page, 'strength')).json.lifts).toEqual([])
+})
+
 test('strength: a goal without a measurable value leaves the lift to the most-trained fallback', async ({
   page,
   goto

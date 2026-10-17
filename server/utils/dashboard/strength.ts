@@ -5,7 +5,7 @@ import { exercises, workoutExerciseGoals, workoutExerciseRollups, workoutSession
 import { db } from '~~/server/utils/db'
 import { cachedPart } from '~~/server/utils/dashboard/cache'
 import type { DashboardContext } from '~~/server/utils/dashboard/context'
-import { goalsStamp, rollupsStamp, workoutsStamp } from '~~/server/utils/dashboard/stamps'
+import { goalsStamp, liftExercisesStamp, rollupsStamp, workoutsStamp } from '~~/server/utils/dashboard/stamps'
 import { repCapFor, toRollupValues } from '~~/server/utils/workouts/rollups'
 import { CALENDAR_WEEKS, liftGoalProgress, liftStats, rankTrained } from '~~/shared/utils/dashboard'
 import { shiftDate } from '~~/shared/utils/nutritionSummary'
@@ -90,6 +90,7 @@ export async function loadStrength(ctx: DashboardContext): Promise<Strength> {
       workoutsStamp(ctx.userId, window),
       rollupsStamp(ctx.userId, window),
       goalsStamp(ctx.userId),
+      liftExercisesStamp(ctx.userId, window),
       repCapFor(ctx.userId)
     ])
   return cachedPart('strength', ctx, stamp, async () => {

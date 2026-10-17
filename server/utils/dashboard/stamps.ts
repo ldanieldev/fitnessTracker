@@ -1,8 +1,9 @@
-import { and, between, count, eq, sql } from 'drizzle-orm'
+import { and, between, count, eq, inArray, or, sql } from 'drizzle-orm'
 import type { DateRange } from '~~/shared/types/dashboard'
 import {
   diaryDays,
   diaryEntries,
+  exercises,
   measurementGoals,
   measurements,
   workoutEntries,
@@ -102,4 +103,34 @@ export function goalsStamp(userId: number) {
     })
     .from(workoutExerciseGoals)
     .where(eq(workoutExerciseGoals.userId, userId))
+}
+
+// A lift's name and deletion live on exercises, which the rollup and goal stamps never read.
+export function liftExercisesStamp(userId: number, window: DateRange) {
+  return db
+    .select({ at: maxUpdated('exercises') })
+    .from(exercises)
+    .where(
+      or(
+        inArray(
+          exercises.id,
+          db
+            .select({ id: workoutExerciseRollups.exerciseId })
+            .from(workoutExerciseRollups)
+            .where(
+              and(
+                eq(workoutExerciseRollups.userId, userId),
+                between(workoutExerciseRollups.performedOn, window.from, window.to)
+              )
+            )
+        ),
+        inArray(
+          exercises.id,
+          db
+            .select({ id: workoutExerciseGoals.exerciseId })
+            .from(workoutExerciseGoals)
+            .where(eq(workoutExerciseGoals.userId, userId))
+        )
+      )
+    )
 }
