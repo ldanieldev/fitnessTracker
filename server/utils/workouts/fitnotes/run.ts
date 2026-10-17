@@ -9,7 +9,7 @@ import {
   workoutSessions,
   workoutSets
 } from '~~/server/db/schema'
-import { db } from '~~/server/utils/db'
+import { db, type DbClient } from '~~/server/utils/db'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { listCategoriesForUser } from '~~/server/utils/workouts/categories'
 import { insertExercise } from '~~/server/utils/workouts/exerciseWrites'
@@ -124,7 +124,8 @@ async function resolveExercises(
 
 export async function performFitNotesImport(
   userId: number,
-  payload: FitNotesImportPayload
+  payload: FitNotesImportPayload,
+  onDayImported: (tx: DbClient) => Promise<unknown> = async () => {}
 ): Promise<FitNotesImportResult> {
   const rows = parseFitNotesCsv(payload.csv)
   const summary = summarizeFitNotes(rows)
@@ -200,6 +201,7 @@ export async function performFitNotesImport(
           )
           count += entry.sets.length
         }
+        await onDayImported(tx)
         return count
       })
       result.daysImported++
@@ -254,7 +256,10 @@ export async function runFitNotesImport(jobId: number, userId: number): Promise<
     throw new Error(error)
   }
   try {
-    const result = await performFitNotesImport(job.userId, job.payload as FitNotesImportPayload)
+    // Each imported day bumps updated_at, so a long import is never taken for a crashed one an hour in.
+    const heartbeat = (tx: DbClient) =>
+      tx.update(importJobs).set({ updatedAt: new Date() }).where(eq(importJobs.id, jobId))
+    const result = await performFitNotesImport(job.userId, job.payload as FitNotesImportPayload, heartbeat)
     await db.update(importJobs).set({ status: 'done', result, payload: {} }).where(eq(importJobs.id, jobId))
     return result
   } catch (err) {
