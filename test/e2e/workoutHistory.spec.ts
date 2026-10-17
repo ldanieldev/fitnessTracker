@@ -34,3 +34,40 @@ test('workout history: newest first, records and totals, paged by limit', async 
   ).json
   expect(paged.map((s) => s.sessionId)).toEqual([newer])
 })
+
+test('workout history: a keyset cursor pages past any limit without gaps or repeats, and the list loads more', async ({
+  page,
+  goto
+}) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  for (let i = 0; i < 25; i++) {
+    // Two workouts a day, so the cursor must break performedOn ties by start time and id.
+    const performedOn = `2026-01-${String(10 + Math.floor(i / 2)).padStart(2, '0')}`
+    const session = (await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', { performedOn })).json
+    await apiFetch(page, 'PATCH', `/api/workouts/sessions/${session.id}`, { finish: true })
+  }
+  type Summary = { id: number }
+  const all = (await apiFetch<Summary[]>(page, 'GET', '/api/workouts/sessions?limit=1000')).json.map((s) => s.id)
+  expect(all).toHaveLength(25)
+
+  const paged: number[] = []
+  let before: number | undefined
+  for (;;) {
+    const url = `/api/workouts/sessions?limit=7${before ? `&before=${before}` : ''}`
+    const batch = (await apiFetch<Summary[]>(page, 'GET', url)).json
+    paged.push(...batch.map((s) => s.id))
+    if (batch.length < 7) break
+    before = batch.at(-1)!.id
+  }
+  expect(paged).toEqual(all)
+  expect((await apiFetch(page, 'GET', '/api/workouts/sessions?before=abc')).status).toBe(400)
+
+  await goto('/workouts/sessions', { waitUntil: 'hydration' })
+  await page.locator('[data-test="history-view-list"]').click()
+  const rows = page.locator('[data-test="session-row"]')
+  await expect(rows).toHaveCount(20)
+  await page.locator('[data-test="session-list-end"]').scrollIntoViewIfNeeded()
+  await expect(rows).toHaveCount(25)
+  await expect(page.locator('[data-test="session-list-end"]')).toHaveCount(0)
+})

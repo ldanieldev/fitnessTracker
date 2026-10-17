@@ -68,6 +68,14 @@ const setCount = sql<number>`(
   where ${workoutEntries.sessionId} = workout_sessions.id
 )`.mapWith(Number)
 
+// Keyset cursor in the list's sort order, read from the cursor row so startedAt keeps its microsecond precision.
+function olderThan(userId: number, sessionId: number) {
+  return sql`(${workoutSessions.performedOn}, ${workoutSessions.startedAt}, ${workoutSessions.id}) < (
+    select c.performed_on, c.started_at, c.id from ${workoutSessions} c
+    where c.id = ${sessionId} and c.user_id = ${userId}
+  )`
+}
+
 export async function listSessions(userId: number, query: SessionListQuery): Promise<WorkoutSessionSummary[]> {
   const rows = await db
     .select({
@@ -85,7 +93,7 @@ export async function listSessions(userId: number, query: SessionListQuery): Pro
     })
     .from(workoutSessions)
     .leftJoin(programPhases, eq(programPhases.id, workoutSessions.programPhaseId))
-    .where(sessionFilterWhere(userId, query))
+    .where(and(sessionFilterWhere(userId, query), query.before ? olderThan(userId, query.before) : undefined))
     .orderBy(desc(workoutSessions.performedOn), desc(workoutSessions.startedAt), desc(workoutSessions.id))
     .limit(query.limit)
 

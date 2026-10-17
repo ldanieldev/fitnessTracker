@@ -9,8 +9,6 @@ import { activeFilterCount, filterFromRoute, filterToRoute, sessionFilterParams 
 import { monthRange } from '~~/shared/utils/workoutCalendar'
 
 const PAGE_SIZE = 20
-// sessionListQuerySchema caps limit at 1000, so paging stops there instead of asking for a page the route rejects.
-const MAX_LIMIT = 1000
 
 const toast = useToast()
 const route = useRoute()
@@ -111,18 +109,42 @@ watch(
 // Pages count only under the filter they were loaded for, so a filter change asks for one page in the same tick.
 const paging = ref({ filter: '', pages: 1 })
 const pages = computed(() => (paging.value.filter === filterQuery.value ? paging.value.pages : 1))
-const limit = computed(() => Math.min(pages.value * PAGE_SIZE, MAX_LIMIT))
+const limit = computed(() => pages.value * PAGE_SIZE)
 watch(filterQuery, (filter) => (paging.value = { filter, pages: 1 }))
+
+// A next-page load keeps these rows and asks only for the page after them; a refresh refetches every loaded page.
+let loaded: { filter: string; rows: WorkoutSessionSummary[] } | null = null
+const exhausted = ref(false)
+
+// During SSR apiFetch's $fetch drops the session cookie (a 401 that never resolves); the request fetch forwards it.
+const requestFetch = useRequestFetch()
+
+async function fetchPages(count: number, filter: string): Promise<WorkoutSessionSummary[]> {
+  const kept = loaded?.filter === filter && loaded.rows.length === (count - 1) * PAGE_SIZE ? loaded.rows : []
+  const rows = [...kept]
+  let last = PAGE_SIZE
+  while (rows.length < count * PAGE_SIZE && last === PAGE_SIZE) {
+    const before = rows.at(-1)?.id
+    const page = await (import.meta.server ? requestFetch : apiFetch)<WorkoutSessionSummary[]>(
+      `/api/workouts/sessions?limit=${PAGE_SIZE}${before ? `&before=${before}` : ''}${filter ? `&${filter}` : ''}`
+    )
+    rows.push(...page)
+    last = page.length
+  }
+  loaded = { filter, rows }
+  exhausted.value = last < PAGE_SIZE
+  return rows
+}
 
 const {
   data: sessions,
   status,
   error: listError,
   execute: executeList
-} = useWorkoutFetch<WorkoutSessionSummary[]>(
+} = useAsyncData(
   () => sessionListKey(limit.value, filterQuery.value),
-  () => `/api/workouts/sessions?limit=${limit.value}${filterQuery.value ? `&${filterQuery.value}` : ''}`,
-  { enabled: () => view.value === 'list' && filterReady.value }
+  () => fetchPages(pages.value, filterQuery.value),
+  { enabled: () => view.value === 'list' && filterReady.value, dedupe: 'defer' }
 )
 
 const range = computed(() => monthRange(month.value))
@@ -179,7 +201,7 @@ watch(
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
 const loadingMore = computed(() => loading.value && shownLimit.value < limit.value)
 const refreshing = computed(() => loading.value && !loadingMore.value && Boolean(sessions.value))
-const hasMore = computed(() => (sessions.value?.length ?? 0) === shownLimit.value && shownLimit.value < MAX_LIMIT)
+const hasMore = computed(() => !exhausted.value && (sessions.value?.length ?? 0) === shownLimit.value)
 
 function loadMore() {
   if (hasMore.value && !loading.value) paging.value = { filter: filterQuery.value, pages: pages.value + 1 }

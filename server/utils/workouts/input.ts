@@ -156,7 +156,11 @@ function checkSessionFilter(
 export const sessionFilterQuerySchema = z.object(sessionFilterShape).superRefine(checkSessionFilter)
 
 export const sessionListQuerySchema = z
-  .object({ ...sessionFilterShape, limit: z.coerce.number().int().positive().max(1000).default(20) })
+  .object({
+    ...sessionFilterShape,
+    limit: z.coerce.number().int().positive().max(1000).default(20),
+    before: z.coerce.number().pipe(zId).optional()
+  })
   .superRefine(checkSessionFilter)
 
 export type SessionFilterQuery = z.infer<typeof sessionFilterQuerySchema>
