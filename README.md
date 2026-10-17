@@ -128,6 +128,7 @@ Reuses the Google OAuth client above: enable the [Google Health API](https://dev
 | --- | --- | --- |
 | `SENTRY_DSN` | — | Runtime reporting is off entirely unless this is set. The browser DSN is read at build time; override it at runtime with `NUXT_PUBLIC_SENTRY_DSN`. |
 | `SENTRY_ENVIRONMENT` | `NODE_ENV` | Stamped on log lines as `env`. |
+| `NUXT_PUBLIC_SENTRY_REPLAY` | `false` | Runtime. `true` turns on browser Session Replay for every user on the instance: 10% of sessions plus every session with an error, text and media masked. |
 | `SENTRY_ORG` | — | Build-time only, for sourcemap upload. |
 | `SENTRY_PROJECT` | `my-fitness-journal` | Build-time only. |
 | `SENTRY_AUTH_TOKEN` | — | Build-time only. |

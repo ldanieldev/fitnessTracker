@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 
+const replay = useRuntimeConfig().public.sentry.replay === true
+
 Sentry.init({
   dsn: useRuntimeConfig().public.sentry.dsn,
   // Must be a string: `...options` spreads over the SDK fallback, so `undefined` makes events default to 'production'.
@@ -13,9 +15,8 @@ Sentry.init({
     httpBodies: [],
     urlQueryParams: false
   },
-  // Replay is client-only.
-  integrations: [Sentry.replayIntegration()],
+  integrations: replay ? [Sentry.replayIntegration()] : [],
   tracesSampleRate: 1.0,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0
+  replaysSessionSampleRate: replay ? 0.1 : 0,
+  replaysOnErrorSampleRate: replay ? 1.0 : 0
 })
