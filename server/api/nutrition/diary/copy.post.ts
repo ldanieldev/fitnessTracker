@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { diaryDays, diaryEntries, diaryEntryNutrients, mealContainers } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { ensureDay, parseDiaryDate } from '~~/server/utils/nutrition/day'
-import { selectUnit, writeEntry, type WriteEntryArgs } from '~~/server/utils/nutrition/entry'
+import { selectStoredUnit, writeEntry, type WriteEntryArgs } from '~~/server/utils/nutrition/entry'
 import { loadFood } from '~~/server/utils/nutrition/loadFood'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
@@ -12,7 +12,19 @@ import { applyOverrides } from '~~/shared/utils/nutritionCopy'
 import { scaleSnapshot } from '~~/shared/utils/nutritionDerive'
 import { scaleStoredIngredientSnapshot } from '~~/shared/utils/nutritionRecipe'
 import { NoWeightBasisError, resolveNutrition } from '~~/shared/utils/nutritionResolve'
+import { normalizeUnitLabel } from '~~/shared/utils/nutritionUnits'
 import { calendarDateSchema, zId } from '~~/server/utils/validation'
+
+const UNITLESS = { quick_add: 'quick-add', recipe: 'recipe entry' } as const
+
+function msBetweenDates(from: string, to: string): number {
+  return Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)
+}
+
+function normalizedLabelValue(raw: string): string {
+  const normalized = normalizeUnitLabel(raw)
+  return normalized.kind === 'weight' ? normalized.unit : normalized.label
+}
 
 const copySchema = z.object({
   sourceEntryIds: z.array(zId).min(1).max(200),
@@ -41,6 +53,8 @@ export default defineEventHandler(async (event) => {
     const sourceRows = await tx
       .select({
         id: diaryEntries.id,
+        date: diaryDays.date,
+        loggedAt: diaryEntries.loggedAt,
         containerId: diaryEntries.containerId,
         entryType: diaryEntries.entryType,
         foodId: diaryEntries.foodId,
@@ -112,14 +126,25 @@ export default defineEventHandler(async (event) => {
         ? scaleStoredIngredientSnapshot(source.ingredientSnapshot, ratio)
         : source.ingredientSnapshot
 
+      // A copy to another day keeps the source's time of day, which that day's meal time is derived from.
+      const loggedAt =
+        source.date === targetDate
+          ? new Date()
+          : new Date(source.loggedAt.getTime() + msBetweenDates(source.date, targetDate))
+
       let args: Omit<WriteEntryArgs, 'dayId' | 'sortOrder'>
 
       if (source.entryType === 'quick_add' || source.entryType === 'recipe') {
+        // As in the entry edit route: with no units to convert between, a new label would misstate the amount.
+        if (normalizedLabelValue(item.unitLabel) !== normalizedLabelValue(source.unitLabel)) {
+          const kind = UNITLESS[source.entryType]
+          throw createError({ statusCode: 400, statusMessage: `Cannot change the unit of a ${kind}` })
+        }
         args = {
           entryType: source.entryType,
           containerId: item.containerId,
           quantity: item.quantity,
-          unitLabel: item.unitLabel,
+          unitLabel: source.unitLabel,
           gramsResolved: scaledGrams,
           foodId: source.foodId,
           foodServingId: source.foodServingId,
@@ -128,7 +153,7 @@ export default defineEventHandler(async (event) => {
           brandSnapshot: source.brandSnapshot,
           ingredientSnapshot: scaledIngredientSnapshot,
           notes: null,
-          loggedAt: new Date(),
+          loggedAt,
           nutrients: scaledSnapshot
         }
       } else {
@@ -148,11 +173,15 @@ export default defineEventHandler(async (event) => {
             brandSnapshot: source.brandSnapshot,
             ingredientSnapshot: source.ingredientSnapshot,
             notes: null,
-            loggedAt: new Date(),
+            loggedAt,
             nutrients: scaledSnapshot
           }
         } else {
-          const selected = selectUnit(food, item.unitLabel)
+          const selected = selectStoredUnit(
+            food,
+            item.unitLabel,
+            item.unitLabel === source.unitLabel ? source.foodServingId : null
+          )
 
           let resolved
           try {
@@ -182,7 +211,7 @@ export default defineEventHandler(async (event) => {
             brandSnapshot: food.brand,
             ingredientSnapshot: null,
             notes: null,
-            loggedAt: new Date(),
+            loggedAt,
             nutrients: resolved.nutrients
           }
         }

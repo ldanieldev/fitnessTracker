@@ -352,3 +352,61 @@ test('copying one entry into a different container on the same date refreshes th
   expect(target.json.entries.some((e) => e.containerId === targetContainer.id)).toBe(true)
   expect(target.json.entries.some((e) => e.containerId === sourceContainer.id)).toBe(true)
 })
+
+test('a copy to another day keeps the time of day, and a quick-add copy refuses a new unit', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const created = await apiFetch<{ ids: number[] }>(page, 'POST', '/api/nutrition/diary/2026-04-03/entries', [
+    {
+      entryType: 'quick_add',
+      containerId: containers.json[0].id,
+      description: 'Oats',
+      quantity: 1,
+      unitLabel: 'serving',
+      loggedAt: '2026-04-03T08:15:00.000Z',
+      nutrients: { energy: 300 }
+    }
+  ])
+  const sourceEntryIds = created.json.ids
+
+  const relabelled = await apiFetch(page, 'POST', '/api/nutrition/diary/copy', {
+    sourceEntryIds,
+    targetDate: '2026-04-05',
+    overrides: [{ sourceEntryId: sourceEntryIds[0], unitLabel: 'cup' }]
+  })
+  expect(relabelled.status).toBe(400)
+
+  await apiFetch(page, 'POST', '/api/nutrition/diary/copy', { sourceEntryIds, targetDate: '2026-04-05' })
+  const copy = await apiFetch<{ entries: Array<{ loggedAt: string }> }>(page, 'GET', '/api/nutrition/diary/2026-04-05')
+  expect(copy.json.entries.map((e) => e.loggedAt)).toEqual(['2026-04-05T08:15:00.000Z'])
+})
+
+test('moving an entry to another meal puts it last in that meal', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = (await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')).json
+  const [a, b] = [containers[0]!.id, containers[1]!.id]
+  const quick = (containerId: number, description: string) => ({
+    entryType: 'quick_add',
+    containerId,
+    description,
+    quantity: 1,
+    unitLabel: 'serving',
+    nutrients: { energy: 100 }
+  })
+  const created = await apiFetch<{ ids: number[] }>(page, 'POST', '/api/nutrition/diary/2026-04-06/entries', [
+    quick(a, 'A1'),
+    quick(a, 'A2'),
+    quick(b, 'B1'),
+    quick(b, 'B2')
+  ])
+  expect((await apiFetch(page, 'PUT', `/api/nutrition/diary/entries/${created.json.ids[0]}`, { containerId: b })).ok)
+    .toBe(true)
+  const day = await apiFetch<{ entries: Array<{ containerId: number; description: string }> }>(
+    page,
+    'GET',
+    '/api/nutrition/diary/2026-04-06'
+  )
+  expect(day.json.entries.filter((e) => e.containerId === b).map((e) => e.description)).toEqual(['B1', 'B2', 'A1'])
+})

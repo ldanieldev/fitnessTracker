@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, max } from 'drizzle-orm'
 import { z } from 'zod'
 import { diaryDays, diaryEntries, diaryEntryNutrients, mealContainers } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
@@ -35,6 +35,8 @@ export default defineEventHandler(async (event) => {
     const entry = await tx
       .select({
         id: diaryEntries.id,
+        dayId: diaryEntries.dayId,
+        containerId: diaryEntries.containerId,
         entryType: diaryEntries.entryType,
         foodId: diaryEntries.foodId,
         quantity: diaryEntries.quantity,
@@ -131,7 +133,14 @@ export default defineEventHandler(async (event) => {
         .where(and(eq(mealContainers.id, body.containerId), eq(mealContainers.userId, userId)))
         .then((r) => r[0])
       if (!container) throw createError({ statusCode: 404, statusMessage: 'Container not found' })
-      plainUpdates.containerId = body.containerId
+      if (body.containerId !== entry.containerId) {
+        plainUpdates.containerId = body.containerId
+        plainUpdates.sortOrder = await tx
+          .select({ max: max(diaryEntries.sortOrder) })
+          .from(diaryEntries)
+          .where(and(eq(diaryEntries.dayId, entry.dayId), eq(diaryEntries.containerId, body.containerId)))
+          .then((r) => (r[0]?.max ?? -1) + 1)
+      }
     }
     if (body.loggedAt !== undefined) plainUpdates.loggedAt = body.loggedAt
     if (body.notes !== undefined) plainUpdates.notes = body.notes
