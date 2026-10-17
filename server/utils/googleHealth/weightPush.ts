@@ -70,8 +70,8 @@ export async function pushWeight(change: WeightChange): Promise<'pushed' | 'dele
     return 'skipped'
   }
 
-  // A live row's own stored id replaces the event's, so a forged event can't name another Google point to delete.
-  const previous = row ? (change.previousExternalId && row.externalId) : change.previousExternalId
+  // Read now, not from the event: no forged event names another point, and an edit queued before the push still counts.
+  const previous = row ? row.externalId : change.previousExternalId
   if (previous) {
     await deleteTolerant(access, [previous])
     if (row) await db.update(measurements).set({ externalId: null }).where(eq(measurements.id, row.id))

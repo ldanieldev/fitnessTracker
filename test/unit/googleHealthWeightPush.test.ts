@@ -74,6 +74,13 @@ describe('pushWeight', () => {
     expect(api.deleteWeights).toHaveBeenCalledWith('access', ['users/me/dataTypes/weight/dataPoints/ours'])
   })
 
+  it('deletes the stored point of an edit queued before the first push had stored it', async () => {
+    const { pushWeight } = await import('../../server/utils/googleHealth/weightPush')
+    state.rows = [row('users/me/dataTypes/weight/dataPoints/ours')]
+    expect(await pushWeight(change(null))).toBe('pushed')
+    expect(api.deleteWeights).toHaveBeenCalledWith('access', ['users/me/dataTypes/weight/dataPoints/ours'])
+  })
+
   it('deletes nothing when the live row has no stored point, whatever the event names', async () => {
     const { pushWeight } = await import('../../server/utils/googleHealth/weightPush')
     state.rows = [row(null)]
