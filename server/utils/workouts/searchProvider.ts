@@ -27,8 +27,11 @@ class DegradedExerciseProvider implements ExerciseSearchProvider {
 
 const degradedProvider = new DegradedExerciseProvider()
 
+const PROBE_TTL_MS = 30_000
+
 let meili: ExerciseMeiliProvider | null = null
 let meiliHealthyUntil = 0
+let meiliUnhealthyUntil = 0
 
 export async function getExerciseSearchProvider(): Promise<ExerciseSearchProvider> {
   const { host, apiKey } = useRuntimeConfig().meili
@@ -36,12 +39,14 @@ export async function getExerciseSearchProvider(): Promise<ExerciseSearchProvide
   meili ??= new ExerciseMeiliProvider(host, apiKey)
   const now = Date.now()
   if (now < meiliHealthyUntil) return meili
+  if (now < meiliUnhealthyUntil) return degradedProvider
+  // Either verdict holds 30 s: an outage degrades within half a minute, and a down server is not probed per request.
   if (await meili.healthy()) {
-    // Re-probe every 30 s so a Meilisearch outage degrades within half a minute, not per request.
-    meiliHealthyUntil = now + 30_000
+    meiliHealthyUntil = now + PROBE_TTL_MS
     return meili
   }
   meiliHealthyUntil = 0
+  meiliUnhealthyUntil = now + PROBE_TTL_MS
   return degradedProvider
 }
 
@@ -51,4 +56,5 @@ export function isDegradedExerciseProvider(provider: ExerciseSearchProvider): bo
 
 export function markExerciseSearchUnhealthy(): void {
   meiliHealthyUntil = 0
+  meiliUnhealthyUntil = Date.now() + PROBE_TTL_MS
 }

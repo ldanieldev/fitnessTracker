@@ -25,17 +25,33 @@ afterEach(() => {
 })
 
 describe('markSearchUnhealthy', () => {
-  it('forces the next getSearchProvider call to re-probe and fall back when the probe fails', async () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('serves the fallback without probing for 30 s, then re-probes', async () => {
+    vi.useFakeTimers()
     healthy.mockResolvedValueOnce(true)
     const first = await getSearchProvider()
     expect(isDegradedProvider(first)).toBe(false)
 
     markSearchUnhealthy()
-    healthy.mockResolvedValueOnce(false)
     const second = await getSearchProvider()
-
-    expect(healthy).toHaveBeenCalledTimes(2)
-    expect(isDegradedProvider(second)).toBe(true)
+    expect(healthy).toHaveBeenCalledTimes(1)
     expect(second).toBe(getFallbackProvider())
+
+    vi.advanceTimersByTime(30_001)
+    healthy.mockResolvedValueOnce(true)
+    expect(isDegradedProvider(await getSearchProvider())).toBe(false)
+    expect(healthy).toHaveBeenCalledTimes(2)
+  })
+
+  it('caches a failed probe for 30 s instead of probing on every request', async () => {
+    vi.useFakeTimers()
+    vi.advanceTimersByTime(120_000)
+    healthy.mockResolvedValue(false)
+    expect(isDegradedProvider(await getSearchProvider())).toBe(true)
+    expect(isDegradedProvider(await getSearchProvider())).toBe(true)
+    expect(healthy).toHaveBeenCalledTimes(1)
   })
 })

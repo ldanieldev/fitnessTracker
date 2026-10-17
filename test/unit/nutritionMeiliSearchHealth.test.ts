@@ -6,10 +6,13 @@ const updateSettings = vi.fn()
 const getStats = vi.fn()
 const index = vi.fn(() => ({ updateSettings, getStats }))
 
+const getRawIndex = vi.fn()
+
 vi.mock('meilisearch', () => ({
   Meilisearch: vi.fn().mockImplementation(function () {
-    return { health, createIndex, index }
-  })
+    return { health, createIndex, getRawIndex, index }
+  }),
+  MeilisearchApiError: class extends Error {}
 }))
 
 const { MeiliSearchProvider } = await import('../../server/utils/nutrition/meiliSearch')
@@ -17,7 +20,8 @@ const { MeiliSearchProvider } = await import('../../server/utils/nutrition/meili
 beforeEach(() => {
   vi.clearAllMocks()
   health.mockResolvedValue({ status: 'available' })
-  createIndex.mockResolvedValue(undefined)
+  createIndex.mockImplementation(() => Object.assign(Promise.resolve({}), { waitTask: () => Promise.resolve({}) }))
+  getRawIndex.mockResolvedValue({ createdAt: '2026-10-01T00:00:00Z' })
   updateSettings.mockResolvedValue(undefined)
 })
 
