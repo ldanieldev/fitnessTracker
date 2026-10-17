@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
 
   const user = result?.[0]
 
-  logger.debug({ route: '/api/users/[id]', id, user }, 'user fetched')
+  logger.debug({ route: '/api/users/[id]', id }, 'user fetched')
 
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: 'User not found.' })
