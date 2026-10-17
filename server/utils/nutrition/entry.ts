@@ -101,15 +101,16 @@ export function selectUnit(
   }
 }
 
-/** `selectUnit`, except that a known serving id wins over the label, which two servings of a food may share. */
+/** `selectUnit`, except a known serving id wins among servings sharing its label; one with another label is ignored. */
 export function selectStoredUnit(
   food: FoodForResolve,
   rawLabel: string,
   foodServingId: number | null | undefined
 ): ReturnType<typeof selectUnit> {
+  const normalized = normalizeUnitLabel(rawLabel)
   const pinned =
-    foodServingId != null && normalizeUnitLabel(rawLabel).kind !== 'weight'
-      ? food.servings.find((s) => s.id === foodServingId)
+    foodServingId != null && normalized.kind !== 'weight'
+      ? food.servings.find((s) => s.id === foodServingId && s.label === normalized.label)
       : undefined
   if (!pinned) return selectUnit(food, rawLabel)
   return { selection: { type: 'serving', servingId: pinned.id }, unitLabel: pinned.label, foodServingId: pinned.id }
