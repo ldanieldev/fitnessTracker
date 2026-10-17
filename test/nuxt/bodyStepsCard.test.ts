@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { clearNuxtData } from 'nuxt/app'
 import { useToday } from '../../app/composables/useToday'
+import { waitForTodayTick } from './todayTick'
 import BodyStepsCard from '../../app/components/body/BodyStepsCard.vue'
 import { summarizeWeek } from '../../shared/utils/steps'
 
@@ -15,6 +16,8 @@ afterEach(() => {
 })
 
 const eight = [{ dailyTarget: 8000, effectiveFrom: '2026-01-01' }]
+
+beforeAll(waitForTodayTick)
 
 describe('BodyStepsCard', () => {
   it('shows this week against the budget, today, and the pace line', async () => {

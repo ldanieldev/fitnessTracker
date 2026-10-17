@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { readBody } from 'h3'
 import { useToday } from '../../app/composables/useToday'
+import { waitForTodayTick } from './todayTick'
 import BodyEntrySheet from '../../app/components/body/BodyEntrySheet.vue'
 
 const type = {
@@ -16,6 +17,8 @@ const type = {
   hidden: false,
   sortOrder: null
 }
+
+beforeAll(waitForTodayTick)
 
 describe('BodyEntrySheet', () => {
   it('defaults the date to today, disables Save until a value is typed, and posts value + local day + ' +

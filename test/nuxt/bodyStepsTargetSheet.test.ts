@@ -1,11 +1,14 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { readBody } from 'h3'
 import { useToday } from '../../app/composables/useToday'
+import { waitForTodayTick } from './todayTick'
 import BodyStepsTargetSheet from '../../app/components/body/BodyStepsTargetSheet.vue'
 
 const q = <T extends Element>(sel: string) => document.querySelector(sel) as T | null
+
+beforeAll(waitForTodayTick)
 
 describe('BodyStepsTargetSheet', () => {
   it('prefills the target, shows the weekly budget live, defaults the start to this week, and PUTs', async () => {

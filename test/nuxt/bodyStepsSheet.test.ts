@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { readBody, setResponseStatus } from 'h3'
 import { useToday } from '../../app/composables/useToday'
+import { waitForTodayTick } from './todayTick'
 import BodyStepsSheet from '../../app/components/body/BodyStepsSheet.vue'
 
 const { toastAdd } = vi.hoisted(() => ({ toastAdd: vi.fn() }))
@@ -14,6 +15,8 @@ function type(input: HTMLInputElement, value: string) {
   input.value = value
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }
+
+beforeAll(waitForTodayTick)
 
 describe('BodyStepsSheet', () => {
   it('opens on today, blocks Save until a whole count is typed, and PUTs the day', async () => {
