@@ -1,8 +1,9 @@
 const HEADER = /^(.+)'s Daily Meals - (\d{2})-(\d{2})-(\d{4})\s*$/
 const SEPARATOR = /^-{10,}$/
 const KEY = /^(Protein|Carbs|Fat|Calories|Total Calories|Total Fat): (-?\d+(?:\.\d+)?)\s*$/
-const SERVING = /^Serving Size: (\d+(?:\.\d+)?) (.+?)\s*$/
-const COMPOUND = /^(.*?)\s*\((\d+(?:\.\d+)?)\s*g\)$/i
+const SERVING = /^Serving Size: (\d+(?:\.\d+)?) (.+)$/
+const COMPOUND = /\((\d+(?:\.\d+)?)\s*g\)$/i
+const LINE_MAX = 512
 const GRAM_WORDS = new Set(['g', 'gram', 'grams'])
 const OUNCE_WORDS = new Set(['oz', 'ounce', 'ounces'])
 const POUND_WORDS = new Set(['lb', 'lbs', 'pound', 'pounds'])
@@ -37,7 +38,7 @@ export interface ParsedDay {
 }
 
 export function isMyMacrosHeader(line: string): boolean {
-  return HEADER.test(line)
+  return line.length <= LINE_MAX && HEADER.test(line)
 }
 
 export class MyMacrosParseError extends Error {
@@ -56,8 +57,8 @@ export function normalizeMmpUnit(raw: string): { unit: string; basisGrams: numbe
   let basisGrams: number | null = null
   const compound = COMPOUND.exec(label)
   if (compound) {
-    label = compound[1]!.trim()
-    basisGrams = Number(compound[2])
+    label = label.slice(0, compound.index).trim()
+    basisGrams = Number(compound[1])
   }
   const key = label.toLowerCase()
   if (GRAM_WORDS.has(key)) return { unit: 'g', basisGrams }
@@ -70,6 +71,8 @@ export function parseMyMacrosExport(text: string, fileName: string): ParsedDay {
   const lines = text.replace(/\r\n?/g, '\n').split('\n')
 
   const err = (message: string, at: number): MyMacrosParseError => new MyMacrosParseError(fileName, at + 1, message)
+  const tooLong = lines.findIndex((line) => line.length > LINE_MAX)
+  if (tooLong !== -1) throw err(`line is longer than ${LINE_MAX} characters`, tooLong)
 
   const headerMatch = HEADER.exec(lines[0] ?? '')
   if (!headerMatch) throw err('missing header', 0)
@@ -153,7 +156,7 @@ export function parseMyMacrosExport(text: string, fileName: string): ParsedDay {
       const name = (lines[cursor] ?? '').trim()
       cursor++
 
-      const serving = SERVING.exec(lines[cursor] ?? '')
+      const serving = SERVING.exec((lines[cursor] ?? '').trimEnd())
       if (!serving) throw err(`unexpected line "${lines[cursor] ?? ''}"`, cursor)
       cursor++
       const quantity = Number(serving[1])

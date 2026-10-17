@@ -124,3 +124,30 @@ describe('isMyMacrosHeader', () => {
     expect(isMyMacrosHeader('hello')).toBe(false)
   })
 })
+
+describe('pathological input', () => {
+  it('keeps a trailing-space serving label and a spaced compound form', async () => {
+    const { normalizeMmpUnit } = await import('../../server/utils/nutrition/mymacros/parse')
+    expect(normalizeMmpUnit('  Serving   (113.5 G)  ')).toEqual({ unit: 'Serving', basisGrams: 113.5 })
+    expect(normalizeMmpUnit('(28 g)')).toEqual({ unit: '', basisGrams: 28 })
+  })
+
+  it('matches compound units in linear time', async () => {
+    const { normalizeMmpUnit } = await import('../../server/utils/nutrition/mymacros/parse')
+    const start = performance.now()
+    normalizeMmpUnit(`a${' '.repeat(100_000)}(1 g`)
+    normalizeMmpUnit(`(1${' '.repeat(100_000)}x`)
+    expect(performance.now() - start).toBeLessThan(50)
+  })
+
+  it('rejects an over-long line before matching it, in linear time', async () => {
+    const { parseMyMacrosExport, isMyMacrosHeader } = await import('../../server/utils/nutrition/mymacros/parse')
+    const day = fixture('2026-09-05.txt').split('\n')
+    const servingLine = day.findIndex((line) => line.startsWith('Serving Size:'))
+    day[servingLine] = `Serving Size: 1 g${' '.repeat(200_000)}x`
+    const start = performance.now()
+    expect(() => parseMyMacrosExport(day.join('\n'), 'long.txt')).toThrow(`long.txt:${servingLine + 1}: line is longer`)
+    expect(isMyMacrosHeader(`${'a'.repeat(200_000)}'s Daily Meals - 09-04-2026${' '.repeat(10)}x`)).toBe(false)
+    expect(performance.now() - start).toBeLessThan(50)
+  })
+})

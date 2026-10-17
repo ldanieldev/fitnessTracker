@@ -241,3 +241,65 @@ describe('exercise matching', () => {
     expect(suggestExercises('Pull Up', candidates)[0]!.id).toBe(5)
   })
 })
+
+describe('import bounds', () => {
+  const row = (fields: string) => parseFitNotesCsv(`${HEADER}\n${fields}`)
+
+  it('rejects dates that are not real calendar days', () => {
+    expect(() => row('2026-02-30,Squat,Legs,1,lbs,1,,,,')).toThrow('Line 2: date')
+    expect(() => row('2026-13-01,Squat,Legs,1,lbs,1,,,,')).toThrow('Line 2: date')
+  })
+
+  it('rejects over-long names, categories and comments with the line number', () => {
+    expect(() => row(`2026-01-01,${'a'.repeat(256)},Legs,1,lbs,1,,,,`)).toThrow('Line 2: exercise name is longer')
+    expect(() => row(`2026-01-01,Squat,${'c'.repeat(65)},1,lbs,1,,,,`)).toThrow('Line 2: category is longer')
+    expect(() => row(`2026-01-01,Squat,Legs,1,lbs,1,,,,${'x'.repeat(2001)}`)).toThrow('Line 2: comment is longer')
+    expect(row(`2026-01-01,${'a'.repeat(255)},${'c'.repeat(64)},1,lbs,1,,,,${'x'.repeat(2000)}`)).toHaveLength(1)
+  })
+
+  it('rejects set values outside the bounds a logged set allows', () => {
+    expect(() => row('2026-01-01,Squat,Legs,2001,lbs,1,,,,')).toThrow('Line 2: weight')
+    expect(() => row('2026-01-01,Squat,Legs,1000,kgs,1,,,,')).toThrow('Line 2: weight')
+    expect(() => row('2026-01-01,Squat,Legs,-2001,lbs,1,,,,')).toThrow('Line 2: assist')
+    expect(() => row('2026-01-01,Squat,Legs,1,lbs,1001,,,,')).toThrow('Line 2: reps')
+    expect(() => row('2026-01-01,Squat,Legs,1,lbs,2.5,,,,')).toThrow('Line 2: reps')
+    expect(() => row('2026-01-01,Squat,Legs,1,lbs,-1,,,,')).toThrow('Line 2: reps')
+    expect(() => row('2026-01-01,Run,Cardio,,,,1001,km,,')).toThrow('Line 2: distance')
+    expect(() => row('2026-01-01,Run,Cardio,,,,,,24:00:01,')).toThrow('Line 2: time')
+    expect(row('2026-01-01,Run,Cardio,,,,,,24:00:00,')[0]!.durationSeconds).toBe(86400)
+  })
+
+  it('treats inherited property names as unknown distance units', () => {
+    expect(() => row('2026-01-01,Run,Cardio,,,,1,constructor,,')).toThrow('distance unit')
+  })
+
+  it('caps the row count and the number of distinct exercises', () => {
+    const many = (count: number, name: (i: number) => string) =>
+      [HEADER, ...Array.from({ length: count }, (_, i) => `2026-01-01,${name(i)},Legs,1,lbs,1,,,,`)].join('\n')
+    expect(() => parseFitNotesCsv(many(200_001, () => 'Squat'))).toThrow('more than 200000 sets')
+    expect(() => parseFitNotesCsv(many(2_001, (i) => `Lift ${i}`))).toThrow('Line 2002: the export has more than 2000')
+    expect(parseFitNotesCsv(many(2_000, (i) => `Lift ${i}`))).toHaveLength(2000)
+  })
+})
+
+describe('import performance', () => {
+  it('reads an assist from a pathological comment in linear time', () => {
+    const start = performance.now()
+    expect(parseAssist(`1${' '.repeat(200_000)}x`, 'lbs')).toBeNull()
+    expect(parseAssist(`1${' '.repeat(498)}x`, 'lbs')).toBeNull()
+    expect(performance.now() - start).toBeLessThan(50)
+  })
+
+  it('skips the assist scan on comments over 500 characters', () => {
+    expect(parseAssist(`85lb assist ${'x'.repeat(500)}`, 'lbs')).toBeNull()
+  })
+
+  it('summarizes and plans 100k rows in under a second', () => {
+    const line = (i: number) => `2026-01-${String((i % 28) + 1).padStart(2, '0')},Squat,Legs,1,lbs,1,,,,`
+    const rows = parseFitNotesCsv([HEADER, ...Array.from({ length: 100_000 }, (_, i) => line(i))].join('\n'))
+    const start = performance.now()
+    expect(summarizeFitNotes(rows)[0]!.sets).toBe(100_000)
+    expect(planFitNotesDays(rows)).toHaveLength(28)
+    expect(performance.now() - start).toBeLessThan(1000)
+  })
+})

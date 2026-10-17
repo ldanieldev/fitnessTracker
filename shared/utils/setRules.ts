@@ -2,6 +2,14 @@ import type { SetMeasures, TrackingType } from '../types/workout'
 
 export type SetMeasure = 'weight' | 'reps' | 'distance' | 'duration'
 
+export const SET_LIMITS = {
+  weight: 2000,
+  reps: 1000,
+  distanceMeters: 1_000_000,
+  durationSeconds: 86_400,
+  comment: 500
+} as const
+
 const MEASURES: Record<TrackingType, SetMeasure[]> = {
   weight_reps: ['weight', 'reps'],
   distance_time: ['distance', 'duration'],
