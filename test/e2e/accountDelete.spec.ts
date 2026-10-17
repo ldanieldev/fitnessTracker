@@ -1,4 +1,5 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
+import { Client } from 'pg'
 import { apiFetch, makeUser, registerViaApi, uniquePrefix } from './helpers'
 
 // Account deletion cascades from users; foods/recipes cascade too but entry/item references to them are NO ACTION,
@@ -101,4 +102,37 @@ test('deleting an account needs the account email typed to confirm', async ({ pa
   await expect(confirm).toBeEnabled()
   await confirm.click()
   await expect(page).toHaveURL(/\/auth\/login/)
+})
+
+test('deleting an account queues search deletes for its own foods and exercises', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  const { email } = await registerViaApi(page, makeUser())
+  const userId = (await apiFetch<{ user: { id: number } }>(page, 'GET', '/api/_auth/session')).json.user.id
+  const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+    name: uniquePrefix('Own Food '),
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 1 } }]
+  })
+  const reference = await apiFetch<{ categories: { id: number }[] }>(page, 'GET', '/api/workouts/reference')
+  const exercise = await apiFetch<{ id: number }>(page, 'POST', '/api/workouts/exercises', {
+    name: uniquePrefix('Own Lift '),
+    categoryId: reference.json.categories[0]!.id,
+    trackingType: 'weight_reps'
+  })
+
+  expect((await apiFetch(page, 'DELETE', `/api/users/${userId}`, { confirmEmail: email })).status).toBe(200)
+  const db = new Client({ connectionString: process.env.DATABASE_URL })
+  await db.connect()
+  try {
+    const queued = await db.query(
+      `select entity, entity_id from app.search_outbox where op = 'delete'
+        and ((entity = 'food' and entity_id = $1) or (entity = 'exercise' and entity_id = $2)) order by entity`,
+      [food.json.id, exercise.json.id]
+    )
+    expect(queued.rows).toEqual([
+      { entity: 'exercise', entity_id: exercise.json.id },
+      { entity: 'food', entity_id: food.json.id }
+    ])
+  } finally {
+    await db.end()
+  }
 })
