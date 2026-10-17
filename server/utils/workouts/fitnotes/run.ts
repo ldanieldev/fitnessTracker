@@ -33,6 +33,7 @@ const IMPORT_CATEGORY_COLOR = 'slate'
 const COMMENT_MAX = 500
 // Advisory-lock namespace for claiming a FitNotes job; the second key is the user id.
 const CLAIM_LOCK = 7_301_011
+const SKIPPED_DAYS_PER_BEAT = 100
 
 interface TargetExercise {
   id: number
@@ -125,7 +126,7 @@ async function resolveExercises(
 export async function performFitNotesImport(
   userId: number,
   payload: FitNotesImportPayload,
-  onDayImported: (tx: DbClient) => Promise<unknown> = async () => {}
+  heartbeat: (client: DbClient) => Promise<unknown> = async () => {}
 ): Promise<FitNotesImportResult> {
   const rows = parseFitNotesCsv(payload.csv)
   const summary = summarizeFitNotes(rows)
@@ -145,13 +146,21 @@ export async function performFitNotesImport(
     categoriesCreated
   }
 
+  let skippedSinceBeat = 0
+  const skipped = async () => {
+    if (++skippedSinceBeat < SKIPPED_DAYS_PER_BEAT) return
+    skippedSinceBeat = 0
+    await heartbeat(db)
+  }
   for (const day of days) {
     if (imported.has(day.date)) {
       result.daysSkippedImported++
+      await skipped()
       continue
     }
     if (payload.skipExistingDays && existing.has(day.date)) {
       result.daysSkippedExisting++
+      await skipped()
       continue
     }
     // Noon UTC is the same calendar date from UTC-12 to UTC+11; equal start and end mean "no duration recorded".
@@ -201,19 +210,24 @@ export async function performFitNotesImport(
           )
           count += entry.sets.length
         }
-        await onDayImported(tx)
+        await heartbeat(tx)
         return count
       })
       result.daysImported++
       result.sets += sets
+      skippedSinceBeat = 0
     } catch (err) {
       // A concurrent import of the same file got this date first.
       if (!isUniqueViolation(err, 'workout_session_import_key')) throw err
       result.daysSkippedImported++
+      await skipped()
     }
   }
 
-  if (result.daysImported > 0) await rebuildRollups(userId)
+  if (result.daysImported > 0) {
+    await heartbeat(db)
+    await rebuildRollups(userId)
+  }
   return result
 }
 
@@ -256,7 +270,7 @@ export async function runFitNotesImport(jobId: number, userId: number): Promise<
     throw new Error(error)
   }
   try {
-    // Each imported day bumps updated_at, so a long import is never taken for a crashed one an hour in.
+    // Imported days, long skip runs and the rollup rebuild bump updated_at, so a long import never reads as crashed.
     const heartbeat = (tx: DbClient) =>
       tx.update(importJobs).set({ updatedAt: new Date() }).where(eq(importJobs.id, jobId))
     const result = await performFitNotesImport(job.userId, job.payload as FitNotesImportPayload, heartbeat)

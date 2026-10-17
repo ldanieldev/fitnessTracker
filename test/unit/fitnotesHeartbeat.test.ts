@@ -11,19 +11,22 @@ function chain(result: unknown[] = [{ id: 1 }]) {
   return c
 }
 
-const fakeDb = {
-  insert: () => {
-    inserts.push('insert')
-    return chain()
-  },
-  transaction: async (run: (tx: typeof fakeDb) => Promise<unknown>) => run(fakeDb)
+const insert = () => {
+  inserts.push('insert')
+  return chain()
 }
+const fakeTx = { insert }
+const fakeDb = {
+  insert,
+  transaction: async (run: (tx: typeof fakeTx) => Promise<unknown>) => run(fakeTx)
+}
+const importedDays = vi.hoisted(() => ({ dates: new Set<string>() }))
 
 vi.mock('../../server/utils/db', () => ({ db: fakeDb }))
 vi.mock('../../server/utils/workouts/fitnotes/preview', () => ({
   exerciseOptions: async () => [],
   fitNotesImportKey: (date: string) => `fitnotes:${date}`,
-  sessionDays: async () => ({ imported: new Set(['2026-09-28']), existing: new Set() })
+  sessionDays: async () => ({ imported: importedDays.dates, existing: new Set() })
 }))
 vi.mock('../../server/utils/workouts/categories', () => ({ listCategoriesForUser: async () => [] }))
 vi.mock('../../server/utils/workouts/exercises', () => ({
@@ -40,17 +43,35 @@ const CSV = [
 ].join('\n')
 
 describe('performFitNotesImport', () => {
-  it('beats once per imported day inside that day\'s transaction, never for a skipped day', async () => {
+  it('beats per imported day inside its transaction and once before the rollup rebuild', async () => {
+    importedDays.dates = new Set(['2026-09-28'])
     const { performFitNotesImport } = await import('../../server/utils/workouts/fitnotes/run')
+    const { rebuildRollups } = await import('../../server/utils/workouts/rollups')
     const beats: unknown[] = []
     const result = await performFitNotesImport(
       7,
       { csv: CSV, mapping: { 'Barbell Row': 3 }, skipExistingDays: false },
-      async (tx) => {
-        beats.push(tx)
+      async (client) => {
+        beats.push(client)
+        expect(rebuildRollups).not.toHaveBeenCalled()
       }
     )
     expect(result).toMatchObject({ daysImported: 2, daysSkippedImported: 1 })
+    expect(beats).toEqual([fakeTx, fakeTx, fakeDb])
+    expect(rebuildRollups).toHaveBeenCalledTimes(1)
+  })
+
+  it('beats outside any transaction every hundred skipped days', async () => {
+    const dates = Array.from({ length: 250 }, (_, i) => new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10))
+    importedDays.dates = new Set(dates)
+    const csv = [CSV.split('\n')[0], ...dates.map((date) => `${date},Barbell Row,Back,185.0,lbs,5,,,,""`)].join('\n')
+    const { performFitNotesImport } = await import('../../server/utils/workouts/fitnotes/run')
+    const beats: unknown[] = []
+    const payload = { csv, mapping: { 'Barbell Row': 3 }, skipExistingDays: false }
+    const result = await performFitNotesImport(7, payload, async (client) => {
+      beats.push(client)
+    })
+    expect(result).toMatchObject({ daysImported: 0, daysSkippedImported: 250 })
     expect(beats).toEqual([fakeDb, fakeDb])
   })
 })
