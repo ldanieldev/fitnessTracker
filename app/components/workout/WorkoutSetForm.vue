@@ -12,11 +12,13 @@ const props = withDefaults(
     presetWeight?: { weight: number; seq: number } | null
     progression?: Progression | null
     choice?: 'apply' | 'stay' | null
+    saving?: boolean
   }>(),
   {
     presetWeight: null,
     progression: null,
-    choice: null
+    choice: null,
+    saving: false
   }
 )
 
@@ -143,6 +145,7 @@ const cardioFields = computed(() =>
 )
 
 function logSet() {
+  if (props.saving) return
   emit('save', { ...values })
 }
 </script>
@@ -273,6 +276,15 @@ function logSet() {
       </div>
     </div>
 
-    <UButton label="Log Set" block size="lg" class="min-h-12" data-test="set-save-new" @click="logSet" />
+    <UButton
+      label="Log Set"
+      block
+      size="lg"
+      class="min-h-12"
+      :loading="saving"
+      :disabled="saving"
+      data-test="set-save-new"
+      @click="logSet"
+    />
   </div>
 </template>

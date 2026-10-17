@@ -23,9 +23,20 @@ const emit = defineEmits<{
 const fail = useFailToast()
 const pickerOpen = ref(false)
 
+let requestSeq = 0
+let appliedSeq = 0
+
+// Responses can arrive out of order, so an older request's session must not replace a newer one already applied.
+function applyIfLatest(seq: number, session: WorkoutSession) {
+  if (seq < appliedSeq) return
+  appliedSeq = seq
+  emit('update:session', session)
+}
+
 async function applySession(action: () => Promise<WorkoutSession>, title: string, fallback: string) {
+  const seq = ++requestSeq
   try {
-    emit('update:session', await action())
+    applyIfLatest(seq, await action())
   } catch (err: unknown) {
     fail(title, err, fallback)
   }
@@ -171,9 +182,10 @@ async function saveSet(
 ): Promise<WorkoutSession | null> {
   const key = saveKey(entryId, setId)
   saveErrors.delete(key)
+  const seq = ++requestSeq
   try {
     const { session } = await action()
-    emit('update:session', session)
+    applyIfLatest(seq, session)
     forgetSave(key)
     return session
   } catch (err: unknown) {
@@ -183,14 +195,30 @@ async function saveSet(
   }
 }
 
+const addingSet = reactive(new Set<number>())
+
+async function guardAdd<T>(entryId: number, run: () => Promise<T>): Promise<T | undefined> {
+  if (addingSet.has(entryId)) return
+  addingSet.add(entryId)
+  try {
+    return await run()
+  } finally {
+    addingSet.delete(entryId)
+  }
+}
+
 function retrySave(entryId: number, setId: number | null) {
   const action = retries.get(saveKey(entryId, setId))
-  if (action) return saveSet(entryId, setId, action)
+  if (!action) return
+  if (setId === null) return guardAdd(entryId, () => saveSet(entryId, null, action))
+  return saveSet(entryId, setId, action)
 }
 
 async function addSet(entryId: number, values: SetValues) {
-  const session = await saveSet(entryId, null, () =>
-    apiFetch<SetResponse>(`/api/workouts/entries/${entryId}/sets`, { method: 'POST', body: values })
+  const session = await guardAdd(entryId, () =>
+    saveSet(entryId, null, () =>
+      apiFetch<SetResponse>(`/api/workouts/entries/${entryId}/sets`, { method: 'POST', body: values })
+    )
   )
   if (!session) return
   const flow = nextAfterSet(
@@ -238,6 +266,7 @@ function editSet(entryId: number, setId: number, values: SetValues) {
       :superset-label="supersetLabel(orderItems, entry.id)"
       :superset-border-class="entry.supersetGroup !== null ? supersetBorder(supersetIndex(orderItems, entry.id)) : null"
       :can-group="session.entries.length > 1"
+      :adding-set="addingSet.has(entry.id)"
       @superset="openSuperset(entry)"
       @ungroup="ungroup(entry.id)"
       @add-set="(values) => addSet(entry.id, values)"

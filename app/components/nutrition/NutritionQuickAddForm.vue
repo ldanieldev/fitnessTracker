@@ -4,6 +4,7 @@ import type { DiaryEntryInput } from '~/composables/useDiaryDay'
 const props = defineProps<{
   containers: Array<{ id: number; name: string }>
   defaultContainerId?: number
+  saving?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -22,7 +23,7 @@ const containerItems = useContainerItems(() => props.containers)
 const canSubmit = computed(() => description.value.trim().length > 0 && containerId.value !== undefined)
 
 function submit() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value || props.saving) return
 
   const nutrients: Record<string, number> = {}
   const energyValue = numOrUndefined(energy.value)
@@ -79,7 +80,11 @@ function submit() {
           <UInput v-model="fat" type="number" data-test="quick-add-fat" />
         </UFormField>
       </div>
-      <UButton label="Add" :disabled="!canSubmit" class="w-fit" data-test="quick-add-submit" @click="submit" />
+      <UButton
+        label="Add"
+        :disabled="!canSubmit || saving"
+        :loading="saving"
+        class="w-fit" data-test="quick-add-submit" @click="submit" />
     </div>
   </UCard>
 </template>

@@ -82,4 +82,65 @@ describe('WorkoutSessionEditor', () => {
     expect(wrapper.emitted('setLogged')).toEqual([[1, { open: null, rest: true, restFromEntryId: 1 }]])
     wrapper.unmount()
   })
+
+  it('ignores a second Log Set while the first is in flight and shows the button loading', async () => {
+    let posts = 0
+    let release: () => void = () => {}
+    const after = session([entry(1, null, [logged])])
+    registerEndpoint('/api/workouts/entries/1/sets', {
+      method: 'POST',
+      handler: () => {
+        posts++
+        return new Promise((resolve) => {
+          release = () => resolve({ session: after })
+        })
+      }
+    })
+    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
+    const wrapper = await mountSuspended(WorkoutSessionEditor, {
+      attachTo: document.body,
+      props: { session: session([entry(1, null)]) }
+    })
+    const button = () => wrapper.find('[data-test="set-save-new"]')
+
+    await button().trigger('click')
+    await vi.waitFor(() => expect(posts).toBe(1))
+    expect(button().attributes('disabled')).toBeDefined()
+    expect(wrapper.findAllComponents(WorkoutExerciseCard)[0]!.props('addingSet')).toBe(true)
+    wrapper.findAllComponents(WorkoutExerciseCard)[0]!.vm.$emit('addSet', { weight: 100, reps: 8 })
+    await button().trigger('click')
+    await flushPromises()
+    expect(posts).toBe(1)
+
+    release()
+    await vi.waitFor(() => expect(wrapper.emitted('setLogged')).toHaveLength(1))
+    await flushPromises()
+    expect(button().attributes('disabled')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('drops an older session response that resolves after a newer one', async () => {
+    const renamedOld = { ...session([entry(1, null)]), name: 'old' }
+    const renamedNew = { ...session([entry(1, null)]), name: 'new' }
+    const pending: Array<(value: WorkoutSession) => void> = []
+    registerEndpoint('/api/workouts/sessions/7', {
+      method: 'PATCH',
+      handler: () => new Promise<WorkoutSession>((resolve) => pending.push(resolve))
+    })
+    const wrapper = await mountSuspended(WorkoutSessionEditor, { props: { session: session([entry(1, null)]) } })
+    const header = wrapper.findComponent({ name: 'WorkoutSessionHeader' })
+
+    header.vm.$emit('rename', 'old')
+    await vi.waitFor(() => expect(pending).toHaveLength(1))
+    header.vm.$emit('rename', 'new')
+    await vi.waitFor(() => expect(pending).toHaveLength(2))
+    pending[1]!(renamedNew)
+    await vi.waitFor(() => expect(wrapper.emitted('update:session')).toHaveLength(1))
+    pending[0]!(renamedOld)
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(wrapper.emitted('update:session')).toEqual([[renamedNew]])
+    wrapper.unmount()
+  })
 })

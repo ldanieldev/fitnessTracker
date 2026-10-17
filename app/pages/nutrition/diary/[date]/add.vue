@@ -123,24 +123,37 @@ const trayItems = computed(() => [
   ...tray.state.meals.map((m) => ({ kind: 'meal' as const, id: m.savedMealId, label: m.name, detail: 'saved meal' }))
 ])
 
+const saving = ref(false)
+
 async function submit() {
-  if (containerId.value === undefined || !tray.ready.value) return
-  const result = await logEntries(tray.toEntryInputs(containerId.value))
-  if (result) {
-    tray.clear()
-    await navigateTo(`/nutrition/diary/${date.value}`)
-  } else {
-    await Promise.all([refreshRecipes(), refreshMeals()])
+  if (containerId.value === undefined || !tray.ready.value || saving.value) return
+  saving.value = true
+  try {
+    const result = await logEntries(tray.toEntryInputs(containerId.value))
+    if (result) {
+      tray.clear()
+      await navigateTo(`/nutrition/diary/${date.value}`)
+    } else {
+      await Promise.all([refreshRecipes(), refreshMeals()])
+    }
+  } finally {
+    saving.value = false
   }
 }
 
 const quickAddOpen = ref(false)
 
 async function onQuickAdd(input: DiaryEntryInput) {
-  const result = await logEntries([input])
-  if (result) {
-    quickAddOpen.value = false
-    await navigateTo(`/nutrition/diary/${date.value}`)
+  if (saving.value) return
+  saving.value = true
+  try {
+    const result = await logEntries([input])
+    if (result) {
+      quickAddOpen.value = false
+      await navigateTo(`/nutrition/diary/${date.value}`)
+    }
+  } finally {
+    saving.value = false
   }
 }
 </script>
@@ -239,6 +252,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
         :container-name="containerName"
         :items="trayItems"
         :totals="tray.totals.value"
+        :saving="saving"
         @submit="submit"
         @remove="(kind, id) => tray.remove(kind, id)"
       />
@@ -248,6 +262,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
           <LazyNutritionQuickAddForm
             :containers="containers ?? []"
             :default-container-id="containerId"
+            :saving="saving"
             @submit="onQuickAdd"
           />
         </template>

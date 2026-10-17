@@ -12,6 +12,7 @@ defineProps<{
   containerName: string
   items: TrayItem[]
   totals: Record<string, number>
+  saving?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -46,7 +47,8 @@ const sheetOpen = ref(false)
       <UButton
         :label="`Add to ${containerName}`"
         color="primary"
-        :disabled="!ready"
+        :disabled="!ready || saving"
+        :loading="saving"
         class="ml-auto"
         data-test="add-selected"
         @click="emit('submit')"

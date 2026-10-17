@@ -23,13 +23,15 @@ const props = withDefaults(
     supersetLabel?: string | null
     supersetBorderClass?: string | null
     canGroup?: boolean
+    addingSet?: boolean
   }>(),
   {
     presetWeight: null,
     deload: false,
     supersetLabel: null,
     supersetBorderClass: null,
-    canGroup: false
+    canGroup: false,
+    addingSet: false
   }
 )
 
@@ -316,6 +318,7 @@ function confirmRemove() {
         :preset-weight="presetWeight"
         :progression="progression"
         :choice="choice"
+        :saving="addingSet"
         @save="(values) => emit('addSet', values)"
         @choose="choose"
         @weight="(value) => (formWeight = value)"
@@ -327,6 +330,8 @@ function confirmRemove() {
           variant="soft"
           color="error"
           class="min-h-10 shrink-0"
+          :loading="addingSet"
+          :disabled="addingSet"
           data-test="set-retry-new"
           @click="emit('retrySave', null)"
         />
