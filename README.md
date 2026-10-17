@@ -93,7 +93,7 @@ Defaults live in `compose.yml`; set these only to override.
 | `APP_NAME` | `My Fitness Journal` | Display name, exposed via public runtime config. |
 | `PORT` | `3000` | HTTP port for the built server. |
 | `NUXT_REGISTRATION` | `open` | `open` lets anyone sign up; any other value (e.g. `closed`) allows only the first account. |
-| `NUXT_TRUST_PROXY` | `false` | `true` only behind your own reverse proxy: client IP and host then come from `X-Forwarded-For` / `X-Forwarded-Host` (rate limits, cross-site check). |
+| `NUXT_TRUST_PROXY` | `false` (`true` in `compose.prod.yml`) | `true` only behind your own reverse proxy: client IP and host then come from `X-Forwarded-For` / `X-Forwarded-Host` (rate limits, cross-site check). Left `false` behind a proxy, every client shares the proxy's IP and so one rate-limit bucket. Must be `false` when clients reach the app directly. |
 | `NUXT_SESSION_MAX_AGE` | `2592000` | Session lifetime in seconds from sign-in (30 days). |
 | `INNGEST_BASE_URL` / `INNGEST_SERVE_ORIGIN` | — | Where the SDK reaches Inngest, and the origin Inngest calls back on (`/api/inngest`). |
 | `INNGEST_DEV` | — | Development only: `1` talks to the dev Inngest without request signing. Never in production. |
@@ -186,8 +186,8 @@ is refused there anyway.
 - **HTTPS is required.** The session cookie is `Secure`, so browsers drop it over plain HTTP (only `localhost` is
   exempt). Put a reverse proxy with a real certificate in front (Caddy, Traefik, nginx, Tailscale Serve).
 - **Proxy settings:** forward to `127.0.0.1:3000` (set `APP_BIND=0.0.0.0` if the proxy runs on another host), pass
-  `X-Forwarded-For` and `X-Forwarded-Host`, and set `NUXT_TRUST_PROXY=true` so rate limits and the cross-site check see
-  the real client. Allow request bodies of at least 10 MB (FitNotes imports); the app enforces its own per-route caps.
+  `X-Forwarded-For` and `X-Forwarded-Host` (`compose.prod.yml` sets `NUXT_TRUST_PROXY=true` so rate limits and the
+  cross-site check see the real client; set it `false` if `APP_BIND` exposes the app to clients directly). Allow request bodies of at least 10 MB (FitNotes imports); the app enforces its own per-route caps.
 - **`/api/inngest`:** Inngest reaches the app over the compose network, and every call is signed with
   `INNGEST_SIGNING_KEY`. Nothing outside needs it, so block it at the proxy as well:
 
