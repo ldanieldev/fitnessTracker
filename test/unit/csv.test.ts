@@ -17,3 +17,24 @@ describe('csvCell', () => {
     expect(csvCell('cr\rlf')).toBe('"cr\rlf"')
   })
 })
+
+describe('csvCell formula injection', () => {
+  it('prefixes a quote to text a spreadsheet would run as a formula', () => {
+    expect(csvCell('=HYPERLINK("http://x","y")')).toBe(`"'=HYPERLINK(""http://x"",""y"")"`)
+    expect(csvCell('+1+cmd')).toBe(`'+1+cmd`)
+    expect(csvCell('-2+3')).toBe(`'-2+3`)
+    expect(csvCell('@SUM(A1)')).toBe(`'@SUM(A1)`)
+    expect(csvCell('\tcmd')).toBe(`'\tcmd`)
+    expect(csvCell('\rcmd')).toBe(`"'\rcmd"`)
+  })
+
+  it('leaves numbers, numeric text and safe text alone', () => {
+    expect(csvCell(-5)).toBe('-5')
+    expect(csvCell(-0.5)).toBe('-0.5')
+    expect(csvCell('-12.5')).toBe('-12.5')
+    expect(csvCell('+3')).toBe('+3')
+    expect(csvCell('1e-3')).toBe('1e-3')
+    expect(csvCell('Bench - heavy')).toBe('Bench - heavy')
+    expect(csvCell('2026-10-16')).toBe('2026-10-16')
+  })
+})
