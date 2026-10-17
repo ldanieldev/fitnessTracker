@@ -1,9 +1,8 @@
 import type { H3Event } from 'h3'
-import { trustsProxy } from '../proxy'
+import { lastForwarded } from '../proxy'
 import {
   createMemoryStore,
   createRedisStore,
-  forwardedClientIp,
   retryAfterSeconds,
   ruleKey,
   type RateCount,
@@ -54,29 +53,29 @@ function tooMany(event: H3Event, count: RateCount): never {
 }
 
 export function clientIp(event: H3Event): string {
-  const forwarded = trustsProxy(event) ? forwardedClientIp(getRequestHeader(event, 'x-forwarded-for')) : undefined
-  return forwarded ?? getRequestIP(event) ?? 'unknown'
+  return lastForwarded(event, 'x-forwarded-for') ?? getRequestIP(event) ?? 'unknown'
 }
 
-export async function assertUnderLimit(event: H3Event, checks: RateCheck[]) {
+// Counts the attempt before the caller verifies anything, so parallel requests can't all slip under the limit.
+export async function consumeLimits(event: H3Event, checks: RateCheck[]) {
   if (disabled()) return
   const store = currentStore()
-  for (const [rule, id] of checks) {
-    const count = await orNull(() => store.peek(ruleKey(rule, id)))
-    if (count && count.count >= rule.limit) tooMany(event, count)
-  }
-}
-
-export async function recordFailure(checks: RateCheck[]) {
-  if (disabled()) return
-  const store = currentStore()
-  await Promise.all(checks.map(([rule, id]) => orNull(() => store.hit(ruleKey(rule, id), rule.windowSeconds * 1000))))
+  const counts = await Promise.all(
+    checks.map(([rule, id]) => orNull(() => store.hit(ruleKey(rule, id), rule.windowSeconds * 1000)))
+  )
+  counts.forEach((count, i) => {
+    if (count && count.count > checks[i]![0].limit) tooMany(event, count)
+  })
 }
 
 export async function consumeLimit(event: H3Event, rule: RateRule, id: string) {
+  await consumeLimits(event, [[rule, id]])
+}
+
+export async function refundLimits(checks: RateCheck[]) {
   if (disabled()) return
-  const count = await orNull(() => currentStore().hit(ruleKey(rule, id), rule.windowSeconds * 1000))
-  if (count && count.count > rule.limit) tooMany(event, count)
+  const store = currentStore()
+  await Promise.all(checks.map(([rule, id]) => orNull(() => store.refund(ruleKey(rule, id)))))
 }
 
 export async function clearLimit(rule: RateRule, id: string) {

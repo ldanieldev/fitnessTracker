@@ -13,6 +13,7 @@ export interface RateStore {
   peek: (key: string) => Promise<RateCount | null>
   hit: (key: string, windowMs: number) => Promise<RateCount>
   clear: (key: string) => Promise<void>
+  refund: (key: string) => Promise<void>
 }
 
 export interface RedisLike {
@@ -24,7 +25,15 @@ export interface RedisLike {
     exec: () => Promise<Array<[Error | null, unknown]> | null>
   }
   del: (key: string) => Promise<unknown>
+  eval: (script: string, numKeys: number, ...args: string[]) => Promise<unknown>
 }
+
+// A bare DECR on an expired key would create a -1 counter with no TTL, so this decrements only a live, positive one.
+const REFUND_SCRIPT = [
+  `if redis.call('pttl', KEYS[1]) > 0 and tonumber(redis.call('get', KEYS[1])) > 0 then`,
+  `redis.call('decr', KEYS[1])`,
+  'end'
+].join(' ')
 
 const SWEEP_EVERY_MS = 60_000
 
@@ -56,6 +65,10 @@ export function createMemoryStore(now: () => number = Date.now): RateStore & { s
     },
     clear: async (key) => {
       entries.delete(key)
+    },
+    refund: async (key) => {
+      const entry = live(key)
+      if (entry && entry.count > 0) entry.count -= 1
     },
     size: () => entries.size
   }
@@ -90,6 +103,9 @@ export function createRedisStore(redis: RedisLike, now: () => number = Date.now)
     },
     clear: async (key) => {
       await redis.del(key)
+    },
+    refund: async (key) => {
+      await redis.eval(REFUND_SCRIPT, 1, key)
     }
   }
 }
@@ -100,10 +116,4 @@ export function ruleKey(rule: RateRule, id: string) {
 
 export function retryAfterSeconds(count: RateCount, now: number) {
   return Math.max(1, Math.ceil((count.resetAt - now) / 1000))
-}
-
-// Trusts exactly one proxy hop: the rightmost entry is the one our proxy appended, the rest are client-supplied.
-export function forwardedClientIp(header: string | undefined): string | undefined {
-  const last = header?.split(',').pop()?.trim()
-  return last || undefined
 }

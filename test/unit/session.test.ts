@@ -2,14 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { H3Event } from 'h3'
 import { forbidToken, requireSessionUser, requireUserId, validSessionUserId } from '../../server/utils/session'
 import { resolveToken, touchToken } from '../../server/utils/accessTokens/store'
-import { assertUnderLimit, recordFailure } from '../../server/utils/rateLimit/limit'
+import { consumeLimit } from '../../server/utils/rateLimit/limit'
 
 vi.mock('../../server/utils/accessTokens/store', () => ({ resolveToken: vi.fn(), touchToken: vi.fn() }))
 vi.mock('../../server/utils/rateLimit/limit', () => ({
   RATE_RULES: { badToken: {} },
-  assertUnderLimit: vi.fn(),
   clientIp: vi.fn(() => '127.0.0.1'),
-  recordFailure: vi.fn()
+  consumeLimit: vi.fn()
 }))
 
 const createError = (opts: { statusCode: number; statusMessage: string }) =>
@@ -212,21 +211,22 @@ describe('requireSessionUser with an Authorization header', () => {
     )
     vi.mocked(resolveToken).mockResolvedValue(null)
     await expect(requireSessionUser(event())).rejects.toMatchObject({ statusCode: 401 })
-    expect(recordFailure).toHaveBeenCalledTimes(1)
+    expect(consumeLimit).toHaveBeenCalledTimes(1)
   })
 
-  it('checks the bad-token limit before resolving and counts no failure for a valid token', async () => {
+  it('429s an unknown token over the bad-token limit but lets a valid token through untouched', async () => {
+    vi.stubGlobal('createError', createError)
     vi.stubGlobal(
       'getRequestHeader',
       vi.fn(() => `Bearer ${token}`)
     )
-    vi.mocked(assertUnderLimit).mockRejectedValueOnce(Object.assign(new Error('Too many'), { statusCode: 429 }))
+    vi.mocked(consumeLimit).mockRejectedValueOnce(Object.assign(new Error('Too many'), { statusCode: 429 }))
+    vi.mocked(resolveToken).mockResolvedValueOnce(null)
     await expect(requireSessionUser(event())).rejects.toMatchObject({ statusCode: 429 })
-    expect(resolveToken).not.toHaveBeenCalled()
 
     vi.mocked(resolveToken).mockResolvedValue({ tokenId: 3, user: { id: 1 } } as never)
-    await requireSessionUser(event())
-    expect(recordFailure).not.toHaveBeenCalled()
+    await expect(requireSessionUser(event())).resolves.toEqual({ id: 1 })
+    expect(consumeLimit).toHaveBeenCalledTimes(1)
   })
 
   it('forbidToken throws 403 for token requests only', () => {

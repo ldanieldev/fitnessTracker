@@ -5,16 +5,14 @@ import { users } from '~~/server/db/schema'
 import { parseBearer } from '~~/server/utils/accessTokens/token'
 import { sessionRejected } from '~~/server/utils/sessionEpoch'
 import { resolveToken, touchToken } from '~~/server/utils/accessTokens/store'
-import { assertUnderLimit, clientIp, RATE_RULES, recordFailure, type RateCheck } from '~~/server/utils/rateLimit/limit'
+import { clientIp, consumeLimit, RATE_RULES } from '~~/server/utils/rateLimit/limit'
 
 async function requireTokenUser(event: H3Event, header: string): Promise<User> {
   if (event.context.tokenUser) return event.context.tokenUser
-  const limits: RateCheck[] = [[RATE_RULES.badToken, clientIp(event)]]
-  await assertUnderLimit(event, limits)
   const token = parseBearer(header)
   const resolved = token ? await resolveToken(token) : null
   if (!resolved) {
-    await recordFailure(limits)
+    await consumeLimit(event, RATE_RULES.badToken, clientIp(event))
     throw createError({ statusCode: 401, statusMessage: 'Invalid access token' })
   }
   event.context.authVia = 'token'

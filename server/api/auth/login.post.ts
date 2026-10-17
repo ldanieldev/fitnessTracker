@@ -3,11 +3,11 @@ import { z } from 'zod'
 import { users } from '~~/server/db/schema'
 import { emailSchema } from '~~/shared/utils/email'
 import {
-  assertUnderLimit,
   clearLimit,
   clientIp,
+  consumeLimits,
   RATE_RULES,
-  recordFailure,
+  refundLimits,
   type RateCheck
 } from '~~/server/utils/rateLimit/limit'
 import { writeSession } from '~~/server/utils/session'
@@ -32,11 +32,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const limits: RateCheck[] = [
-    [RATE_RULES.loginIp, clientIp(event)],
-    [RATE_RULES.loginEmail, parsed.data.email]
-  ]
-  await assertUnderLimit(event, limits)
+  const ipLimit: RateCheck = [RATE_RULES.loginIp, clientIp(event)]
+  await consumeLimits(event, [ipLimit, [RATE_RULES.loginEmail, parsed.data.email]])
 
   const user = await db
     .select()
@@ -50,14 +47,13 @@ export default defineEventHandler(async (event) => {
   const valid = await verifyPassword(hash, parsed.data.password)
 
   if (!user?.password || !valid) {
-    await recordFailure(limits)
     throw createError({
       statusCode: 401,
       statusMessage: 'Invalid email or password'
     })
   }
 
-  await clearLimit(RATE_RULES.loginEmail, parsed.data.email)
+  await Promise.all([clearLimit(RATE_RULES.loginEmail, parsed.data.email), refundLimits([ipLimit])])
 
   if (user.isActive === false) throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
 

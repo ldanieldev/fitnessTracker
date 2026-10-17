@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { H3Event } from 'h3'
+import { clientIp, consumeLimits, refundLimits } from '../../server/utils/rateLimit/limit'
 import {
   createMemoryStore,
   createRedisStore,
-  forwardedClientIp,
   retryAfterSeconds,
   ruleKey,
   type RedisLike
@@ -40,7 +41,11 @@ function fakeRedis(clock: { now: number }) {
       }
       return pipeline
     },
-    del: async (key: string) => data.delete(key)
+    del: async (key: string) => data.delete(key),
+    eval: async (_script: string, _numKeys: number, key: string) => {
+      const entry = alive(key)
+      if (entry && entry.value > 0) entry.value -= 1
+    }
   }
   return redis
 }
@@ -69,6 +74,21 @@ describe.each(Object.entries(stores))('%s rate store', (_name, make) => {
     clock.now = 1_000
     expect(await store.peek('k')).toBeNull()
     expect(await store.hit('k', 1_000)).toEqual({ count: 1, resetAt: 2_000 })
+  })
+
+  it('refunds one hit inside the window and never goes below zero or revives an expired key', async () => {
+    const clock = { now: 0 }
+    const store = make(clock)
+    await store.hit('k', 1_000)
+    await store.hit('k', 1_000)
+    await store.refund('k')
+    expect(await store.peek('k')).toEqual({ count: 1, resetAt: 1_000 })
+    await store.refund('k')
+    await store.refund('k')
+    expect((await store.peek('k'))?.count ?? 0).toBe(0)
+    clock.now = 1_000
+    await store.refund('k')
+    expect(await store.peek('k')).toBeNull()
   })
 
   it('clears a key', async () => {
@@ -102,7 +122,8 @@ describe('redis rate store', () => {
         pttl: () => undefined,
         exec: async () => [[new Error('down'), null]] as Array<[Error | null, unknown]>
       }),
-      del: async () => 0
+      del: async () => 0,
+      eval: async () => null
     }
     await expect(createRedisStore(broken).hit('k', 1_000)).rejects.toThrow('down')
   })
@@ -117,11 +138,62 @@ describe('helpers', () => {
     expect(retryAfterSeconds({ count: 9, resetAt: 10_500 }, 0)).toBe(11)
     expect(retryAfterSeconds({ count: 9, resetAt: 0 }, 5_000)).toBe(1)
   })
+})
 
-  it('takes the proxy-appended rightmost X-Forwarded-For entry, ignoring client-supplied ones', () => {
-    expect(forwardedClientIp('6.6.6.6, 203.0.113.9')).toBe('203.0.113.9')
-    expect(forwardedClientIp('203.0.113.9')).toBe('203.0.113.9')
-    expect(forwardedClientIp(undefined)).toBeUndefined()
-    expect(forwardedClientIp(' ')).toBeUndefined()
+describe('consumeLimits', () => {
+  const rule = { name: 'race', limit: 5, windowSeconds: 60 }
+  const event = {} as H3Event
+
+  beforeEach(() => {
+    vi.stubGlobal('useStorage', () => ({ getMount: () => ({ driver: { name: 'memory' } }) }))
+    vi.stubGlobal('setResponseHeader', vi.fn())
+    vi.stubGlobal('createError', (opts: { statusCode: number }) => Object.assign(new Error('limited'), opts))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('lets at most the limit through when many attempts race a slow verify', async () => {
+    const id = `concurrent-${Math.random()}`
+    const verified = vi.fn()
+    const attempt = async () => {
+      await consumeLimits(event, [[rule, id]])
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      verified()
+    }
+    const results = await Promise.allSettled(Array.from({ length: 25 }, attempt))
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(rule.limit)
+    expect(verified).toHaveBeenCalledTimes(rule.limit)
+    expect(results.filter((r) => r.status === 'rejected').map((r) => (r as PromiseRejectedResult).reason.statusCode))
+      .toEqual(Array(25 - rule.limit).fill(429))
+  })
+
+  it('frees a slot when a successful attempt is refunded', async () => {
+    const id = `refund-${Math.random()}`
+    for (let i = 0; i < rule.limit; i++) await consumeLimits(event, [[rule, id]])
+    await refundLimits([[rule, id]])
+    await expect(consumeLimits(event, [[rule, id]])).resolves.toBeUndefined()
+    await expect(consumeLimits(event, [[rule, id]])).rejects.toMatchObject({ statusCode: 429 })
+  })
+})
+
+describe('clientIp', () => {
+  const ip = (trustProxy: boolean, forwarded: string | undefined) => {
+    vi.stubGlobal('useRuntimeConfig', () => ({ trustProxy }))
+    vi.stubGlobal('getRequestHeader', () => forwarded)
+    vi.stubGlobal('getRequestIP', () => '10.0.0.1')
+    return clientIp({} as H3Event)
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('takes the proxy-appended rightmost X-Forwarded-For entry only when the proxy is trusted', () => {
+    expect(ip(true, '6.6.6.6, 203.0.113.9')).toBe('203.0.113.9')
+    expect(ip(true, ' ')).toBe('10.0.0.1')
+    expect(ip(true, undefined)).toBe('10.0.0.1')
+    expect(ip(false, '6.6.6.6, 203.0.113.9')).toBe('10.0.0.1')
   })
 })

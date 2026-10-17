@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { users } from '~~/server/db/schema'
 import { overwritePassword } from '~~/server/utils/admin/accounts'
-import { assertUnderLimit, RATE_RULES, recordFailure, type RateCheck } from '~~/server/utils/rateLimit/limit'
+import { consumeLimits, RATE_RULES, refundLimits, type RateCheck } from '~~/server/utils/rateLimit/limit'
 import { forbidToken, requireSessionUser, writeSession } from '~~/server/utils/session'
 
 const changePasswordSchema = z.object({
@@ -37,13 +37,11 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Current password is required' })
     }
     const limits: RateCheck[] = [[RATE_RULES.passwordChange, String(user.id)]]
-    await assertUnderLimit(event, limits)
+    await consumeLimits(event, limits)
     const valid = await verifyPassword(user.password, parsed.data.currentPassword)
     // Not 401: apiFetch reads any 401 as an expired session and signs the user out.
-    if (!valid) {
-      await recordFailure(limits)
-      throw createError({ statusCode: 400, statusMessage: 'Current password is incorrect' })
-    }
+    if (!valid) throw createError({ statusCode: 400, statusMessage: 'Current password is incorrect' })
+    await refundLimits(limits)
   }
 
   const sessionEpoch = await overwritePassword(db, sessionUser.id, await hashPassword(parsed.data.newPassword))
