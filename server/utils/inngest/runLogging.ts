@@ -64,12 +64,13 @@ export class RunLogging extends Middleware.BaseMiddleware {
   readonly id = 'run-logging'
 
   override onRunStart({ ctx, fn }: Middleware.OnRunStartArgs) {
+    if (OUTBOX_DRAINS.has(fn.opts.id)) return
     log.debug(runFields(ctx, fn), 'Inngest run started')
   }
 
   override onRunComplete({ ctx, fn, output }: Middleware.OnRunCompleteArgs) {
-    const quiet = OUTBOX_DRAINS.has(fn.opts.id) && !drainDidWork(output)
-    log[quiet ? 'debug' : 'info']({ ...outputSummary(output), ...runFields(ctx, fn) }, 'Inngest run completed')
+    if (OUTBOX_DRAINS.has(fn.opts.id) && !drainDidWork(output)) return
+    log.info({ ...outputSummary(output), ...runFields(ctx, fn) }, 'Inngest run completed')
   }
 
   override onRunError({ ctx, fn, error, isFinalAttempt }: Middleware.OnRunErrorArgs) {

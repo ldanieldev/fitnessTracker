@@ -9,6 +9,7 @@ const search = vi.fn()
 const getStats = vi.fn()
 const deleteAllDocuments = vi.fn()
 const addDocuments = vi.fn()
+const getTasks = vi.fn()
 const index = vi.fn((_name: string) => ({ updateSettings, search, getStats, deleteAllDocuments, addDocuments }))
 const enqueued = () => Object.assign(Promise.resolve({}), { waitTask: () => Promise.resolve({}) })
 
@@ -21,7 +22,7 @@ class MeilisearchApiError extends Error {
 }
 
 const Meilisearch = vi.fn().mockImplementation(function () {
-  return { health, createIndex, getRawIndex, deleteIndex, index }
+  return { health, createIndex, getRawIndex, deleteIndex, index, tasks: { getTasks } }
 })
 vi.mock('meilisearch', () => ({ Meilisearch, MeilisearchApiError }))
 
@@ -47,6 +48,7 @@ beforeEach(() => {
   addDocuments.mockImplementation(enqueued)
   search.mockResolvedValue({ hits: [{ id: '9', _rankingScore: 0.5 }] })
   getStats.mockResolvedValue({ numberOfDocuments: 1 })
+  getTasks.mockResolvedValue({ results: [], total: 0 })
 })
 
 describe('MeiliIndexProvider', () => {
@@ -134,6 +136,20 @@ describe('MeiliIndexProvider resilience', () => {
     expect(await provider.isEmpty()).toBe(true)
     getStats.mockRejectedValueOnce(new Error('timeout'))
     expect(await provider.isEmpty()).toBe(false)
+  })
+
+  it('treats a zero-document index with a queued rebuild as not empty', async () => {
+    const provider = new ExerciseMeiliProvider('http://localhost:7700', '')
+    getStats.mockResolvedValue({ numberOfDocuments: 0 })
+    getTasks.mockResolvedValueOnce({ results: [{ uid: 1 }], total: 1 })
+    expect(await provider.isEmpty()).toBe(false)
+    expect(getTasks).toHaveBeenCalledWith({
+      indexUids: ['exercises'],
+      statuses: ['enqueued', 'processing'],
+      types: ['documentDeletion', 'documentAdditionOrUpdate'],
+      limit: 1
+    })
+    expect(await provider.isEmpty()).toBe(true)
   })
 })
 

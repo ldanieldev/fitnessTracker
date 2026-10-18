@@ -62,10 +62,13 @@ export default defineNitroPlugin((nitroApp) => {
             'http.response.status_code': status
           })
           const { userId, authVia, accessTokenId } = event.context
-          logger[expected ? 'warn' : requestLogLevel(status, route)](
-            { method, route, status, durationMs: Math.round(durationMs), userId, authVia, accessTokenId },
-            'request'
-          )
+          const level = expected ? 'warn' : requestLogLevel(status, route, method)
+          if (level) {
+            logger[level](
+              { method, route, status, durationMs: Math.round(durationMs), userId, authVia, accessTokenId },
+              'request'
+            )
+          }
         }
       }
     )

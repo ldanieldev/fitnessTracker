@@ -133,7 +133,15 @@ export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
   async isEmpty(): Promise<boolean> {
     try {
       const stats = await this.reads.index(this.config.name).getStats()
-      return stats.numberOfDocuments === 0
+      if (stats.numberOfDocuments > 0) return false
+      // A queued rebuild reads as 0 docs until its add runs, so pending tasks veto "empty" to stop repeat rebuilds.
+      const pending = await this.reads.tasks.getTasks({
+        indexUids: [this.config.name],
+        statuses: ['enqueued', 'processing'],
+        types: ['documentDeletion', 'documentAdditionOrUpdate'],
+        limit: 1
+      })
+      return pending.total === 0
     } catch (error) {
       // A missing index is empty; any other read failure is "not known empty", so a blip never storms rebuilds.
       return isIndexNotFound(error)

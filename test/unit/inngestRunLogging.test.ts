@@ -47,10 +47,11 @@ describe('RunLogging', () => {
     })
   })
 
-  it('keeps an idle outbox drain at debug and logs one that did work at info', () => {
+  it('logs nothing for an outbox drain start or idle run, and logs one that did work at info', () => {
     const idle = { processed: 0, failed: 0, skipped: false, rebuilt: false }
+    mw.onRunStart({ ctx: ctx(), fn: fn('search-outbox-drain') })
     mw.onRunComplete({ ctx: ctx(), fn: fn('search-outbox-drain'), output: idle })
-    expect(log.debug).toHaveBeenCalledTimes(1)
+    expect(log.debug).not.toHaveBeenCalled()
     expect(log.info).not.toHaveBeenCalled()
 
     mw.onRunComplete({ ctx: ctx(), fn: fn('exercise-search-outbox-drain'), output: { ...idle, failed: 1 } })

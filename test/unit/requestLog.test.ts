@@ -14,6 +14,15 @@ describe('requestLogLevel', () => {
     expect(requestLogLevel(500, '/api/inngest')).toBe('warn')
     expect(requestLogLevel(500, '/api/users/:id')).toBe('error')
   })
+
+  it('skips a successful Inngest run call but keeps its failures and app syncs', () => {
+    expect(requestLogLevel(200, '/api/inngest', 'POST')).toBeNull()
+    expect(requestLogLevel(206, '/api/inngest', 'POST')).toBeNull()
+    expect(requestLogLevel(401, '/api/inngest', 'POST')).toBe('warn')
+    expect(requestLogLevel(400, '/api/inngest', 'POST')).toBe('debug')
+    expect(requestLogLevel(200, '/api/inngest', 'PUT')).toBe('debug')
+    expect(requestLogLevel(200, '/api/users/:id', 'POST')).toBe('debug')
+  })
 })
 
 describe('requestRoute', () => {
