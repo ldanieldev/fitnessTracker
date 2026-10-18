@@ -67,12 +67,15 @@ const googleHandler = defineOAuthGoogleEventHandler({
       return loginError(event, 'provider_error')
     }
   },
-  // Fires when the OAuth flow itself fails (token exchange, provider-returned
-  // error, denied consent) before onSuccess runs.
+  // Fires when the OAuth flow itself fails (token exchange, provider-returned error) before onSuccess runs.
   onError(event, error) {
     logOAuthFlowError('google', error)
     return loginError(event, 'provider_error')
   }
 })
 
-export default defineEventHandler(googleHandler)
+export default defineEventHandler((event) => {
+  // nuxt-auth-utils sends a declined consent (no code) back to Google, so handle the cancel here and return the user.
+  if (getQuery(event).error === 'access_denied') return oauthCancelRedirect(event)
+  return googleHandler(event)
+})

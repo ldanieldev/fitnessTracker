@@ -73,12 +73,15 @@ const githubHandler = defineOAuthGitHubEventHandler({
       return loginError(event, 'provider_error')
     }
   },
-  // Fires when the OAuth flow itself fails (token exchange, provider-returned
-  // error, denied consent) before onSuccess runs.
+  // Fires when the OAuth flow itself fails (token exchange, provider-returned error) before onSuccess runs.
   onError(event, error) {
     logOAuthFlowError('github', error)
     return loginError(event, 'provider_error')
   }
 })
 
-export default defineEventHandler(githubHandler)
+export default defineEventHandler((event) => {
+  // nuxt-auth-utils reports a declined consent as a failed sign-in, so handle the cancel here and return quietly.
+  if (getQuery(event).error === 'access_denied') return oauthCancelRedirect(event)
+  return githubHandler(event)
+})

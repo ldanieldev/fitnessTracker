@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { loginError, oauthSuccessRedirect } from '../../server/utils/oauthRedirect'
+import { loginError, oauthCancelRedirect, oauthSuccessRedirect } from '../../server/utils/oauthRedirect'
 
 // oauthRedirect.ts uses auto-imported h3 helpers; stubGlobal so unstubAllGlobals() restores them after each test.
 const sendRedirect = vi.fn((_event: unknown, url: string) => url)
@@ -67,5 +67,22 @@ describe('oauthSuccessRedirect', () => {
     cookies.set('oauth-redirect', '//evil.com')
     oauthSuccessRedirect(event, 'google')
     expect(cookies.has('oauth-redirect')).toBe(false)
+  })
+})
+
+describe('oauthCancelRedirect', () => {
+  it('returns to the login page without an error when no return cookie is set', () => {
+    expect(oauthCancelRedirect(event)).toBe('/auth/login')
+  })
+
+  it('returns to the stashed path without the linked flag and clears the cookie', () => {
+    cookies.set('oauth-redirect', '/settings/security')
+    expect(oauthCancelRedirect(event)).toBe('/settings/security')
+    expect(cookies.has('oauth-redirect')).toBe(false)
+  })
+
+  it('refuses an external return path', () => {
+    cookies.set('oauth-redirect', '//evil.com')
+    expect(oauthCancelRedirect(event)).toBe('/auth/login')
   })
 })
