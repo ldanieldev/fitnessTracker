@@ -1,4 +1,7 @@
 import type { IncomingMessage } from 'node:http'
+import type { H3Event } from 'h3'
+import { logger } from '../utils/logger'
+import { requestRoute } from '../utils/requestLog'
 import { bodyLimitFor, declaredLengthTooLarge, PAYLOAD_METHODS } from '../utils/requestGuards/rules'
 
 // h3's readRawBody reuses a body cached under this global symbol, so handlers read the capped copy.
@@ -8,6 +11,14 @@ type CachedRequest = IncomingMessage & { [RAW_BODY]?: Promise<Buffer> }
 
 function tooLarge(limit: number) {
   return createError({ statusCode: 413, statusMessage: `Request body exceeds ${limit} bytes` })
+}
+
+function logTooLarge(event: H3Event, limit: number, declared: string | undefined, chunked: boolean) {
+  const length = declared === undefined ? null : Number(declared)
+  logger.warn(
+    { route: requestRoute(event), limit, declared: Number.isFinite(length) ? length : null, chunked },
+    'request body over the size limit'
+  )
 }
 
 function readCapped(req: CachedRequest, limit: number): Promise<Buffer> {
@@ -37,6 +48,7 @@ export default defineEventHandler(async (event) => {
   if (!/\bchunked\b/i.test(getRequestHeader(event, 'transfer-encoding') ?? '')) {
     const declared = getRequestHeader(event, 'content-length')
     if (declared !== undefined && declaredLengthTooLarge(declared, limit)) {
+      logTooLarge(event, limit, declared, false)
       setResponseHeader(event, 'Connection', 'close')
       throw tooLarge(limit)
     }
@@ -48,6 +60,7 @@ export default defineEventHandler(async (event) => {
   try {
     await body
   } catch (error) {
+    if ((error as { statusCode?: number }).statusCode === 413) logTooLarge(event, limit, undefined, true)
     setResponseHeader(event, 'Connection', 'close')
     throw error
   }

@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
-
 const props = defineProps<{ date: string; containerId: number; value: string | null; hasStored: boolean }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const time = ref(props.value ?? '')
 const saving = ref(false)
 
@@ -23,11 +21,7 @@ async function save(value: string | null) {
     })
     await invalidateNutrition(NUTRITION_KEYS.day(props.date))
   } catch (error: unknown) {
-    toast.add({
-      title: 'Save failed',
-      description: errorMessage(error, 'Could not save this meal time'),
-      color: 'error'
-    })
+    fail('Save failed', error, 'Could not save this meal time')
     return
   } finally {
     saving.value = false

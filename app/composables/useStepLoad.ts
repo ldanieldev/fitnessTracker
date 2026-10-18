@@ -6,7 +6,8 @@ export function useStepLoad(loader: () => Promise<void>) {
     try {
       await loader()
       status.value = 'ready'
-    } catch {
+    } catch (err: unknown) {
+      reportFailure(err, 'Load onboarding step')
       status.value = 'failed'
     }
   }

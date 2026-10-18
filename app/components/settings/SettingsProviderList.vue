@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
-
 interface LinkedProvider {
   provider: string
   providerAccountId: string
@@ -16,6 +14,8 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+
+const fail = useFailToast()
 const route = useRoute()
 const router = useRouter()
 
@@ -63,11 +63,7 @@ async function unlink(provider: string) {
     })
     emit('unlinked')
   } catch (error: unknown) {
-    toast.add({
-      title: 'Failed to unlink',
-      description: errorMessage(error, 'Could not unlink provider'),
-      color: 'error'
-    })
+    fail('Failed to unlink', error, 'Could not unlink provider')
   } finally {
     unlinking.value = null
   }

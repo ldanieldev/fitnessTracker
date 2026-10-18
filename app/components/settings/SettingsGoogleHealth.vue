@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { GoogleHealthStatus, SyncResult } from '~~/shared/types/googleHealth'
-import { errorMessage } from '~/utils/apiError'
 
 const toast = useToast()
+
+const fail = useFailToast()
 const route = useRoute()
 const router = useRouter()
 
@@ -59,7 +60,7 @@ async function syncNow() {
       toast.add({ title: 'Reconnect Google Health', color: 'warning' })
     }
   } catch (error: unknown) {
-    toast.add({ title: 'Sync failed', description: errorMessage(error, 'Could not sync'), color: 'error' })
+    fail('Sync failed', error, 'Could not sync')
   } finally {
     syncing.value = false
     await refresh()
@@ -74,7 +75,7 @@ async function toggle(field: 'syncSteps' | 'pushWeight', value: boolean) {
       body: { [field]: value }
     })
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save'), color: 'error' })
+    fail('Save failed', error, 'Could not save')
     await refresh()
   } finally {
     saving[field] = false
@@ -85,11 +86,7 @@ async function disconnect() {
   try {
     await apiFetch('/api/integrations/google-health', { method: 'DELETE' })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Disconnect failed',
-      description: errorMessage(error, 'Could not disconnect'),
-      color: 'error'
-    })
+    fail('Disconnect failed', error, 'Could not disconnect')
   } finally {
     disconnectOpen.value = false
     await refresh()

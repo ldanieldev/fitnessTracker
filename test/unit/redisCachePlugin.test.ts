@@ -46,14 +46,15 @@ describe('outageTracker', () => {
     const log = { warn: vi.fn(), info: vi.fn() }
     const tracker = outageTracker('redis:6379', log)
     tracker.ready()
-    expect(log.info).toHaveBeenLastCalledWith('[cache] Redis cache mounted')
+    expect(log.info).toHaveBeenLastCalledWith({ host: 'redis:6379' }, 'Redis cache mounted')
     for (let i = 0; i < 20; i++) tracker.lost()
     expect(log.warn).toHaveBeenCalledTimes(1)
     expect(log.warn).toHaveBeenCalledWith(
-      '[cache] Redis unreachable at redis:6379; using the in-memory cache until it reconnects'
+      { host: 'redis:6379' },
+      'Redis cache unreachable; using the in-memory cache until it reconnects'
     )
     tracker.ready()
-    expect(log.info).toHaveBeenLastCalledWith('[cache] Redis at redis:6379 is back; using it again')
+    expect(log.info).toHaveBeenLastCalledWith({ host: 'redis:6379' }, 'Redis cache reconnected')
     tracker.lost()
     expect(log.warn).toHaveBeenCalledTimes(2)
   })
@@ -77,6 +78,10 @@ describe('outageTracker', () => {
     clock = 61_000
     tracker.commandFailed(new Error('c'))
     expect(log.warn).toHaveBeenCalledTimes(2)
+    expect(log.warn).toHaveBeenLastCalledWith(
+      { err: new Error('c'), host: 'redis:6379' },
+      'Redis cache command failed; served from the in-memory cache'
+    )
   })
 })
 

@@ -23,6 +23,8 @@ const LOST_MESSAGE = 'It may still be running. Reload this page later before imp
 
 const toast = useToast()
 
+const fail = useFailToast()
+
 const csv = ref<string | null>(null)
 const fileName = ref('')
 const previewing = ref(false)
@@ -76,11 +78,7 @@ watch(file, async (picked) => {
     targets.value = Object.fromEntries(data.exercises.map((e) => [e.name, e.match]))
   } catch (error: unknown) {
     if (current !== previewRun) return
-    toast.add({
-      title: 'Can’t read this file',
-      description: errorMessage(error, 'Not a FitNotes export'),
-      color: 'error'
-    })
+    fail('Can’t read this file', error, 'Not a FitNotes export')
     file.value = null
   } finally {
     if (current === previewRun) previewing.value = false
@@ -124,7 +122,7 @@ async function onPick(exerciseId: number) {
     )
     choose(row.name, { id: exercise.id, name: exercise.name, custom: !exercise.shared })
   } catch (error: unknown) {
-    toast.add({ title: 'Couldn’t use that exercise', description: errorMessage(error, 'Try again'), color: 'error' })
+    fail('Couldn’t use that exercise', error, 'Try again')
   }
 }
 
@@ -176,7 +174,7 @@ async function submit() {
     poll(jobId)
   } catch (error: unknown) {
     status.value = null
-    toast.add({ title: 'Import failed', description: errorMessage(error, 'Import failed'), color: 'error' })
+    fail('Import failed', error, 'Import failed')
   }
 }
 </script>

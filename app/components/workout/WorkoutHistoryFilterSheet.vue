@@ -39,7 +39,8 @@ watch(programId, async (id) => {
   try {
     const detail = await apiFetch<Program>(`/api/workouts/programs/${id}`)
     if (programId.value === id) programDetail.value = detail
-  } catch {
+  } catch (err: unknown) {
+    reportFailure(err, 'Load filter program')
     programDetail.value = null
   } finally {
     if (programId.value === id) phasesLoading.value = false
@@ -72,7 +73,8 @@ async function loadExercise(id: number) {
   try {
     const found = await apiFetch<Exercise>(`/api/workouts/exercises/${id}`)
     if (exerciseId.value === id) exercise.value = found
-  } catch {
+  } catch (err: unknown) {
+    reportFailure(err, 'Load filter exercise')
     if (exerciseId.value === id) exercise.value = null
   }
 }

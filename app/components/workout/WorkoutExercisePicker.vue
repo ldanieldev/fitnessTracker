@@ -43,8 +43,9 @@ async function load() {
   try {
     const rows = await request
     if (latestKey === key && stored()) exercises.value = rows
-  } catch {
+  } catch (err: unknown) {
     if (!stored()) return
+    reportFailure(err, 'Search exercises')
     results.delete(key)
     if (latestKey === key) exercises.value = []
   }

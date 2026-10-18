@@ -13,8 +13,13 @@ export default defineEventHandler(async (event) => {
   }
   const exists = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1)
   if (!exists.length) throw createError({ statusCode: 404, statusMessage: 'Not found' })
+  logger.info(
+    { event: 'account.delete_started', userId: id, by: 'admin', adminId: admin.id },
+    'account deletion started'
+  )
   await disconnectGoogleHealth(id)
   await deleteAccount(id)
+  logger.info({ event: 'admin.user_deleted', adminId: admin.id, targetUserId: id }, 'admin deleted a user')
   setResponseStatus(event, 204)
   return null
 })

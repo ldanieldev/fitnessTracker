@@ -37,11 +37,14 @@ vi.mock('../../server/utils/db', () => ({
   db: {
     select: (...args: unknown[]) => select(...args),
     update: (...args: unknown[]) => update(...args),
-    delete: () => ({ where: async () => undefined })
+    delete: () => ({ where: () => ({ returning: async () => [] }) })
   }
 }))
 
-vi.mock('../../server/utils/logger', () => ({ logger: { warn: vi.fn() } }))
+vi.mock('../../server/utils/logger', () => {
+  const log = { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }
+  return { logger: { ...log, child: () => log } }
+})
 
 class FakeMeiliSearchProvider {
   isEmpty = isEmpty

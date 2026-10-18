@@ -35,8 +35,8 @@ export default defineEventHandler(async (event) => {
   let refs: SearchCandidateRef[]
   try {
     refs = await provider.query(userId, q, CANDIDATE_POOL_LIMIT)
-  } catch {
-    markSearchUnhealthy()
+  } catch (error) {
+    markSearchUnhealthy(error)
     provider = getFallbackProvider()
     refs = await provider.query(userId, q, CANDIDATE_POOL_LIMIT)
   }

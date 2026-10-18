@@ -23,6 +23,8 @@ RUN bun build scripts/migrate.ts --target=bun --outfile .output/migrate.mjs
 
 # Production
 FROM base AS release
+ARG GIT_SHA=
+ENV GIT_SHA=$GIT_SHA
 
 # Nitro bundles everything - only need .output, plus drizzle/ for .output/migrate.mjs
 COPY --from=build /usr/src/app/.output .output

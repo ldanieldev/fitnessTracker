@@ -1,5 +1,6 @@
 import { importJobs } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
+import { logger } from '~~/server/utils/logger'
 import { isMyMacrosHeader } from '~~/server/utils/nutrition/mymacros/parse'
 import { queueImportJob } from '~~/server/utils/nutrition/mymacros/queue'
 import { requireUserId } from '~~/server/utils/session'
@@ -53,14 +54,17 @@ export default defineEventHandler(async (event) => {
 
   try {
     await queueImportJob(db, job.id, userId)
-  } catch {
+  } catch (err) {
+    // queueImportJob logs the cause without opening a Sentry issue; Sentry captures this 503 with it as the cause.
     throw createError({
       statusCode: 503,
       statusMessage: 'Import job runner unreachable; the job was marked failed',
-      data: { jobId: job.id }
+      data: { jobId: job.id },
+      cause: err
     })
   }
 
+  logger.info({ jobId: job.id, userId, source: 'mymacros', fileCount: decoded.length, totalBytes }, 'import job queued')
   setResponseStatus(event, 201)
   return { jobId: job.id }
 })

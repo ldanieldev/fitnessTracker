@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { MeasurementGoal, MeasurementType } from '~~/shared/types/body'
-import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{ type: MeasurementType | null; goal: MeasurementGoal | null; latest: number | null }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const target = ref<number | null>(null)
 const date = ref('')
 const saving = ref(false)
@@ -40,7 +39,7 @@ async function save() {
     })
     await invalidate(props.type.id)
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this goal'), color: 'error' })
+    fail('Save failed', error, 'Could not save this goal')
     return
   } finally {
     saving.value = false
@@ -56,7 +55,7 @@ async function clear() {
     await apiFetch(`/api/body/types/${props.type.id}/goal`, { method: 'DELETE' })
     await invalidate(props.type.id)
   } catch (error: unknown) {
-    toast.add({ title: 'Clear failed', description: errorMessage(error, 'Could not clear this goal'), color: 'error' })
+    fail('Clear failed', error, 'Could not clear this goal')
     return
   } finally {
     saving.value = false

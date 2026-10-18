@@ -18,5 +18,9 @@ export default defineEventHandler(async (event) => {
   if (!(await setUserActive(db, id, parsed.data.isActive))) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
+  logger.info(
+    { event: 'admin.user_active_set', adminId: admin.id, targetUserId: id, isActive: parsed.data.isActive },
+    'admin set a user\'s active flag'
+  )
   return { id, isActive: parsed.data.isActive }
 })

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { db } from '~~/server/utils/db'
 import { getExternalSources } from '~~/server/utils/nutrition/external/registry'
+import { expectedFailure } from '~~/server/utils/expectedFailure'
 import { ExternalSourceError } from '~~/server/utils/nutrition/external/types'
 import { importExternalFood } from '~~/server/utils/nutrition/importFood'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
@@ -31,7 +32,8 @@ export default defineEventHandler(async (event) => {
     if (err instanceof ExternalSourceError) {
       // Client contracts guarantee byId returns null rather than throwing 'not_found'; 404 here is defensive only.
       const status = err.kind === 'not_found' ? 404 : ERROR_STATUS[err.kind]
-      throw createError({ statusCode: status, statusMessage: err.message })
+      // The source registry already logged this outage, so it must not also become a Sentry issue.
+      throw expectedFailure({ statusCode: status, statusMessage: err.message })
     }
     throw err
   }

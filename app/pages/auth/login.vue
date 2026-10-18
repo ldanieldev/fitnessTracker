@@ -2,10 +2,10 @@
 import type { FormSubmitEvent, AuthFormField } from '@nuxt/ui'
 import type { OAuthErrorCode } from '#shared/utils/oauthErrors'
 import * as z from 'zod'
-import { errorMessage } from '~/utils/apiError'
 
 const { fetch: fetchSession } = useUserSession()
 const toast = useToast()
+const fail = useFailToast()
 const route = useRoute()
 const router = useRouter()
 
@@ -82,11 +82,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     await fetchSession()
     await navigateTo('/')
   } catch (error: unknown) {
-    toast.add({
-      title: 'Login failed',
-      description: errorMessage(error, 'Invalid email or password'),
-      color: 'error'
-    })
+    fail('Login failed', error, 'Invalid email or password')
   } finally {
     loading.value = false
   }

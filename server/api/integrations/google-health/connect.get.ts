@@ -7,6 +7,7 @@ import { revokeStoredGrant } from '~~/server/utils/googleHealth/disconnect'
 import { GOOGLE_HEALTH_SCOPES } from '~~/server/utils/googleHealth/scopes'
 import { inngest } from '~~/server/utils/inngest/client'
 import { logger } from '~~/server/utils/logger'
+import { requestRoute } from '~~/server/utils/requestLog'
 import { forbidToken, requireUserId, validSessionUserId } from '~~/server/utils/session'
 
 const DONE = '/settings/data?googleHealth='
@@ -17,23 +18,34 @@ const oauth = defineOAuthGoogleEventHandler({
     // Shares Google's handler with login, so it must never sign anyone in: only a live session may attach a grant.
     const userId = await validSessionUserId(event)
     if (!userId) return sendRedirect(event, '/auth/login')
-    if (!tokens.refresh_token || !user.email) return sendRedirect(event, `${DONE}error`)
+    if (!tokens.refresh_token || !user.email) {
+      logger.warn(
+        { userId, hasRefreshToken: Boolean(tokens.refresh_token), hasEmail: Boolean(user.email) },
+        'Google Health connect refused: Google sent no refresh token or email'
+      )
+      return sendRedirect(event, `${DONE}error`)
+    }
     const googleSub = String(user.sub)
     const previous = await loadConnection(userId)
     // Revoking drops the app's whole grant, so a same-account reconnect keeps the old token to spare the new one.
-    if (previous && previous.googleSub !== googleSub) await revokeStoredGrant(previous)
+    if (previous && previous.googleSub !== googleSub) {
+      logger.info({ userId }, 'Google Health connection switched to a different Google account')
+      await revokeStoredGrant(previous)
+    }
+    const scopes = String(tokens.scope ?? '')
+      .split(' ')
+      .filter(Boolean)
     const values = connectValues(previous, {
       googleSub,
       googleEmail: String(user.email),
       refreshTokenEnc: encryptToken(tokens.refresh_token, googleHealthConfig().tokenKey),
-      scopes: String(tokens.scope ?? '')
-        .split(' ')
-        .filter(Boolean)
+      scopes
     })
     await db
       .insert(googleHealthConnections)
       .values({ userId, ...values })
       .onConflictDoUpdate({ target: googleHealthConnections.userId, set: values })
+    logger.info({ userId, scopes }, 'Google Health connected')
     try {
       await inngest.send({ name: 'google-health/sync.requested', data: { userId, full: true } })
     } catch (error) {
@@ -41,7 +53,8 @@ const oauth = defineOAuthGoogleEventHandler({
     }
     return sendRedirect(event, `${DONE}connected`)
   },
-  onError(event) {
+  onError(event, error) {
+    logger.error({ err: error, route: requestRoute(event) }, 'Google Health connect failed')
     return sendRedirect(event, `${DONE}error`)
   }
 })

@@ -172,7 +172,7 @@ describe('requireSessionUser with an Authorization header', () => {
   const user = { id: 7, email: 't@example.com' }
 
   function event() {
-    return { context: {} } as unknown as H3Event
+    return { path: '/api/x', context: {} } as unknown as H3Event
   }
 
   it('resolves a valid token to its owner, marks the request, and never reads the cookie', async () => {

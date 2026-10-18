@@ -26,7 +26,8 @@ export function useOneRepMax(exerciseId: Ref<number | null>) {
         query: { on: todayDate() }
       })
       if (request === latest) result.value = value
-    } catch {
+    } catch (err: unknown) {
+      reportFailure(err, 'Load one-rep max')
       if (request === latest) {
         result.value = null
         failed.value = true

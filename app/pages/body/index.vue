@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { MeasurementType, MetricOverview } from '~~/shared/types/body'
-import { errorMessage } from '~/utils/apiError'
 
 const { metrics, fetch } = useBodyOverview()
 const allTypes = useBodyFetch<MeasurementType[]>(BODY_KEYS.typesAll, '/api/body/types?includeHidden=1')
 await Promise.all([fetch, allTypes])
 
-const toast = useToast()
+const fail = useFailToast()
 const hiddenTypes = computed(() => (allTypes.data.value ?? []).filter((t) => t.hidden))
 
 const logType = ref<MeasurementType | null>(null)
@@ -30,11 +29,7 @@ async function setHidden(type: MeasurementType, hidden: boolean) {
     await apiFetch(`/api/body/types/${type.id}/prefs`, { method: 'PUT', body: { hidden } })
     await invalidateBody(BODY_KEYS.overview, BODY_KEYS.types, BODY_KEYS.typesAll)
   } catch (error: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(error, 'Could not update this measurement'),
-      color: 'error'
-    })
+    fail('Update failed', error, 'Could not update this measurement')
   }
 }
 

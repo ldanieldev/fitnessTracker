@@ -1,6 +1,9 @@
 import redisDriver from 'unstorage/drivers/redis'
 import memoryDriver from 'unstorage/drivers/memory'
+import { logger } from '../utils/logger'
 import { outageTracker, redisHost, redisRetryDelay, withFallback } from '../utils/cache/redisFallback'
+
+const cacheLog = logger.child({ component: 'cache' })
 
 // nitro.storage in nuxt.config bakes options into the build and drops functions (retryStrategy); build it here.
 async function setupRedisCache(url: string): Promise<void> {
@@ -12,7 +15,7 @@ async function setupRedisCache(url: string): Promise<void> {
     retryStrategy: redisRetryDelay
   })
   const client = redis.getInstance!()
-  const tracker = outageTracker(redisHost(url), console)
+  const tracker = outageTracker(redisHost(url), cacheLog)
   client.on('ready', tracker.ready)
   // Also stops ioredis printing its own "Unhandled error event" for every failed reconnect.
   client.on('error', tracker.lost)
@@ -29,7 +32,7 @@ export default defineNitroPlugin((nitroApp) => {
   if (!url) return
 
   const ready = setupRedisCache(url).catch((err) => {
-    console.warn('[cache] Redis setup failed; using the in-memory cache', err)
+    cacheLog.error({ err }, 'Redis cache setup failed; using the in-memory cache')
   })
   nitroApp.hooks.hook('request', () => ready)
 })

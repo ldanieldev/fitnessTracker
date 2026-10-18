@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
+import { isExpectedFailure } from './server/utils/expectedFailure'
 import { redactEventQueryParams } from './server/utils/redactQueryParams'
 
 Sentry.init({
@@ -17,6 +18,6 @@ Sentry.init({
     databaseQueryData: false,
     stackFrameVariables: false
   },
-  beforeSend: redactEventQueryParams,
+  beforeSend: (event, hint) => (isExpectedFailure(hint.originalException) ? null : redactEventQueryParams(event)),
   tracesSampleRate: 1.0
 })

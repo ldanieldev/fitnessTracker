@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { logger } from '../../server/utils/logger'
 import { readStamped, type StampedEntry, type StampedStore } from '../../server/utils/cache/stampedCache'
 
 function memoryStore<T>() {
@@ -52,9 +53,10 @@ describe('readStamped', () => {
         throw new Error('down')
       }
     }
-    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const logged = vi.spyOn(logger, 'warn').mockImplementation(() => {})
     expect(await readStamped(store, 'k', 's', 60, async () => 5)).toBe(5)
     expect(logged).toHaveBeenCalledTimes(2)
+    expect(logged).toHaveBeenCalledWith({ err: expect.any(Error), key: 'k' }, 'stamped cache read failed')
     logged.mockRestore()
   })
 })

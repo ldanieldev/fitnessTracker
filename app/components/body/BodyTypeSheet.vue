@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { MeasurementDirection, MeasurementType } from '~~/shared/types/body'
-import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{ type: MeasurementType | null }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const name = ref('')
 const unit = ref('')
 const precision = ref(1)
@@ -59,11 +58,7 @@ async function save() {
     else await apiFetch('/api/body/types', { method: 'POST', body })
     await invalidate()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Save failed',
-      description: errorMessage(error, 'Could not save this measurement type'),
-      color: 'error'
-    })
+    fail('Save failed', error, 'Could not save this measurement type')
     return
   } finally {
     saving.value = false
@@ -79,11 +74,7 @@ async function remove() {
     await apiFetch(`/api/body/types/${props.type.id}`, { method: 'DELETE' })
     await invalidate()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Delete failed',
-      description: errorMessage(error, 'Could not delete this measurement type'),
-      color: 'error'
-    })
+    fail('Delete failed', error, 'Could not delete this measurement type')
     return
   } finally {
     saving.value = false

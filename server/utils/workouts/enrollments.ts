@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNotNull, ne, or } from 'drizzle-orm'
 import type { Enrollment, PhaseSpan } from '~~/shared/types/program'
 import { programPhases, programs, routines, userProgramEnrollments, users } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
+import { logger } from '~~/server/utils/logger'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import type { EnrollInput, EnrollmentResumeInput } from '~~/server/utils/workouts/input'
 import { ownedProgram, programPhaseRows, toProgramPhases } from '~~/server/utils/workouts/programs'
@@ -17,7 +18,10 @@ export function utcToday(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-function stateError(message: string) {
+const log = logger.child({ component: 'programs' })
+
+function stateError(userId: number, state: EnrollmentRow['status'] | 'none', message: string) {
+  log.info({ userId, state }, 'enrollment change refused by its current state')
   return createError({ statusCode: 409, statusMessage: message, data: { code: 'enrollment_state' } })
 }
 
@@ -91,6 +95,7 @@ export async function syncEnrollment(client: DbClient, userId: number, today: st
   if (position.state === 'finished') {
     await applyPhaseRoutine(client, userId, null, false)
     await client.update(userProgramEnrollments).set({ status: 'completed', notice: 'complete' }).where(where)
+    log.debug({ userId, enrollmentId: row.id }, 'enrollment sync completed the program')
     return
   }
   const phase = position.phase!
@@ -98,20 +103,23 @@ export async function syncEnrollment(client: DbClient, userId: number, today: st
   const previous = phases.find((p) => p.id === row.currentPhaseId)
   const resetPointer = rollover && (!previous || previous.routineId !== phase.routineId)
   await applyPhaseRoutine(client, userId, phase.routineId, resetPointer)
-  if (rollover)
+  if (rollover) {
     await client.update(userProgramEnrollments).set({ currentPhaseId: phase.id, notice: 'phase' }).where(where)
+    log.debug({ userId, enrollmentId: row.id, phaseId: phase.id }, 'enrollment sync moved to the next phase')
+  }
 }
 
 export async function pauseLiveEnrollment(client: DbClient, userId: number, today: string): Promise<void> {
   await syncEnrollment(client, userId, today)
   const row = await liveEnrollment(client, userId)
-  if (!row || row.status !== 'active') throw stateError('No program is running')
+  if (!row || row.status !== 'active') throw stateError(userId, row?.status ?? 'none', 'No program is running')
   const phases = await programPhaseRows(client, row.programId)
   const position = positionAt(row, await userWeekStart(client, userId), today, phases)
   await client
     .update(userProgramEnrollments)
     .set({ status: 'paused', pausedWeek: position.week, notice: null })
     .where(eq(userProgramEnrollments.id, row.id))
+  log.info({ userId, enrollmentId: row.id, programId: row.programId, week: position.week }, 'enrollment paused')
 }
 
 export async function programControllingRoutine(client: DbClient, userId: number, today: string) {
@@ -199,7 +207,8 @@ export async function loadEnrollment(userId: number, today = utcToday()): Promis
   }
 }
 
-async function existsError(client: DbClient, programId: number) {
+async function existsError(client: DbClient, userId: number, programId: number) {
+  log.info({ userId, programId }, 'enroll refused: a program is already running')
   const running = await client
     .select({ id: programs.id, name: programs.name })
     .from(programs)
@@ -213,7 +222,7 @@ async function existsError(client: DbClient, programId: number) {
 }
 
 async function enrollInTransaction(userId: number, programId: number, input: EnrollInput, today: string) {
-  await db.transaction(async (tx) => {
+  return db.transaction(async (tx) => {
     await syncEnrollment(tx, userId, today)
     // Checked after the sync's locks: a program delete that held them first must read as gone, not as phaseless.
     await ownedProgram(userId, programId, tx)
@@ -221,7 +230,7 @@ async function enrollInTransaction(userId: number, programId: number, input: Enr
     if (!phases.length)
       throw createError({ statusCode: 400, statusMessage: 'Add a phase before starting this program' })
     const live = await liveEnrollment(tx, userId)
-    if (live && !input.replace) throw await existsError(tx, live.programId)
+    if (live && !input.replace) throw await existsError(tx, userId, live.programId)
     if (live)
       await tx.update(userProgramEnrollments).set({ status: 'abandoned' }).where(eq(userProgramEnrollments.id, live.id))
     await tx
@@ -229,27 +238,32 @@ async function enrollInTransaction(userId: number, programId: number, input: Enr
       .set({ notice: null })
       .where(and(eq(userProgramEnrollments.userId, userId), isNotNull(userProgramEnrollments.notice)))
     const now = input.when === 'now'
-    await tx.insert(userProgramEnrollments).values({
-      userId,
-      programId,
-      status: 'active',
-      anchorDate: anchorFor(input.when, today, await userWeekStart(tx, userId)),
-      anchorWeek: 1,
-      currentPhaseId: now ? phases[0]!.id : null
-    })
+    const [created] = await tx
+      .insert(userProgramEnrollments)
+      .values({
+        userId,
+        programId,
+        status: 'active',
+        anchorDate: anchorFor(input.when, today, await userWeekStart(tx, userId)),
+        anchorWeek: 1,
+        currentPhaseId: now ? phases[0]!.id : null
+      })
+      .returning({ id: userProgramEnrollments.id })
     if (now) await applyPhaseRoutine(tx, userId, phases[0]!.routineId, true)
+    return { enrollmentId: created!.id, replacedEnrollmentId: live?.id ?? null }
   })
 }
 
 export async function enrollProgram(userId: number, programId: number, input: EnrollInput): Promise<Enrollment | null> {
   const today = input.today ?? utcToday()
   try {
-    await enrollInTransaction(userId, programId, input, today)
+    const { enrollmentId, replacedEnrollmentId } = await enrollInTransaction(userId, programId, input, today)
+    log.info({ userId, programId, enrollmentId, replacedEnrollmentId, when: input.when }, 'enrolled in a program')
   } catch (err) {
     if (!isUniqueViolation(err, 'enrollment_one_live')) throw err
     const live = await liveEnrollment(db, userId)
     if (!live) throw err
-    throw await existsError(db, live.programId)
+    throw await existsError(db, userId, live.programId)
   }
   return loadEnrollment(userId, today)
 }
@@ -261,9 +275,9 @@ export async function pauseEnrollment(userId: number, today = utcToday()): Promi
 
 export async function resumeEnrollment(userId: number, input: EnrollmentResumeInput): Promise<Enrollment | null> {
   const today = input.today ?? utcToday()
-  await db.transaction(async (tx) => {
+  const resumed = await db.transaction(async (tx) => {
     const row = await lockLiveEnrollment(tx, userId)
-    if (!row || row.status !== 'paused') throw stateError('No program is paused')
+    if (!row || row.status !== 'paused') throw stateError(userId, row?.status ?? 'none', 'No program is paused')
     await tx
       .update(userProgramEnrollments)
       .set({
@@ -274,24 +288,28 @@ export async function resumeEnrollment(userId: number, input: EnrollmentResumeIn
       })
       .where(eq(userProgramEnrollments.id, row.id))
     await syncEnrollment(tx, userId, today)
+    return row
   })
+  log.info({ userId, enrollmentId: resumed.id, programId: resumed.programId, when: input.when }, 'enrollment resumed')
   return loadEnrollment(userId, today)
 }
 
 export async function endEnrollment(userId: number, today = utcToday()): Promise<null> {
-  await db.transaction(async (tx) => {
+  const ended = await db.transaction(async (tx) => {
     const before = await liveEnrollment(tx, userId)
     await syncEnrollment(tx, userId, today)
     const row = await liveEnrollment(tx, userId)
     if (!row) {
-      if (before) return
-      throw stateError('No program is running')
+      if (before) return null
+      throw stateError(userId, 'none', 'No program is running')
     }
     await tx
       .update(userProgramEnrollments)
       .set({ status: 'abandoned', notice: null })
       .where(eq(userProgramEnrollments.id, row.id))
+    return row
   })
+  if (ended) log.info({ userId, enrollmentId: ended.id, programId: ended.programId }, 'enrollment ended')
   return null
 }
 
@@ -303,6 +321,7 @@ export async function dismissEnrollmentNotice(userId: number, today = utcToday()
       .set({ notice: null })
       .where(and(eq(userProgramEnrollments.userId, userId), isNotNull(userProgramEnrollments.notice)))
   })
+  log.debug({ userId }, 'enrollment notice dismissed')
   return loadEnrollment(userId, today)
 }
 

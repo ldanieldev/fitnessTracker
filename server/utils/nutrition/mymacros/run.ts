@@ -19,6 +19,7 @@ import { insertOrRecover } from '../importFood'
 import { nutrientIdMap } from '../nutrientIds'
 import { enqueueSearchOutbox } from '../searchOutbox'
 import { drainSearchOutbox } from '../searchOutboxDrain'
+import { markReported } from '../../inngest/reported'
 import { logger } from '../../logger'
 import { MyMacrosParseError, parseMyMacrosExport, type ParsedDay } from './parse'
 import { planImport, type PlannedEntry, type PlannedFood } from './plan'
@@ -156,6 +157,7 @@ async function ensureContainer(
 
 async function performImport(
   db: RootDbClient,
+  jobId: number,
   userId: number,
   payload: Array<{ name: string; text: string }>
 ): Promise<ImportResult> {
@@ -339,7 +341,10 @@ async function performImport(
   try {
     await drainSearchOutbox()
   } catch (err) {
-    logger.warn({ err }, 'search outbox drain after a My Macros+ import failed; the per-minute drain retries')
+    logger.warn(
+      { err, jobId, userId },
+      'search outbox drain after a My Macros+ import failed; the per-minute drain retries'
+    )
   }
 
   return {
@@ -369,15 +374,47 @@ export async function runMyMacrosImport(db: RootDbClient, jobId: number, userId:
     )
     .returning()
     .then((r) => r[0])
-  if (!job) throw new Error(`Import job ${jobId} is not a queued My Macros+ import for user ${userId}`)
+  if (!job) {
+    logger.warn({ jobId, userId, source: 'mymacros' }, 'import job not claimed: not a queued job for this user')
+    throw markReported(new Error(`Import job ${jobId} is not a queued My Macros+ import for user ${userId}`))
+  }
 
+  const startedAt = Date.now()
   try {
-    const result = await performImport(db, job.userId, job.payload as Array<{ name: string; text: string }>)
+    const result = await performImport(db, jobId, job.userId, job.payload as Array<{ name: string; text: string }>)
     await db.update(importJobs).set({ status: 'done', result, payload: {} }).where(eq(importJobs.id, jobId))
+    logger.info(
+      {
+        jobId,
+        userId,
+        source: 'mymacros',
+        days: result.days,
+        entries: result.entries,
+        entriesSkipped: result.entriesSkipped,
+        foodsCreated: result.foodsCreated,
+        foodsReused: result.foodsReused,
+        containersCreated: result.containersCreated,
+        warnings: warningCounts(result.warnings),
+        failedFiles: result.failedFiles.length,
+        durationMs: Date.now() - startedAt
+      },
+      'import job finished'
+    )
     return result
   } catch (err) {
+    logger.error({ err: markReported(err), jobId, userId, source: 'mymacros' }, 'import job failed')
     const message = err instanceof Error ? err.message : String(err)
-    await db.update(importJobs).set({ status: 'failed', error: message, payload: {} }).where(eq(importJobs.id, jobId))
+    try {
+      await db.update(importJobs).set({ status: 'failed', error: message, payload: {} }).where(eq(importJobs.id, jobId))
+    } catch (updateErr) {
+      logger.error({ err: updateErr, jobId, userId, source: 'mymacros' }, 'failed import job not marked failed')
+    }
     throw err
   }
+}
+
+function warningCounts(warnings: ImportWarning[]): Partial<Record<ImportWarning['code'], number>> {
+  const counts: Partial<Record<ImportWarning['code'], number>> = {}
+  for (const w of warnings) counts[w.code] = (counts[w.code] ?? 0) + 1
+  return counts
 }

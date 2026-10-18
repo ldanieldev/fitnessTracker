@@ -1,4 +1,6 @@
 import { FetchError } from 'ofetch'
+import { logger } from '~~/server/utils/logger'
+import { markReported } from '~~/server/utils/inngest/reported'
 import { googleHealthConfig } from './config'
 import type { RawStepsRollup, RawWeightPoint } from './map'
 
@@ -10,12 +12,14 @@ export function isRetryable(error: unknown): boolean {
   return status === undefined || status === 429 || status >= 500
 }
 
+const TIMEOUT_MS = 30_000
+
 const civil = (iso: string) => {
   const [year, month, day] = iso.split('-').map(Number)
   return { date: { year, month, day } }
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<string> {
+export async function refreshAccessToken(refreshToken: string, userId: number): Promise<string> {
   const { clientId, clientSecret, tokenUrl } = googleHealthConfig()
   try {
     const res = await $fetch<{ access_token: string }>(tokenUrl, {
@@ -25,20 +29,36 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
         refresh_token: refreshToken,
         client_id: clientId,
         client_secret: clientSecret
-      })
+      }),
+      timeout: TIMEOUT_MS
     })
     return res.access_token
   } catch (error) {
-    if (error instanceof FetchError && error.data?.error === 'invalid_grant') {
+    const oauthError = error instanceof FetchError ? error.data?.error : undefined
+    if (oauthError === 'invalid_grant') {
+      logger.warn({ userId }, 'Google Health refresh token rejected; reconnect required')
       throw new GoogleAuthError('Google access was revoked or expired')
     }
+    logger.error(
+      {
+        err: markReported(error),
+        userId,
+        oauthError: typeof oauthError === 'string' ? oauthError.slice(0, 64) : undefined,
+        status: error instanceof FetchError ? error.statusCode : undefined
+      },
+      'Google Health token refresh failed'
+    )
     throw error
   }
 }
 
 function api(access: string) {
   const { apiBase } = googleHealthConfig()
-  return $fetch.create({ baseURL: `${apiBase}/v4/users/me/dataTypes`, headers: { authorization: `Bearer ${access}` } })
+  return $fetch.create({
+    baseURL: `${apiBase}/v4/users/me/dataTypes`,
+    headers: { authorization: `Bearer ${access}` },
+    timeout: TIMEOUT_MS
+  })
 }
 
 export async function listPoints<T>(access: string, dataType: string, filter?: string): Promise<T[]> {

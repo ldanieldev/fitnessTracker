@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
 import { saveAsSummary } from '~/utils/nutrition/saveAs'
 
 const props = defineProps<{
@@ -12,6 +11,8 @@ const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [id: number] }>()
 
 const toast = useToast()
+
+const fail = useFailToast()
 const name = ref('')
 const servings = ref<number | null>(1)
 const servingName = ref('serving')
@@ -54,7 +55,7 @@ async function submit() {
     })
     await invalidateNutrition(props.kind === 'recipe' ? NUTRITION_KEYS.recipes : NUTRITION_KEYS.savedMeals)
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this meal'), color: 'error' })
+    fail('Save failed', error, 'Could not save this meal')
     return
   } finally {
     saving.value = false

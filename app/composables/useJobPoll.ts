@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nuxt'
+
 const POLL_MS = 2000
 const MAX_BACKOFF_MS = 30_000
 const MAX_RETRIES = 5
@@ -37,6 +39,16 @@ export function useJobPoll<T>() {
     const startedAt = Date.now()
     let failures = 0
 
+    const giveUp = (error: unknown, mayBeRunning: boolean) => {
+      Sentry.logger.warn('Job poll gave up', {
+        route: url.split('?')[0]!.replace(/\/\d+(?=\/|$)/g, '/:id'),
+        failures,
+        mayBeRunning,
+        status: (error as { statusCode?: number } | null)?.statusCode ?? 'none'
+      })
+      handlers.onGiveUp(error, mayBeRunning)
+    }
+
     const schedule = (delay: number) => {
       timer = setTimeout(tick, delay)
     }
@@ -53,7 +65,7 @@ export function useJobPoll<T>() {
           failures++
           schedule(Math.min(POLL_MS * 2 ** failures, MAX_BACKOFF_MS))
         } else {
-          handlers.onGiveUp(error, transient)
+          giveUp(error, transient)
         }
         return
       }
@@ -62,7 +74,7 @@ export function useJobPoll<T>() {
       if (await handlers.onJob(job)) return
       if (current !== run) return
       if (Date.now() - startedAt >= MAX_POLL_MS) {
-        handlers.onGiveUp(new Error('Import is taking too long to finish'), true)
+        giveUp(new Error('Import is taking too long to finish'), true)
         return
       }
       schedule(POLL_MS)

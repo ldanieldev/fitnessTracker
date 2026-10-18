@@ -1,5 +1,6 @@
 import { importJobs } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
+import { logger } from '~~/server/utils/logger'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
 import { loadVisibleExerciseRow } from '~~/server/utils/workouts/exercises'
@@ -33,14 +34,20 @@ export default defineEventHandler(async (event) => {
 
   try {
     await queueFitNotesImport(job.id, userId)
-  } catch {
+  } catch (err) {
+    // queueFitNotesImport logs the cause without opening a Sentry issue; Sentry captures this 503 with it as the cause.
     throw createError({
       statusCode: 503,
       statusMessage: 'Import job runner unreachable; the job was marked failed',
-      data: { jobId: job.id }
+      data: { jobId: job.id },
+      cause: err
     })
   }
 
+  logger.info(
+    { jobId: job.id, userId, source: 'fitnotes', fileCount: 1, totalBytes: Buffer.byteLength(body.csv) },
+    'import job queued'
+  )
   setResponseStatus(event, 201)
   return { jobId: job.id }
 })

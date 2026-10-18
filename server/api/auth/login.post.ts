@@ -47,6 +47,8 @@ export default defineEventHandler(async (event) => {
   const valid = await verifyPassword(hash, parsed.data.password)
 
   if (!user?.password || !valid) {
+    const reason = !user ? 'unknown_user' : user.password ? 'wrong_password' : 'no_password'
+    logger.warn({ event: 'auth.login_failed', userId: user?.id ?? null, reason }, 'login failed')
     throw createError({
       statusCode: 401,
       statusMessage: 'Invalid email or password'
@@ -55,9 +57,16 @@ export default defineEventHandler(async (event) => {
 
   await Promise.all([clearLimit(RATE_RULES.loginEmail, parsed.data.email), refundLimits([ipLimit])])
 
-  if (user.isActive === false) throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
+  if (user.isActive === false) {
+    logger.warn(
+      { event: 'auth.login_disabled', userId: user.id, method: 'password' },
+      'sign-in refused: account disabled'
+    )
+    throw createError({ statusCode: 403, statusMessage: 'Account disabled' })
+  }
 
   await writeSession(event, toSessionUser(user), user.sessionEpoch)
+  logger.info({ event: 'auth.login', userId: user.id, method: 'password' }, 'signed in')
 
   return { success: true }
 })

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
 import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 
 interface TokenRow {
@@ -11,6 +10,8 @@ interface TokenRow {
 }
 
 const toast = useToast()
+
+const fail = useFailToast()
 const origin = useRequestURL().origin
 
 const { data: tokens, refresh } = await useFetch<TokenRow[]>('/api/tokens', { key: 'access-tokens' })
@@ -42,7 +43,7 @@ async function create() {
     revealed.value = { id: result.row.id, token: result.token, from: shiftDate(to, -6), to }
     await refresh()
   } catch (error: unknown) {
-    toast.add({ title: 'Create failed', description: errorMessage(error, 'Could not create token'), color: 'error' })
+    fail('Create failed', error, 'Could not create token')
   } finally {
     creating.value = false
   }
@@ -73,7 +74,7 @@ async function confirmRevoke() {
     await apiFetch(`/api/tokens/${target.id}`, { method: 'DELETE' })
     if (revealed.value?.id === target.id) revealed.value = null
   } catch (error: unknown) {
-    toast.add({ title: 'Revoke failed', description: errorMessage(error, 'Could not revoke token'), color: 'error' })
+    fail('Revoke failed', error, 'Could not revoke token')
   } finally {
     revokeTarget.value = null
     await refresh()

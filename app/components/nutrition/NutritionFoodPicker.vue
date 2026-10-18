@@ -2,7 +2,6 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FoodDetail, FoodHit, PickedFood } from '~/types/nutrition'
 import { defaultUnit } from '~/composables/useFoodUnits'
-import { errorMessage } from '~/utils/apiError'
 
 const props = withDefaults(
   defineProps<{
@@ -21,7 +20,7 @@ const props = withDefaults(
 
 const picked = defineModel<PickedFood[]>({ default: () => [] })
 
-const toast = useToast()
+const fail = useFailToast()
 const query = ref('')
 const hits = ref<FoodHit[]>([])
 const degraded = ref(false)
@@ -122,7 +121,7 @@ async function runSearch() {
     hits.value = [...missing, ...result.hits]
     degraded.value = result.degraded
   } catch (error: unknown) {
-    toast.add({ title: 'Search failed', description: errorMessage(error, 'Could not load foods'), color: 'error' })
+    fail('Search failed', error, 'Could not load foods')
   } finally {
     if (seq === requestSeq) loaded.value = true
   }
@@ -150,7 +149,7 @@ async function loadDetail(id: number): Promise<FoodDetail | null> {
     details.set(id, food)
     return food
   } catch (error: unknown) {
-    toast.add({ title: 'Load failed', description: errorMessage(error, 'Could not load this food'), color: 'error' })
+    fail('Load failed', error, 'Could not load this food')
     return null
   } finally {
     loading.delete(id)
@@ -212,11 +211,7 @@ async function toggleFavorite(hit: FoodHit) {
     await apiFetch(`/api/nutrition/foods/${hit.id}/favorite`, { method: hit.isFavorite ? 'DELETE' : 'PUT' })
     await runSearch()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Favourite failed',
-      description: errorMessage(error, 'Could not update favourites'),
-      color: 'error'
-    })
+    fail('Favourite failed', error, 'Could not update favourites')
   }
 }
 
@@ -225,11 +220,7 @@ async function removeFromRecents(hit: FoodHit) {
     await apiFetch(`/api/nutrition/foods/${hit.id}/recent`, { method: 'DELETE' })
     await runSearch()
   } catch (error: unknown) {
-    toast.add({
-      title: 'Remove failed',
-      description: errorMessage(error, 'Could not remove this food from recents'),
-      color: 'error'
-    })
+    fail('Remove failed', error, 'Could not remove this food from recents')
   }
 }
 

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
 import { RATIO_MACROS } from '~~/shared/utils/nutritionGoals'
 import { MACRO_CLASS } from '~/utils/nutrition/macros'
 
@@ -38,6 +37,7 @@ const props = defineProps<{
   tracked: TrackedNutrient[]
 }>()
 const toast = useToast()
+const fail = useFailToast()
 const today = useTodayOrNow()
 
 function displayKcal(profile: Profile) {
@@ -183,7 +183,7 @@ async function submit() {
     modalOpen.value = false
     await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save goal profile'), color: 'error' })
+    fail('Save failed', error, 'Could not save goal profile')
   } finally {
     saving.value = false
   }
@@ -208,11 +208,7 @@ async function setDefault(profile: Profile) {
       }
     })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Set default failed',
-      description: errorMessage(error, 'Could not set default profile'),
-      color: 'error'
-    })
+    fail('Set default failed', error, 'Could not set default profile')
   } finally {
     await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')
   }
@@ -234,11 +230,7 @@ async function confirmDelete() {
       query: { today: today.value }
     })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Delete failed',
-      description: errorMessage(error, 'Could not delete goal profile'),
-      color: 'error'
-    })
+    fail('Delete failed', error, 'Could not delete goal profile')
   } finally {
     deleteTarget.value = null
     await invalidateNutrition(NUTRITION_KEYS.profiles, 'nutrition:day:', 'nutrition:logged:', 'nutrition:summary:')

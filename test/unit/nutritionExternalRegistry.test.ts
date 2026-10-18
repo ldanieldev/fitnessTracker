@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   aggregateExternalResults,
+  configuredExternalSources,
   findFirstBarcodeMatch,
   getExternalSources
 } from '../../server/utils/nutrition/external/registry'
@@ -52,7 +53,7 @@ describe('getExternalSources', () => {
       usda: { apiKey: '' },
       fatsecret: { clientId: '', clientSecret: '' }
     }))
-    const off = getExternalSources().find((s) => s.key === 'off')!
+    const off = configuredExternalSources().find((s) => s.key === 'off')!
     expect(off.byId).toBe(offByBarcode)
   })
 })

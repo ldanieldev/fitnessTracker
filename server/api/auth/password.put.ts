@@ -40,12 +40,16 @@ export default defineEventHandler(async (event) => {
     await consumeLimits(event, limits)
     const valid = await verifyPassword(user.password, parsed.data.currentPassword)
     // Not 401: apiFetch reads any 401 as an expired session and signs the user out.
-    if (!valid) throw createError({ statusCode: 400, statusMessage: 'Current password is incorrect' })
+    if (!valid) {
+      logger.warn({ event: 'auth.password_change_failed', userId: user.id }, 'password change refused: wrong password')
+      throw createError({ statusCode: 400, statusMessage: 'Current password is incorrect' })
+    }
     await refundLimits(limits)
   }
 
   const sessionEpoch = await overwritePassword(db, sessionUser.id, await hashPassword(parsed.data.newPassword))
   await writeSession(event, sessionUser, sessionEpoch)
+  logger.info({ event: 'auth.password_changed', userId: user.id, hadPassword: !!user.password }, 'password changed')
 
   return { success: true }
 })

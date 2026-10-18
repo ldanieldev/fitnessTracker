@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { H3Event } from 'h3'
 import { clientIp, consumeLimits, refundLimits } from '../../server/utils/rateLimit/limit'
+import { logger } from '../../server/utils/logger'
 import {
   createMemoryStore,
   createRedisStore,
@@ -175,6 +176,54 @@ describe('consumeLimits', () => {
     await refundLimits([[rule, id]])
     await expect(consumeLimits(event, [[rule, id]])).resolves.toBeUndefined()
     await expect(consumeLimits(event, [[rule, id]])).rejects.toMatchObject({ statusCode: 429 })
+  })
+
+  it('warns with the rule name and count but never the key', async () => {
+    const id = `someone@example.com-${Math.random()}`
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
+    try {
+      for (let i = 0; i < rule.limit; i++) await consumeLimits(event, [[rule, id]])
+      expect(warn).not.toHaveBeenCalled()
+      await expect(consumeLimits(event, [[rule, id]])).rejects.toMatchObject({ statusCode: 429 })
+      expect(warn).toHaveBeenCalledWith(
+        { event: 'rate_limited', rule: 'race', count: rule.limit + 1, retryAfter: expect.any(Number) },
+        expect.any(String)
+      )
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('example.com')
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('fails open on a store outage and warns at most once a minute per rule', async () => {
+    const broken = {
+      status: 'ready',
+      multi: () => ({
+        set: () => undefined,
+        incr: () => undefined,
+        get: () => undefined,
+        pttl: () => undefined,
+        exec: async () => [[new Error('down'), null]] as Array<[Error | null, unknown]>
+      })
+    }
+    vi.stubGlobal('useStorage', () => ({ getMount: () => ({ driver: { name: 'redis', getInstance: () => broken } }) }))
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
+    vi.useFakeTimers({ now: 0 })
+    try {
+      const a = { name: `outage-a-${Math.random()}`, limit: 1, windowSeconds: 60 }
+      const b = { name: `outage-b-${Math.random()}`, limit: 1, windowSeconds: 60 }
+      await consumeLimits(event, [[a, 'x']])
+      await consumeLimits(event, [[a, 'x']])
+      await consumeLimits(event, [[b, 'x']])
+      expect(warn).toHaveBeenCalledTimes(2)
+      expect(warn).toHaveBeenCalledWith({ err: expect.any(Error), rule: a.name }, expect.any(String))
+      vi.setSystemTime(61_000)
+      await expect(consumeLimits(event, [[a, 'x']])).resolves.toBeUndefined()
+      expect(warn).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+      warn.mockRestore()
+    }
   })
 })
 

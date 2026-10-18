@@ -18,10 +18,16 @@ const registerSchema = z.object({
   sex: z.enum(['m', 'f']).optional()
 })
 
-const emailTaken = () => createError({ statusCode: 409, statusMessage: 'Email already exists' })
+function emailTaken() {
+  logger.info({ event: 'auth.register_email_taken' }, 'registration refused: email taken')
+  return createError({ statusCode: 409, statusMessage: 'Email already exists' })
+}
 
 export default defineEventHandler(async (event) => {
-  if (!(await registrationOpen())) throw createError({ statusCode: 403, statusMessage: 'Registration is closed' })
+  if (!(await registrationOpen())) {
+    logger.info({ event: 'auth.register_closed', method: 'password' }, 'registration refused: closed')
+    throw createError({ statusCode: 403, statusMessage: 'Registration is closed' })
+  }
   await consumeLimit(event, RATE_RULES.register, clientIp(event))
 
   const body = await readBody(event)
@@ -71,6 +77,7 @@ export default defineEventHandler(async (event) => {
       throw error
     })
 
+  logger.info({ event: 'auth.register', userId: user.id, method: 'password', isAdmin: user.isAdmin }, 'user registered')
   await writeSession(event, toSessionUser(user), user.sessionEpoch)
 
   return { success: true }

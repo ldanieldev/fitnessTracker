@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { googleHealthConnections } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { connectionStatus, loadConnection } from '~~/server/utils/googleHealth/connection'
+import { logger } from '~~/server/utils/logger'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { forbidToken, requireUserId } from '~~/server/utils/session'
 
@@ -18,5 +19,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Google Health is not connected' })
   }
   await db.update(googleHealthConnections).set(body).where(eq(googleHealthConnections.userId, userId))
+  logger.info({ userId, syncSteps: body.syncSteps, pushWeight: body.pushWeight }, 'Google Health settings changed')
   return connectionStatus(userId)
 })

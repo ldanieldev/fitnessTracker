@@ -1,5 +1,6 @@
 import { loadConnection, syncCooldownSeconds } from '~~/server/utils/googleHealth/connection'
 import { syncGoogleHealth, toSyncResult } from '~~/server/utils/googleHealth/sync'
+import { logger } from '~~/server/utils/logger'
 import { requireUserId } from '~~/server/utils/session'
 
 export default defineEventHandler(async (event) => {
@@ -11,6 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: `Synced moments ago; try again in ${wait} s` })
   }
   const result = await syncGoogleHealth(userId)
+  logger.info({ userId, outcome: result.outcome }, 'Google Health manual sync finished')
   if (result.outcome === 'not_connected') {
     throw createError({ statusCode: 404, statusMessage: 'Google Health is not connected' })
   }

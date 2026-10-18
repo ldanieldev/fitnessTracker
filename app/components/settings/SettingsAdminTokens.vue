@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
-
 interface AdminToken {
   id: number
   name: string
@@ -10,7 +8,7 @@ interface AdminToken {
   ownerEmail: string
 }
 
-const toast = useToast()
+const fail = useFailToast()
 const {
   data: tokens,
   refresh,
@@ -46,7 +44,7 @@ async function confirmRevoke() {
   try {
     await apiFetch(`/api/admin/tokens/${target.id}`, { method: 'DELETE' })
   } catch (error: unknown) {
-    toast.add({ title: 'Revoke failed', description: errorMessage(error, 'Could not revoke token'), color: 'error' })
+    fail('Revoke failed', error, 'Could not revoke token')
   } finally {
     revokeTarget.value = null
     await refresh()

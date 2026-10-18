@@ -3,11 +3,11 @@ import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { DEFAULT_PLATE_SIZES, plateSizesSchema } from '~~/shared/utils/plates'
 import WorkoutPlateSizesPicker from '~/components/workout/WorkoutPlateSizesPicker.vue'
-import { errorMessage } from '~/utils/apiError'
 
 const { user, fetch: fetchSession } = useUserSession()
 const { defaultRestSeconds, plateSizes, oneRepMaxRepCap, workoutsPerWeek } = useWorkoutPrefs()
 const toast = useToast()
+const fail = useFailToast()
 const description =
   'Defaults for every exercise; an exercise\'s own Settings tab can override them. ' +
   'Sets above the rep cap are left out of estimated 1RM.'
@@ -50,11 +50,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       color: 'success'
     })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(error, 'Could not update preferences'),
-      color: 'error'
-    })
+    fail('Update failed', error, 'Could not update preferences')
   } finally {
     loading.value = false
   }

@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   forbidToken(event)
   const { name } = await parseBody(event, createTokenSchema)
   const { token, row } = await createToken(userId, name)
+  logger.info({ event: 'token.created', userId, tokenId: row.id }, 'access token created')
   const { userId: _owner, ...rest } = row
   setResponseStatus(event, 201)
   return { token, row: rest }

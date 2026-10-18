@@ -1,6 +1,7 @@
 import type { FoodDetail } from '~~/app/types/nutrition'
 import { keyNutrients, sumKeyed } from '~~/shared/utils/nutritionKeyed'
 import { resolveByLabel } from '~~/app/utils/nutrition/resolveByLabel'
+import { reportFailure } from '~~/app/utils/reportFailure'
 
 export interface EditorLine {
   uid: string
@@ -47,7 +48,10 @@ export async function loadEditorLines(
 ): Promise<EditorLine[]> {
   return Promise.all(
     lines.map(async (line) => {
-      const food = await apiFetch<FoodDetail>(`/api/nutrition/foods/${line.foodId}`).catch(() => null)
+      const food = await apiFetch<FoodDetail>(`/api/nutrition/foods/${line.foodId}`).catch((err: unknown) => {
+        reportFailure(err, 'Load line food')
+        return null
+      })
       return {
         uid: nextUid(),
         foodId: line.foodId,

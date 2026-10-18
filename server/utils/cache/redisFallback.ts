@@ -3,8 +3,8 @@ import type { Driver } from 'unstorage'
 const COMMAND_ERROR_LOG_INTERVAL_MS = 60_000
 
 export interface CacheLog {
-  warn: (...args: unknown[]) => void
-  info: (...args: unknown[]) => void
+  warn: (fields: Record<string, unknown>, msg: string) => void
+  info: (fields: Record<string, unknown>, msg: string) => void
 }
 
 /** Capped backoff for ioredis reconnects: retries forever, at most every 5 s. */
@@ -64,20 +64,20 @@ export function outageTracker(host: string, log: CacheLog, now: () => number = D
   let lastCommandLog = -Infinity
   return {
     ready() {
-      if (down) log.info(`[cache] Redis at ${host} is back; using it again`)
-      else if (!connected) log.info('[cache] Redis cache mounted')
+      if (down) log.info({ host }, 'Redis cache reconnected')
+      else if (!connected) log.info({ host }, 'Redis cache mounted')
       connected = true
       down = false
     },
     lost() {
       if (down) return
       down = true
-      log.warn(`[cache] Redis unreachable at ${host}; using the in-memory cache until it reconnects`)
+      log.warn({ host }, 'Redis cache unreachable; using the in-memory cache until it reconnects')
     },
     commandFailed(error: unknown) {
       if (now() - lastCommandLog < COMMAND_ERROR_LOG_INTERVAL_MS) return
       lastCommandLog = now()
-      log.warn('[cache] Redis command failed; served from the in-memory cache', error)
+      log.warn({ err: error, host }, 'Redis cache command failed; served from the in-memory cache')
     }
   }
 }

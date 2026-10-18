@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import * as Sentry from '@sentry/nuxt'
 import type { ExternalFood } from '~/composables/useBarcodeLookup'
 import { decodeBarcode, isSupportedBarcodeFormat, normalizeGtin } from '~/utils/barcode/decode'
 import { errorMessage } from '~/utils/apiError'
@@ -107,6 +108,7 @@ async function handleHit(rawText: string) {
       })
     }
   } catch (err: unknown) {
+    reportFailure(err, 'Barcode lookup')
     if (!unmounted)
       toast.add({
         title: 'Lookup failed',
@@ -134,7 +136,8 @@ async function captureFrame() {
       const hit = await decodeBarcode(imageData)
       if (hit && isSupportedBarcodeFormat(hit.format)) await handleHit(hit.text)
     }
-  } catch {
+  } catch (err: unknown) {
+    warnScannerFailure('detect', err)
     cameraFailed('Barcode scanning stopped — use manual entry below')
   } finally {
     processingFrame = false
@@ -147,6 +150,11 @@ function cameraFailed(message = 'Camera unavailable — use manual entry below')
 }
 
 const cancelled = () => unmounted || stopped
+
+function warnScannerFailure(stage: 'start' | 'detect', err: unknown) {
+  const name = errorName(err)
+  if (name !== 'NotAllowedError') Sentry.logger.warn('Barcode scanner failed', { stage, errorName: name })
+}
 
 async function startCamera() {
   let media: MediaStream
@@ -175,9 +183,10 @@ async function startCamera() {
     await setupDetector()
     if (cancelled()) return stopScanning()
     frameTimer = setInterval(captureFrame, FRAME_INTERVAL_MS)
-  } catch {
-    if (cancelled()) stopScanning()
-    else cameraFailed()
+  } catch (err: unknown) {
+    if (cancelled()) return stopScanning()
+    warnScannerFailure('start', err)
+    cameraFailed()
   }
 }
 
@@ -207,6 +216,7 @@ async function importExternal() {
       replace: true
     })
   } catch (err: unknown) {
+    reportFailure(err, 'Import barcode food')
     if (!unmounted)
       toast.add({
         title: 'Import failed',

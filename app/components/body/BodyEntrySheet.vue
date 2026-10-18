@@ -2,13 +2,12 @@
 import { format } from 'date-fns'
 import type { MeasurementEntry, MeasurementType } from '~~/shared/types/body'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
-import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{ type: MeasurementType | null; entry: MeasurementEntry | null }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const today = useToday()
 const value = ref<number | null>(null)
 const date = ref('')
@@ -58,11 +57,7 @@ async function save() {
     else await apiFetch('/api/body/entries', { method: 'POST', body: { typeId: props.type.id, ...body } })
     await invalidate(props.type.id)
   } catch (error: unknown) {
-    toast.add({
-      title: 'Save failed',
-      description: errorMessage(error, 'Could not save this measurement'),
-      color: 'error'
-    })
+    fail('Save failed', error, 'Could not save this measurement')
     return
   } finally {
     saving.value = false
@@ -78,11 +73,7 @@ async function remove() {
     await apiFetch(`/api/body/entries/${props.entry.id}`, { method: 'DELETE' })
     await invalidate(props.type.id)
   } catch (error: unknown) {
-    toast.add({
-      title: 'Delete failed',
-      description: errorMessage(error, 'Could not delete this measurement'),
-      color: 'error'
-    })
+    fail('Delete failed', error, 'Could not delete this measurement')
     return
   } finally {
     saving.value = false

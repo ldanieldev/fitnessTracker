@@ -1,3 +1,5 @@
+import { logger } from '../logger'
+
 export interface StampedEntry<T> {
   stamp: string
   value: T
@@ -19,7 +21,7 @@ export async function readStamped<T>(
   now: () => number = Date.now
 ): Promise<T> {
   const hit = await store.get(key).catch((error: unknown) => {
-    console.error('[cache] read failed', key, error)
+    logger.warn({ err: error, key }, 'stamped cache read failed')
     return null
   })
   if (hit && hit.stamp === stamp && hit.expiresAt > now()) return hit.value
@@ -27,7 +29,7 @@ export async function readStamped<T>(
   await store
     .set(key, { stamp, value, expiresAt: now() + maxAgeSeconds * 1000 }, maxAgeSeconds)
     .catch((error: unknown) => {
-      console.error('[cache] write failed', key, error)
+      logger.warn({ err: error, key }, 'stamped cache write failed')
     })
   return value
 }

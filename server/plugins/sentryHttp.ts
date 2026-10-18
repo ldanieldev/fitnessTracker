@@ -1,6 +1,9 @@
 import * as Sentry from '@sentry/nuxt'
 import type { H3Event } from 'h3'
+import { isExpectedFailure } from '../utils/expectedFailure'
 import { recordRequestDuration } from '../utils/metrics'
+import { logger } from '../utils/logger'
+import { requestLogLevel, requestRoute } from '../utils/requestLog'
 
 /**
  * Wraps every request in an `http.server` root span and records its duration.
@@ -36,6 +39,7 @@ export default defineNitroPlugin((nitroApp) => {
       async (span) => {
         const start = performance.now()
         let status = 500
+        let expected = false
         try {
           const body = await inner(event)
           status = getResponseStatus(event)
@@ -44,19 +48,24 @@ export default defineNitroPlugin((nitroApp) => {
           // Nitro only stamps the response status from a thrown error after this wrapper returns,
           // so reading it off the event here would report the handler's last status instead.
           status = (error as { statusCode?: number }).statusCode ?? 500
+          expected = isExpectedFailure(error)
           throw error
         } finally {
-          // The router only matches inside `inner`, so the low-cardinality route pattern
-          // (/api/users/:id) is not known until after it returns.
-          const route = event.context.matchedRoute?.path ?? stripQuery(event.path)
+          const durationMs = performance.now() - start
+          const route = requestRoute(event)
           span.updateName(`${method} ${route}`)
           span.setAttribute('http.route', route)
           span.setAttribute('http.response.status_code', status)
-          recordRequestDuration((performance.now() - start) / 1000, {
+          recordRequestDuration(durationMs / 1000, {
             'http.route': route,
             'http.request.method': method,
             'http.response.status_code': status
           })
+          const { userId, authVia, accessTokenId } = event.context
+          logger[expected ? 'warn' : requestLogLevel(status, route)](
+            { method, route, status, durationMs: Math.round(durationMs), userId, authVia, accessTokenId },
+            'request'
+          )
         }
       }
     )

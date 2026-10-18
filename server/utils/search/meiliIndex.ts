@@ -1,6 +1,8 @@
 import { Meilisearch, MeilisearchApiError, type Settings } from 'meilisearch'
 import { logger } from '../logger'
 
+const log = logger.child({ component: 'search' })
+
 export interface MeiliCandidate {
   id: number
   relevance: number
@@ -16,8 +18,35 @@ export interface MeiliIndexConfig {
 export const MEILI_TIMEOUT_MS = 1500
 export const MEILI_WRITE_TIMEOUT_MS = 30_000
 
+export interface MeiliProbe {
+  healthy: boolean
+  reason?: 'not_available' | 'index_rebuilding' | 'request_failed'
+  err?: MeiliErrorSummary
+}
+
+export interface MeiliErrorSummary {
+  type: string
+  message: string
+  errorCode?: string
+  status?: number
+  cause?: string
+}
+
 function isIndexNotFound(error: unknown): boolean {
   return error instanceof MeilisearchApiError && error.cause?.code === 'index_not_found'
+}
+
+// A Meilisearch timeout's cause carries the request body (search text, documents); keep only names, codes, messages.
+export function meiliErrorSummary(error: unknown): MeiliErrorSummary {
+  if (!(error instanceof Error)) return { type: typeof error, message: String(error) }
+  const summary: MeiliErrorSummary = { type: error.name, message: error.message }
+  if (error instanceof MeilisearchApiError) {
+    if (error.cause?.code) summary.errorCode = error.cause.code
+    if (error.response) summary.status = error.response.status
+  } else if (error.cause instanceof Error) {
+    summary.cause = `${error.cause.name}: ${error.cause.message}`
+  }
+  return summary
 }
 
 export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
@@ -37,20 +66,31 @@ export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
   protected abstract loadAllDocuments(): Promise<TDoc[]>
 
   async ensureIndex(): Promise<void> {
-    await this.client
-      .createIndex(this.config.name, { primaryKey: 'id' })
-      .waitTask()
-      .catch(() => undefined)
+    try {
+      const task = await this.client.createIndex(this.config.name, { primaryKey: 'id' }).waitTask()
+      const errorCode = task.error?.code
+      if (task.status === 'failed' && errorCode !== 'index_already_exists') {
+        log.warn({ index: this.config.name, errorCode }, 'search index create task failed')
+      }
+    } catch (error) {
+      if (!(error instanceof MeilisearchApiError && error.cause?.code === 'index_already_exists')) {
+        log.warn({ index: this.config.name, err: meiliErrorSummary(error) }, 'search index create request failed')
+      }
+    }
     await this.client.index(this.config.name).updateSettings(this.config.settings)
   }
 
   async healthy(): Promise<boolean> {
+    return (await this.probe()).healthy
+  }
+
+  async probe(): Promise<MeiliProbe> {
     try {
       const health = await this.reads.health()
-      if (health.status !== 'available') return false
-      return await this.checkIndex()
-    } catch {
-      return false
+      if (health.status !== 'available') return { healthy: false, reason: 'not_available' }
+      return (await this.checkIndex()) ? { healthy: true } : { healthy: false, reason: 'index_rebuilding' }
+    } catch (error) {
+      return { healthy: false, reason: 'request_failed', err: meiliErrorSummary(error) }
     }
   }
 
@@ -83,10 +123,10 @@ export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
     try {
       await this.applyRebuild(false)
       this.knownCreatedAt = await this.currentCreatedAt()
-      const reason = missing ? 'was missing; recreated' : 'was replaced empty'
-      logger.info({ index: this.config.name }, `search index ${reason} and rebuilding`)
-    } catch (err) {
-      logger.warn({ err, index: this.config.name }, 'search index recovery failed')
+      const reason = missing ? 'missing' : 'replaced_empty'
+      log.info({ index: this.config.name, reason }, 'search index recovered by rebuild')
+    } catch (error) {
+      log.warn({ index: this.config.name, err: meiliErrorSummary(error) }, 'search index recovery failed')
     }
   }
 
@@ -129,16 +169,28 @@ export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
   }
 
   private async applyRebuild(wait: boolean): Promise<void> {
+    const started = performance.now()
     await this.ensureIndex()
     const docs = await this.loadAllDocuments()
     // Awaiting the delete enqueue before issuing the add enqueue guarantees Meilisearch orders them delete-then-add.
     const deleteTask = this.client.index(this.config.name).deleteAllDocuments()
-    await deleteTask
+    const deleteTaskUid = (await deleteTask).taskUid
     if (wait) await deleteTask.waitTask()
+    let addTaskUid: number | undefined
     if (docs.length) {
       const addTask = this.client.index(this.config.name).addDocuments(docs, { primaryKey: 'id' })
-      await addTask
+      addTaskUid = (await addTask).taskUid
       if (wait) await addTask.waitTask()
     }
+    log.info(
+      {
+        index: this.config.name,
+        docs: docs.length,
+        deleteTaskUid,
+        addTaskUid,
+        durationMs: Math.round(performance.now() - started)
+      },
+      'search index rebuild enqueued'
+    )
   }
 }

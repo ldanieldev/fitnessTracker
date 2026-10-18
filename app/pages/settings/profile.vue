@@ -2,10 +2,10 @@
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { HEIGHT_MAX_IN, HEIGHT_MIN_IN, joinHeight, splitHeight } from '~~/shared/utils/height'
-import { errorMessage } from '~/utils/apiError'
 
 const { user, fetch: fetchSession } = useUserSession()
 const toast = useToast()
+const fail = useFailToast()
 
 const schema = z.object({
   name: z.string({ message: 'Name is required' }).min(1, 'Name is required'),
@@ -73,11 +73,7 @@ async function onPreferencesSubmit(payload: FormSubmitEvent<PreferencesSchema>) 
       color: 'success'
     })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(error, 'Could not update preferences'),
-      color: 'error'
-    })
+    fail('Update failed', error, 'Could not update preferences')
   } finally {
     preferencesLoading.value = false
   }
@@ -97,11 +93,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       color: 'success'
     })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(error, 'Could not update profile'),
-      color: 'error'
-    })
+    fail('Update failed', error, 'Could not update profile')
   } finally {
     loading.value = false
   }

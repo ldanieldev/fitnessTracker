@@ -108,8 +108,16 @@ function mapOffError(err: unknown): ExternalSourceError {
   if (err instanceof ExternalSourceError) return err
   if (isOfetchError(err)) {
     if (isAbort(err)) return new ExternalSourceError('off', 'unavailable', 'Open Food Facts request timed out')
-    if (err.status === 429) return new ExternalSourceError('off', 'rate_limited', 'Open Food Facts rate limit exceeded')
-    return new ExternalSourceError('off', 'unavailable', `Open Food Facts request failed with HTTP ${err.status}`)
+    const detail = { status: err.status }
+    if (err.status === 429) {
+      return new ExternalSourceError('off', 'rate_limited', 'Open Food Facts rate limit exceeded', detail)
+    }
+    return new ExternalSourceError(
+      'off',
+      'unavailable',
+      `Open Food Facts request failed with HTTP ${err.status}`,
+      detail
+    )
   }
   return new ExternalSourceError('off', 'unavailable', 'Open Food Facts request failed')
 }

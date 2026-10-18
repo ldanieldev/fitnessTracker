@@ -48,7 +48,7 @@ describe('routeId', () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
-  const eventWith = (params: Record<string, string>) => ({ context: { params } }) as unknown as H3Event
+  const eventWith = (params: Record<string, string>) => ({ path: '/api/x', context: { params } }) as unknown as H3Event
 
   it('returns the numeric id', () => {
     expect(routeId(eventWith({ id: '7' }))).toBe(7)

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
-
 type ExternalSourceKey = 'off' | 'usda' | 'fatsecret'
 
 interface ExternalResult {
@@ -24,7 +22,7 @@ const emit = defineEmits<{
   imported: [payload: { id: number; needsNutrition: boolean }]
 }>()
 
-const toast = useToast()
+const fail = useFailToast()
 
 const SOURCE_LABELS: Record<ExternalSourceKey, string> = {
   off: 'Open Food Facts',
@@ -79,11 +77,7 @@ async function search() {
     errors.value = result.errors
     searched.value = true
   } catch (error: unknown) {
-    toast.add({
-      title: 'Search failed',
-      description: errorMessage(error, 'Could not search external sources'),
-      color: 'error'
-    })
+    fail('Search failed', error, 'Could not search external sources')
   } finally {
     searching.value = false
   }
@@ -102,11 +96,7 @@ async function importResult(result: ExternalResult) {
     await invalidateNutrition(NUTRITION_KEYS.foods)
     emit('imported', { id: imported.id, needsNutrition: imported.needsNutrition })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Import failed',
-      description: errorMessage(error, 'Could not import this food'),
-      color: 'error'
-    })
+    fail('Import failed', error, 'Could not import this food')
   } finally {
     importingKey.value = null
   }

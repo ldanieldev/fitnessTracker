@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
-
 interface CatalogEntry {
   key: string
   name: string
@@ -17,6 +15,8 @@ const props = defineProps<{
 }>()
 
 const toast = useToast()
+
+const fail = useFailToast()
 const checked = reactive<Record<string, boolean>>({})
 
 watch(
@@ -42,11 +42,7 @@ async function save() {
     await invalidateNutrition(NUTRITION_KEYS.tracked, NUTRITION_KEYS.catalog)
     toast.add({ title: 'Tracked nutrients updated', color: 'success' })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Update failed',
-      description: errorMessage(error, 'Could not update tracked nutrients'),
-      color: 'error'
-    })
+    fail('Update failed', error, 'Could not update tracked nutrients')
   } finally {
     saving.value = false
   }

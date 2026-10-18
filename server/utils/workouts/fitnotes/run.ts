@@ -10,6 +10,8 @@ import {
   workoutSets
 } from '~~/server/db/schema'
 import { db, type DbClient } from '~~/server/utils/db'
+import { markReported } from '~~/server/utils/inngest/reported'
+import { logger } from '~~/server/utils/logger'
 import { isUniqueViolation } from '~~/server/utils/pgError'
 import { listCategoriesForUser } from '~~/server/utils/workouts/categories'
 import { insertExercise } from '~~/server/utils/workouts/exerciseWrites'
@@ -237,7 +239,10 @@ export async function runFitNotesImport(jobId: number, userId: number): Promise<
     .from(importJobs)
     .where(and(eq(importJobs.id, jobId), eq(importJobs.userId, userId), eq(importJobs.source, 'fitnotes')))
     .then((r) => r[0])
-  if (!job) throw new Error(`FitNotes import job ${jobId} not found for user ${userId}`)
+  if (!job) {
+    logger.warn({ jobId, userId, source: 'fitnotes' }, 'import job not claimed: not found for this user')
+    throw markReported(new Error(`FitNotes import job ${jobId} not found for user ${userId}`))
+  }
 
   // Concurrent runs would create the same new exercises twice; a run untouched for an hour counts as crashed.
   const claim = await db.transaction(async (tx) => {
@@ -263,22 +268,36 @@ export async function runFitNotesImport(jobId: number, userId: number): Promise<
       .returning({ id: importJobs.id })
     return rows.length ? ('claimed' as const) : ('busy' as const)
   })
-  if (claim === 'not_queued') throw new Error(`FitNotes import job ${jobId} is not queued`)
+  if (claim === 'not_queued') {
+    logger.info({ jobId, userId, source: 'fitnotes' }, 'import job not run: no longer queued')
+    throw markReported(new Error(`FitNotes import job ${jobId} is not queued`))
+  }
   if (claim === 'busy') {
+    logger.warn({ jobId, userId, source: 'fitnotes' }, 'import job refused: another import is running')
     const error = 'Another FitNotes import is still running; try again when it finishes'
     await db.update(importJobs).set({ status: 'failed', error, payload: {} }).where(eq(importJobs.id, jobId))
-    throw new Error(error)
+    throw markReported(new Error(error))
   }
+  const startedAt = Date.now()
   try {
     // Imported days, long skip runs and the rollup rebuild bump updated_at, so a long import never reads as crashed.
     const heartbeat = (tx: DbClient) =>
       tx.update(importJobs).set({ updatedAt: new Date() }).where(eq(importJobs.id, jobId))
     const result = await performFitNotesImport(job.userId, job.payload as FitNotesImportPayload, heartbeat)
     await db.update(importJobs).set({ status: 'done', result, payload: {} }).where(eq(importJobs.id, jobId))
+    logger.info(
+      { jobId, userId, source: 'fitnotes', ...result, durationMs: Date.now() - startedAt },
+      'import job finished'
+    )
     return result
   } catch (err) {
+    logger.error({ err: markReported(err), jobId, userId, source: 'fitnotes' }, 'import job failed')
     const message = err instanceof Error ? err.message : String(err)
-    await db.update(importJobs).set({ status: 'failed', error: message, payload: {} }).where(eq(importJobs.id, jobId))
+    try {
+      await db.update(importJobs).set({ status: 'failed', error: message, payload: {} }).where(eq(importJobs.id, jobId))
+    } catch (updateErr) {
+      logger.error({ err: updateErr, jobId, userId, source: 'fitnotes' }, 'failed import job not marked failed')
+    }
     throw err
   }
 }

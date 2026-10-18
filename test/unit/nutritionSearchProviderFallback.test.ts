@@ -1,9 +1,16 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 const healthy = vi.fn()
+const warn = vi.fn()
+const info = vi.fn()
+
+vi.mock('../../server/utils/logger', () => {
+  const log = { warn: (...a: unknown[]) => warn(...a), info: (...a: unknown[]) => info(...a) }
+  return { logger: { ...log, child: () => log } }
+})
 
 class FakeMeiliSearchProvider {
-  healthy = healthy
+  probe = async () => ((await healthy()) ? { healthy: true } : { healthy: false, reason: 'not_available' })
   query = vi.fn()
   index = vi.fn()
   delete = vi.fn()
@@ -53,5 +60,36 @@ describe('markSearchUnhealthy', () => {
     expect(isDegradedProvider(await getSearchProvider())).toBe(true)
     expect(isDegradedProvider(await getSearchProvider())).toBe(true)
     expect(healthy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Meilisearch health logging', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('warns once on the healthy -> unhealthy flip and logs info once on recovery', async () => {
+    vi.useFakeTimers()
+    vi.advanceTimersByTime(600_000)
+    healthy.mockResolvedValue(true)
+    await getSearchProvider()
+    info.mockClear()
+
+    markSearchUnhealthy(new Error('connect ECONNREFUSED'))
+    markSearchUnhealthy(new Error('connect ECONNREFUSED'))
+    vi.advanceTimersByTime(30_001)
+    healthy.mockResolvedValue(false)
+    await getSearchProvider()
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]![0]).toMatchObject({ index: 'foods', reason: 'query_failed' })
+    expect(warn.mock.calls[0]![1]).toContain('Postgres')
+
+    vi.advanceTimersByTime(30_001)
+    healthy.mockResolvedValue(true)
+    await getSearchProvider()
+    vi.advanceTimersByTime(30_001)
+    await getSearchProvider()
+    expect(info).toHaveBeenCalledTimes(1)
+    expect(info).toHaveBeenCalledWith({ index: 'foods' }, expect.any(String))
   })
 })

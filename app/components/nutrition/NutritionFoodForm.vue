@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { NutrientKey } from '~~/shared/types/nutrition'
-import { errorMessage } from '~/utils/apiError'
 import type { ServingDraft } from '~/utils/nutrition/servingDraft'
 import {
   emptyDraft,
@@ -30,7 +29,7 @@ const emit = defineEmits<{
   created: [id: number]
 }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const { tracked } = useTrackedNutrients()
 
 const name = ref(props.prefill?.name ?? '')
@@ -94,11 +93,7 @@ async function submit() {
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     emit('created', result.id)
   } catch (err: unknown) {
-    toast.add({
-      title: 'Failed to create food',
-      description: errorMessage(err, 'Could not create food'),
-      color: 'error'
-    })
+    fail('Failed to create food', err, 'Could not create food')
   } finally {
     loading.value = false
   }

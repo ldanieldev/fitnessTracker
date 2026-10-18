@@ -197,12 +197,51 @@ describe('fatsecretById', () => {
         return Promise.resolve(new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 }))
       }
       return Promise.resolve(
-        new Response(JSON.stringify({ error: { code: 21, message: 'Invalid IP address detected' } }), { status: 200 })
+        new Response(JSON.stringify({ error: { code: 21, message: 'Invalid IP address detected: \'203.0.113.7\'' } }), {
+          status: 200
+        })
       )
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fatsecretById } = await import('../../server/utils/nutrition/external/fatsecret')
-    await expect(fatsecretById('1')).rejects.toMatchObject({ name: 'ExternalSourceError', kind: 'unavailable' })
+    const err = await fatsecretById('1').catch((e: unknown) => e as Error)
+    expect(err).toMatchObject({
+      name: 'ExternalSourceError',
+      kind: 'unavailable',
+      detail: { apiCode: 21, misconfigured: true }
+    })
+    expect(err!.message).toBe('FatSecret API error 21: Invalid IP address detected: \'[redacted]\'')
+  })
+
+  it('redacts IPv4 and IPv6 addresses and leaves other text alone', async () => {
+    const { redactIpAddresses } = await import('../../server/utils/nutrition/external/fatsecret')
+    expect(redactIpAddresses('from 203.0.113.7 and 2001:db8::1')).toBe('from [redacted] and [redacted]')
+    expect(redactIpAddresses('Missing required parameter: method')).toBe('Missing required parameter: method')
+  })
+
+  it('flags a rejected token request as misconfiguration, carrying its HTTP status', async () => {
+    vi.stubGlobal('useRuntimeConfig', () => config)
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('{"error":"invalid_client"}', { status: 400 }))))
+    const { fatsecretById } = await import('../../server/utils/nutrition/external/fatsecret')
+    await expect(fatsecretById('1')).rejects.toMatchObject({
+      name: 'ExternalSourceError',
+      detail: { status: 400, misconfigured: true }
+    })
+  })
+
+  it('does not flag an ordinary parameter error as misconfiguration', async () => {
+    vi.stubGlobal('useRuntimeConfig', () => config)
+    const fetchMock = vi.fn((url: string) => {
+      if (url.startsWith('https://oauth.fatsecret.com')) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: 't1', expires_in: 86400 }), { status: 200 }))
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: { code: 106, message: 'Invalid ID' } }), { status: 200 })
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fatsecretById } = await import('../../server/utils/nutrition/external/fatsecret')
+    await expect(fatsecretById('1')).rejects.toMatchObject({ detail: { apiCode: 106, misconfigured: false } })
   })
 
   it('maps HTTP 429 to a rate_limited ExternalSourceError', async () => {

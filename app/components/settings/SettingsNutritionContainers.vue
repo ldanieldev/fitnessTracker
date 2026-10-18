@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
-
 interface Container {
   id: number
   name: string
@@ -10,7 +8,7 @@ interface Container {
 
 const props = defineProps<{ containers: Container[] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 
 const active = computed(() =>
   [...props.containers].filter((c) => !c.isArchived).sort((a, b) => a.sortOrder - b.sortOrder)
@@ -38,11 +36,7 @@ async function rename(container: Container) {
     await apiFetch(`/api/nutrition/meal-containers/${container.id}`, { method: 'PUT', body: { name } })
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   } catch (error: unknown) {
-    toast.add({
-      title: 'Rename failed',
-      description: errorMessage(error, 'Could not rename container'),
-      color: 'error'
-    })
+    fail('Rename failed', error, 'Could not rename container')
   } finally {
     savingId.value = null
   }
@@ -64,11 +58,7 @@ async function move(container: Container, direction: -1 | 1) {
       body: { name: container.name, sortOrder: neighbor.sortOrder }
     })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Reorder failed',
-      description: errorMessage(error, 'Could not reorder containers'),
-      color: 'error'
-    })
+    fail('Reorder failed', error, 'Could not reorder containers')
   } finally {
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   }
@@ -87,11 +77,7 @@ async function confirmArchive() {
   try {
     await apiFetch(`/api/nutrition/meal-containers/${archiveTarget.value.id}`, { method: 'DELETE' })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Archive failed',
-      description: errorMessage(error, 'Could not archive container'),
-      color: 'error'
-    })
+    fail('Archive failed', error, 'Could not archive container')
   } finally {
     archiveTarget.value = null
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
@@ -110,7 +96,7 @@ async function addContainer() {
     newName.value = ''
     await invalidateNutrition(NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
   } catch (error: unknown) {
-    toast.add({ title: 'Add failed', description: errorMessage(error, 'Could not add container'), color: 'error' })
+    fail('Add failed', error, 'Could not add container')
   } finally {
     adding.value = false
   }

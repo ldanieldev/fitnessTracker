@@ -12,6 +12,7 @@ import {
   workoutTemplates
 } from '~~/server/db/schema'
 import { db, type DbTransaction } from '~~/server/utils/db'
+import { logger } from '~~/server/utils/logger'
 import { loadProgram } from '~~/server/utils/workouts/programs'
 import { loadRoutine } from '~~/server/utils/workouts/routines'
 import { insertExercise } from '~~/server/utils/workouts/exerciseWrites'
@@ -255,5 +256,19 @@ export async function importProgram(userId: number, data: ProgramExport): Promis
     }
     return program.id
   })
+  logger.info(
+    {
+      component: 'programs',
+      userId,
+      programId,
+      phases: data.program.phases.length,
+      routines: data.routines.length,
+      days: data.routines.reduce((sum, routine) => sum + routine.days.length, 0),
+      entries: wanted.length,
+      exercisesMatched: result.matched,
+      exercisesCreated: result.created.length
+    },
+    'program imported'
+  )
   return { programId, exercises: result }
 }

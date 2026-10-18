@@ -1,3 +1,4 @@
+import pino from 'pino'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const captureException = vi.fn()
@@ -5,6 +6,7 @@ const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), e
 vi.mock('@sentry/nuxt', () => ({ logger, captureException }))
 
 const { forwardLine, toSentryLevel } = await import('../../server/utils/sentryLogStream')
+const { sentryStreamLevel } = await import('../../server/utils/logger')
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -72,8 +74,42 @@ describe('forwardLine', () => {
     expect(captureException).not.toHaveBeenCalled()
   })
 
+  it('skips captureException for a line Sentry already captured, and drops the flag', () => {
+    const line = { level: 'error', msg: 'request failed', err: { message: 'boom' }, route: '/x', sentryCaptured: true }
+    forwardLine(JSON.stringify(line))
+
+    expect(logger.error).toHaveBeenCalledWith('request failed', { route: '/x' })
+    expect(captureException).not.toHaveBeenCalled()
+  })
+
   it('ignores a line that is not JSON', () => {
     expect(() => forwardLine('not json')).not.toThrow()
     expect(logger.info).not.toHaveBeenCalled()
+  })
+})
+
+describe('sentry stream floor', () => {
+  function sentryLog(logLevel: pino.Level, sentryLevel?: string) {
+    const log = pino({ level: logLevel }, pino.multistream([
+      { level: sentryStreamLevel(logLevel, sentryLevel), stream: { write: forwardLine } }
+    ]))
+    vi.clearAllMocks()
+    return log
+  }
+
+  it('defaults to warn, so debug and info lines never reach Sentry Logs', () => {
+    const log = sentryLog('debug')
+    log.debug('d')
+    log.info('i')
+    log.warn('w')
+    expect(logger.debug).not.toHaveBeenCalled()
+    expect(logger.info).not.toHaveBeenCalled()
+    expect(logger.warn).toHaveBeenCalledWith('w', expect.any(Object))
+  })
+
+  it('never drops below LOG_LEVEL and ignores an unknown override', () => {
+    expect(sentryStreamLevel('error', 'info')).toBe('error')
+    expect(sentryStreamLevel('info', 'error')).toBe('error')
+    expect(sentryStreamLevel('debug', 'bogus')).toBe('warn')
   })
 })

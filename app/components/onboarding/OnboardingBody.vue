@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { GoalOverview, MeasurementEntry, MeasurementGoal, MeasurementType } from '~~/shared/types/body'
 import { todayDate } from '~~/shared/utils/nutritionSummary'
-import { errorMessage } from '~/utils/apiError'
 
-const toast = useToast()
+const fail = useFailToast()
 const today = todayDate()
 
 const bodyweight = ref<MeasurementType | null>(null)
@@ -78,7 +77,7 @@ async function save() {
     }
     return true
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save your weight'), color: 'error' })
+    fail('Save failed', error, 'Could not save your weight')
     return false
   }
 }

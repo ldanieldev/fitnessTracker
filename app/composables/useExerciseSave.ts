@@ -5,6 +5,7 @@ import { errorMessage } from '~/utils/apiError'
 export function useExerciseSave() {
   const nameError = ref<string | null>(null)
   const toast = useToast()
+  const fail = useFailToast()
 
   async function save(payload: ExerciseFormPayload, editingId: number | null): Promise<Exercise | null> {
     try {
@@ -20,11 +21,7 @@ export function useExerciseSave() {
         nameError.value = errorMessage(error, 'You already have an exercise with that name')
         return null
       }
-      toast.add({
-        title: 'Save failed',
-        description: errorMessage(error, 'Could not save this exercise'),
-        color: 'error'
-      })
+      fail('Save failed', error, 'Could not save this exercise')
       return null
     }
   }

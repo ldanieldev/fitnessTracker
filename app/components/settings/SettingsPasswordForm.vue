@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
   hasCredentials: boolean
 }>()
 
 const toast = useToast()
+
+const fail = useFailToast()
 
 const schemaWithCurrent = z
   .object({
@@ -61,11 +62,7 @@ async function onSubmit(payload: FormSubmitEvent<SchemaWithCurrent | SchemaWitho
     state.newPassword = ''
     state.confirmPassword = ''
   } catch (error: unknown) {
-    toast.add({
-      title: 'Failed',
-      description: errorMessage(error, 'Could not update password'),
-      color: 'error'
-    })
+    fail('Failed', error, 'Could not update password')
   } finally {
     loading.value = false
   }

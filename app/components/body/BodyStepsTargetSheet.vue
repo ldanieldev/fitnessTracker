@@ -2,13 +2,12 @@
 import type { StepTarget } from '~~/shared/types/steps'
 import { weekStartOf } from '~~/shared/utils/programs'
 import { formatSteps, STEPS_MAX } from '~~/shared/utils/steps'
-import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{ target: StepTarget | null }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const { user } = useUserSession()
 const today = useTodayOrNow()
 const daily = ref<number | null>(null)
@@ -40,7 +39,7 @@ async function save() {
     })
     await invalidateBody(BODY_KEYS.steps)
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save the target'), color: 'error' })
+    fail('Save failed', error, 'Could not save the target')
     return
   } finally {
     saving.value = false

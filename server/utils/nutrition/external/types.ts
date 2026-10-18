@@ -14,11 +14,18 @@ export interface ExternalFood {
   attribution: string | null
 }
 
+export interface ExternalSourceErrorDetail {
+  status?: number
+  apiCode?: number
+  misconfigured?: boolean
+}
+
 export class ExternalSourceError extends Error {
   constructor(
     public readonly source: ExternalSourceKey,
     public readonly kind: 'unconfigured' | 'unavailable' | 'rate_limited' | 'not_found',
-    message: string
+    message: string,
+    public readonly detail: ExternalSourceErrorDetail = {}
   ) {
     super(message)
     this.name = 'ExternalSourceError'

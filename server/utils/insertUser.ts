@@ -1,6 +1,7 @@
 import { getTableColumns, sql, type SQL } from 'drizzle-orm'
 import { users } from '../db/schema'
 import type { DbTransaction } from './db'
+import { logger } from './logger'
 import { isUniqueViolation } from './pgError'
 
 const { password: _password, ...rowColumns } = getTableColumns(users)
@@ -20,6 +21,8 @@ export async function insertUser(tx: DbTransaction, values: NewUser) {
     return await tx.transaction((savepoint) => insert(savepoint, sql`not exists (select 1 from ${users})`))
   } catch (error) {
     if (!isUniqueViolation(error, 'users_one_admin')) throw error
-    return insert(tx, false)
+    const user = await insert(tx, false)
+    logger.info({ event: 'auth.first_admin_race', userId: user.id }, 'concurrent first signup created as non-admin')
+    return user
   }
 }

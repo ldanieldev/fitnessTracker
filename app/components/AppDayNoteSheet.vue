@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
 import { formatDayLabel } from '~~/shared/utils/dayLabel'
 
 const props = defineProps<{ date: string; note: string | null }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [note: string | null] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const text = ref(props.note ?? '')
 const saving = ref(false)
 
@@ -25,7 +24,7 @@ async function save() {
     })
     saved = result.note
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this note'), color: 'error' })
+    fail('Save failed', error, 'Could not save this note')
     return
   } finally {
     saving.value = false

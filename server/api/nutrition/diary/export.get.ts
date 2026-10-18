@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { logExport } from '~~/server/utils/export/exportLog'
 import { parseWith } from '~~/server/utils/nutrition/parseBody'
 import { loadIntakeRange, parseIntakeRangeQuery } from '~~/server/utils/nutrition/summary'
 import { requireUserId } from '~~/server/utils/session'
@@ -14,9 +15,12 @@ export default defineEventHandler(async (event) => {
 
   const { format } = parseWith(formatQuerySchema, query)
 
+  const startedAt = performance.now()
   const { nutrients, days } = await loadIntakeRange(userId, from, to, dates)
+  const logged = { userId, kind: 'diary', ranged: true, rows: days.length, format, startedAt } as const
 
   if (format === 'json') {
+    logExport(logged)
     return { nutrients, days }
   }
 
@@ -31,6 +35,7 @@ export default defineEventHandler(async (event) => {
     })),
     nutrients.map((n) => n.key)
   )
+  logExport({ ...logged, bytes: Buffer.byteLength(csv) })
 
   setHeader(event, 'Content-Type', 'text/csv; charset=utf-8')
   setHeader(event, 'Content-Disposition', `attachment; filename="intake-${from}-to-${to}.csv"`)

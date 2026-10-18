@@ -108,12 +108,14 @@ function requireApiKey(): string {
 function mapUsdaError(err: unknown): ExternalSourceError {
   if (err instanceof ExternalSourceError) return err
   if (err instanceof HttpStatusError) {
+    const detail = { status: err.status, misconfigured: err.status === 401 || err.status === 403 }
     if (err.status === 429)
-      return new ExternalSourceError('usda', 'rate_limited', 'USDA FoodData Central rate limit exceeded')
+      return new ExternalSourceError('usda', 'rate_limited', 'USDA FoodData Central rate limit exceeded', detail)
     return new ExternalSourceError(
       'usda',
       'unavailable',
-      `USDA FoodData Central request failed with HTTP ${err.status}`
+      `USDA FoodData Central request failed with HTTP ${err.status}`,
+      detail
     )
   }
   if (err instanceof Error && err.name === 'AbortError') {

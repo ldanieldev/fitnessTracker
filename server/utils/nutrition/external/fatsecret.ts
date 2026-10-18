@@ -103,6 +103,9 @@ function requireCredentials(): { clientId: string; clientSecret: string; scope: 
   return { clientId, clientSecret, scope }
 }
 
+// Codes only an operator can fix (credentials, scope, IP allow-list): https://platform.fatsecret.com/docs/guides/error-codes
+const MISCONFIGURATION_CODES = new Set([2, 3, 4, 5, 8, 9, 13, 14, 21])
+
 // FatSecret reports API errors (bad params, IP not whitelisted) as HTTP 200 with an {error: {code, message}} body.
 class FatsecretApiError extends Error {
   constructor(
@@ -114,14 +117,46 @@ class FatsecretApiError extends Error {
   }
 }
 
+class FatsecretTokenError extends Error {
+  constructor(public readonly status: number) {
+    super(`FatSecret token request failed with HTTP ${status}`)
+    this.name = 'FatsecretTokenError'
+  }
+}
+
+// Code 21 (IP not on the allow-list) quotes this server's address, which would reach the client and the logs.
+const IP_ADDRESS = /\b(?:\d{1,3}\.){3}\d{1,3}\b|(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}/gi
+
+export function redactIpAddresses(text: string): string {
+  return text.replace(IP_ADDRESS, '[redacted]')
+}
+
 function mapFatsecretError(err: unknown): ExternalSourceError {
   if (err instanceof ExternalSourceError) return err
   if (err instanceof FatsecretApiError) {
-    return new ExternalSourceError('fatsecret', 'unavailable', `FatSecret API error ${err.code}: ${err.message}`)
+    const message = `FatSecret API error ${err.code}: ${redactIpAddresses(err.message)}`
+    return new ExternalSourceError('fatsecret', 'unavailable', message, {
+      apiCode: err.code,
+      misconfigured: MISCONFIGURATION_CODES.has(err.code)
+    })
+  }
+  if (err instanceof FatsecretTokenError) {
+    return new ExternalSourceError('fatsecret', 'unavailable', err.message, {
+      status: err.status,
+      misconfigured: err.status >= 400 && err.status < 500
+    })
   }
   if (err instanceof HttpStatusError) {
-    if (err.status === 429) return new ExternalSourceError('fatsecret', 'rate_limited', 'FatSecret rate limit exceeded')
-    return new ExternalSourceError('fatsecret', 'unavailable', `FatSecret request failed with HTTP ${err.status}`)
+    const detail = { status: err.status }
+    if (err.status === 429) {
+      return new ExternalSourceError('fatsecret', 'rate_limited', 'FatSecret rate limit exceeded', detail)
+    }
+    return new ExternalSourceError(
+      'fatsecret',
+      'unavailable',
+      `FatSecret request failed with HTTP ${err.status}`,
+      detail
+    )
   }
   if (err instanceof Error && err.name === 'AbortError') {
     return new ExternalSourceError('fatsecret', 'unavailable', 'FatSecret request timed out')
@@ -138,6 +173,8 @@ async function requestToken(): Promise<string> {
       'Content-Type': 'application/x-www-form-urlencoded'
     },
     body: `grant_type=client_credentials&scope=${scope}`
+  }).catch((err) => {
+    throw err instanceof HttpStatusError ? new FatsecretTokenError(err.status) : err
   })
   const stored: StoredToken = { token: json.access_token, expiresAt: Date.now() + (json.expires_in - 60) * 1000 }
   await useStorage('cache').setItem(TOKEN_CACHE_KEY, stored)

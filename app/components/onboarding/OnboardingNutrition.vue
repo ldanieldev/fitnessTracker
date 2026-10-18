@@ -7,7 +7,6 @@ import {
   type OnboardingGoalInput
 } from '~~/shared/utils/onboarding'
 import { RATIO_MACROS } from '~~/shared/utils/nutritionGoals'
-import { errorMessage } from '~/utils/apiError'
 
 interface Profile {
   id: number
@@ -24,7 +23,7 @@ interface Container {
   isArchived: boolean
 }
 
-const toast = useToast()
+const fail = useFailToast()
 const today = useTodayOrNow()
 
 const profileId = ref<number | null>(null)
@@ -141,11 +140,7 @@ async function save() {
     await invalidateNutrition(NUTRITION_KEYS.profiles, NUTRITION_KEYS.containers, NUTRITION_KEYS.containersAll)
     return true
   } catch (error: unknown) {
-    toast.add({
-      title: 'Save failed',
-      description: errorMessage(error, 'Could not save nutrition settings'),
-      color: 'error'
-    })
+    fail('Save failed', error, 'Could not save nutrition settings')
     return false
   }
 }

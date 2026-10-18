@@ -27,7 +27,8 @@ watch(
     if (value?.entryType === 'food' && value.foodId !== null) {
       try {
         food.value = await apiFetch<FoodDetail>(`/api/nutrition/foods/${value.foodId}`)
-      } catch {
+      } catch (err: unknown) {
+        reportFailure(err, 'Load entry food')
         foodMissing.value = true
       }
     }

@@ -1,10 +1,10 @@
 import type { WorkoutSession } from '~~/shared/types/workout'
 import { workoutShareText } from '~~/shared/utils/workoutShare'
-import { errorMessage } from '~/utils/apiError'
 import { shareWorkout } from '~/utils/shareWorkout'
 
 export function useWorkoutShare() {
   const toast = useToast()
+  const fail = useFailToast()
   const manualOpen = ref(false)
   const manualText = ref('')
 
@@ -22,11 +22,7 @@ export function useWorkoutShare() {
     try {
       await shareSession(await apiFetch<WorkoutSession>(`/api/workouts/sessions/${id}`))
     } catch (err: unknown) {
-      toast.add({
-        title: 'Share failed',
-        description: errorMessage(err, 'Could not load this workout'),
-        color: 'error'
-      })
+      fail('Share failed', err, 'Could not load this workout')
     }
   }
 

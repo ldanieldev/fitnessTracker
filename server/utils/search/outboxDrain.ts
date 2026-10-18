@@ -2,6 +2,9 @@ import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from 'driz
 import { searchOutbox } from '~~/server/db/schema'
 import { db } from '../db'
 import { logger } from '../logger'
+import { meiliErrorSummary } from './meiliIndex'
+
+const log = logger.child({ component: 'search' })
 
 export const OUTBOX_MAX_ATTEMPTS = 10
 const OUTBOX_RETENTION = sql`now() - interval '7 days'`
@@ -10,6 +13,7 @@ interface OutboxRow {
   id: number
   entityId: number
   op: 'upsert' | 'delete'
+  attempts?: number
 }
 
 export type OutboxEntity = 'food' | 'exercise'
@@ -48,12 +52,18 @@ export async function drainOutbox(
   if (hooks.isEmpty && (await hooks.isEmpty())) {
     await provider.rebuild()
     rebuilt = true
+    log.info({ entity }, 'search outbox found an empty index; rebuilt it')
   }
 
   await pruneOutbox(entity)
 
   const rows = await db
-    .select({ id: searchOutbox.id, entityId: searchOutbox.entityId, op: searchOutbox.op })
+    .select({
+      id: searchOutbox.id,
+      entityId: searchOutbox.entityId,
+      op: searchOutbox.op,
+      attempts: searchOutbox.attempts
+    })
     .from(searchOutbox)
     .where(
       and(
@@ -67,10 +77,12 @@ export async function drainOutbox(
   if (rows.length === 0) return { processed: 0, failed: 0, skipped: false, rebuilt }
 
   const rowIdsByEntity = new Map<number, number[]>()
+  const lastTryEntities = new Set<number>()
   for (const row of rows) {
     const ids = rowIdsByEntity.get(row.entityId) ?? []
     ids.push(row.id)
     rowIdsByEntity.set(row.entityId, ids)
+    if ((row.attempts ?? 0) + 1 >= OUTBOX_MAX_ATTEMPTS) lastTryEntities.add(row.entityId)
   }
 
   const succeededIds: number[] = []
@@ -81,12 +93,15 @@ export async function drainOutbox(
       if (item.op === 'delete') await provider.delete(item.entityId)
       else await provider.index(item.entityId)
       succeededIds.push(...(rowIdsByEntity.get(item.entityId) ?? []))
-    } catch (err) {
+    } catch (error) {
       failed++
       failedIds.push(...(rowIdsByEntity.get(item.entityId) ?? []))
-      logger.warn({ err, entity, entityId: item.entityId, op: item.op }, 'search outbox item failed')
+      const fields = { entity, entityId: item.entityId, op: item.op }
+      if (failed === 1) log.warn({ ...fields, err: meiliErrorSummary(error) }, 'search outbox item failed')
+      if (lastTryEntities.has(item.entityId)) log.error(fields, 'search outbox item gave up after max attempts')
     }
   }
+  if (failed) log.warn({ entity, failed, processed: succeededIds.length }, 'search outbox drain had failures')
 
   if (succeededIds.length) {
     await db.update(searchOutbox).set({ processedAt: new Date() }).where(inArray(searchOutbox.id, succeededIds))
@@ -102,7 +117,7 @@ export async function drainOutbox(
 }
 
 async function pruneOutbox(entity: OutboxEntity): Promise<void> {
-  await db
+  const deleted = await db
     .delete(searchOutbox)
     .where(
       and(
@@ -113,4 +128,7 @@ async function pruneOutbox(entity: OutboxEntity): Promise<void> {
         )
       )
     )
+    .returning({ attempts: searchOutbox.attempts })
+  const givenUp = deleted.filter((row) => row.attempts >= OUTBOX_MAX_ATTEMPTS).length
+  if (givenUp) log.info({ entity, deleted: givenUp }, 'search outbox pruned given-up rows')
 }

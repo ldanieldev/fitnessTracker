@@ -74,8 +74,8 @@ async function rescueSearch(userId: number, q: string, ctx: RescueContext): Prom
   let candidates
   try {
     candidates = await (await getExerciseSearchProvider()).query(userId, q, 50)
-  } catch {
-    markExerciseSearchUnhealthy()
+  } catch (error) {
+    markExerciseSearchUnhealthy(error)
     return []
   }
   if (candidates.length === 0) return []

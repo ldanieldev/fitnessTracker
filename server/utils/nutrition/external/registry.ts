@@ -1,10 +1,13 @@
 import type { NutrientKey } from '~~/shared/types/nutrition'
+import { logger } from '../../logger'
 import { cachedBarcode, cachedSearch } from './cache'
 import { fatsecretByBarcode, fatsecretById, fatsecretSearch } from './fatsecret'
 import { offByBarcode, offSearch } from './off'
 import type { ExternalFood, ExternalSourceKey } from './types'
 import { ExternalSourceError } from './types'
 import { usdaById, usdaByUpc, usdaSearch } from './usda'
+
+const log = logger.child({ component: 'food-sources' })
 
 export interface ExternalSource {
   key: ExternalSourceKey
@@ -13,7 +16,7 @@ export interface ExternalSource {
   byId: (id: string) => Promise<ExternalFood | null>
 }
 
-export function getExternalSources(): ExternalSource[] {
+export function configuredExternalSources(): ExternalSource[] {
   const config = useRuntimeConfig()
   const sources: ExternalSource[] = []
 
@@ -27,12 +30,81 @@ export function getExternalSources(): ExternalSource[] {
     sources.push({ key: 'fatsecret', search: fatsecretSearch, byBarcode: fatsecretByBarcode, byId: fatsecretById })
   }
 
+  return sources
+}
+
+export function getExternalSources(): ExternalSource[] {
   // byId (and import, which calls byId) stay uncached — only search and barcode lookups repeat often enough to matter.
-  return sources.map((source) => ({
-    ...source,
-    search: (q: string, limit: number) => cachedSearch(source, q, limit),
-    byBarcode: (code: string) => cachedBarcode(source, code)
-  }))
+  return configuredExternalSources().map((raw) => {
+    const source = withSourceLogging(raw)
+    return {
+      ...source,
+      search: (q: string, limit: number) => cachedSearch(source, q, limit),
+      byBarcode: (code: string) => cachedBarcode(source, code)
+    }
+  })
+}
+
+type SourceOp = 'search' | 'byBarcode' | 'byId'
+
+const FAILURE_LOG_INTERVAL_MS = 60_000
+const failureLogState = new Map<string, { at: number; suppressed: number }>()
+
+export function resetExternalSourceLogThrottle(): void {
+  failureLogState.clear()
+}
+
+// At most one line per source/op/failure a minute, so an upstream outage does not log once per search request.
+function claimFailureLog(key: string): { suppressed: number } | null {
+  const now = Date.now()
+  const state = failureLogState.get(key)
+  if (state && now - state.at < FAILURE_LOG_INTERVAL_MS) {
+    state.suppressed++
+    return null
+  }
+  failureLogState.set(key, { at: now, suppressed: 0 })
+  return { suppressed: state?.suppressed ?? 0 }
+}
+
+function logSourceFailure(source: ExternalSourceKey, op: SourceOp, err: unknown, durationMs: number): void {
+  if (!(err instanceof ExternalSourceError)) {
+    const errName = err instanceof Error ? err.name : typeof err
+    const claim = claimFailureLog(`${source}:${op}:unexpected:${errName}`)
+    if (claim) log.warn({ source, op, kind: 'unexpected', errName, durationMs, ...claim }, 'food source request failed')
+    return
+  }
+  const { status, apiCode, misconfigured } = err.detail
+  const claim = claimFailureLog(`${source}:${op}:${err.kind}:${status ?? ''}:${apiCode ?? ''}`)
+  if (!claim) return
+  const fields = { source, op, kind: err.kind, status, apiCode, durationMs, ...claim }
+  if (misconfigured || err.kind === 'unconfigured') log.error(fields, 'food source misconfigured')
+  else log.warn(fields, 'food source request failed')
+}
+
+async function timed<T>(source: ExternalSourceKey, op: SourceOp, count: (r: T) => number, run: () => Promise<T>) {
+  const started = performance.now()
+  try {
+    const result = await run()
+    log.debug(
+      { source, op, results: count(result), durationMs: Math.round(performance.now() - started) },
+      'food source request succeeded'
+    )
+    return result
+  } catch (err) {
+    logSourceFailure(source, op, err, Math.round(performance.now() - started))
+    throw err
+  }
+}
+
+const foundCount = (food: ExternalFood | null) => (food ? 1 : 0)
+
+export function withSourceLogging(source: ExternalSource): ExternalSource {
+  return {
+    key: source.key,
+    search: (q, limit) => timed(source.key, 'search', (foods) => foods.length, () => source.search(q, limit)),
+    byBarcode: (code) => timed(source.key, 'byBarcode', foundCount, () => source.byBarcode(code)),
+    byId: (id) => timed(source.key, 'byId', foundCount, () => source.byId(id))
+  }
 }
 
 export interface ExternalSearchResult {

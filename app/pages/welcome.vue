@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { onboardingSteps, type OnboardingStep } from '~~/shared/utils/onboarding'
-import { errorMessage } from '~/utils/apiError'
 
 definePageMeta({ layout: 'onboarding' })
 
 const { appName } = useRuntimeConfig().public
 const { fetch: fetchSession } = useUserSession()
 const modules = useModules()
-const toast = useToast()
+const fail = useFailToast()
 
 const steps = computed(() =>
   onboardingSteps({ body: modules.body.value, workouts: modules.workouts.value, nutrition: modules.nutrition.value })
@@ -48,7 +47,7 @@ async function finish() {
     await fetchSession()
     await navigateTo('/')
   } catch (error: unknown) {
-    toast.add({ title: 'Could not finish setup', description: errorMessage(error, 'Try again'), color: 'error' })
+    fail('Could not finish setup', error, 'Try again')
   } finally {
     busy.value = false
   }

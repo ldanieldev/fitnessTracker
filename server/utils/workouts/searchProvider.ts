@@ -1,4 +1,7 @@
+import { meiliErrorSummary } from '../search/meiliIndex'
+import { createSearchHealthTracker } from '../search/searchHealth'
 import { ExerciseMeiliProvider } from './meiliSearch'
+import { EXERCISE_SEARCH_INDEX } from './searchDocuments'
 
 export interface ExerciseSearchCandidate {
   id: number
@@ -32,6 +35,10 @@ const PROBE_TTL_MS = 30_000
 let meili: ExerciseMeiliProvider | null = null
 let meiliHealthyUntil = 0
 let meiliUnhealthyUntil = 0
+const health = createSearchHealthTracker(
+  EXERCISE_SEARCH_INDEX,
+  'Meilisearch unhealthy; exercise typo rescue is off'
+)
 
 export async function getExerciseSearchProvider(): Promise<ExerciseSearchProvider> {
   const { host, apiKey } = useRuntimeConfig().meili
@@ -41,12 +48,15 @@ export async function getExerciseSearchProvider(): Promise<ExerciseSearchProvide
   if (now < meiliHealthyUntil) return meili
   if (now < meiliUnhealthyUntil) return degradedProvider
   // Either verdict holds 30 s: an outage degrades within half a minute, and a down server is not probed per request.
-  if (await meili.healthy()) {
+  const probe = await meili.probe()
+  if (probe.healthy) {
     meiliHealthyUntil = now + PROBE_TTL_MS
+    health.up()
     return meili
   }
   meiliHealthyUntil = 0
   meiliUnhealthyUntil = now + PROBE_TTL_MS
+  health.down(probe.reason ?? 'unknown', probe.err)
   return degradedProvider
 }
 
@@ -54,7 +64,8 @@ export function isDegradedExerciseProvider(provider: ExerciseSearchProvider): bo
   return provider instanceof DegradedExerciseProvider
 }
 
-export function markExerciseSearchUnhealthy(): void {
+export function markExerciseSearchUnhealthy(error?: unknown): void {
   meiliHealthyUntil = 0
   meiliUnhealthyUntil = Date.now() + PROBE_TTL_MS
+  health.down('query_failed', error === undefined ? undefined : meiliErrorSummary(error))
 }

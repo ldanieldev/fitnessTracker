@@ -1,4 +1,6 @@
+import { logger } from '../../logger'
 import { inngest } from '../client'
+import { markReported } from '../reported'
 import { rebuildUserRollups, rollupUserIds } from '../../workouts/rollups'
 
 const USERS_PER_STEP = 50
@@ -12,7 +14,14 @@ export const rollupNightlyRebuild = inngest.createFunction(
       const batch = userIds.slice(i, i + USERS_PER_STEP)
       rows += await step.run(`rebuild-users-${batch[0]}-${batch.at(-1)}`, async () => {
         let batchRows = 0
-        for (const userId of batch) batchRows += (await rebuildUserRollups(userId)).rows
+        for (const userId of batch) {
+          try {
+            batchRows += (await rebuildUserRollups(userId)).rows
+          } catch (err) {
+            logger.error({ err: markReported(err), userId }, 'nightly rollup rebuild failed for a user')
+            throw err
+          }
+        }
         return batchRows
       })
     }

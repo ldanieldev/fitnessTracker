@@ -6,6 +6,8 @@ const select = vi.fn()
 const update = vi.fn()
 const remove = vi.fn()
 const warn = vi.fn()
+const error = vi.fn()
+const info = vi.fn()
 
 vi.mock('../../server/utils/db', () => ({
   db: {
@@ -15,7 +17,14 @@ vi.mock('../../server/utils/db', () => ({
   }
 }))
 
-vi.mock('../../server/utils/logger', () => ({ logger: { warn: (...args: unknown[]) => warn(...args) } }))
+vi.mock('../../server/utils/logger', () => {
+  const log = {
+    warn: (...args: unknown[]) => warn(...args),
+    error: (...args: unknown[]) => error(...args),
+    info: (...args: unknown[]) => info(...args)
+  }
+  return { logger: { ...log, child: () => log } }
+})
 
 const dialect = new PgDialect()
 
@@ -24,11 +33,12 @@ function rendered(where: SQL) {
 }
 
 const OUTBOX = [
-  { id: 1, entity: 'food', entityId: 11, op: 'upsert' as const },
-  { id: 2, entity: 'exercise', entityId: 22, op: 'upsert' as const },
-  { id: 3, entity: 'exercise', entityId: 23, op: 'delete' as const },
-  { id: 4, entity: 'food', entityId: 12, op: 'delete' as const }
+  { id: 1, entity: 'food', entityId: 11, op: 'upsert' as const, attempts: 0 },
+  { id: 2, entity: 'exercise', entityId: 22, op: 'upsert' as const, attempts: 0 },
+  { id: 3, entity: 'exercise', entityId: 23, op: 'delete' as const, attempts: 0 },
+  { id: 4, entity: 'food', entityId: 12, op: 'delete' as const, attempts: 9 }
 ]
+let pruned: { attempts: number }[] = []
 
 let selectWhere: SQL | undefined
 let updateWhere: SQL | undefined
@@ -47,7 +57,12 @@ function stubDb() {
       orderBy: () => chain,
       limit: async () => {
         const entity = rendered(selectWhere!).params[0]
-        return OUTBOX.filter((row) => row.entity === entity).map(({ id, entityId, op }) => ({ id, entityId, op }))
+        return OUTBOX.filter((row) => row.entity === entity).map(({ id, entityId, op, attempts }) => ({
+          id,
+          entityId,
+          op,
+          attempts
+        }))
       }
     }
     return chain
@@ -65,8 +80,9 @@ function stubDb() {
     return chain
   })
   remove.mockImplementation(() => ({
-    where: async (where: SQL) => {
+    where: (where: SQL) => {
       deleteWhere = where
+      return { returning: async () => pruned }
     }
   }))
 }
@@ -82,6 +98,7 @@ describe('drainOutbox entity scoping', () => {
     updateWhere = undefined
     deleteWhere = undefined
     updateSets = []
+    pruned = []
     stubDb()
   })
 
@@ -140,6 +157,58 @@ describe('drainOutbox entity scoping', () => {
     expect(Object.keys(updateSets[1]!)).toEqual(['attempts'])
     expect(rendered(updateWhere!).params).toEqual([1])
     expect(warn).toHaveBeenCalledWith(expect.objectContaining({ entity: 'food', entityId: 11 }), expect.any(String))
+  })
+
+  it('warns for the first failed item, then once with the drain totals', async () => {
+    const { drainOutbox } = await import('../../server/utils/search/outboxDrain')
+    const provider = fakeProvider()
+    provider.index.mockRejectedValueOnce(new Error('meili down'))
+    provider.delete.mockRejectedValueOnce(new Error('meili down'))
+
+    await drainOutbox('exercise', provider, {})
+
+    expect(warn).toHaveBeenCalledTimes(2)
+    expect(warn.mock.calls[0]![0]).toMatchObject({ entity: 'exercise', entityId: 22, op: 'upsert' })
+    expect(warn.mock.calls[1]![0]).toEqual({ entity: 'exercise', failed: 2, processed: 0 })
+  })
+
+  it('logs an error only when a failure uses up the last attempt', async () => {
+    const { drainOutbox } = await import('../../server/utils/search/outboxDrain')
+    const provider = fakeProvider()
+    provider.index.mockRejectedValueOnce(new Error('meili down'))
+    provider.delete.mockRejectedValueOnce(new Error('meili down'))
+
+    await drainOutbox('food', provider, {})
+
+    expect(error).toHaveBeenCalledTimes(1)
+    expect(error).toHaveBeenCalledWith({ entity: 'food', entityId: 12, op: 'delete' }, expect.any(String))
+  })
+
+  it('keeps the request body of a timed-out Meilisearch call out of the warn', async () => {
+    const { drainOutbox } = await import('../../server/utils/search/outboxDrain')
+    const provider = fakeProvider()
+    const timeout = Object.assign(new Error('request timed out'), {
+      cause: { requestInit: { body: '{"name":"Grandma soup"}' } }
+    })
+    provider.index.mockRejectedValueOnce(new Error('Request to x has failed', { cause: timeout }))
+
+    await drainOutbox('food', provider, {})
+
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('Grandma')
+  })
+
+  it('reports how many given-up rows the prune removed, ignoring processed ones', async () => {
+    const { drainOutbox } = await import('../../server/utils/search/outboxDrain')
+    pruned = [{ attempts: 10 }, { attempts: 2 }, { attempts: 12 }]
+    await drainOutbox('food', fakeProvider(), {})
+    expect(info).toHaveBeenCalledWith({ entity: 'food', deleted: 2 }, expect.any(String))
+  })
+
+  it('says nothing about pruning when no given-up row was removed', async () => {
+    const { drainOutbox } = await import('../../server/utils/search/outboxDrain')
+    pruned = [{ attempts: 0 }]
+    await drainOutbox('food', fakeProvider(), {})
+    expect(info).not.toHaveBeenCalled()
   })
 
   it('prunes old processed and abandoned rows of its own entity only', async () => {

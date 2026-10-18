@@ -1,6 +1,8 @@
 import type { H3Event } from 'h3'
 import { z } from 'zod'
 import { isCalendarDate } from '~~/shared/utils/calendarDate'
+import { logger } from '~~/server/utils/logger'
+import { requestRoute } from '~~/server/utils/requestLog'
 import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 
 export const INT4_MAX = 2_147_483_647
@@ -34,8 +36,21 @@ export const nearTodaySchema = calendarDateSchema.refine(
 /** Reads a numeric route param, answering 400 for anything that is not a valid id. */
 export function routeId(event: H3Event, name = 'id'): number {
   const parsed = idParamSchema.safeParse(getRouterParam(event, name))
-  if (!parsed.success) throw createError({ statusCode: 400, statusMessage: `Invalid ${name}` })
+  if (!parsed.success) {
+    logger.debug({ route: requestRoute(event), param: name }, 'invalid route id')
+    throw createError({ statusCode: 400, statusMessage: `Invalid ${name}` })
+  }
   return parsed.data
+}
+
+const SCHEMA_KEY = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
+
+// Record keys can be user text (FitNotes exercise names): mask any path segment that isn't identifier-shaped.
+export function issuePaths(error: z.ZodError): string[] {
+  const paths = error.issues.map((issue) =>
+    issue.path.map((part) => (typeof part === 'number' || SCHEMA_KEY.test(String(part)) ? part : '*')).join('.')
+  )
+  return [...new Set(paths)]
 }
 
 /** A record whose key count is capped, since zod's `record` has no `.max()`. */

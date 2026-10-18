@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import { type EditorLine, divideKeyed, linesPayload, loadEditorLines } from '~/utils/nutrition/lines'
-import { errorMessage } from '~/utils/apiError'
 
 interface RecipeDetail {
   id: number
@@ -15,6 +14,8 @@ interface RecipeDetail {
 const props = defineProps<{ recipeId: number | null }>()
 
 const toast = useToast()
+
+const fail = useFailToast()
 const backOrTo = useBackOrTo()
 
 const name = ref('')
@@ -58,11 +59,7 @@ onMounted(async () => {
       notes.value = recipe.notes ?? ''
       lines.value = await loadEditorLines(recipe.ingredients)
     } catch (error: unknown) {
-      toast.add({
-        title: 'Load failed',
-        description: errorMessage(error, 'Could not load this recipe'),
-        color: 'error'
-      })
+      fail('Load failed', error, 'Could not load this recipe')
     }
   }
   baseline.value = snapshot(lines.value)
@@ -106,7 +103,7 @@ async function save() {
       await backOrTo('/nutrition/recipes')
     }
   } catch (error: unknown) {
-    toast.add({ title: 'Save failed', description: errorMessage(error, 'Could not save this recipe'), color: 'error' })
+    fail('Save failed', error, 'Could not save this recipe')
   } finally {
     saving.value = false
   }
@@ -119,11 +116,7 @@ async function confirmDelete() {
     await invalidateNutrition(NUTRITION_KEYS.recipes)
     await navigateTo('/nutrition/recipes')
   } catch (error: unknown) {
-    toast.add({
-      title: 'Delete failed',
-      description: errorMessage(error, 'Could not delete this recipe'),
-      color: 'error'
-    })
+    fail('Delete failed', error, 'Could not delete this recipe')
   }
 }
 

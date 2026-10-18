@@ -20,9 +20,10 @@ export function traceContextMixin() {
 const level = (process.env.LOG_LEVEL || 'info') as pino.Level
 const isProduction = process.env.NODE_ENV === 'production'
 
+const fileDest = process.env.LOG_FILE ?? 'logs/app.log'
+
 // Probed synchronously: an async destination reports an unwritable dest as an uncaughtException rather than throwing.
-function createFileStream() {
-  const dest = process.env.LOG_FILE ?? 'logs/app.log'
+function createFileStream(dest: string) {
   if (!dest) return undefined
   try {
     mkdirSync(dirname(dest), { recursive: true })
@@ -34,10 +35,17 @@ function createFileStream() {
   }
 }
 
+export function sentryStreamLevel(logLevel: string, sentryLevel: string | undefined): pino.Level {
+  const values = pino.levels.values
+  const floor = sentryLevel && sentryLevel in values ? (sentryLevel as pino.Level) : 'warn'
+  return (values[logLevel] ?? 0) > values[floor]! ? (logLevel as pino.Level) : floor
+}
+
 const streams: pino.StreamEntry[] = []
 
 // Additive, never the only sink, so an unwritable path degrades instead of losing logs.
-const fileStream = createFileStream()
+const fileStream = createFileStream(fileDest)
+export const fileSinkActive = fileStream !== undefined
 if (fileStream) streams.push({ level, stream: fileStream })
 
 if (isProduction) {
@@ -49,7 +57,7 @@ if (isProduction) {
 }
 
 if (process.env.SENTRY_DSN) {
-  streams.push({ level, stream: sentryLogStream })
+  streams.push({ level: sentryStreamLevel(level, process.env.SENTRY_LOG_LEVEL), stream: sentryLogStream })
 }
 
 export const REDACT_PATHS = [
@@ -61,19 +69,39 @@ export const REDACT_PATHS = [
   'token',
   'accessToken',
   'refreshToken',
+  'access_token',
+  'refresh_token',
+  'secret',
+  'email',
+  'ip',
   '*.password',
   '*.token',
   '*.accessToken',
   '*.refreshToken',
+  '*.access_token',
+  '*.refresh_token',
+  '*.secret',
+  '*.email',
+  '*.ip',
+  // No '*.code': it would also censor err.code (ECONNREFUSED, SQLSTATE), and pino's censor callback can't see the key.
+  'code',
+  'query.code',
   'req.headers.authorization',
   'req.headers.cookie'
 ]
+
+// h3 errors carry `data`, which nuxt-auth-utils fills with the OAuth callback query or token response.
+function withoutData(out: Record<string, unknown>) {
+  delete out.data
+  if (out.cause && typeof out.cause === 'object') withoutData(out.cause as Record<string, unknown>)
+}
 
 function serializeErr(err: unknown) {
   const out = pino.stdSerializers.err(err as Error)
   if (out && typeof out === 'object') {
     out.message = redactQueryParams(out.message)
     out.stack = redactQueryParams(out.stack)
+    withoutData(out as unknown as Record<string, unknown>)
   }
   return out
 }
@@ -101,3 +129,5 @@ export const logger = pino(
   },
   pino.multistream(streams)
 )
+
+if (fileDest && !fileSinkActive) logger.warn({ dest: fileDest }, 'log file sink unavailable; logging to stdout only')

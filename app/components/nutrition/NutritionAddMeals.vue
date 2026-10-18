@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TrayMeal } from '~/composables/useAddTray'
-import { errorMessage } from '~/utils/apiError'
 
 interface MealRow {
   id: number
@@ -25,7 +24,7 @@ const emit = defineEmits<{
   toggle: [meal: { id: number; name: string; total: Record<string, number> }, on: boolean]
 }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const selectedById = computed(() => new Map(props.selected.map((m) => [m.savedMealId, m])))
 const expanded = reactive(new Set<number>())
 const items = reactive(new Map<number, MealItem[]>())
@@ -42,7 +41,7 @@ async function toggleExpand(meal: MealRow) {
     items.set(meal.id, detail.items)
   } catch (error: unknown) {
     expanded.delete(meal.id)
-    toast.add({ title: 'Load failed', description: errorMessage(error, 'Could not load this meal'), color: 'error' })
+    fail('Load failed', error, 'Could not load this meal')
   }
 }
 </script>

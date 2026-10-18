@@ -94,6 +94,7 @@ async function submit() {
   } catch (error: unknown) {
     uploading.value = false
     const failedJobId = (error as { data?: { data?: { jobId?: number } } })?.data?.data?.jobId
+    reportFailure(error, 'Import failed')
     toast.add({
       title: 'Import failed',
       description: failedJobId

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { DayNote } from '~~/shared/types/days'
-import { errorMessage } from '~/utils/apiError'
 import { formatDayLabel } from '~~/shared/utils/dayLabel'
 import { shiftDate } from '~~/shared/utils/nutritionSummary'
 
@@ -46,7 +45,7 @@ const sheetOpen = computed({
   }
 })
 
-const toast = useToast()
+const fail = useFailToast()
 
 async function edit(date: string) {
   const loaded = notes.value.find((n) => n.date === date)
@@ -59,7 +58,7 @@ async function edit(date: string) {
     const { note } = await apiFetch<{ note: string | null }>(`/api/days/${date}/note`)
     editing.value = { date, note }
   } catch (error: unknown) {
-    toast.add({ title: 'Couldn’t open that day', description: errorMessage(error, 'Try again'), color: 'error' })
+    fail('Couldn’t open that day', error, 'Try again')
   }
 }
 

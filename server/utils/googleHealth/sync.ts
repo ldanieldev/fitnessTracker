@@ -1,7 +1,10 @@
 import { and, eq, gte, inArray, isNull, lt, notInArray, or, sql } from 'drizzle-orm'
+import { FetchError } from 'ofetch'
 import type { SyncCounts, SyncResult } from '~~/shared/types/googleHealth'
 import { googleHealthConnections, measurements, measurementTypes, sleepSessions, stepDays } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
+import { markReported, wasReported } from '~~/server/utils/inngest/reported'
+import { logger } from '~~/server/utils/logger'
 import { shiftDate, todayDate } from '~~/shared/utils/nutritionSummary'
 import { dailyRollUp, GoogleAuthError, isRetryable, listPoints, refreshAccessToken } from './api'
 import { googleHealthConfig } from './config'
@@ -167,12 +170,19 @@ export type SyncRun =
   | Exclude<SyncResult, { outcome: 'ok' }>
   | (Extract<SyncResult, { outcome: 'ok' }> & { retryable: boolean })
 
+function skipped<T extends 'not_connected' | 'reconnect_required' | 'busy'>(userId: number, outcome: T) {
+  logger.debug({ userId, outcome }, 'Google Health sync not run')
+  return { outcome }
+}
+
 export async function syncGoogleHealth(userId: number, opts: { full?: boolean } = {}): Promise<SyncRun> {
   const conn = await loadActiveConnection(userId)
-  if (!conn || !googleHealthConfig().available) return { outcome: 'not_connected' }
-  if (conn.status === 'reconnect_required') return { outcome: 'reconnect_required' }
-  if (!(await claim(userId))) return { outcome: 'busy' }
+  if (!conn || !googleHealthConfig().available) return skipped(userId, 'not_connected')
+  if (conn.status === 'reconnect_required') return skipped(userId, 'reconnect_required')
+  if (!(await claim(userId))) return skipped(userId, 'busy')
 
+  const full = opts.full === true
+  const startedAt = Date.now()
   const errors: string[] = []
   let retryable = false
   try {
@@ -181,14 +191,15 @@ export async function syncGoogleHealth(userId: number, opts: { full?: boolean } 
       let refreshToken: string
       try {
         refreshToken = decryptToken(conn.refreshTokenEnc, googleHealthConfig().tokenKey)
-      } catch {
+      } catch (err) {
+        logger.error({ err, userId }, 'Google Health stored token could not be decrypted')
         throw new GoogleAuthError('Stored Google token could not be decrypted')
       }
-      access = await refreshAccessToken(refreshToken)
+      access = await refreshAccessToken(refreshToken, userId)
     } catch (error) {
       if (!(error instanceof GoogleAuthError)) throw error
       await markReconnect(userId, 'Google Health needs to be reconnected')
-      return { outcome: 'reconnect_required' }
+      return skipped(userId, 'reconnect_required')
     }
 
     const can = granted(conn.scopes)
@@ -200,7 +211,13 @@ export async function syncGoogleHealth(userId: number, opts: { full?: boolean } 
         fetched[key] = await run()
       } catch (error) {
         errors.push(`${label}: ${error instanceof Error ? error.message : 'failed'}`)
-        retryable ||= isRetryable(error)
+        const dataRetryable = isRetryable(error)
+        retryable ||= dataRetryable
+        const status = error instanceof FetchError ? error.statusCode : undefined
+        logger.warn(
+          { err: error, userId, dataType: key, status, retryable: dataRetryable },
+          'Google Health data type sync failed'
+        )
       }
     }
 
@@ -265,6 +282,10 @@ export async function syncGoogleHealth(userId: number, opts: { full?: boolean } 
       .update(googleHealthConnections)
       .set({ lastSyncedAt: new Date(), lastError: errors.length ? errors.join('; ') : null, syncStartedAt: null })
       .where(eq(googleHealthConnections.userId, userId))
+    logger.info(
+      { userId, full, counts, errorCount: errors.length, durationMs: Date.now() - startedAt },
+      'Google Health sync completed'
+    )
     return { outcome: 'ok', counts, errors, retryable }
   } catch (error) {
     await db
@@ -276,7 +297,14 @@ export async function syncGoogleHealth(userId: number, opts: { full?: boolean } 
 }
 
 export async function runSyncJob(userId: number, opts: { full?: boolean } = {}): Promise<SyncRun> {
-  const result = await syncGoogleHealth(userId, opts)
+  let result: SyncRun
+  try {
+    result = await syncGoogleHealth(userId, opts)
+  } catch (err) {
+    const fields = { err, userId, full: opts.full === true }
+    logger.error(wasReported(err) ? { ...fields, sentryCaptured: true } : fields, 'Google Health sync failed')
+    throw markReported(err)
+  }
   if (result.outcome === 'ok' && result.retryable) {
     throw new RetryableSyncError(`Google Health sync hit a retryable error: ${result.errors.join('; ')}`)
   }

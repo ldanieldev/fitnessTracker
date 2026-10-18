@@ -9,10 +9,12 @@ export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event)
   forbidToken(event)
 
-  await db
+  const changed = await db
     .update(users)
     .set({ onboardedAt: new Date() })
     .where(and(eq(users.id, sessionUser.id), isNull(users.onboardedAt)))
+    .returning({ id: users.id })
+  if (changed.length) logger.info({ event: 'account.onboarded', userId: sessionUser.id }, 'onboarding completed')
   const user = await db
     .select(publicUserColumns)
     .from(users)

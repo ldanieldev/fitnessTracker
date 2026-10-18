@@ -25,6 +25,13 @@ const Meilisearch = vi.fn().mockImplementation(function () {
 })
 vi.mock('meilisearch', () => ({ Meilisearch, MeilisearchApiError }))
 
+const warn = vi.fn()
+const info = vi.fn()
+vi.mock('../../server/utils/logger', () => {
+  const log = { warn: (...a: unknown[]) => warn(...a), info: (...a: unknown[]) => info(...a) }
+  return { logger: { ...log, child: () => log } }
+})
+
 const { MeiliIndexProvider } = await import('../../server/utils/search/meiliIndex')
 const { MeiliSearchProvider } = await import('../../server/utils/nutrition/meiliSearch')
 const { ExerciseMeiliProvider } = await import('../../server/utils/workouts/meiliSearch')
@@ -127,5 +134,63 @@ describe('MeiliIndexProvider resilience', () => {
     expect(await provider.isEmpty()).toBe(true)
     getStats.mockRejectedValueOnce(new Error('timeout'))
     expect(await provider.isEmpty()).toBe(false)
+  })
+})
+
+describe('MeiliIndexProvider logging', () => {
+  const failedTask = (errorCode: string) => () =>
+    Object.assign(Promise.resolve({}), {
+      waitTask: () => Promise.resolve({ status: 'failed', error: { code: errorCode } })
+    })
+
+  it('stays quiet when the index already exists', async () => {
+    createIndex.mockImplementation(failedTask('index_already_exists'))
+    await new ExerciseMeiliProvider('http://localhost:7700', '').ensureIndex()
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('warns when the create task fails for another reason', async () => {
+    createIndex.mockImplementation(failedTask('invalid_api_key'))
+    await new ExerciseMeiliProvider('http://localhost:7700', '').ensureIndex()
+    expect(warn).toHaveBeenCalledWith({ index: 'exercises', errorCode: 'invalid_api_key' }, expect.any(String))
+  })
+
+  it('warns when the create request itself fails', async () => {
+    createIndex.mockImplementation(() => ({ waitTask: () => Promise.reject(new Error('fetch failed')) }))
+    await new ExerciseMeiliProvider('http://localhost:7700', '').ensureIndex()
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ index: 'exercises', err: expect.objectContaining({ message: 'fetch failed' }) }),
+      expect.any(String)
+    )
+  })
+
+  it('probes with a reason when unhealthy', async () => {
+    const provider = new ExerciseMeiliProvider('http://localhost:7700', '')
+    health.mockResolvedValueOnce({ status: 'unavailable' })
+    expect(await provider.probe()).toEqual({ healthy: false, reason: 'not_available' })
+    health.mockRejectedValueOnce(new Error('connect ECONNREFUSED'))
+    expect(await provider.probe()).toMatchObject({ healthy: false, reason: 'request_failed', err: { type: 'Error' } })
+  })
+
+  it('logs the rebuild with document count and task uids', async () => {
+    const provider = new ExerciseMeiliProvider('http://localhost:7700', '')
+    vi.spyOn(provider as never, 'loadAllDocuments').mockResolvedValue([{ id: 1 }, { id: 2 }] as never)
+    deleteAllDocuments.mockImplementation(() => Object.assign(Promise.resolve({ taskUid: 7 }), { waitTask: enqueued }))
+    addDocuments.mockImplementation(() => Object.assign(Promise.resolve({ taskUid: 8 }), { waitTask: enqueued }))
+    await provider.rebuild()
+    expect(info).toHaveBeenCalledWith(
+      expect.objectContaining({ index: 'exercises', docs: 2, deleteTaskUid: 7, addTaskUid: 8 }),
+      expect.any(String)
+    )
+  })
+
+  it('summarises a timeout without the request body it carries', async () => {
+    const { meiliErrorSummary } = await import('../../server/utils/search/meiliIndex')
+    const timeout = Object.assign(new Error('request timed out after 1500ms'), {
+      cause: { requestInit: { body: '{"q":"grandma soup"}' } }
+    })
+    const summary = meiliErrorSummary(new Error('Request to http://m/indexes/foods/search has failed', { cause: timeout }))
+    expect(JSON.stringify(summary)).not.toContain('grandma')
+    expect(summary.cause).toContain('timed out')
   })
 })

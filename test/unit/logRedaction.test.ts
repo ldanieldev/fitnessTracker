@@ -78,4 +78,34 @@ describe('logger redaction', () => {
       expect(text()).not.toContain(secret)
     }
   })
+  it('censors email, ip, OAuth code and token fields but keeps err.code', () => {
+    const { log, text } = capture()
+    log.warn({
+      email: 'top@example.com',
+      ip: '203.0.113.9',
+      code: 'oauth-code-top',
+      secret: 'shh-top',
+      user: { email: 'nested@example.com', ip: '198.51.100.7', secret: 'shh-nested' },
+      query: { code: 'oauth-code-nested' },
+      body: { access_token: 'at-nested', refresh_token: 'rt-nested' },
+      err: Object.assign(new Error('refused'), { code: 'ECONNREFUSED' })
+    }, 'redaction')
+    for (const value of [
+      'top@example.com', '203.0.113.9', 'oauth-code-top', 'shh-top', 'nested@example.com', '198.51.100.7',
+      'shh-nested', 'oauth-code-nested', 'at-nested', 'rt-nested'
+    ]) {
+      expect(text()).not.toContain(value)
+    }
+    expect(JSON.parse(text()).err.code).toBe('ECONNREFUSED')
+  })
+
+  it('drops the data of an h3 error, directly or as a cause', async () => {
+    const { createError } = await import('h3')
+    const inner = createError({ statusCode: 401, data: { code: 'oauth-code', state: 'oauth-state' } })
+    const outer = createError({ statusCode: 500, data: { access_token: 'gho_secret' }, cause: inner })
+    const { log, text } = capture()
+    log.error({ err: outer }, 'oauth failed')
+    for (const value of ['oauth-code', 'oauth-state', 'gho_secret']) expect(text()).not.toContain(value)
+    expect(JSON.parse(text()).err.statusCode).toBe(500)
+  })
 })

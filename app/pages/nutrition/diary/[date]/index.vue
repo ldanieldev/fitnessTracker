@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
 import type { DiaryEntry } from '~/composables/useDiaryDay'
 import type { CopyOverride } from '~~/shared/utils/nutritionCopy'
 import type { DayAction } from '~/components/nutrition/NutritionDayHeader.vue'
@@ -29,7 +28,7 @@ const { data: loggedWeek } = useNutritionFetch<{ dates: string[] }>(
   () => `/api/nutrition/diary/logged?from=${weekStartDate.value}&to=${weekEndDate.value}`
 )
 
-const toast = useToast()
+const fail = useFailToast()
 const {
   day,
   profiles,
@@ -163,7 +162,7 @@ async function setIncomplete(incomplete: boolean) {
     await apiFetch(`/api/nutrition/diary/${date.value}/incomplete`, { method: 'PUT', body: { incomplete } })
     await invalidateNutrition(NUTRITION_KEYS.day(date.value), 'nutrition:logged:', 'nutrition:summary:')
   } catch (error: unknown) {
-    toast.add({ title: 'Update failed', description: errorMessage(error, 'Could not update this day'), color: 'error' })
+    fail('Update failed', error, 'Could not update this day')
   } finally {
     markingIncomplete.value = false
   }
@@ -180,11 +179,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
   try {
     await apiFetch('/api/nutrition/diary/copy', { method: 'POST', body: payload })
   } catch (error: unknown) {
-    toast.add({
-      title: 'Copy failed',
-      description: errorMessage(error, 'Could not copy these entries'),
-      color: 'error'
-    })
+    fail('Copy failed', error, 'Could not copy these entries')
     return
   }
   copyDialogOpen.value = false

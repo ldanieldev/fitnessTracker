@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import * as Sentry from '@sentry/nuxt'
 import type { NutrientKey } from '~~/shared/types/nutrition'
 import { parseNutritionLabel } from '~/utils/ocr/labelParser'
 import { loadImageToCanvas, preprocessForOcr } from '~/utils/ocr/preprocess'
@@ -74,6 +75,7 @@ async function handleFileChange(event: Event) {
     parsed.value = parseNutritionLabel(data.text)
     status.value = 'done'
   } catch (err: unknown) {
+    Sentry.logger.warn('Label OCR failed', { errorName: errorName(err) })
     if (isCurrent()) {
       status.value = 'error'
       errorText.value = err instanceof Error ? err.message : 'Could not read this label'

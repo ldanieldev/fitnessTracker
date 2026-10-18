@@ -23,6 +23,7 @@ export function toSentryLevel(level: unknown): SentryLevel {
 /**
  * Splits one pino JSON line into a Sentry log, plus a Sentry issue when it carries an error.
  * `time`/`level`/`msg` are dropped from the attributes because Sentry models them itself.
+ * A line flagged `sentryCaptured: true` describes an error Sentry already captured, so it becomes a log, not an issue.
  */
 export function forwardLine(line: string) {
   let record: Record<string, unknown>
@@ -32,14 +33,14 @@ export function forwardLine(line: string) {
     return
   }
 
-  const { level, msg, time, err, ...attributes } = record
+  const { level, msg, time, err, sentryCaptured, ...attributes } = record
   const sentryLevel = toSentryLevel(level)
 
   Sentry.logger[sentryLevel](typeof msg === 'string' ? msg : '[non-string]', attributes)
 
   // Logging an error and handling it means Sentry's automatic capture never sees it, so a
   // caught-and-logged failure would otherwise exist only as a log line.
-  if (err && (sentryLevel === 'error' || sentryLevel === 'fatal')) {
+  if (err && sentryCaptured !== true && (sentryLevel === 'error' || sentryLevel === 'fatal')) {
     Sentry.captureException(toError(err, msg), { level: sentryLevel, extra: attributes })
   }
 }

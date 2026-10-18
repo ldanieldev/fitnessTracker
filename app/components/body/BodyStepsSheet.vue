@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { StepDay } from '~~/shared/types/steps'
 import { STEPS_MAX, type KnownStepDay } from '~~/shared/utils/steps'
-import { errorMessage } from '~/utils/apiError'
 
 const props = defineProps<{ date: string | null; known: Record<string, KnownStepDay> }>()
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ saved: [] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const today = useTodayOrNow()
 const day = ref('')
 const steps = ref<number | null>(null)
@@ -27,8 +26,9 @@ async function lookUp(date: string) {
       steps.value = found.steps
       partial.value = found.partial
     }
-  } catch {
+  } catch (err: unknown) {
     // A failed lookup leaves the day unknown; Save still upserts, so nothing is lost.
+    reportFailure(err, 'Look up step day')
   }
 }
 
@@ -77,11 +77,7 @@ async function send(method: 'PUT' | 'DELETE') {
     })
     await invalidateBody(BODY_KEYS.steps)
   } catch (error: unknown) {
-    toast.add({
-      title: method === 'PUT' ? 'Save failed' : 'Delete failed',
-      description: errorMessage(error, 'Could not update steps'),
-      color: 'error'
-    })
+    fail(method === 'PUT' ? 'Save failed' : 'Delete failed', error, 'Could not update steps')
     return
   } finally {
     saving.value = false

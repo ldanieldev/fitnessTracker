@@ -20,7 +20,9 @@ vi.mock('../../server/utils/googleHealth/connection', () => ({
   granted: () => ({ weightWrite: true })
 }))
 vi.mock('../../server/utils/inngest/client', () => ({ inngest: { send: vi.fn() } }))
-vi.mock('../../server/utils/logger', () => ({ logger: { warn: vi.fn() } }))
+vi.mock('../../server/utils/logger', () => ({
+  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+}))
 
 function chain(result: () => unknown[]) {
   const c = {
@@ -92,5 +94,24 @@ describe('pushWeight', () => {
     const { pushWeight } = await import('../../server/utils/googleHealth/weightPush')
     expect(await pushWeight(change('users/me/dataTypes/weight/dataPoints/gone', true))).toBe('deleted')
     expect(api.deleteWeights).toHaveBeenCalledWith('access', ['users/me/dataTypes/weight/dataPoints/gone'])
+  })
+
+  it('logs a skip at debug with its reason and a push at info with ids and counts only', async () => {
+    const { pushWeight } = await import('../../server/utils/googleHealth/weightPush')
+    const { logger } = await import('../../server/utils/logger')
+    state.connection = { ...activeConnection, pushWeight: false }
+    await pushWeight(change(null))
+    expect(logger.debug).toHaveBeenCalledWith(
+      { userId: 7, measurementId: 5, reason: 'push_off' },
+      'Google Health weight push skipped'
+    )
+
+    state.connection = activeConnection
+    state.rows = [row(null)]
+    await pushWeight(change(null))
+    expect(logger.info).toHaveBeenCalledWith(
+      { userId: 7, measurementId: 5, outcome: 'pushed', adopted: false, staleDeleted: 0 },
+      'Google Health weight push finished'
+    )
   })
 })

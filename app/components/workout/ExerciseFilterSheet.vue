@@ -76,7 +76,8 @@ watch(
     try {
       const keys = await apiFetch<string[]>(`/api/workouts/exercises/muscles?${query}`)
       if (call === facetCall) facet.value = keys
-    } catch {
+    } catch (err: unknown) {
+      reportFailure(err, 'Load muscle facet')
       if (call === facetCall) facet.value = null
     } finally {
       if (call === facetCall) facetLoading.value = false

@@ -8,6 +8,8 @@ import { draftFromServing, nutrientFields } from '~/utils/nutrition/servingDraft
 const props = defineProps<{ foodId: number }>()
 
 const toast = useToast()
+
+const fail = useFailToast()
 const backOrTo = useBackOrTo()
 const { tracked } = useTrackedNutrients()
 const { idToKey } = useNutrientCatalog()
@@ -25,7 +27,8 @@ async function load() {
   try {
     food.value = await apiFetch<FoodDetail>(`/api/nutrition/foods/${props.foodId}`)
     header.value = { name: food.value.name, brand: food.value.brand ?? '', barcode: food.value.barcode ?? '' }
-  } catch {
+  } catch (err: unknown) {
+    reportFailure(err, 'Load food')
     notFound.value = true
   }
 }
@@ -74,7 +77,7 @@ async function fork() {
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     await navigateTo(`/nutrition/foods/${id}`, { replace: true })
   } catch (err: unknown) {
-    toast.add({ title: 'Copy failed', description: errorMessage(err, 'Could not copy this food'), color: 'error' })
+    fail('Copy failed', err, 'Could not copy this food')
   }
 }
 
@@ -96,7 +99,7 @@ async function confirmDelete() {
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
     await navigateTo('/nutrition/foods')
   } catch (err: unknown) {
-    toast.add({ title: 'Delete failed', description: errorMessage(err, 'Could not delete this food'), color: 'error' })
+    fail('Delete failed', err, 'Could not delete this food')
   }
 }
 

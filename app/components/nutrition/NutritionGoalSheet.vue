@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { errorMessage } from '~/utils/apiError'
-
 const props = defineProps<{
   date: string
   profiles: Array<{ id: number; name: string; isDefault: boolean }>
@@ -9,7 +7,7 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ applied: [] }>()
 
-const toast = useToast()
+const fail = useFailToast()
 const selected = ref<number | null>(props.currentId)
 const applying = ref(false)
 
@@ -26,11 +24,7 @@ async function apply() {
     await apiFetch(`/api/nutrition/diary/${props.date}/goal`, { method: 'PUT', body: { profileId: selected.value } })
     await invalidateNutrition(NUTRITION_KEYS.day(props.date))
   } catch (error: unknown) {
-    toast.add({
-      title: 'Apply failed',
-      description: errorMessage(error, 'Could not apply this goal profile'),
-      color: 'error'
-    })
+    fail('Apply failed', error, 'Could not apply this goal profile')
     return
   } finally {
     applying.value = false

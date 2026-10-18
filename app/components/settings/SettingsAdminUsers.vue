@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { errorMessage } from '~/utils/apiError'
 
 interface AdminUser {
   id: number
@@ -14,7 +13,7 @@ interface AdminUser {
   tokenLastUsedAt: string | null
 }
 
-const toast = useToast()
+const fail = useFailToast()
 const {
   data: users,
   refresh,
@@ -99,7 +98,7 @@ async function setActive(user: AdminUser, isActive: boolean) {
   try {
     await apiFetch(`/api/admin/users/${user.id}`, { method: 'PATCH', body: { isActive } })
   } catch (error: unknown) {
-    toast.add({ title: 'Update failed', description: errorMessage(error, 'Could not update user'), color: 'error' })
+    fail('Update failed', error, 'Could not update user')
   } finally {
     disableTarget.value = null
     await Promise.all([refresh(), refreshNuxtData('admin-tokens')])
@@ -114,7 +113,7 @@ async function confirmDelete() {
   try {
     await apiFetch(`/api/admin/users/${target.id}`, { method: 'DELETE' })
   } catch (error: unknown) {
-    toast.add({ title: 'Delete failed', description: errorMessage(error, 'Could not delete user'), color: 'error' })
+    fail('Delete failed', error, 'Could not delete user')
   } finally {
     deleteTarget.value = null
     await Promise.all([refresh(), refreshNuxtData('admin-tokens')])

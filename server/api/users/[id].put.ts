@@ -8,6 +8,7 @@ import { toSessionUser } from '~~/server/utils/sessionUser'
 import { publicUserColumns } from '~~/server/utils/userColumns'
 import { rebuildUserRollups, repCapFor } from '~~/server/utils/workouts/rollups'
 import { normalizePlateSizes, plateSizesSchema } from '~~/shared/utils/plates'
+import { requestRoute } from '~~/server/utils/requestLog'
 import { routeId } from '~~/server/utils/validation'
 
 const updateProfileSchema = z.object({
@@ -35,6 +36,10 @@ export default defineEventHandler(async (event) => {
   const id = routeId(event)
 
   if (sessionUser.id !== id) {
+    logger.warn(
+      { event: 'forbidden_other_user', userId: sessionUser.id, targetId: id, route: requestRoute(event) },
+      'request for another user\'s account refused'
+    )
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
@@ -51,8 +56,10 @@ export default defineEventHandler(async (event) => {
 
   if (parsed.data.email !== undefined) forbidToken(event)
 
+  const emailChanged = parsed.data.email !== undefined && parsed.data.email !== sessionUser.email
+
   // Check email uniqueness if changed
-  if (parsed.data.email !== undefined && parsed.data.email !== sessionUser.email) {
+  if (emailChanged && parsed.data.email !== undefined) {
     const existing = await db
       .select({ id: users.id })
       .from(users)
@@ -105,6 +112,10 @@ export default defineEventHandler(async (event) => {
       }
       throw error
     })
+
+  if (emailChanged) {
+    logger.info({ event: 'account.email_changed', userId: id, via: event.context.authVia }, 'account email changed')
+  }
 
   // Rollups store bestE1rm computed with the old cap, so a cap change invalidates every one of this user's rows.
   if (parsed.data.oneRepMaxRepCap !== undefined && parsed.data.oneRepMaxRepCap !== currentRepCap) {

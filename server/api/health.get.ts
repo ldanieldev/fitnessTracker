@@ -6,9 +6,8 @@ export default defineEventHandler(async (event) => {
   try {
     await withQuerySpan('health-db-ping', () => db.execute(sql`SELECT 1`))
     db_ok = true
-    logger.debug({ route: '/api/health' }, 'health check ok')
   } catch (error) {
-    console.error('Database connection failed:', error)
+    logger.error({ err: error }, 'health check database ping failed')
   }
 
   if (!db_ok) {
