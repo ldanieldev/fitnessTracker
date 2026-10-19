@@ -69,6 +69,9 @@ watch(date, () => selection.clear())
 const copyDialogOpen = ref(false)
 const copySourceEntries = ref<DiaryEntry[]>([])
 
+const today = useTodayOrNow()
+// Copying from a past day is usually re-logging a meal today, so the target skips ahead; today and later stay put.
+const copyDefaultDate = computed(() => (date.value < today.value ? today.value : date.value))
 const copyContainers = computed(() => (day.value?.containers ?? []).map((c) => ({ id: c.id, name: c.name })))
 
 const editingEntryId = ref<number | null>(null)
@@ -301,7 +304,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         v-model:open="copyDialogOpen"
         :source-entries="copySourceEntries"
         :containers="copyContainers"
-        :default-date="date"
+        :default-date="copyDefaultDate"
         @confirm="onCopyConfirm"
       />
 

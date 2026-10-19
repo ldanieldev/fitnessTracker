@@ -1,5 +1,6 @@
 import { expect, test } from '@nuxt/test-utils/playwright'
 import { apiFetch, makeUser, registerViaApi } from './helpers'
+import { shiftDate, todayDate } from '../../shared/utils/nutritionSummary'
 
 test('copying recomputes from the food as it is today', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
@@ -319,6 +320,7 @@ test('copying one entry into a different container on the same date refreshes th
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
   const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const today = todayDate()
   const sourceContainer = containers.json[0]!
   const targetContainer = containers.json[1]!
 
@@ -327,11 +329,11 @@ test('copying one entry into a different container on the same date refreshes th
     servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 10 } }]
   })
 
-  await apiFetch(page, 'POST', '/api/nutrition/diary/2026-08-03/entries', [
+  await apiFetch(page, 'POST', `/api/nutrition/diary/${today}/entries`, [
     { entryType: 'food', foodId: food.json.id, containerId: sourceContainer.id, quantity: 100, unitLabel: 'g' }
   ])
 
-  await goto('/nutrition/diary/2026-08-03', { waitUntil: 'hydration' })
+  await goto(`/nutrition/diary/${today}`, { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(1)
 
   await page.locator('[data-test="entry-row"]').click()
@@ -340,17 +342,43 @@ test('copying one entry into a different container on the same date refreshes th
   await page.getByRole('option', { name: targetContainer.name }).click()
   await page.locator('[data-test="copy-confirm"]').click()
 
-  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-08-03$/)
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/${today}$`))
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(2)
 
   const target = await apiFetch<{ entries: Array<{ containerId: number }> }>(
     page,
     'GET',
-    '/api/nutrition/diary/2026-08-03'
+    `/api/nutrition/diary/${today}`
   )
   expect(target.json.entries).toHaveLength(2)
   expect(target.json.entries.some((e) => e.containerId === targetContainer.id)).toBe(true)
   expect(target.json.entries.some((e) => e.containerId === sourceContainer.id)).toBe(true)
+})
+
+test('the copy dialog targets today from a past day and keeps a future day', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const today = todayDate()
+  for (const [day, expected] of [
+    [shiftDate(today, -3), today],
+    [shiftDate(today, 2), shiftDate(today, 2)]
+  ] as const) {
+    await apiFetch(page, 'POST', `/api/nutrition/diary/${day}/entries`, [
+      {
+        entryType: 'quick_add',
+        containerId: containers.json[0]!.id,
+        description: 'Oats',
+        quantity: 1,
+        unitLabel: 'serving',
+        nutrients: { energy: 300 }
+      }
+    ])
+    await goto(`/nutrition/diary/${day}`, { waitUntil: 'hydration' })
+    await page.locator('[data-test="entry-row"]').click()
+    await page.locator('[data-test="entry-copy"]').click()
+    await expect(page.locator('[data-test="copy-target-date"]')).toHaveValue(expected)
+  }
 })
 
 test('a copy to another day keeps the time of day, and a quick-add copy refuses a new unit', async ({ page, goto }) => {
