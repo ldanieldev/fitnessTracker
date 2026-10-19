@@ -6,7 +6,7 @@ import { BODYWEIGHT_DAILY_DAYS } from '~~/shared/utils/dashboard'
 const TONE_CLASS = { success: 'text-success', error: 'text-error', neutral: 'text-dimmed' }
 const SLIDES = [
   { key: 'daily', aside: 'Latest', range: `${BODYWEIGHT_DAILY_DAYS} days` },
-  { key: 'average', aside: '7-day avg', range: '12 weeks' }
+  { key: 'average', aside: 'Weekly avg', range: '12 weeks' }
 ] as const
 
 const { data, error, refresh } = useDashboardBodyweight()
@@ -54,6 +54,13 @@ const dailyText = computed(() => {
   if (!d?.previous || dailyChange.value === null) return null
   const since = d.previous.date === today.value ? 'earlier today' : dayLabel(d.previous.date)
   return `${arrow(dailyChange.value)}${Math.abs(dailyChange.value).toFixed(d.precision)} ${d.unit} · since ${since}`
+})
+
+const weekLabel = computed(() => {
+  const week = data.value?.week
+  if (!week) return null
+  if (week.from.slice(0, 7) !== week.to.slice(0, 7)) return `${dayLabel(week.from)} – ${dayLabel(week.to)}`
+  return `${dayLabel(week.from)}–${format(new Date(`${week.to}T00:00:00`), 'd')}`
 })
 
 const averageTone = computed(() => deltaTone(data.value?.change ?? null, direction.value))
@@ -129,12 +136,13 @@ const sparkShown = computed(() => {
           </div>
           <div v-else class="flex flex-col gap-3" data-test="bodyweight-slide-average">
             <div class="flex items-baseline justify-between gap-2">
-              <span>
+              <div>
                 <span class="text-2xl font-bold text-highlighted tabular-nums" data-test="bodyweight-current">
                   {{ formatValue(data.current, data.precision) }}
                 </span>
                 <span class="text-xs text-muted"> {{ data.unit }}</span>
-              </span>
+                <p v-if="weekLabel" class="text-xs text-dimmed" data-test="bodyweight-week">{{ weekLabel }}</p>
+              </div>
               <span
                 v-if="averageText"
                 class="text-xs font-semibold"

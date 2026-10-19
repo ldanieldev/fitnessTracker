@@ -17,6 +17,7 @@ export interface BodyweightTrend {
   latest: { value: number; date: string } | null
   previous: { value: number; date: string } | null
   change: number | null
+  week: { from: string; to: string }
   series: number[]
   daily: number[]
   goal: { targetValue: number; startValue: number } | null

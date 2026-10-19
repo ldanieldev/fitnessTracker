@@ -26,28 +26,33 @@ export function calendarColumns(today: string, weekStart: 0 | 1, count = CALENDA
   })
 }
 
-function averageEnding(byDate: Map<string, number>, end: string): number | null {
+function weekAverage(byDate: Map<string, number>, start: string): number | null {
   const values: number[] = []
   for (let k = 0; k < 7; k++) {
-    const value = byDate.get(shiftDate(end, -k))
+    const value = byDate.get(shiftDate(start, k))
     if (value !== undefined) values.push(value)
   }
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
 }
 
-export function bodyweightStats(points: LiftPoint[], today: string) {
-  const byDate = new Map(points.map((p) => [p.date, p.value]))
-  const current = averageEnding(byDate, today)
-  const before = averageEnding(byDate, shiftDate(today, -28))
+// Weekly figures cover the last completed calendar week, so the number matches a check-in written on the week start.
+export function bodyweightStats(points: LiftPoint[], today: string, weekStart: 0 | 1) {
+  const byDate = new Map<string, number>()
+  // Points come latest-first per day, so keeping the first seen makes a re-weigh the day's reading.
+  for (const p of points) if (!byDate.has(p.date)) byDate.set(p.date, p.value)
+  const lastWeek = shiftDate(weekStartOf(today, weekStart), -7)
+  const current = weekAverage(byDate, lastWeek)
+  const before = weekAverage(byDate, shiftDate(lastWeek, -28))
   const dailyFrom = shiftDate(today, -(BODYWEIGHT_DAILY_DAYS - 1))
   const series = Array.from({ length: CALENDAR_WEEKS }, (_, i) =>
-    averageEnding(byDate, shiftDate(today, -7 * (CALENDAR_WEEKS - 1 - i)))
+    weekAverage(byDate, shiftDate(lastWeek, -7 * (CALENDAR_WEEKS - 1 - i)))
   ).flatMap((value) => (value === null ? [] : [round1(value)]))
   return {
     current: current === null ? null : round1(current),
     change: current !== null && before !== null ? round1(current - before) : null,
+    week: { from: lastWeek, to: shiftDate(lastWeek, 6) },
     series,
-    daily: points.filter((p) => p.date >= dailyFrom).map((p) => p.value)
+    daily: [...byDate].flatMap(([date, value]) => (date >= dailyFrom ? [value] : []))
   }
 }
 
@@ -157,5 +162,5 @@ export function rankTrained<T extends { exerciseId: number; name: string; sessio
 }
 
 export function dashboardCacheKey(part: DashboardPart, userId: number, today: string, weekStart: 0 | 1): string {
-  return `dashboard:v3:${part}:${userId}:${today}:${weekStart}`
+  return `dashboard:v4:${part}:${userId}:${today}:${weekStart}`
 }

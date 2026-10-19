@@ -41,6 +41,7 @@ const base: BodyweightTrend = {
   latest: { value: 181, date: '2026-10-11' },
   previous: { value: 181.4, date: '2026-10-09' },
   change: -1.6,
+  week: { from: '2026-10-04', to: '2026-10-10' },
   series: [184, 183, 182.2, 181.4],
   daily: [182, 181.4, 181],
   goal: { targetValue: 175, startValue: 190 }
@@ -63,10 +64,11 @@ async function mounted() {
 }
 
 describe('DashboardBodyweightTrend', () => {
-  it('shows the 7-day average, a toward-goal change, the goal line and distance', async () => {
+  it('shows the weekly average with its week, a toward-goal change, the goal line and distance', async () => {
     payload = base
     const wrapper = await mounted()
     expect(wrapper.find('[data-test="bodyweight-current"]').text()).toBe('181.4')
+    expect(wrapper.find('[data-test="bodyweight-week"]').text()).toBe('Oct 4–10')
     const change = wrapper.find('[data-test="bodyweight-change"]')
     expect(change.text()).toBe('↓ 1.6 lbs · 4 wks')
     expect(change.classes()).toContain('text-success')
@@ -85,14 +87,14 @@ describe('DashboardBodyweightTrend', () => {
     expect(wrapper.text()).toContain('14 days')
   })
 
-  it('labels the 7-day average once the carousel selects it', async () => {
+  it('labels the weekly average once the carousel selects it', async () => {
     payload = base
     const wrapper = await mounted()
     const carousel = carouselOf(wrapper)
     expect(carousel.props('dots')).toBe(true)
     carousel.vm.$emit('select', 1)
     await nextTick()
-    expect(wrapper.find('[data-test="card-aside"]').text()).toBe('7-day avg')
+    expect(wrapper.find('[data-test="card-aside"]').text()).toBe('Weekly avg')
     expect(wrapper.text()).toContain('12 weeks')
   })
 
@@ -114,6 +116,12 @@ describe('DashboardBodyweightTrend', () => {
     expect(wrapper.find('[data-test="bodyweight-slide-average"]').exists()).toBe(false)
     expect(carouselOf(wrapper).props('dots')).toBe(false)
     expect(wrapper.find('[data-test="bodyweight-daily-change"]').exists()).toBe(false)
+  })
+
+  it('names both months when the week spans two', async () => {
+    payload = { ...base, week: { from: '2026-09-27', to: '2026-10-03' } }
+    const wrapper = await mounted()
+    expect(wrapper.find('[data-test="bodyweight-week"]').text()).toBe('Sep 27 – Oct 3')
   })
 
   it('shows an empty state with no readings', async () => {

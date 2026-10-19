@@ -10,9 +10,7 @@ import type { DashboardContext } from '~~/server/utils/dashboard/context'
 import { bodyweightStamp } from '~~/server/utils/dashboard/stamps'
 import { bodyweightStats, CALENDAR_WEEKS } from '~~/shared/utils/dashboard'
 import { shiftDate } from '~~/shared/utils/nutritionSummary'
-
-// 12 weekly points of a 7-day average, plus the 28-day comparison point's own 7 days.
-const LOOKBACK_DAYS = CALENDAR_WEEKS * 7 + 28 + 6
+import { weekStartOf } from '~~/shared/utils/programs'
 
 async function bodyweightType() {
   return db
@@ -41,14 +39,15 @@ async function lastTwoReadings(userId: number, typeId: number) {
 export async function loadBodyweight(ctx: DashboardContext): Promise<BodyweightTrend | null> {
   const type = await bodyweightType()
   if (!type) return null
-  const from = shiftDate(ctx.today, -LOOKBACK_DAYS)
+  // The oldest of the 12 completed weeks; the 4-weeks-back comparison falls inside them.
+  const from = shiftDate(weekStartOf(ctx.today, ctx.weekStart), -7 * CALENDAR_WEEKS)
   return cachedPart('bodyweight', ctx, () => bodyweightStamp(ctx.userId, type.id), async () => {
     const [points, [latest, previous], goal] = await Promise.all([
       dailySeries(ctx.userId, type.id, from, ctx.today),
       lastTwoReadings(ctx.userId, type.id),
       loadGoal(ctx.userId, type.id)
     ])
-    const stats = bodyweightStats(points, ctx.today)
+    const stats = bodyweightStats(points, ctx.today, ctx.weekStart)
     return {
       typeId: type.id,
       unit: type.unit,

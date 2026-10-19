@@ -19,8 +19,8 @@ import { weeksBetween } from '../../shared/utils/programs'
 
 describe('dashboardCacheKey', () => {
   it('versions the key and includes part, user, today and week start', () => {
-    expect(dashboardCacheKey('consistency', 7, '2026-10-11', 0)).toBe('dashboard:v3:consistency:7:2026-10-11:0')
-    expect(dashboardCacheKey('bodyweight', 7, '2026-10-12', 1)).toBe('dashboard:v3:bodyweight:7:2026-10-12:1')
+    expect(dashboardCacheKey('consistency', 7, '2026-10-11', 0)).toBe('dashboard:v4:consistency:7:2026-10-11:0')
+    expect(dashboardCacheKey('bodyweight', 7, '2026-10-12', 1)).toBe('dashboard:v4:bodyweight:7:2026-10-12:1')
   })
 })
 
@@ -63,28 +63,59 @@ describe('weeksBetween', () => {
 })
 
 describe('bodyweightStats', () => {
-  it('averages the last 7 days, compares with 28 days ago and builds weekly points', () => {
+  it('averages the last completed week, compares with 4 weeks before and builds weekly points', () => {
     const points = [
-      { date: '2026-09-13', value: 185 },
-      { date: '2026-10-10', value: 181 },
-      { date: '2026-10-11', value: 180 }
+      { date: '2026-09-06', value: 185 },
+      { date: '2026-10-09', value: 181 },
+      { date: '2026-10-10', value: 180 },
+      { date: '2026-10-11', value: 179 }
     ]
-    expect(bodyweightStats(points, TODAY)).toEqual({
+    expect(bodyweightStats(points, TODAY, 0)).toEqual({
       current: 180.5,
       change: -4.5,
+      week: { from: '2026-10-04', to: '2026-10-10' },
       series: [185, 180.5],
-      daily: [181, 180]
+      daily: [181, 180, 179]
     })
   })
 
-  it('has no average when the last week is empty', () => {
-    expect(bodyweightStats([{ date: '2026-09-01', value: 190 }], TODAY)).toEqual({
+  it('reads the week from the user\'s week start, matching a Sunday check-in', () => {
+    const points = [
+      { date: '2026-10-04', value: 182 },
+      { date: '2026-10-05', value: 181 },
+      { date: '2026-10-11', value: 220 },
+      { date: '2026-10-17', value: 219.2 },
+      { date: '2026-10-18', value: 219 }
+    ]
+    expect(bodyweightStats(points, TODAY, 1)).toMatchObject({
+      current: 182,
+      week: { from: '2026-09-28', to: '2026-10-04' }
+    })
+    expect(bodyweightStats(points, '2026-10-18', 0)).toMatchObject({
+      current: 219.6,
+      week: { from: '2026-10-11', to: '2026-10-17' }
+    })
+  })
+
+  it('averages the latest reading of a day with two weigh-ins, given latest first as the series returns them', () => {
+    const points = [
+      { date: '2026-10-14', value: 220 },
+      { date: '2026-10-14', value: 220.4 },
+      { date: '2026-10-15', value: 219 }
+    ]
+    expect(bodyweightStats(points, '2026-10-18', 0).current).toBe(219.5)
+    expect(bodyweightStats(points, '2026-10-18', 0).daily).toEqual([220, 219])
+  })
+
+  it('has no average when the last completed week is empty', () => {
+    expect(bodyweightStats([{ date: '2026-10-11', value: 190 }], TODAY, 0)).toEqual({
       current: null,
       change: null,
-      series: [190],
-      daily: []
+      week: { from: '2026-10-04', to: '2026-10-10' },
+      series: [],
+      daily: [190]
     })
-    expect(bodyweightStats([], TODAY)).toEqual({ current: null, change: null, series: [], daily: [] })
+    expect(bodyweightStats([], TODAY, 0)).toMatchObject({ current: null, change: null, series: [], daily: [] })
   })
 
   it('keeps daily readings from the last 14 days, today included', () => {
@@ -93,7 +124,7 @@ describe('bodyweightStats', () => {
       { date: '2026-09-28', value: 183 },
       { date: '2026-10-11', value: 180 }
     ]
-    expect(bodyweightStats(points, TODAY).daily).toEqual([183, 180])
+    expect(bodyweightStats(points, TODAY, 0).daily).toEqual([183, 180])
   })
 })
 

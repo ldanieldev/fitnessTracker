@@ -28,7 +28,7 @@ test('the Body nav reaches the hub, a reading logs from a card, and the dashboar
 
   await goto('/', { waitUntil: 'hydration' })
   await expect(page.locator('[data-test="dashboard-bodyweight"]')).toBeVisible()
-  await expect(page.locator('[data-test="bodyweight-current"]')).toHaveText('197.0')
+  await expect(page.locator('[data-test="bodyweight-latest"]')).toHaveText('197.0')
   await expect(page.locator('[data-test="today-weighIn"] a')).toHaveAttribute('href', `/body/${weight.id}`)
 })
 
