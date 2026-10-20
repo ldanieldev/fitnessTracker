@@ -19,10 +19,15 @@ const fail = useFailToast()
 const route = useRoute()
 const router = useRouter()
 
-const availableProviders = [
+const ALL_PROVIDERS = [
   { name: 'github', label: 'GitHub', icon: 'i-simple-icons-github', linkUrl: '/api/auth/github' },
   { name: 'google', label: 'Google', icon: 'i-simple-icons-google', linkUrl: '/api/auth/google' }
-]
+] as const
+
+const configured = await useOAuthProviders()
+const availableProviders = computed(() =>
+  ALL_PROVIDERS.filter((p) => configured.value.includes(p.name) || isLinked(p.name))
+)
 
 const unlinking = ref<string | null>(null)
 const linking = ref<string | null>(null)

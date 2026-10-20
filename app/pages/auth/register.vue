@@ -56,20 +56,23 @@ const fields = [
   }
 ]
 
-const providers = [
-  {
+const OAUTH_BUTTONS = {
+  google: {
     label: 'Google',
     icon: 'i-simple-icons-google',
     to: '/api/auth/google',
     external: true
   },
-  {
+  github: {
     label: 'GitHub',
     icon: 'i-simple-icons-github',
     to: '/api/auth/github',
     external: true
   }
-]
+}
+
+const oauthProviders = await useOAuthProviders()
+const providers = computed(() => oauthProviders.value.map((provider) => OAUTH_BUTTONS[provider]))
 
 const schema = z
   .object({
