@@ -36,6 +36,15 @@ Every variable is listed with a short note in `.env.example`. Required: `DATABAS
 - Behind a reverse proxy, set `NUXT_TRUST_PROXY=true` so rate limits see the real client IP.
 - Set `NUXT_REGISTRATION=closed` once everyone who needs an account has one.
 
+## Deploying
+
+Images are published as `ghcr.io/ldanieldev/my-fitness-journal:<version>`, with the exercise photos included.
+`compose.prod.yml` runs the whole stack from one: replace every `CHANGE_ME_*` and put an HTTPS proxy in front of port
+3000.
+
+- The `migrate` service applies migrations on every start. They are one-way, so roll back by restoring the database.
+- Inngest has no published port, because its dashboard has no login.
+
 ## Admin
 
 **Settings → Admin** manages users and access tokens. From the command line, against `DATABASE_URL`:

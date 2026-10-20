@@ -68,7 +68,79 @@ jobs:
         run: bunx drizzle-kit migrate
 
       - name: Re-run with the release image's migrator (same journal, so a no-op) and grant the app role
-        run: APP_DB_USER=journal APP_DB_PASSWORD=journal bun scripts/migrate.ts
+        run: APP_DB_USER=journal APP_DB_PASSWORD=journal INNGEST_SCHEMA=inngest bun scripts/migrate.ts
+
+      - name: Release migrator created the Inngest schema
+        run: >-
+          bun -e "const { Pool } = await import('pg'); const p = new Pool({ connectionString: process.env.DATABASE_URL });
+          const r = await p.query(\"select 1 from information_schema.schemata where schema_name = 'inngest'\");
+          await p.end(); process.exit(r.rowCount === 1 ? 0 : 1)"
 
       - name: Migration journal and snapshots are consistent
         run: bunx drizzle-kit check
+
+  docker:
+    needs: [ci, migrations]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/ldanieldev/my-fitness-journal
+          # Deploys pin exact versions, so no moving latest tag
+          flavor: latest=false
+          tags: type=semver,pattern={{version}}
+
+      - name: Build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            SENTRY_UPLOAD_SOURCEMAPS=${{ case(vars.SENTRY_ORG != '', 'true', 'false') }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=my-fitness-journal
+          secrets: sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image serves no source maps
+        run: |
+          count=$(docker run --rm --entrypoint sh "${{ steps.meta.outputs.tags }}" -c 'find .output/public -name "*.map" | wc -l')
+          test "$count" -eq 0
+
+      # Same inputs as Build, so every layer is a cache hit and nothing is rebuilt or re-uploaded
+      - name: Push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            SENTRY_UPLOAD_SOURCEMAPS=${{ case(vars.SENTRY_ORG != '', 'true', 'false') }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=my-fitness-journal
+          secrets: sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+          cache-from: type=gha

@@ -1,43 +1,58 @@
-# Self-hosted production stack; see README "Deploying / self-hosting". Secrets come from .env.
+# Values are literal rather than ${VAR}, so replace every CHANGE_ME_* before starting.
 name: my-fitness-journal
-
-x-app: &app
-  build: .
-  image: localhost/my-fitness-journal:latest
-  env_file:
-    - .env
 
 services:
   migrate:
-    <<: *app
+    image: ghcr.io/ldanieldev/my-fitness-journal:0.1.0
+    container_name: my-fitness-journal-migrate
     command: ['bun', '.output/migrate.mjs']
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}
-      APP_DB_USER: ${APP_DB_USER:-journal}
-      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD}
+      DATABASE_URL: postgres://postgres:CHANGE_ME_POSTGRES_PASSWORD@postgres:5432/app
+      APP_DB_USER: journal
+      APP_DB_PASSWORD: CHANGE_ME_APP_DB_PASSWORD
+      INNGEST_SCHEMA: inngest
     depends_on:
       postgres:
         condition: service_healthy
+        restart: true
     restart: 'no'
 
   app:
-    <<: *app
+    image: ghcr.io/ldanieldev/my-fitness-journal:0.1.0
+    container_name: my-fitness-journal
     environment:
-      DATABASE_URL: postgres://${APP_DB_USER:-journal}:${APP_DB_PASSWORD:?set APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}
-      NUXT_REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/1
+      DATABASE_URL: postgres://journal:CHANGE_ME_APP_DB_PASSWORD@postgres:5432/app
+      NUXT_SESSION_PASSWORD: CHANGE_ME_SESSION_PASSWORD
+      NUXT_REGISTRATION: closed
+      # Publish the app port only to your proxy: a client reaching it directly can spoof X-Forwarded-For.
+      NUXT_TRUST_PROXY: 'true'
+      NUXT_REDIS_URL: redis://:CHANGE_ME_REDIS_PASSWORD@redis:6379/1
       NUXT_MEILI_HOST: http://meilisearch:7700
-      NUXT_MEILI_API_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      NUXT_MEILI_API_KEY: CHANGE_ME_MEILI_MASTER_KEY
       INNGEST_BASE_URL: http://inngest:8288
       INNGEST_SERVE_ORIGIN: http://app:3000
-      INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:?set INNGEST_SIGNING_KEY}
-      INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:?set INNGEST_EVENT_KEY}
+      INNGEST_SIGNING_KEY: CHANGE_ME_INNGEST_SIGNING_KEY
+      INNGEST_EVENT_KEY: CHANGE_ME_INNGEST_EVENT_KEY
+      NUXT_OAUTH_GOOGLE_CLIENT_ID: CHANGE_ME_GOOGLE_CLIENT_ID
+      NUXT_OAUTH_GOOGLE_CLIENT_SECRET: CHANGE_ME_GOOGLE_CLIENT_SECRET
+      NUXT_GOOGLE_HEALTH_TOKEN_KEY: CHANGE_ME_GOOGLE_HEALTH_TOKEN_KEY
+      NUXT_OFF_USER_AGENT: MyFitnessJournal/0.1 (CHANGE_ME_CONTACT_EMAIL)
+      NUXT_USDA_API_KEY: DEMO_KEY
+      NUXT_FATSECRET_CLIENT_ID: ''
+      NUXT_FATSECRET_CLIENT_SECRET: ''
+      NUXT_FATSECRET_SCOPE: basic
+      # Blank both DSNs and redeploy to turn Sentry off.
+      SENTRY_DSN: CHANGE_ME_SENTRY_DSN
+      NUXT_PUBLIC_SENTRY_DSN: CHANGE_ME_SENTRY_DSN
+      SENTRY_ENVIRONMENT: production
+      ENABLE_OPENTELEMETRY: 'false'
+      OTEL_SERVICE_NAME: my-fitness-journal
+      OTEL_EXPORTER_OTLP_ENDPOINT: CHANGE_ME_OTLP_ENDPOINT
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       LOG_FILE: ''
       PORT: '3000'
-      # Must be false if APP_BIND publishes the app to clients directly, or they can spoof X-Forwarded-For.
-      NUXT_TRUST_PROXY: ${NUXT_TRUST_PROXY:-true}
     ports:
-      # Loopback by default: put the HTTPS reverse proxy in front. APP_BIND=0.0.0.0 for a proxy on another host.
-      - '${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000'
+      - '3000:3000'
     healthcheck:
       test: ['CMD', 'bun', '-e', "process.exit((await fetch('http://127.0.0.1:3000/auth/login')).ok ? 0 : 1)"]
       interval: 30s
@@ -53,67 +68,88 @@ services:
         condition: service_healthy
       inngest:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: '1.0'
     restart: unless-stopped
 
   postgres:
     image: docker.io/library/postgres:18.3-alpine
+    container_name: my-fitness-journal-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      INNGEST_SCHEMA: ${INNGEST_SCHEMA:-inngest}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: CHANGE_ME_POSTGRES_PASSWORD
+      POSTGRES_DB: app
     volumes:
-      - postgres_data:/var/lib/postgresql
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro,Z
+      # Postgres 18 keeps PGDATA in 18/docker under this mount; a bind-mounted host dir must be chown -R 70:70 first.
+      - postgres:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d app']
       interval: 5s
       timeout: 5s
       retries: 12
-      start_period: 10s
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: '0.5'
     restart: unless-stopped
 
   redis:
     image: docker.io/library/redis:8.6.1-alpine
-    command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD:?set REDIS_PASSWORD}']
+    container_name: my-fitness-journal-redis
+    command: ['redis-server', '--appendonly', 'yes', '--requirepass', 'CHANGE_ME_REDIS_PASSWORD']
     environment:
-      REDISCLI_AUTH: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+      REDISCLI_AUTH: CHANGE_ME_REDIS_PASSWORD
     volumes:
-      - redis_data:/data
+      - redis:/data
     healthcheck:
       test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.1'
     restart: unless-stopped
 
   meilisearch:
     image: docker.io/getmeili/meilisearch:v1.37.0
+    container_name: my-fitness-journal-meili
     environment:
       MEILI_ENV: production
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      MEILI_MASTER_KEY: CHANGE_ME_MEILI_MASTER_KEY
       MEILI_NO_ANALYTICS: 'true'
     volumes:
-      - meili_data:/meili_data
+      - meilisearch:/meili_data
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:7700/health']
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '0.25'
     restart: unless-stopped
 
   inngest:
     image: docker.io/inngest/inngest:v1.17.5
+    container_name: my-fitness-journal-inngest
     # --poll-interval re-syncs the app's functions, so a redeploy needs no manual PUT /api/inngest.
     command: ['inngest', 'start', '--sdk-url', 'http://app:3000/api/inngest', '--poll-interval', '60']
     environment:
-      INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:?set INNGEST_EVENT_KEY}
-      INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:?set INNGEST_SIGNING_KEY}
-      INNGEST_POSTGRES_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}?search_path=${INNGEST_SCHEMA:-inngest}
-      INNGEST_REDIS_URI: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
-    ports:
-      # The dashboard and its GraphQL API have no login and can re-run functions; keep them on loopback.
-      - '127.0.0.1:${INNGEST_UI_PORT:-8288}:8288'
+      INNGEST_EVENT_KEY: CHANGE_ME_INNGEST_EVENT_KEY
+      INNGEST_SIGNING_KEY: CHANGE_ME_INNGEST_SIGNING_KEY
+      INNGEST_POSTGRES_URI: postgres://postgres:CHANGE_ME_POSTGRES_PASSWORD@postgres:5432/app?search_path=inngest
+      INNGEST_REDIS_URI: redis://:CHANGE_ME_REDIS_PASSWORD@redis:6379/0
+    # No ports: the dashboard has no login and can re-run functions.
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8288/health']
       interval: 10s
@@ -121,13 +157,18 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  redis_data:
-  meili_data:
+  postgres:
+  redis:
+  meilisearch:

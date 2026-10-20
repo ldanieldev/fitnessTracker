@@ -25,7 +25,12 @@ async function grantAppRole(user: string, password: string) {
 try {
   await migrate(drizzle({ client: pool }), { migrationsFolder: process.env.MIGRATIONS_DIR || 'drizzle' })
   console.log('migrations applied')
-  const { APP_DB_USER: user, APP_DB_PASSWORD: password } = process.env
+  const { APP_DB_USER: user, APP_DB_PASSWORD: password, INNGEST_SCHEMA: inngestSchema } = process.env
+  // Inngest exits with "no schema" unless its search_path schema exists, and prod mounts no initdb script.
+  if (inngestSchema) {
+    await pool.query(`CREATE SCHEMA IF NOT EXISTS ${escapeIdentifier(inngestSchema)}`)
+    console.log(`inngest schema ${inngestSchema} ensured`)
+  }
   if (user && password) {
     await grantAppRole(user, password)
     console.log(`app role ${user} granted read/write on schema ${APP_SCHEMA_NAME}`)
