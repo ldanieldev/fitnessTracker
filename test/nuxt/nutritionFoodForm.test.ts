@@ -38,6 +38,12 @@ describe('NutritionFoodForm', () => {
     expect((wrapper.find('[data-test="food-barcode"]').element as HTMLInputElement).value).toBe('3017624010701')
   })
 
+  it('offers a barcode scan button beside the barcode input', async () => {
+    const wrapper = await mountSuspended(NutritionFoodForm)
+
+    expect(wrapper.find('[data-test="food-barcode-scan"]').exists()).toBe(true)
+  })
+
   it('applies a parsed OCR result as one named serving, replacing the empty default row', async () => {
     const wrapper = await mountSuspended(NutritionFoodForm)
 

@@ -109,9 +109,7 @@ async function submit() {
       <UFormField label="Brand">
         <UInput v-model="brand" class="w-full" />
       </UFormField>
-      <UFormField label="Barcode">
-        <UInput v-model="barcode" class="w-full" data-test="food-barcode" />
-      </UFormField>
+      <NutritionBarcodeField v-model="barcode" input-test="food-barcode" />
 
       <UButton
         :label="showOcr ? 'Hide label scanner' : 'Scan label'"

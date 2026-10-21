@@ -172,9 +172,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
               <UFormField label="Brand">
                 <UInput v-model="header.brand" class="w-full" data-test="food-header-brand" />
               </UFormField>
-              <UFormField label="Barcode">
-                <UInput v-model="header.barcode" inputmode="numeric" class="w-full" data-test="food-header-barcode" />
-              </UFormField>
+              <NutritionBarcodeField v-model="header.barcode" input-test="food-header-barcode" />
               <NutritionServingPreview v-if="defaultDraft" :draft="defaultDraft" />
               <p v-if="headerError" class="text-sm text-error" data-test="food-header-error">{{ headerError }}</p>
               <UButton
