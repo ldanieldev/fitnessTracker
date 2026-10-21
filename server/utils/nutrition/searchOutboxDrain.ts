@@ -9,6 +9,6 @@ export type DrainResult = OutboxDrainResult
 export async function drainSearchOutbox(limit = 500): Promise<DrainResult> {
   const provider = await getSearchProvider()
   if (isDegradedProvider(provider)) return { processed: 0, failed: 0, skipped: true, rebuilt: false }
-  const isEmpty = provider instanceof MeiliSearchProvider ? () => provider.isEmpty() : undefined
-  return drainOutbox('food', provider, { isEmpty }, limit)
+  const needsRebuild = provider instanceof MeiliSearchProvider ? () => provider.needsRebuild() : undefined
+  return drainOutbox('food', provider, { needsRebuild }, limit)
 }

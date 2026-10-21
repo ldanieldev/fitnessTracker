@@ -129,14 +129,14 @@ describe('drainOutbox entity scoping', () => {
     expect(result.processed).toBe(2)
   })
 
-  it('rebuilds only when the isEmpty hook reports an empty index', async () => {
+  it('rebuilds only when the needsRebuild hook says so', async () => {
     const { drainOutbox } = await import('../../server/utils/search/outboxDrain')
     const provider = fakeProvider()
 
-    expect((await drainOutbox('exercise', provider, { isEmpty: async () => false })).rebuilt).toBe(false)
+    expect((await drainOutbox('exercise', provider, { needsRebuild: async () => false })).rebuilt).toBe(false)
     expect(provider.rebuild).not.toHaveBeenCalled()
 
-    expect((await drainOutbox('exercise', provider, { isEmpty: async () => true })).rebuilt).toBe(true)
+    expect((await drainOutbox('exercise', provider, { needsRebuild: async () => true })).rebuilt).toBe(true)
     expect(provider.rebuild).toHaveBeenCalledTimes(1)
   })
 

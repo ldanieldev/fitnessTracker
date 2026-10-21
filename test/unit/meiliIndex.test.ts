@@ -151,6 +151,29 @@ describe('MeiliIndexProvider resilience', () => {
     })
     expect(await provider.isEmpty()).toBe(true)
   })
+
+  it('needs a rebuild only when the index is empty and the database has documents for it', async () => {
+    const provider = new MeiliSearchProvider('http://localhost:7700', '')
+    const loadAll = vi.spyOn(provider as never, 'loadAllDocuments').mockResolvedValue([] as never)
+    getStats.mockResolvedValue({ numberOfDocuments: 0 })
+    expect(await provider.needsRebuild()).toBe(false)
+
+    loadAll.mockResolvedValue([{ id: 1 }] as never)
+    expect(await provider.needsRebuild()).toBe(true)
+
+    loadAll.mockClear()
+    getStats.mockResolvedValue({ numberOfDocuments: 3 })
+    expect(await provider.needsRebuild()).toBe(false)
+    expect(loadAll).not.toHaveBeenCalled()
+  })
+
+  it('stays healthy and rebuilds nothing when an empty index matches an empty database', async () => {
+    const provider = new MeiliSearchProvider('http://localhost:7700', '')
+    vi.spyOn(provider as never, 'loadAllDocuments').mockResolvedValue([] as never)
+    getStats.mockResolvedValue({ numberOfDocuments: 0 })
+    expect(await provider.healthy()).toBe(true)
+    expect(deleteAllDocuments).not.toHaveBeenCalled()
+  })
 })
 
 describe('MeiliIndexProvider logging', () => {

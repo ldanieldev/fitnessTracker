@@ -27,6 +27,7 @@ describe('coalesceOutbox', () => {
 })
 
 const isEmpty = vi.fn(async () => false)
+const needsRebuild = vi.fn(async () => false)
 const index = vi.fn()
 const del = vi.fn()
 const rebuild = vi.fn()
@@ -48,6 +49,7 @@ vi.mock('../../server/utils/logger', () => {
 
 class FakeMeiliSearchProvider {
   isEmpty = isEmpty
+  needsRebuild = needsRebuild
   index = index
   delete = del
   rebuild = rebuild
@@ -81,6 +83,7 @@ describe('drainSearchOutbox per-item isolation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     isEmpty.mockResolvedValue(false)
+    needsRebuild.mockResolvedValue(false)
   })
 
   it('leaves a failing entity unprocessed while marking the rest processed', async () => {
@@ -134,7 +137,7 @@ describe('drainSearchOutbox per-item isolation', () => {
   it('rebuilds first when the index is empty, then still drains the batch', async () => {
     const { drainSearchOutbox } = await import('../../server/utils/nutrition/searchOutboxDrain')
 
-    isEmpty.mockResolvedValueOnce(true)
+    needsRebuild.mockResolvedValueOnce(true)
     stubSelectResult([{ id: 1, entityId: 8, op: 'upsert' }])
     stubUpdateResult()
 
@@ -144,6 +147,19 @@ describe('drainSearchOutbox per-item isolation', () => {
     expect(result.rebuilt).toBe(true)
     expect(result.processed).toBe(1)
     expect(result.failed).toBe(0)
+  })
+
+  it('leaves an empty index alone when the provider says the database has nothing to put in it', async () => {
+    const { drainSearchOutbox } = await import('../../server/utils/nutrition/searchOutboxDrain')
+
+    isEmpty.mockResolvedValueOnce(true)
+    needsRebuild.mockResolvedValueOnce(false)
+    stubSelectResult([])
+
+    const result = await drainSearchOutbox()
+
+    expect(rebuild).not.toHaveBeenCalled()
+    expect(result.rebuilt).toBe(false)
   })
 
   it('skips when the provider is degraded', async () => {

@@ -111,7 +111,7 @@ export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
     if (createdAt !== null) {
       await this.ensureIndex()
       this.knownCreatedAt = createdAt
-      if (!(await this.isEmpty())) return true
+      if (!(await this.needsRebuild())) return true
     }
     this.recovering = this.recover(createdAt === null).finally(() => {
       this.recovering = null
@@ -128,6 +128,12 @@ export abstract class MeiliIndexProvider<TDoc extends { id: number }> {
     } catch (error) {
       log.warn({ index: this.config.name, err: meiliErrorSummary(error) }, 'search index recovery failed')
     }
+  }
+
+  // An empty index is correct while its table is empty; rebuilding it then only re-empties it, every drain.
+  async needsRebuild(): Promise<boolean> {
+    if (!(await this.isEmpty())) return false
+    return (await this.loadAllDocuments()).length > 0
   }
 
   async isEmpty(): Promise<boolean> {

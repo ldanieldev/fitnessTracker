@@ -44,12 +44,12 @@ export function coalesceOutboxRows(rows: OutboxRow[]): Array<{ entityId: number;
 export async function drainOutbox(
   entity: OutboxEntity,
   provider: DrainTarget,
-  hooks: { isEmpty?: () => Promise<boolean> },
+  hooks: { needsRebuild?: () => Promise<boolean> },
   limit = 500
 ): Promise<OutboxDrainResult> {
   // Existing rows predate the outbox, so an empty index (first run, or a manual wipe) needs a rebuild before draining.
   let rebuilt = false
-  if (hooks.isEmpty && (await hooks.isEmpty())) {
+  if (hooks.needsRebuild && (await hooks.needsRebuild())) {
     await provider.rebuild()
     rebuilt = true
     log.info({ entity }, 'search outbox found an empty index; rebuilt it')
