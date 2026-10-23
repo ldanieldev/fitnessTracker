@@ -19,7 +19,7 @@ const narrow = useIsNarrow()
     :description="description"
     :ui="{ container: 'max-h-[85dvh] overscroll-contain' }"
   >
-    <template #body>
+    <template v-if="$slots.body" #body>
       <slot name="body" />
     </template>
     <template v-if="$slots.footer" #footer>
@@ -33,7 +33,7 @@ const narrow = useIsNarrow()
     :description="description"
     :fullscreen="Boolean(fullscreen) && narrow"
   >
-    <template #body>
+    <template v-if="$slots.body" #body>
       <slot name="body" />
     </template>
     <template v-if="$slots.footer" #footer>
