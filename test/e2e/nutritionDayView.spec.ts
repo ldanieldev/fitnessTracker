@@ -124,7 +124,7 @@ test('selection mode resets when navigating to another day', async ({ page, goto
   const copySelected = page.locator('[data-test="copy-selected"]')
 
   await page.locator('[data-test="day-menu"]').click()
-  await page.getByRole('menuitem', { name: 'Select entries' }).click()
+  await page.getByRole('menuitem', { name: 'Edit multiple' }).click()
   await expect(toggle).toHaveText('Done')
 
   await page.locator('[data-test="entry-select"]').click()
@@ -144,4 +144,107 @@ test('selection mode resets when navigating to another day', async ({ page, goto
   await expect(page.locator('[data-test="entry-row"]')).toHaveCount(1)
   await expect(page.locator('[data-test="entry-select"]')).toHaveCount(0)
   await expect(toggle).toHaveCount(0)
+})
+
+const quickAdd = (containerId: number, description: string) => ({
+  entryType: 'quick_add',
+  containerId,
+  description,
+  quantity: 1,
+  unitLabel: 'serving',
+  nutrients: { protein: 5 }
+})
+
+test('deletes the selected entries after a confirm', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = await apiFetch<{ id: number }[]>(page, 'GET', '/api/nutrition/meal-containers')
+  const [first, second] = containers.json.map((c) => c.id)
+  await apiFetch(page, 'POST', '/api/nutrition/diary/2026-07-03/entries', [
+    quickAdd(first!, 'Keep me'),
+    quickAdd(first!, 'Drop one'),
+    quickAdd(second!, 'Drop two')
+  ])
+
+  await goto('/nutrition/diary/2026-07-03', { waitUntil: 'hydration' })
+  await page.locator('[data-test="day-menu"]').click()
+  await page.getByRole('menuitem', { name: 'Edit multiple' }).click()
+
+  const deleteSelected = page.locator('[data-test="delete-selected"]')
+  await expect(deleteSelected).toBeDisabled()
+  const rows = page.locator('[data-test="entry-row"]')
+  await rows.filter({ hasText: 'Drop one' }).locator('[data-test="entry-select"]').click()
+  await rows.filter({ hasText: 'Drop two' }).locator('[data-test="entry-select"]').click()
+  await expect(deleteSelected).toHaveText('Delete (2)')
+
+  await deleteSelected.click()
+  await expect(page.getByText('Delete 2 entries?')).toBeVisible()
+  await page.locator('[data-test="delete-selected-confirm"]').click()
+
+  await expect(rows).toHaveCount(1)
+  await expect(rows).toContainText('Keep me')
+  await expect(deleteSelected).toHaveCount(0)
+  const day = await apiFetch<{ entries: { description: string }[] }>(page, 'GET', '/api/nutrition/diary/2026-07-03')
+  expect(day.json.entries.map((e) => e.description)).toEqual(['Keep me'])
+})
+
+test('holding an entry starts multi-edit with that entry selected', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = await apiFetch<{ id: number }[]>(page, 'GET', '/api/nutrition/meal-containers')
+  await apiFetch(page, 'POST', '/api/nutrition/diary/2026-07-06/entries', [
+    quickAdd(containers.json[0]!.id, 'Held'),
+    quickAdd(containers.json[0]!.id, 'Other')
+  ])
+
+  await goto('/nutrition/diary/2026-07-06', { waitUntil: 'hydration' })
+  const rows = page.locator('[data-test="entry-row"]')
+  await rows.filter({ hasText: 'Held' }).locator('[data-test="entry-row-title"]').hover()
+  await page.mouse.down()
+  await page.waitForTimeout(700)
+  await page.mouse.up()
+
+  await expect(page.locator('[data-test="delete-selected"]')).toHaveText('Delete (1)')
+  await expect(rows.filter({ hasText: 'Held' }).getByRole('checkbox')).toBeChecked()
+  await expect(rows.filter({ hasText: 'Other' }).getByRole('checkbox')).not.toBeChecked()
+  await expect(page.locator('[data-test="entry-sheet-quantity"]')).toHaveCount(0)
+
+  await rows.filter({ hasText: 'Other' }).locator('[data-test="entry-row-title"]').click()
+  await expect(page.locator('[data-test="delete-selected"]')).toHaveText('Delete (2)')
+})
+
+test('a meal\'s Edit multiple selects only that meal\'s entries', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = await apiFetch<{ id: number }[]>(page, 'GET', '/api/nutrition/meal-containers')
+  const [first, second] = containers.json.map((c) => c.id)
+  await apiFetch(page, 'POST', '/api/nutrition/diary/2026-07-07/entries', [
+    quickAdd(first!, 'Meal one A'),
+    quickAdd(first!, 'Meal one B'),
+    quickAdd(second!, 'Meal two A')
+  ])
+
+  await goto('/nutrition/diary/2026-07-07', { waitUntil: 'hydration' })
+  await page.locator('[data-test="container-menu"]').first().click()
+  await page.getByRole('menuitem', { name: 'Edit multiple' }).click()
+
+  await expect(page.locator('[data-test="delete-selected"]')).toHaveText('Delete (2)')
+  const rows = page.locator('[data-test="entry-row"]')
+  await expect(rows.filter({ hasText: 'Meal two A' }).getByRole('checkbox')).not.toBeChecked()
+})
+
+test('bulk delete removes nothing when any id is not the user\'s', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const containers = await apiFetch<{ id: number }[]>(page, 'GET', '/api/nutrition/meal-containers')
+  const created = await apiFetch<{ ids: number[] }>(page, 'POST', '/api/nutrition/diary/2026-07-04/entries', [
+    quickAdd(containers.json[0]!.id, 'Survivor')
+  ])
+
+  const res = await apiFetch(page, 'POST', '/api/nutrition/diary/entries/delete', {
+    ids: [...created.json.ids, 2147483647]
+  })
+  expect(res.status).toBe(404)
+  const day = await apiFetch<{ entries: unknown[] }>(page, 'GET', '/api/nutrition/diary/2026-07-04')
+  expect(day.json.entries).toHaveLength(1)
 })

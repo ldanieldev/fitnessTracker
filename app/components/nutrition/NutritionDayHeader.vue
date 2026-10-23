@@ -14,7 +14,7 @@ const narrow = useIsNarrow()
 const menu = computed<DropdownMenuItem[][]>(() => [
   [
     { label: 'Copy day', icon: 'i-lucide-copy', onSelect: () => emit('action', 'copy-day') },
-    { label: 'Select entries', icon: 'i-lucide-list-checks', onSelect: () => emit('action', 'select') }
+    { label: 'Edit multiple', icon: 'i-lucide-list-checks', onSelect: () => emit('action', 'select') }
   ],
   [
     { label: 'Day notes', icon: 'i-lucide-notebook-pen', onSelect: () => emit('action', 'notes') },

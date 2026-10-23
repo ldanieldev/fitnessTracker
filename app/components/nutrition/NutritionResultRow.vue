@@ -8,6 +8,7 @@ const props = withDefaults(
     energy?: number | null
     selectable?: boolean
     selected?: boolean
+    holdable?: boolean
     chevron?: boolean
     disabled?: boolean
     dataTest?: string
@@ -22,6 +23,7 @@ const props = withDefaults(
     energy: null,
     selectable: false,
     selected: false,
+    holdable: false,
     chevron: false,
     disabled: false,
     dataTest: 'result-row',
@@ -31,11 +33,35 @@ const props = withDefaults(
   }
 )
 
-const emit = defineEmits<{ toggle: [on: boolean]; open: [] }>()
+const emit = defineEmits<{ toggle: [on: boolean]; open: []; hold: [] }>()
 
 const checkboxHook = computed(() => props.checkboxTest ?? `${props.dataTest}-checkbox`)
 
+const HOLD_MS = 500
+let holdTimer: ReturnType<typeof setTimeout> | undefined
+let held = false
+
+function startHold(e: PointerEvent) {
+  held = false
+  if (!props.holdable || props.disabled || props.selectable || e.button !== 0) return
+  holdTimer = setTimeout(() => {
+    held = true
+    emit('hold')
+  }, HOLD_MS)
+}
+
+function cancelHold() {
+  clearTimeout(holdTimer)
+}
+
+onBeforeUnmount(cancelHold)
+
 function onTap() {
+  // Swallow the click that ends a hold, which would otherwise unselect the entry the hold just selected.
+  if (held) {
+    held = false
+    return
+  }
   if (props.disabled) return
   if (props.selectable) emit('toggle', !props.selected)
   else if (props.chevron) emit('open')
@@ -49,9 +75,15 @@ function onTap() {
       class="flex items-center gap-3 px-3 py-2 min-h-14"
       :class="[
         (selectable || chevron) && !disabled ? 'cursor-pointer active:bg-accented' : '',
-        disabled ? 'opacity-60' : ''
+        disabled ? 'opacity-60' : '',
+        holdable ? 'select-none [-webkit-touch-callout:none]' : ''
       ]"
       @click="onTap"
+      @pointerdown="startHold"
+      @pointerup="cancelHold"
+      @pointerleave="cancelHold"
+      @pointercancel="cancelHold"
+      @contextmenu="holdable && $event.preventDefault()"
     >
       <UCheckbox
         v-if="selectable"

@@ -3,7 +3,7 @@ import type { DiaryEntry } from '~/composables/useDiaryDay'
 import type { IngredientSnapshotItem } from '~~/shared/utils/nutritionRecipe'
 
 const props = defineProps<{ entry: DiaryEntry; selectable?: boolean; selected?: boolean }>()
-const emit = defineEmits<{ open: []; 'toggle-select': [] }>()
+const emit = defineEmits<{ open: []; 'toggle-select': []; hold: [] }>()
 
 const ingredients = computed<IngredientSnapshotItem[]>(() =>
   props.entry.entryType === 'recipe' && Array.isArray(props.entry.ingredientSnapshot)
@@ -22,10 +22,12 @@ const ingredients = computed<IngredientSnapshotItem[]>(() =>
     macro-test-prefix="entry"
     :selectable="selectable"
     :selected="selected"
+    holdable
     checkbox-test="entry-select"
     :chevron="!selectable"
     @open="emit('open')"
     @toggle="emit('toggle-select')"
+    @hold="emit('hold')"
   >
     <template v-if="entry.entryType === 'recipe'" #default>
       <ul class="ps-6 text-xs text-dimmed" data-test="entry-ingredients">

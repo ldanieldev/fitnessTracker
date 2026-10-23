@@ -191,6 +191,12 @@ function idCases(a: Seed, date: string): Case[] {
       body: { quantity: 2 }
     },
     { name: 'diary entry DELETE', method: 'DELETE', path: `/api/nutrition/diary/entries/${a.entryId}` },
+    {
+      name: 'diary entries bulk DELETE',
+      method: 'POST',
+      path: '/api/nutrition/diary/entries/delete',
+      body: { ids: [a.entryId] }
+    },
     { name: 'measurement PATCH', method: 'PATCH', path: `/api/body/entries/${a.measurementId}`, body: { value: 1 } },
     { name: 'measurement DELETE', method: 'DELETE', path: `/api/body/entries/${a.measurementId}` },
     { name: 'type entries GET', method: 'GET', path: `${type}/entries` },

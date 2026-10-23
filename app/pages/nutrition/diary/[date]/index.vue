@@ -34,6 +34,7 @@ const {
   profiles,
   updateEntry,
   deleteEntry,
+  deleteEntries,
   goalName,
   targets: targetRows,
   totals,
@@ -120,7 +121,8 @@ const anySheetOpen = computed(
     notesOpen.value ||
     goalOpen.value ||
     saveAsOpen.value ||
-    mealTimeOpen.value
+    mealTimeOpen.value ||
+    deleteSelectedOpen.value
 )
 
 function openCopyDialog(entries: DiaryEntry[]) {
@@ -145,6 +147,19 @@ function copyEntry(entryId: number) {
 function copySelected() {
   const entries = (day.value?.entries ?? []).filter((e) => selection.state.selected.has(e.id))
   if (entries.length) openCopyDialog(entries)
+}
+
+const deleteSelectedOpen = ref(false)
+const deleteSelectedPrompt = computed(() => {
+  const count = selection.state.selected.size
+  return `Delete ${count} ${count === 1 ? 'entry' : 'entries'}?`
+})
+
+async function deleteSelected() {
+  if (await deleteEntries([...selection.state.selected])) {
+    deleteSelectedOpen.value = false
+    selection.clear()
+  }
 }
 
 function onDayAction(action: DayAction) {
@@ -252,6 +267,8 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
           @open-entry="(id) => (editingEntryId = id)"
           @copy-container="copyContainer"
           @toggle-entry="selection.toggleEntry"
+          @hold-entry="(id) => selection.startWith([id])"
+          @select-container="selection.startWith"
           @save-as="onSaveAs"
           @edit-time="(id) => (mealTimeContainerId = id)"
         />
@@ -272,7 +289,8 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         v-if="selection.state.active"
         class="
           fixed inset-x-0 bottom-0 z-10 flex gap-2 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-default/95
-          border-t border-default lg:static lg:border-0 lg:bg-transparent
+          border-t border-default lg:sticky lg:mx-auto lg:w-full lg:max-w-3xl lg:rounded-xl lg:border lg:bg-elevated
+          lg:p-3 lg:shadow-lg
         "
       >
         <UButton
@@ -281,6 +299,15 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
           color="neutral"
           data-test="toggle-select-mode"
           @click="selection.toggle()"
+        />
+        <UButton
+          icon="i-lucide-trash-2"
+          :label="`Delete (${selection.state.selected.size})`"
+          color="error"
+          variant="soft"
+          :disabled="selection.state.selected.size === 0"
+          data-test="delete-selected"
+          @click="deleteSelectedOpen = true"
         />
         <UButton
           label="Copy selected"
@@ -308,6 +335,19 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         :default-date="copyDefaultDate"
         @confirm="onCopyConfirm"
       />
+
+      <AppSheet
+        v-model:open="deleteSelectedOpen"
+        title="Delete entries"
+        :description="deleteSelectedPrompt"
+      >
+        <template #footer>
+          <div class="flex w-full justify-end gap-2">
+            <UButton label="Cancel" color="neutral" variant="outline" @click="deleteSelectedOpen = false" />
+            <UButton label="Delete" color="error" data-test="delete-selected-confirm" @click="deleteSelected" />
+          </div>
+        </template>
+      </AppSheet>
 
       <LazyNutritionEntrySheet
         v-model:open="entrySheetOpen"

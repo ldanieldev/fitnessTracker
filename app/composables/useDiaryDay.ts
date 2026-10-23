@@ -125,5 +125,16 @@ export function useDiaryDay(date: MaybeRefOrGetter<string>, opts: { immediate?: 
     }
   }
 
-  return { day, refresh, status, error, logEntries, updateEntry, deleteEntry, fetch }
+  async function deleteEntries(ids: number[]): Promise<boolean> {
+    try {
+      await apiFetch('/api/nutrition/diary/entries/delete', { method: 'POST', body: { ids } })
+      await invalidateNutrition(NUTRITION_KEYS.day(toValue(date)), 'nutrition:logged:')
+      return true
+    } catch (err) {
+      fail('Delete failed', err, 'Could not delete these entries')
+      return false
+    }
+  }
+
+  return { day, refresh, status, error, logEntries, updateEntry, deleteEntry, deleteEntries, fetch }
 }

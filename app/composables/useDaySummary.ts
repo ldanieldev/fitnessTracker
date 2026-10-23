@@ -4,7 +4,7 @@ import type { DiaryTargetRow } from '~/composables/useDiaryDay'
 
 // Non-blocking so callers (e.g. the layout) don't stall SSR; await the returned `*Fetch` handles to settle the data.
 export function useDaySummary(date: MaybeRefOrGetter<string>, opts: { immediate?: boolean } = {}) {
-  const { day, updateEntry, deleteEntry, fetch: dayFetch } = useDiaryDay(date, opts)
+  const { day, updateEntry, deleteEntry, deleteEntries, fetch: dayFetch } = useDiaryDay(date, opts)
   const { tracked, fetch: trackedFetch } = useTrackedNutrients()
   const profilesFetch = useNutritionFetch<Array<{ id: number; name: string; isDefault: boolean }>>(
     NUTRITION_KEYS.profiles,
@@ -47,6 +47,7 @@ export function useDaySummary(date: MaybeRefOrGetter<string>, opts: { immediate?
     profiles,
     updateEntry,
     deleteEntry,
+    deleteEntries,
     goalName,
     targets,
     totals,

@@ -25,6 +25,8 @@ const emit = defineEmits<{
   'copy-container': [id: number]
   'toggle-entry': [id: number]
   'open-entry': [id: number]
+  'hold-entry': [id: number]
+  'select-container': [entryIds: number[]]
   'save-as': [containerId: number, kind: 'recipe' | 'saved-meal']
   'edit-time': [containerId: number]
 }>()
@@ -34,7 +36,16 @@ const addHref = computed(() => `/nutrition/diary/${props.date}/add?containerId=$
 const menu = computed<DropdownMenuItem[][]>(() => [
   [
     { label: 'Add to this meal', icon: 'i-lucide-plus', to: addHref.value },
-    { label: 'Copy meal', icon: 'i-lucide-copy', onSelect: () => emit('copy-container', props.container.id) }
+    { label: 'Copy meal', icon: 'i-lucide-copy', onSelect: () => emit('copy-container', props.container.id) },
+    ...(props.container.entries.length
+      ? [
+          {
+            label: 'Edit multiple',
+            icon: 'i-lucide-list-checks',
+            onSelect: () => emit('select-container', props.container.entries.map((e) => e.id))
+          }
+        ]
+      : [])
   ],
   [
     {
@@ -124,6 +135,7 @@ const displayTime = computed(() => deriveMealTime(props.container.mealTime, prop
         :selected="selectedIds?.has(entry.id) ?? false"
         @open="emit('open-entry', entry.id)"
         @toggle-select="emit('toggle-entry', entry.id)"
+        @hold="emit('hold-entry', entry.id)"
       />
     </div>
 
