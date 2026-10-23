@@ -121,6 +121,15 @@ function save() {
             data-test="entry-copy"
             @click="emit('copy', entry.id); open = false"
           />
+          <UButton
+            v-if="food"
+            icon="i-lucide-pencil"
+            color="neutral"
+            variant="soft"
+            label="Edit food"
+            :to="`/nutrition/foods/${food.id}`"
+            data-test="entry-edit-food"
+          />
           <UButton label="Save" class="ml-auto" :disabled="!canSave" data-test="entry-save" @click="save" />
         </div>
       </div>
