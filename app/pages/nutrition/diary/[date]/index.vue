@@ -236,6 +236,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
           :targets="targetRows"
           :totals="totals"
           :goal-name="goalName"
+          class="sticky -top-4 sm:-top-6 z-10 ring ring-default shadow-lg"
           @apply-goal="goalOpen = true"
         />
 
