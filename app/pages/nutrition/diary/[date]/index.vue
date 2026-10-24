@@ -294,7 +294,7 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
         "
       >
         <UButton
-          label="Done"
+          label="Cancel"
           variant="soft"
           color="neutral"
           data-test="toggle-select-mode"
@@ -305,13 +305,13 @@ async function onCopyConfirm(payload: CopyConfirmPayload) {
           :label="`Delete (${selection.state.selected.size})`"
           color="error"
           variant="soft"
+          class="ml-auto"
           :disabled="selection.state.selected.size === 0"
           data-test="delete-selected"
           @click="deleteSelectedOpen = true"
         />
         <UButton
           label="Copy selected"
-          class="ml-auto"
           :disabled="selection.state.selected.size === 0"
           data-test="copy-selected"
           @click="copySelected"

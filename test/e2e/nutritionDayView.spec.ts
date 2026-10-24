@@ -125,7 +125,7 @@ test('selection mode resets when navigating to another day', async ({ page, goto
 
   await page.locator('[data-test="day-menu"]').click()
   await page.getByRole('menuitem', { name: 'Edit multiple' }).click()
-  await expect(toggle).toHaveText('Done')
+  await expect(toggle).toHaveText('Cancel')
 
   await page.locator('[data-test="entry-select"]').click()
   await expect(copySelected).toBeVisible()
