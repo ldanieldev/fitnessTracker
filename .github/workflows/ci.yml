@@ -3,13 +3,8 @@ name: ci
 on: push
 
 jobs:
-  ci:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node: [22]
+  lint:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -26,8 +21,38 @@ jobs:
       - name: Lint
         run: bun run lint
 
+  typecheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install dependencies
+        run: bun install
+
       - name: Typecheck
         run: bun run typecheck
+
+  unit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install dependencies
+        run: bun install
 
       - name: Unit tests
         run: bun run test:unit --run
@@ -80,7 +105,7 @@ jobs:
         run: bunx drizzle-kit check
 
   docker:
-    needs: [ci, migrations]
+    needs: [lint, typecheck, unit, migrations]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -120,15 +145,13 @@ jobs:
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_PROJECT=my-fitness-journal
           secrets: sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Image serves no source maps
         run: |
           count=$(docker run --rm --entrypoint sh "${{ steps.meta.outputs.tags }}" -c 'find .output/public -name "*.map" | wc -l')
           test "$count" -eq 0
 
-      # Same inputs as Build, so every layer is a cache hit and nothing is rebuilt or re-uploaded
+      # Same inputs and builder as Build, so every layer is a cache hit; no gha cache since tags can't read each other's
       - name: Push
         uses: docker/build-push-action@v7
         with:
@@ -143,4 +166,3 @@ jobs:
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_PROJECT=my-fitness-journal
           secrets: sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
-          cache-from: type=gha
