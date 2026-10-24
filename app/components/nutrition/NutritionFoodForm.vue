@@ -104,10 +104,10 @@ async function submit() {
   <UCard>
     <div class="flex flex-col gap-4">
       <UFormField label="Name" required>
-        <UInput v-model="name" class="w-full" data-test="food-name" />
+        <UInput v-model="name" autocapitalize="words" class="w-full" data-test="food-name" />
       </UFormField>
       <UFormField label="Brand">
-        <UInput v-model="brand" class="w-full" />
+        <UInput v-model="brand" autocapitalize="words" class="w-full" />
       </UFormField>
       <NutritionBarcodeField v-model="barcode" input-test="food-barcode" />
 

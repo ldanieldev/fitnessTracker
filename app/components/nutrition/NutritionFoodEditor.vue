@@ -181,10 +181,10 @@ const menu = computed<DropdownMenuItem[][]>(() => {
           <UCard>
             <div class="flex flex-col gap-3">
               <UFormField label="Name" required>
-                <UInput v-model="header.name" class="w-full" data-test="food-header-name" />
+                <UInput v-model="header.name" autocapitalize="words" class="w-full" data-test="food-header-name" />
               </UFormField>
               <UFormField label="Brand">
-                <UInput v-model="header.brand" class="w-full" data-test="food-header-brand" />
+                <UInput v-model="header.brand" autocapitalize="words" class="w-full" data-test="food-header-brand" />
               </UFormField>
               <NutritionBarcodeField v-model="header.barcode" input-test="food-header-barcode" />
               <NutritionServingPreview v-if="defaultDraft" :draft="defaultDraft" />
