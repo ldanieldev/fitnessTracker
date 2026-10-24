@@ -95,6 +95,27 @@ describe('servingDraft', () => {
     })
   })
 
+  it('rounds stored nutrient amounts to one decimal for editing', async () => {
+    const { draftFromServing } = await import('../../app/utils/nutrition/servingDraft')
+    const draft = draftFromServing(
+      {
+        id: 7,
+        kind: 'weight',
+        label: 'g',
+        quantity: 100,
+        basisGrams: 100,
+        hasOwnNutrition: true,
+        nutrients: { 1: 107.00327868852459, 2: 0.3333333333333333, 3: 0.19999999999999998 }
+      },
+      new Map([
+        [1, 'energy'],
+        [2, 'protein'],
+        [3, 'carbohydrate']
+      ])
+    )
+    expect(draft.nutrients).toEqual({ energy: '107', protein: '0.3', carbohydrate: '0.2' })
+  })
+
   it('applies only parsed nutrients that have a field', async () => {
     const { applyParsedNutrients, emptyDraft, nutrientFields } = await import('../../app/utils/nutrition/servingDraft')
     const fields = nutrientFields(tracked.slice(0, 3))

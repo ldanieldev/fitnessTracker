@@ -85,7 +85,7 @@ export function draftFromServing(serving: ServingBasis, idToKey: Map<number, str
   const nutrients: Record<string, string> = {}
   for (const [id, amount] of Object.entries(serving.nutrients)) {
     const key = idToKey.get(Number(id))
-    if (key) nutrients[key] = String(amount)
+    if (key) nutrients[key] = String(Math.round(amount * 10) / 10)
   }
   return {
     kind: serving.kind,
