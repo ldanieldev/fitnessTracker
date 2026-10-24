@@ -1,0 +1,1 @@
+ALTER TABLE "app"."import_jobs" ADD COLUMN "time_zone" varchar(64);

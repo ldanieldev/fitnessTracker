@@ -74,9 +74,14 @@ describe('SettingsNutritionImport', () => {
 
     expect(wrapper.find('[data-test="import-status"]').text()).toContain('queued')
     expect(wrapper.find('[data-test="import-submit"]').attributes('disabled')).toBeDefined()
-    expect(appendSpy.mock.calls.map((call) => [call[0], (call[1] as File).name])).toEqual([
+    const appended = appendSpy.mock.calls.map(([name, value]) => [
+      name,
+      typeof value === 'string' ? value : (value as File).name
+    ])
+    expect(appended).toEqual([
       ['files', 'a.txt'],
-      ['files', 'b.txt']
+      ['files', 'b.txt'],
+      ['timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone]
     ])
     appendSpy.mockRestore()
 
@@ -131,7 +136,8 @@ describe('SettingsNutritionImport', () => {
 
     await wrapper.find('[data-test="import-submit"]').trigger('click')
     await flushPromises()
-    expect(appendSpy.mock.calls.map((call) => (call[1] as File).name)).toEqual(['a.txt', 'b.txt', 'd.TXT'])
+    const uploaded = appendSpy.mock.calls.filter((call) => call[0] === 'files')
+    expect(uploaded.map((call) => (call[1] as File).name)).toEqual(['a.txt', 'b.txt', 'd.TXT'])
     appendSpy.mockRestore()
     wrapper.unmount()
   })

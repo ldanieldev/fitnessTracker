@@ -1,6 +1,7 @@
 import { importJobs } from '~~/server/db/schema'
 import { db } from '~~/server/utils/db'
 import { logger } from '~~/server/utils/logger'
+import { isTimeZone } from '~~/server/utils/nutrition/mymacros/localNoon'
 import { isMyMacrosHeader } from '~~/server/utils/nutrition/mymacros/parse'
 import { queueImportJob } from '~~/server/utils/nutrition/mymacros/queue'
 import { requireUserId } from '~~/server/utils/session'
@@ -14,6 +15,11 @@ export default defineEventHandler(async (event) => {
 
   const parts = await readMultipartFormData(event)
   const files = (parts ?? []).filter((part) => part.name === 'files' && part.filename)
+  const timeZonePart = parts?.find((part) => part.name === 'timeZone' && !part.filename)
+  const timeZone = timeZonePart ? timeZonePart.data.toString('utf8') : null
+  if (timeZone !== null && !isTimeZone(timeZone)) {
+    throw createError({ statusCode: 400, statusMessage: `Unknown time zone ${timeZone.slice(0, 64)}` })
+  }
 
   if (files.length < 1 || files.length > MAX_FILES) {
     throw createError({ statusCode: 400, statusMessage: `Expected 1-${MAX_FILES} files, got ${files.length}` })
@@ -48,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
   const job = await db
     .insert(importJobs)
-    .values({ userId, source: 'mymacros', status: 'queued', fileCount: decoded.length, payload: decoded })
+    .values({ userId, source: 'mymacros', status: 'queued', fileCount: decoded.length, payload: decoded, timeZone })
     .returning({ id: importJobs.id })
     .then((r) => r[0]!)
 

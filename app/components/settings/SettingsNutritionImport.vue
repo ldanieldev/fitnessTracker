@@ -83,6 +83,8 @@ async function submit() {
 
   const formData = new FormData()
   for (const file of selectedFiles.value) formData.append('files', file, file.name)
+  // The export has dates but no times, so the server logs each entry at noon in this zone.
+  formData.append('timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone)
 
   try {
     const { jobId } = await apiFetch<{ jobId: number }>('/api/nutrition/import/mymacros', {

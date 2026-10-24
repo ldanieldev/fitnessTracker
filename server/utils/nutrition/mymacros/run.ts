@@ -21,6 +21,7 @@ import { enqueueSearchOutbox } from '../searchOutbox'
 import { drainSearchOutbox } from '../searchOutboxDrain'
 import { markReported } from '../../inngest/reported'
 import { logger } from '../../logger'
+import { localNoon } from './localNoon'
 import { MyMacrosParseError, parseMyMacrosExport, type ParsedDay } from './parse'
 import { planImport, type PlannedEntry, type PlannedFood } from './plan'
 
@@ -159,7 +160,8 @@ async function performImport(
   db: RootDbClient,
   jobId: number,
   userId: number,
-  payload: Array<{ name: string; text: string }>
+  payload: Array<{ name: string; text: string }>,
+  timeZone: string
 ): Promise<ImportResult> {
   const failedFiles: Array<{ fileName: string; error: string }> = []
   const parsed: ParsedDay[] = []
@@ -316,7 +318,7 @@ async function performImport(
             foodId,
             foodServingId,
             description: entry.description,
-            loggedAt: new Date(`${entry.date}T00:00:00Z`),
+            loggedAt: localNoon(entry.date, timeZone),
             importKey: entry.importKey,
             nutrients: {
               [energyId]: entry.nutrients.kcal,
@@ -381,7 +383,13 @@ export async function runMyMacrosImport(db: RootDbClient, jobId: number, userId:
 
   const startedAt = Date.now()
   try {
-    const result = await performImport(db, jobId, job.userId, job.payload as Array<{ name: string; text: string }>)
+    const result = await performImport(
+      db,
+      jobId,
+      job.userId,
+      job.payload as Array<{ name: string; text: string }>,
+      job.timeZone ?? 'UTC'
+    )
     await db.update(importJobs).set({ status: 'done', result, payload: {} }).where(eq(importJobs.id, jobId))
     logger.info(
       {

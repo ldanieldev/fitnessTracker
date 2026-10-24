@@ -14,6 +14,7 @@ import { scaleStoredIngredientSnapshot } from '~~/shared/utils/nutritionRecipe'
 import { NoWeightBasisError, resolveNutrition } from '~~/shared/utils/nutritionResolve'
 import { normalizeUnitLabel } from '~~/shared/utils/nutritionUnits'
 import { calendarDateSchema, zId } from '~~/server/utils/validation'
+import { todayDate } from '~~/shared/utils/nutritionSummary'
 
 const UNITLESS = { quick_add: 'quick-add', recipe: 'recipe entry' } as const
 
@@ -29,6 +30,7 @@ function normalizedLabelValue(raw: string): string {
 const copySchema = z.object({
   sourceEntryIds: z.array(zId).min(1).max(200),
   targetDate: calendarDateSchema,
+  today: calendarDateSchema.optional(),
   targetContainerId: zId.nullable().default(null),
   overrides: z
     .array(
@@ -47,6 +49,7 @@ export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const body = await parseBody(event, copySchema)
   const targetDate = parseDiaryDate(body.targetDate)
+  const today = body.today ?? todayDate()
   const sourceEntryIds = [...new Set(body.sourceEntryIds)]
 
   return db.transaction(async (tx) => {
@@ -128,7 +131,7 @@ export default defineEventHandler(async (event) => {
 
       // Keeps the source's UTC time of day (no client timezone here), so across a DST change local time shifts an hour.
       const loggedAt =
-        source.date === targetDate
+        targetDate === today
           ? new Date()
           : new Date(source.loggedAt.getTime() + msBetweenDates(source.date, targetDate))
 

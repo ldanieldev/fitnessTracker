@@ -195,7 +195,7 @@ interface CopyConfirmPayload {
 
 async function onCopyConfirm(payload: CopyConfirmPayload) {
   try {
-    await apiFetch('/api/nutrition/diary/copy', { method: 'POST', body: payload })
+    await apiFetch('/api/nutrition/diary/copy', { method: 'POST', body: { ...payload, today: today.value } })
   } catch (error: unknown) {
     fail('Copy failed', error, 'Could not copy these entries')
     return

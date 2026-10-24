@@ -193,3 +193,40 @@ test('settings Data tab queues a My Macros+ import of dropped and picked files',
   expect(job.json.fileCount).toBe(2)
   await expect(page.locator('[data-test="import-status"]')).toContainText('queued')
 })
+
+test.describe('in the browser time zone', () => {
+  test.use({ timezoneId: 'America/Chicago' })
+
+  test('an upload from the settings tab logs imported entries at local noon', async ({ page, goto }) => {
+    await goto('/', { waitUntil: 'hydration' })
+    await registerViaApi(page, makeUser())
+    await goto('/settings/data', { waitUntil: 'hydration' })
+
+    await page.locator('input[data-test="import-files"]').setInputFiles({
+      name: '2026-09-05.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from(fixture('2026-09-05.txt'))
+    })
+    const upload = page.waitForResponse(
+      (response) => response.url().endsWith('/api/nutrition/import/mymacros') && response.request().method() === 'POST'
+    )
+    await page.locator('[data-test="import-submit"]').click()
+    const { jobId } = (await (await upload).json()) as { jobId: number }
+    await apiFetch(page, 'POST', '/api/nutrition/_test/run-import', { jobId })
+
+    const day = await apiFetch<{ entries: Array<{ loggedAt: string }> }>(page, 'GET', '/api/nutrition/diary/2026-09-05')
+    expect(new Set(day.json.entries.map((e) => e.loggedAt))).toEqual(new Set(['2026-09-05T17:00:00.000Z']))
+  })
+})
+
+test('upload route rejects an unknown time zone', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const status = await page.evaluate(async (text) => {
+    const form = new FormData()
+    form.append('files', new File([text], '2026-09-05.txt', { type: 'text/plain' }))
+    form.append('timeZone', 'Mars/Olympus_Mons')
+    return (await fetch('/api/nutrition/import/mymacros', { method: 'POST', body: form })).status
+  }, fixture('2026-09-05.txt'))
+  expect(status).toBe(400)
+})

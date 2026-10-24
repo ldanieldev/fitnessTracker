@@ -16,6 +16,7 @@ export const importJobs = appSchema.table(
       .default('queued'),
     fileCount: integer('file_count').notNull(),
     payload: jsonb('payload').notNull(),
+    timeZone: varchar('time_zone', { length: 64 }),
     result: jsonb('result').default(sql`null`),
     error: text('error').default(sql`null`)
   },

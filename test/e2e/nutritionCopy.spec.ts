@@ -410,6 +410,37 @@ test('a copy to another day keeps the time of day, and a quick-add copy refuses 
   expect(copy.json.entries.map((e) => e.loggedAt)).toEqual(['2026-04-05T08:15:00.000Z'])
 })
 
+test('a copy onto today is logged now, not at the source time of day', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const today = todayDate()
+  const yesterday = shiftDate(today, -1)
+  const containers = await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const created = await apiFetch<{ ids: number[] }>(page, 'POST', `/api/nutrition/diary/${yesterday}/entries`, [
+    {
+      entryType: 'quick_add',
+      containerId: containers.json[0].id,
+      description: 'Oats',
+      quantity: 1,
+      unitLabel: 'serving',
+      loggedAt: `${yesterday}T00:00:00.000Z`,
+      nutrients: { energy: 300 }
+    }
+  ])
+
+  const before = Date.now()
+  await apiFetch(page, 'POST', '/api/nutrition/diary/copy', {
+    sourceEntryIds: created.json.ids,
+    targetDate: today,
+    today
+  })
+  const after = Date.now()
+  const copy = await apiFetch<{ entries: Array<{ loggedAt: string }> }>(page, 'GET', `/api/nutrition/diary/${today}`)
+  const loggedAt = Date.parse(copy.json.entries[0]!.loggedAt)
+  expect(loggedAt).toBeGreaterThanOrEqual(before - 1000)
+  expect(loggedAt).toBeLessThanOrEqual(after + 1000)
+})
+
 test('moving an entry to another meal puts it last in that meal', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
