@@ -65,25 +65,25 @@ test('bodyweight: empty user has no trend', async ({ page, goto }) => {
 test('bodyweight: 7-day average, 4-week change, weekly series and goal', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await signUp(page)
-  const today = todayDate()
+  const lastWeekStart = shiftDate(weekStartOf(todayDate(), 1), -7)
   const typeId = await bodyweightId(page)
-  await weighIn(page, typeId, shiftDate(today, -28), 185)
-  await weighIn(page, typeId, shiftDate(today, -1), 181)
-  await weighIn(page, typeId, today, 180)
+  await weighIn(page, typeId, shiftDate(lastWeekStart, -28), 185)
+  await weighIn(page, typeId, lastWeekStart, 181)
+  await weighIn(page, typeId, shiftDate(lastWeekStart, 1), 180)
   await apiFetch(page, 'PUT', `/api/body/types/${typeId}/goal`, { targetValue: 175 })
   const res = (await get<BodyweightTrend>(page, 'bodyweight')).json
   expect(res).toMatchObject({
     typeId,
     current: 180.5,
     change: -4.5,
-    latest: { value: 180, date: today },
-    previous: { value: 181, date: shiftDate(today, -1) },
+    latest: { value: 180, date: shiftDate(lastWeekStart, 1) },
+    previous: { value: 181, date: lastWeekStart },
     series: [185, 180.5],
     daily: [181, 180]
   })
   expect(res.goal!.targetValue).toBe(175)
 
-  const entry = (await weighIn(page, typeId, shiftDate(today, -2), 176)).json
+  const entry = (await weighIn(page, typeId, shiftDate(lastWeekStart, 2), 176)).json
   expect((await get<BodyweightTrend>(page, 'bodyweight')).json.current).toBe(179)
   await apiFetch(page, 'DELETE', `/api/body/entries/${entry.id}`)
   expect((await get<BodyweightTrend>(page, 'bodyweight')).json.current).toBe(180.5)
