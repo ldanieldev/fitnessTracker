@@ -150,4 +150,50 @@ describe('servingDraft', () => {
     const out = draftToInput({ ...emptyDraft(), label: 'slice', basisGrams: '40', nutrients: { sodium: '120' } })
     expect(out.nutrients).toEqual({ sodium: 120 })
   })
+
+  it('fills only blank fields of a weight serving, scaled from per-100 g to its grams', async () => {
+    const { fillDraftFromPer100g, nutrientFields } = await import('../../app/utils/nutrition/servingDraft')
+    const { draft, filled } = fillDraftFromPer100g(
+      { kind: 'weight', label: 'oz', quantity: 1, basisGrams: '', nutrients: { energy: '150', protein: '' } },
+      { energy: 500, protein: 10, fiber: 3.333, sugar: 20 },
+      nutrientFields(tracked)
+    )
+    expect(draft.nutrients).toEqual({ energy: '150', protein: '2.8', fiber: '0.9' })
+    expect(filled).toBe(2)
+  })
+
+  it('scales a named serving by its gram weight and leaves gramless or derived servings alone', async () => {
+    const { fillDraftFromPer100g, nutrientFields } = await import('../../app/utils/nutrition/servingDraft')
+    const fields = nutrientFields(tracked)
+    const per100g = { energy: 400, fiber: 5 }
+    const bar = fillDraftFromPer100g(
+      { kind: 'named', label: 'bar', quantity: 1, basisGrams: '40', nutrients: { energy: '160' } },
+      per100g,
+      fields
+    )
+    expect(bar.draft.nutrients).toEqual({ energy: '160', fiber: '2' })
+    const gramless = fillDraftFromPer100g(
+      { kind: 'named', label: 'cup', quantity: 1, basisGrams: '', nutrients: { energy: '90' } },
+      per100g,
+      fields
+    )
+    expect(gramless.filled).toBe(0)
+    const derived = fillDraftFromPer100g(
+      { kind: 'named', label: 'slice', quantity: 1, basisGrams: '30', nutrients: {} },
+      per100g,
+      fields
+    )
+    expect(derived.filled).toBe(0)
+  })
+
+  it('builds a 100 g weight serving from per-100 g values for the shown fields', async () => {
+    const { draftFromPer100g, nutrientFields } = await import('../../app/utils/nutrition/servingDraft')
+    expect(draftFromPer100g({ energy: 539.04, protein: 6.33, sugar: 56 }, nutrientFields(tracked))).toEqual({
+      kind: 'weight',
+      label: 'g',
+      quantity: 100,
+      basisGrams: '',
+      nutrients: { energy: '539', protein: '6.3' }
+    })
+  })
 })

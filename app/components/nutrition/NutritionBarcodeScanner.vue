@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ExternalFood } from '~/composables/useBarcodeLookup'
+import { EXTERNAL_SOURCE_LABELS, type ExternalFood } from '~/composables/useBarcodeLookup'
 import { normalizeGtin } from '~/utils/barcode/decode'
 import { errorMessage } from '~/utils/apiError'
 
@@ -9,12 +9,6 @@ const props = defineProps<{
 }>()
 
 const containerQuery = computed(() => (props.containerId !== undefined ? `&containerId=${props.containerId}` : ''))
-
-const SOURCE_LABELS: Record<ExternalFood['source'], string> = {
-  off: 'Open Food Facts',
-  usda: 'USDA',
-  fatsecret: 'FatSecret'
-}
 
 const toast = useToast()
 const { lookup } = useBarcodeLookup()
@@ -110,7 +104,7 @@ onUnmounted(() => {
 
     <UCard v-if="external" data-test="scan-external-card">
       <div class="flex items-center gap-2">
-        <UBadge :label="SOURCE_LABELS[external.source]" color="neutral" variant="subtle" />
+        <UBadge :label="EXTERNAL_SOURCE_LABELS[external.source]" color="neutral" variant="subtle" />
         <div class="flex flex-col flex-1">
           <span class="font-medium">{{ external.name }}</span>
           <span v-if="external.brand" class="text-dimmed text-sm">{{ external.brand }}</span>

@@ -105,4 +105,34 @@ describe('NutritionFoodForm', () => {
     await vi.waitFor(() => expect(captured).toBeDefined())
     expect(captured!.servings[0]!.nutrients).toEqual({ energy: 200, fiber: 9 })
   })
+
+  it('fills the blank brand and replaces the empty default row with a 100 g serving after a barcode scan', async () => {
+    registerEndpoint('/api/nutrition/foods/barcode/4017624010717', () => ({
+      found: 'off',
+      external: {
+        source: 'off',
+        externalId: '4017624010717',
+        name: 'Stub Cheerios',
+        brand: 'Stub Mills',
+        barcode: '4017624010717',
+        per100g: { energy: 379.4, protein: 7.46 },
+        servingGrams: null,
+        servingLabel: null,
+        attribution: null
+      }
+    }))
+    const wrapper = await mountSuspended(NutritionFoodForm)
+    await wrapper.find('[data-test="food-name"]').setValue('My Cheerios')
+
+    wrapper.findComponent({ name: 'NutritionBarcodeField' }).vm.$emit('scanned', '4017624010717')
+    await vi.waitFor(() =>
+      expect((wrapper.find('[data-test="food-brand"]').element as HTMLInputElement).value).toBe('Stub Mills')
+    )
+    await flushPromises()
+
+    expect((wrapper.find('[data-test="food-name"]').element as HTMLInputElement).value).toBe('My Cheerios')
+    expect(wrapper.findAll('[data-test="serving-energy"]')).toHaveLength(1)
+    expect((wrapper.find('[data-test="serving-energy"]').element as HTMLInputElement).value).toBe('379.4')
+    expect((wrapper.find('[data-test="serving-protein"]').element as HTMLInputElement).value).toBe('7.5')
+  })
 })

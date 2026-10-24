@@ -6,7 +6,9 @@ import {
   draftError,
   draftFromServing,
   draftToInput,
-  emptyDraft
+  emptyDraft,
+  fillDraftFromPer100g,
+  type ServingDraft
 } from '~/utils/nutrition/servingDraft'
 
 const props = defineProps<{
@@ -15,11 +17,14 @@ const props = defineProps<{
   fields: NutrientField[]
   weightTaken: boolean
   idToKey: Map<number, string>
+  initial?: ServingDraft
 }>()
 
 const emit = defineEmits<{ deleted: []; cancel: [] }>()
 
-const original = computed(() => (props.serving ? draftFromServing(props.serving, props.idToKey) : emptyDraft()))
+const original = computed(() =>
+  props.serving ? draftFromServing(props.serving, props.idToKey) : (props.initial ?? emptyDraft())
+)
 const draft = ref(original.value)
 const dirty = computed(() => props.serving === null || JSON.stringify(draft.value) !== JSON.stringify(original.value))
 // The food's reload after a save or delete hands every card a fresh `serving`; keep a draft with unsaved edits.
@@ -52,7 +57,15 @@ async function save(): Promise<boolean> {
   }
 }
 
-defineExpose({ dirty, invalid, save })
+function fill(per100g: Partial<Record<string, number>>): number {
+  const result = fillDraftFromPer100g(draft.value, per100g, props.fields)
+  draft.value = result.draft
+  return result.filled
+}
+
+const isWeight = computed(() => draft.value.kind === 'weight')
+
+defineExpose({ dirty, invalid, isWeight, save, fill })
 
 async function remove() {
   if (!props.serving) {

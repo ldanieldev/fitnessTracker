@@ -16,21 +16,23 @@ export default defineEventHandler(async (event) => {
 
   const codes = barcodeCandidates(code)
 
-  const own = await db
-    .select({ id: foods.id })
-    .from(foods)
-    .where(and(inArray(foods.barcode, codes), eq(foods.createdByUserId, userId), isNull(foods.deletedAt)))
-    .limit(1)
-    .then((r) => r[0])
-  if (own) return { found: 'local', foodId: own.id }
+  if (getQuery(event).external !== '1') {
+    const own = await db
+      .select({ id: foods.id })
+      .from(foods)
+      .where(and(inArray(foods.barcode, codes), eq(foods.createdByUserId, userId), isNull(foods.deletedAt)))
+      .limit(1)
+      .then((r) => r[0])
+    if (own) return { found: 'local', foodId: own.id }
 
-  const catalogue = await db
-    .select({ id: foods.id })
-    .from(foods)
-    .where(and(inArray(foods.barcode, codes), isNull(foods.createdByUserId), isNull(foods.deletedAt)))
-    .limit(1)
-    .then((r) => r[0])
-  if (catalogue) return { found: 'local', foodId: catalogue.id }
+    const catalogue = await db
+      .select({ id: foods.id })
+      .from(foods)
+      .where(and(inArray(foods.barcode, codes), isNull(foods.createdByUserId), isNull(foods.deletedAt)))
+      .limit(1)
+      .then((r) => r[0])
+    if (catalogue) return { found: 'local', foodId: catalogue.id }
+  }
 
   const { match, source, errors } = await findFirstBarcodeMatch(getExternalSources(), code)
   if (match) return { found: source, external: match }

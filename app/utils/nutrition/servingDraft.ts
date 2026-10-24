@@ -1,7 +1,8 @@
-import type { ServingBasis } from '~~/shared/types/nutrition'
+import type { MassUnit, ServingBasis } from '~~/shared/types/nutrition'
 import { NUTRITION_MACROS } from '~~/app/constants/nutrition'
 import { numOrUndefined } from '~~/app/composables/useNutritionForms'
 import { deriveEnergy } from '~~/shared/utils/nutritionDerive'
+import { toGrams } from '~~/shared/utils/nutritionUnits'
 
 export interface NutrientField {
   key: string
@@ -81,11 +82,15 @@ export function draftToInput(draft: ServingDraft): ServingInputBody {
   }
 }
 
+function oneDecimal(amount: number): string {
+  return String(Math.round(amount * 10) / 10)
+}
+
 export function draftFromServing(serving: ServingBasis, idToKey: Map<number, string>): ServingDraft {
   const nutrients: Record<string, string> = {}
   for (const [id, amount] of Object.entries(serving.nutrients)) {
     const key = idToKey.get(Number(id))
-    if (key) nutrients[key] = String(Math.round(amount * 10) / 10)
+    if (key) nutrients[key] = oneDecimal(amount)
   }
   return {
     kind: serving.kind,
@@ -107,4 +112,42 @@ export function applyParsedNutrients(
     if (value !== undefined) nutrients[field.key] = String(value)
   }
   return { ...draft, nutrients }
+}
+
+function draftGrams(draft: ServingDraft): number | undefined {
+  if (draft.kind === 'weight') return draft.quantity > 0 ? toGrams(draft.quantity, draft.label as MassUnit) : undefined
+  return positiveGrams(draft.basisGrams)
+}
+
+function fillBlanks(
+  draft: ServingDraft,
+  grams: number,
+  per100g: Partial<Record<string, number>>,
+  fields: NutrientField[]
+): { draft: ServingDraft; filled: number } {
+  const nutrients = { ...draft.nutrients }
+  let filled = 0
+  for (const field of fields) {
+    const value = per100g[field.key]
+    if (value === undefined || (nutrients[field.key] ?? '').trim() !== '') continue
+    nutrients[field.key] = oneDecimal((value * grams) / 100)
+    filled += 1
+  }
+  return { draft: { ...draft, nutrients }, filled }
+}
+
+export function fillDraftFromPer100g(
+  draft: ServingDraft,
+  per100g: Partial<Record<string, number>>,
+  fields: NutrientField[]
+): { draft: ServingDraft; filled: number } {
+  const grams = draftGrams(draft)
+  // A serving with no nutrients of its own derives them from the weight serving; filling it would cut that link.
+  if (grams === undefined || Object.keys(numericNutrients(draft)).length === 0) return { draft, filled: 0 }
+  return fillBlanks(draft, grams, per100g, fields)
+}
+
+export function draftFromPer100g(per100g: Partial<Record<string, number>>, fields: NutrientField[]): ServingDraft {
+  return fillBlanks({ kind: 'weight', label: 'g', quantity: 100, basisGrams: '', nutrients: {} }, 100, per100g, fields)
+    .draft
 }

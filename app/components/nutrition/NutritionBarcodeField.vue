@@ -1,12 +1,14 @@
 <script setup lang="ts">
 defineProps<{ inputTest: string }>()
 const model = defineModel<string>({ required: true })
+const emit = defineEmits<{ scanned: [code: string] }>()
 
 const scanning = ref(false)
 
 function applyCode(code: string) {
   model.value = code
   scanning.value = false
+  emit('scanned', code)
 }
 </script>
 

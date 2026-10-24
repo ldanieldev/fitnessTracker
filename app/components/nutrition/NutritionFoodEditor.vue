@@ -3,7 +3,12 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FoodDetail } from '~/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
 import { keyNutrients } from '~~/shared/utils/nutritionKeyed'
-import { draftFromServing, nutrientFields } from '~/utils/nutrition/servingDraft'
+import {
+  type ServingDraft,
+  draftFromPer100g,
+  draftFromServing,
+  nutrientFields
+} from '~/utils/nutrition/servingDraft'
 import NutritionServingCard from '~/components/nutrition/NutritionServingCard.vue'
 
 const props = defineProps<{ foodId: number }>()
@@ -23,6 +28,7 @@ const header = ref({ name: '', brand: '', barcode: '' })
 const headerError = ref<string | null>(null)
 const saving = ref(false)
 const pendingCards = ref<number[]>([])
+const pendingInitial = new Map<number, ServingDraft>()
 const cards = shallowReactive(new Map<string, ServingCard>())
 let pendingSeq = 0
 
@@ -35,8 +41,18 @@ const headerDirty = computed(
 )
 
 const cardRows = computed(() => [
-  ...(food.value?.servings ?? []).map((serving) => ({ key: `serving-${serving.id}`, serving, pending: null })),
-  ...pendingCards.value.map((pending) => ({ key: `pending-${pending}`, serving: null, pending }))
+  ...(food.value?.servings ?? []).map((serving) => ({
+    key: `serving-${serving.id}`,
+    serving,
+    pending: null,
+    initial: undefined
+  })),
+  ...pendingCards.value.map((pending) => ({
+    key: `pending-${pending}`,
+    serving: null,
+    pending,
+    initial: pendingInitial.get(pending)
+  }))
 ])
 
 function setCard(key: string, card: unknown) {
@@ -134,9 +150,30 @@ async function fork() {
   }
 }
 
-function addServing() {
+function addServing(initial?: ServingDraft) {
   pendingSeq += 1
+  if (initial) pendingInitial.set(pendingSeq, initial)
   pendingCards.value = [...pendingCards.value, pendingSeq]
+}
+
+const prefill = useBarcodePrefill()
+
+async function onBarcodeScanned(code: string) {
+  const external = await prefill.find(code)
+  if (!external) return
+  let filled = prefill.fillHeader(header.value, external)
+  if (external.per100g) {
+    for (const row of cardRows.value) filled += cards.get(row.key)?.fill(external.per100g) ?? 0
+    if (!cardRows.value.some((row) => cards.get(row.key)?.isWeight)) {
+      const weight = draftFromPer100g(external.per100g, fields.value)
+      const count = Object.keys(weight.nutrients).length
+      if (count > 0) {
+        addServing(weight)
+        filled += count
+      }
+    }
+  }
+  prefill.report(filled, external)
 }
 
 const deleteOpen = ref(false)
@@ -234,7 +271,11 @@ const menu = computed<DropdownMenuItem[][]>(() => {
               <UFormField label="Brand">
                 <UInput v-model="header.brand" autocapitalize="words" class="w-full" data-test="food-header-brand" />
               </UFormField>
-              <NutritionBarcodeField v-model="header.barcode" input-test="food-header-barcode" />
+              <NutritionBarcodeField
+                v-model="header.barcode"
+                input-test="food-header-barcode"
+                @scanned="onBarcodeScanned"
+              />
               <NutritionServingPreview v-if="defaultDraft" :draft="defaultDraft" />
               <p v-if="headerError" class="text-sm text-error" data-test="food-header-error">{{ headerError }}</p>
             </div>
@@ -250,6 +291,7 @@ const menu = computed<DropdownMenuItem[][]>(() => {
             :fields="fields"
             :weight-taken="weightTaken(row.serving?.id ?? null)"
             :id-to-key="idToKey"
+            :initial="row.initial"
             @deleted="load"
             @cancel="pendingCards = pendingCards.filter((k) => k !== row.pending)"
           />
@@ -259,7 +301,7 @@ const menu = computed<DropdownMenuItem[][]>(() => {
             variant="soft"
             class="w-full sm:w-fit"
             data-test="add-serving"
-            @click="addServing"
+            @click="addServing()"
           />
 
           <div

@@ -6,7 +6,9 @@ import {
   nutrientFields,
   draftToInput,
   applyParsedNutrients,
-  draftError
+  draftError,
+  draftFromPer100g,
+  fillDraftFromPer100g
 } from '~/utils/nutrition/servingDraft'
 import { useTrackedNutrients } from '~/composables/useTrackedNutrients'
 
@@ -65,6 +67,35 @@ function addServing() {
   servings.value.push(emptyDraft())
 }
 
+const barcodePrefill = useBarcodePrefill()
+
+async function onBarcodeScanned(code: string) {
+  const external = await barcodePrefill.find(code)
+  if (!external) return
+  const header = { name: name.value, brand: brand.value }
+  let filled = barcodePrefill.fillHeader(header, external)
+  name.value = header.name
+  brand.value = header.brand
+  const per100g = external.per100g
+  if (per100g) {
+    servings.value = servings.value.map((draft) => {
+      const result = fillDraftFromPer100g(draft, per100g, fields.value)
+      filled += result.filled
+      return result.draft
+    })
+    if (!servings.value.some((d) => d.kind === 'weight')) {
+      const weight = draftFromPer100g(per100g, fields.value)
+      const count = Object.keys(weight.nutrients).length
+      if (count > 0) {
+        const untouched = JSON.stringify(emptyDraft())
+        servings.value = [weight, ...servings.value.filter((d) => JSON.stringify(d) !== untouched)]
+        filled += count
+      }
+    }
+  }
+  barcodePrefill.report(filled, external)
+}
+
 function removeServing(index: number) {
   if (servings.value.length > 1) servings.value.splice(index, 1)
 }
@@ -110,9 +141,9 @@ async function submit() {
           <UInput v-model="name" autocapitalize="words" class="w-full" data-test="food-name" />
         </UFormField>
         <UFormField label="Brand">
-          <UInput v-model="brand" autocapitalize="words" class="w-full" />
+          <UInput v-model="brand" autocapitalize="words" class="w-full" data-test="food-brand" />
         </UFormField>
-        <NutritionBarcodeField v-model="barcode" input-test="food-barcode" />
+        <NutritionBarcodeField v-model="barcode" input-test="food-barcode" @scanned="onBarcodeScanned" />
 
         <UButton
           :label="showOcr ? 'Hide label scanner' : 'Scan label'"

@@ -12,6 +12,12 @@ export interface ExternalFood {
   attribution: string | null
 }
 
+export const EXTERNAL_SOURCE_LABELS: Record<ExternalFood['source'], string> = {
+  off: 'Open Food Facts',
+  usda: 'USDA',
+  fatsecret: 'FatSecret'
+}
+
 export interface BarcodeErrorEntry {
   source: ExternalFood['source']
   kind: 'unconfigured' | 'unavailable' | 'rate_limited' | 'not_found'
@@ -24,10 +30,11 @@ export type BarcodeLookupResult =
   | { kind: 'missing'; errors: BarcodeErrorEntry[] }
 
 export function useBarcodeLookup() {
-  async function lookup(code: string): Promise<BarcodeLookupResult> {
+  async function lookup(code: string, opts: { externalOnly?: boolean } = {}): Promise<BarcodeLookupResult> {
     try {
       const result = await apiFetch<{ found: string; foodId?: number; external?: ExternalFood }>(
-        `/api/nutrition/foods/barcode/${code}`
+        `/api/nutrition/foods/barcode/${code}`,
+        opts.externalOnly ? { query: { external: '1' } } : {}
       )
       if (result.found === 'local') return { kind: 'local', foodId: result.foodId! }
       return { kind: 'external', external: result.external! }

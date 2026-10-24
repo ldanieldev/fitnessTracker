@@ -18,6 +18,7 @@ describe('NutritionBarcodeField', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('update:modelValue')).toEqual([['3017624010701']])
+    expect(wrapper.emitted('scanned')).toEqual([['3017624010701']])
     expect(wrapper.findComponent({ name: 'NutritionBarcodeCamera' }).exists()).toBe(false)
     Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true })
   })

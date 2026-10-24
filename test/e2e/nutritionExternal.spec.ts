@@ -4,6 +4,7 @@ import { todayDate } from '../../shared/utils/nutritionSummary'
 
 // Not the real Nutella barcode (3017624010701) in the dev DB, so the OFF import lookup always hits the stub.
 const STUB_BARCODE = '4017624010700'
+const STUB_BARCODE_2 = '4017624010717'
 
 test.describe('external food search, barcode lookup and import', () => {
   test.skip(!process.env.NUXT_OFF_USER_AGENT, 'OFF not configured')
@@ -61,6 +62,31 @@ test.describe('external food search, barcode lookup and import', () => {
 
     const blockedEdit = await apiFetch(page, 'PUT', `/api/nutrition/foods/${id}`, { name: 'Hacked' })
     expect(blockedEdit.status).toBe(403)
+  })
+
+  test('skips the user\'s own food for an external-only barcode lookup', async ({ page, goto }) => {
+    await goto('/', { waitUntil: 'hydration' })
+    await registerViaApi(page, makeUser())
+    const own = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
+      name: 'Own Cheerios',
+      barcode: STUB_BARCODE_2,
+      servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    })
+
+    const local = await apiFetch<{ found: string; foodId: number }>(
+      page,
+      'GET',
+      `/api/nutrition/foods/barcode/${STUB_BARCODE_2}`
+    )
+    expect(local.json).toEqual({ found: 'local', foodId: own.json.id })
+
+    const external = await apiFetch<{ found: string; external: { name: string } }>(
+      page,
+      'GET',
+      `/api/nutrition/foods/barcode/${STUB_BARCODE_2}?external=1`
+    )
+    expect(external.json.found).toBe('off')
+    expect(external.json.external.name).toBe('Stub Cheerios')
   })
 
   test('404s a made-up barcode with the barcode in the body', async ({ page, goto }) => {
