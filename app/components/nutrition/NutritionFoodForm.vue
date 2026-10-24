@@ -30,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const fail = useFailToast()
+const toast = useToast()
 const { tracked } = useTrackedNutrients()
 
 const name = ref(props.prefill?.name ?? '')
@@ -91,6 +92,7 @@ async function submit() {
       }
     })
     await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
+    toast.add({ title: 'Food created', color: 'success' })
     emit('created', result.id)
   } catch (err: unknown) {
     fail('Failed to create food', err, 'Could not create food')
@@ -101,59 +103,71 @@ async function submit() {
 </script>
 
 <template>
-  <UCard>
-    <div class="flex flex-col gap-4">
-      <UFormField label="Name" required>
-        <UInput v-model="name" autocapitalize="words" class="w-full" data-test="food-name" />
-      </UFormField>
-      <UFormField label="Brand">
-        <UInput v-model="brand" autocapitalize="words" class="w-full" />
-      </UFormField>
-      <NutritionBarcodeField v-model="barcode" input-test="food-barcode" />
+  <div class="pb-28 lg:pb-0">
+    <UCard>
+      <div class="flex flex-col gap-4">
+        <UFormField label="Name" required>
+          <UInput v-model="name" autocapitalize="words" class="w-full" data-test="food-name" />
+        </UFormField>
+        <UFormField label="Brand">
+          <UInput v-model="brand" autocapitalize="words" class="w-full" />
+        </UFormField>
+        <NutritionBarcodeField v-model="barcode" input-test="food-barcode" />
 
-      <UButton
-        :label="showOcr ? 'Hide label scanner' : 'Scan label'"
-        variant="soft"
-        color="neutral"
-        class="w-fit"
-        data-test="ocr-open"
-        @click="showOcr = !showOcr"
-      />
-      <NutritionLabelOcr v-if="showOcr" @parsed="applyParsedLabel" />
+        <UButton
+          :label="showOcr ? 'Hide label scanner' : 'Scan label'"
+          variant="soft"
+          color="neutral"
+          class="w-fit"
+          data-test="ocr-open"
+          @click="showOcr = !showOcr"
+        />
+        <NutritionLabelOcr v-if="showOcr" @parsed="applyParsedLabel" />
 
-      <div class="flex flex-col gap-3">
-        <div v-for="(draft, index) in servings" :key="index" class="flex flex-col gap-2 p-3 rounded-lg bg-elevated/50">
-          <div class="flex gap-2 items-center justify-between">
-            <div class="flex-1">
-              <NutritionServingFields
-                v-model="servings[index]!"
-                :fields="fields"
-                :weight-taken="weightTaken && draft.kind !== 'weight'"
+        <div class="flex flex-col gap-3">
+          <div
+            v-for="(draft, index) in servings"
+            :key="index"
+            class="flex flex-col gap-2 p-3 rounded-lg bg-elevated/50"
+          >
+            <div class="flex gap-2 items-center justify-between">
+              <div class="flex-1">
+                <NutritionServingFields
+                  v-model="servings[index]!"
+                  :fields="fields"
+                  :weight-taken="weightTaken && draft.kind !== 'weight'"
+                />
+              </div>
+              <UButton
+                icon="i-lucide-trash-2"
+                variant="ghost"
+                color="error"
+                size="xs"
+                aria-label="Remove serving"
+                :disabled="servings.length === 1"
+                @click="removeServing(index)"
               />
             </div>
-            <UButton
-              icon="i-lucide-trash-2"
-              variant="ghost"
-              color="error"
-              size="xs"
-              aria-label="Remove serving"
-              :disabled="servings.length === 1"
-              @click="removeServing(index)"
-            />
+            <NutritionServingPreview :draft="draft" />
           </div>
-          <NutritionServingPreview :draft="draft" />
+          <UButton label="Add serving" variant="soft" color="neutral" class="w-fit" @click="addServing" />
         </div>
-        <UButton label="Add serving" variant="soft" color="neutral" class="w-fit" @click="addServing" />
       </div>
-
+    </UCard>
+    <div
+      class="
+        fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t
+        border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4
+      "
+    >
       <UButton
+        block
         label="Create food"
         :disabled="!canSubmit"
         :loading="loading"
-        class="w-full sm:w-fit"
         data-test="food-submit"
         @click="submit"
       />
     </div>
-  </UCard>
+  </div>
 </template>

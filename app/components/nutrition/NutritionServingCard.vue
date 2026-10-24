@@ -17,12 +17,12 @@ const props = defineProps<{
   idToKey: Map<number, string>
 }>()
 
-const emit = defineEmits<{ saved: []; deleted: []; cancel: [] }>()
+const emit = defineEmits<{ deleted: []; cancel: [] }>()
 
 const original = computed(() => (props.serving ? draftFromServing(props.serving, props.idToKey) : emptyDraft()))
 const draft = ref(original.value)
 const dirty = computed(() => props.serving === null || JSON.stringify(draft.value) !== JSON.stringify(original.value))
-// A sibling's save hands every card a fresh `serving` prop; only clobber this draft when it has no unsaved edit.
+// The food's reload after a save or delete hands every card a fresh `serving`; keep a draft with unsaved edits.
 watch(original, (value) => {
   if (!dirty.value) draft.value = value
 })
@@ -30,8 +30,10 @@ watch(original, (value) => {
 const error = ref<string | null>(null)
 const busy = ref(false)
 
-async function save() {
-  if (draftError(draft.value)) return
+const invalid = computed(() => draftError(draft.value) !== null)
+
+async function save(): Promise<boolean> {
+  if (invalid.value) return false
   busy.value = true
   error.value = null
   try {
@@ -41,14 +43,16 @@ async function save() {
     } else {
       await apiFetch(`/api/nutrition/foods/${props.foodId}/servings`, { method: 'POST', body })
     }
-    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
-    emit('saved')
+    return true
   } catch (err: unknown) {
     error.value = errorMessage(err, 'Could not save this serving')
+    return false
   } finally {
     busy.value = false
   }
 }
+
+defineExpose({ dirty, invalid, save })
 
 async function remove() {
   if (!props.serving) {
@@ -75,24 +79,14 @@ async function remove() {
     <NutritionServingPreview :draft="draft" class="mt-2" />
     <p v-if="error" class="text-sm text-error mt-2" data-test="serving-card-error">{{ error }}</p>
     <template #footer>
-      <div class="flex gap-2">
-        <UButton
-          :label="serving ? 'Delete' : 'Discard'"
-          color="error"
-          variant="soft"
-          :disabled="busy"
-          data-test="serving-card-delete"
-          @click="remove"
-        />
-        <UButton
-          label="Save"
-          class="ml-auto"
-          :loading="busy"
-          :disabled="!dirty || draftError(draft) !== null"
-          data-test="serving-card-save"
-          @click="save"
-        />
-      </div>
+      <UButton
+        :label="serving ? 'Delete' : 'Discard'"
+        color="error"
+        variant="soft"
+        :disabled="busy"
+        data-test="serving-card-delete"
+        @click="remove"
+      />
     </template>
   </UCard>
 </template>

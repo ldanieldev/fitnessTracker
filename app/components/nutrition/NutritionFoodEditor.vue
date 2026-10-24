@@ -4,29 +4,62 @@ import type { FoodDetail } from '~/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
 import { keyNutrients } from '~~/shared/utils/nutritionKeyed'
 import { draftFromServing, nutrientFields } from '~/utils/nutrition/servingDraft'
+import NutritionServingCard from '~/components/nutrition/NutritionServingCard.vue'
 
 const props = defineProps<{ foodId: number }>()
 
 const toast = useToast()
 
 const fail = useFailToast()
-const backOrTo = useBackOrTo()
 const { tracked } = useTrackedNutrients()
 const { idToKey } = useNutrientCatalog()
 const fields = computed(() => nutrientFields(tracked.value ?? []))
+
+type ServingCard = InstanceType<typeof NutritionServingCard>
 
 const food = ref<FoodDetail | null>(null)
 const notFound = ref(false)
 const header = ref({ name: '', brand: '', barcode: '' })
 const headerError = ref<string | null>(null)
-const headerSaving = ref(false)
+const saving = ref(false)
 const pendingCards = ref<number[]>([])
+const cards = shallowReactive(new Map<string, ServingCard>())
 let pendingSeq = 0
 
+const headerDirty = computed(
+  () =>
+    food.value !== null &&
+    (header.value.name.trim() !== food.value.name ||
+      header.value.brand.trim() !== (food.value.brand ?? '') ||
+      header.value.barcode.trim() !== (food.value.barcode ?? ''))
+)
+
+const cardRows = computed(() => [
+  ...(food.value?.servings ?? []).map((serving) => ({ key: `serving-${serving.id}`, serving, pending: null })),
+  ...pendingCards.value.map((pending) => ({ key: `pending-${pending}`, serving: null, pending }))
+])
+
+function setCard(key: string, card: unknown) {
+  if (card) cards.set(key, card as ServingCard)
+  else cards.delete(key)
+}
+
+const dirtyCards = computed(() => cardRows.value.filter((row) => cards.get(row.key)?.dirty))
+const canSave = computed(
+  () =>
+    !saving.value &&
+    header.value.name.trim().length > 0 &&
+    (headerDirty.value || dirtyCards.value.length > 0) &&
+    dirtyCards.value.every((row) => !cards.get(row.key)!.invalid)
+)
+
 async function load() {
+  const keepHeader = headerDirty.value
   try {
     food.value = await apiFetch<FoodDetail>(`/api/nutrition/foods/${props.foodId}`)
-    header.value = { name: food.value.name, brand: food.value.brand ?? '', barcode: food.value.barcode ?? '' }
+    if (!keepHeader) {
+      header.value = { name: food.value.name, brand: food.value.brand ?? '', barcode: food.value.barcode ?? '' }
+    }
   } catch (err: unknown) {
     reportFailure(err, 'Load food')
     notFound.value = true
@@ -49,8 +82,7 @@ function weightTaken(servingId: number | null) {
   return (food.value?.servings ?? []).some((s) => s.kind === 'weight' && s.id !== servingId)
 }
 
-async function saveHeader() {
-  headerSaving.value = true
+async function saveHeader(): Promise<boolean> {
   headerError.value = null
   try {
     await apiFetch(`/api/nutrition/foods/${props.foodId}`, {
@@ -61,13 +93,34 @@ async function saveHeader() {
         barcode: header.value.barcode.trim() || null
       }
     })
-    await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
-    toast.add({ title: 'Food saved', color: 'success' })
-    await backOrTo('/nutrition/foods')
+    return true
   } catch (err: unknown) {
     headerError.value = errorMessage(err, 'Could not save this food')
+    return false
+  }
+}
+
+async function save() {
+  if (!canSave.value) return
+  saving.value = true
+  try {
+    let allSaved = headerDirty.value ? await saveHeader() : true
+    let anySaved = allSaved && headerDirty.value
+    for (const row of dirtyCards.value) {
+      if (await cards.get(row.key)!.save()) {
+        anySaved = true
+        if (row.pending !== null) pendingCards.value = pendingCards.value.filter((k) => k !== row.pending)
+      } else {
+        allSaved = false
+      }
+    }
+    if (anySaved) {
+      await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
+      await load()
+    }
+    if (allSaved) toast.add({ title: 'Food saved', color: 'success' })
   } finally {
-    headerSaving.value = false
+    saving.value = false
   }
 }
 
@@ -84,11 +137,6 @@ async function fork() {
 function addServing() {
   pendingSeq += 1
   pendingCards.value = [...pendingCards.value, pendingSeq]
-}
-
-async function onPendingSaved(key: number) {
-  pendingCards.value = pendingCards.value.filter((k) => k !== key)
-  await load()
 }
 
 const deleteOpen = ref(false)
@@ -147,7 +195,7 @@ const menu = computed<DropdownMenuItem[][]>(() => {
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-4 max-w-3xl mx-auto w-full">
+      <div class="flex flex-col gap-4 max-w-3xl mx-auto w-full" :class="{ 'pb-28 lg:pb-0': food && !isCatalogue }">
         <UAlert v-if="notFound" color="error" variant="soft" title="Food not found" data-test="food-not-found" />
 
         <template v-else-if="food && isCatalogue">
@@ -189,39 +237,21 @@ const menu = computed<DropdownMenuItem[][]>(() => {
               <NutritionBarcodeField v-model="header.barcode" input-test="food-header-barcode" />
               <NutritionServingPreview v-if="defaultDraft" :draft="defaultDraft" />
               <p v-if="headerError" class="text-sm text-error" data-test="food-header-error">{{ headerError }}</p>
-              <UButton
-                label="Save"
-                class="w-full sm:w-fit"
-                :loading="headerSaving"
-                :disabled="!header.name.trim()"
-                data-test="food-header-save"
-                @click="saveHeader"
-              />
             </div>
           </UCard>
 
           <span class="font-medium">Servings</span>
           <NutritionServingCard
-            v-for="serving in food.servings"
-            :key="serving.id"
+            v-for="row in cardRows"
+            :key="row.key"
+            :ref="(card) => setCard(row.key, card)"
             :food-id="food.id"
-            :serving="serving"
+            :serving="row.serving"
             :fields="fields"
-            :weight-taken="weightTaken(serving.id)"
+            :weight-taken="weightTaken(row.serving?.id ?? null)"
             :id-to-key="idToKey"
-            @saved="load"
             @deleted="load"
-          />
-          <NutritionServingCard
-            v-for="key in pendingCards"
-            :key="`pending-${key}`"
-            :food-id="food.id"
-            :serving="null"
-            :fields="fields"
-            :weight-taken="weightTaken(null)"
-            :id-to-key="idToKey"
-            @saved="onPendingSaved(key)"
-            @cancel="pendingCards = pendingCards.filter((k) => k !== key)"
+            @cancel="pendingCards = pendingCards.filter((k) => k !== row.pending)"
           />
           <UButton
             icon="i-lucide-plus"
@@ -231,6 +261,15 @@ const menu = computed<DropdownMenuItem[][]>(() => {
             data-test="add-serving"
             @click="addServing"
           />
+
+          <div
+            class="
+              fixed inset-x-0 bottom-0 z-10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-default/95 border-t
+              border-default lg:sticky lg:inset-x-auto lg:-bottom-6 lg:pb-4
+            "
+          >
+            <UButton block label="Save" :loading="saving" :disabled="!canSave" data-test="food-save" @click="save" />
+          </div>
         </template>
       </div>
 
