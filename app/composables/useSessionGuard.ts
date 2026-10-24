@@ -6,6 +6,8 @@ let redirecting = false
  * original error should still reach the caller.
  */
 export async function handleUnauthorized(): Promise<boolean> {
+  // Server fetch hooks run outside the Nuxt context (useRoute throws E1001); the client re-checks after hydration.
+  if (import.meta.server) return false
   if (redirecting) return true
   const route = useRoute()
   if (route.path.startsWith('/auth')) return false

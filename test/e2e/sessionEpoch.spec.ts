@@ -28,6 +28,34 @@ test('own password change signs out other browsers, not this one', async ({ page
   }
 })
 
+test('a revoked session is redirected to login by the server render', async ({ page, goto, browser }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  const user = await registerViaApi(page, makeUser())
+  const other = await browser.newContext()
+  try {
+    const page2 = await other.newPage()
+    await page2.goto(new URL('/auth/login', page.url()).toString())
+    const credentials = { email: user.email, password: user.password }
+    expect((await apiFetch(page2, 'POST', '/api/auth/login', credentials)).status).toBe(200)
+
+    const changed = await apiFetch(page, 'PUT', '/api/auth/password', {
+      currentPassword: user.password,
+      newPassword: 'password456'
+    })
+    expect(changed.status).toBe(200)
+
+    // Client-side 401 handling would also land on /auth/login, so assert on the server's own response.
+    const ssr = await page2.evaluate(async () => (await fetch('/', { redirect: 'manual' })).type)
+    expect(ssr).toBe('opaqueredirect')
+    expect((await apiFetch(page2, 'GET', '/api/_auth/session')).status).toBe(401)
+
+    await page2.goto(new URL('/', page.url()).toString())
+    await expect(page2).toHaveURL(/\/auth\/login$/)
+  } finally {
+    await other.close()
+  }
+})
+
 test('a wrong current password is a 400 that keeps the session', async ({ page, goto }) => {
   await goto('/', { waitUntil: 'hydration' })
   await registerViaApi(page, makeUser())
