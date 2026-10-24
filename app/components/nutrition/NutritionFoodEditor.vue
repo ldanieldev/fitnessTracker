@@ -103,22 +103,36 @@ async function confirmDelete() {
   }
 }
 
-const menu = computed<DropdownMenuItem[][]>(() =>
-  food.value && !isCatalogue.value
-    ? [
-        [
-          {
-            label: 'Delete food',
-            icon: 'i-lucide-trash-2',
-            color: 'error',
-            onSelect: () => {
-              deleteOpen.value = true
-            }
-          }
-        ]
-      ]
-    : []
-)
+const logOpen = ref(false)
+
+const menu = computed<DropdownMenuItem[][]>(() => {
+  if (!food.value) return []
+  const groups: DropdownMenuItem[][] = [
+    [
+      {
+        label: 'Add to diary',
+        icon: 'i-lucide-utensils',
+        testId: 'food-add-to-diary',
+        onSelect: () => {
+          logOpen.value = true
+        }
+      }
+    ]
+  ]
+  if (!isCatalogue.value) {
+    groups.push([
+      {
+        label: 'Delete food',
+        icon: 'i-lucide-trash-2',
+        color: 'error',
+        onSelect: () => {
+          deleteOpen.value = true
+        }
+      }
+    ])
+  }
+  return groups
+})
 </script>
 
 <template>
@@ -127,7 +141,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
       <AppNavbar :title="food?.name ?? 'Food'" back="/nutrition/foods">
         <template #right>
           <UButton v-if="isCatalogue" label="Make my copy" size="sm" data-test="food-fork" @click="fork" />
-          <AppMenuButton v-else-if="menu.length" :items="menu" label="Food actions" test-id="food-menu" />
+          <AppMenuButton v-if="menu.length" :items="menu" label="Food actions" test-id="food-menu" />
         </template>
       </AppNavbar>
     </template>
@@ -220,6 +234,7 @@ const menu = computed<DropdownMenuItem[][]>(() =>
         </template>
       </div>
 
+      <NutritionLogFoodSheet v-if="food" v-model:open="logOpen" :food="food" />
       <AppSheet
         v-model:open="deleteOpen"
         title="Delete food"
