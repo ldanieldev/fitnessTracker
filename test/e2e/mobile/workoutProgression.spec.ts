@@ -68,6 +68,7 @@ test('phone: modal add, modal drop, no second attempt, callout carries to the ne
   await expect(prompt).toHaveCount(0)
   await expect(callout).toHaveCount(0)
   await page.locator('[data-test="session-finish"]').click()
+  await expect(page.locator('[data-test="session-finish"]')).toHaveCount(0)
 
   const second = (
     await apiFetch<WorkoutSession>(page, 'POST', '/api/workouts/sessions', {
