@@ -10,6 +10,18 @@
   --color-carb: var(--macro-carb);
   --color-fat: var(--macro-fat);
   --color-macro-other: var(--macro-other);
+  /* ZXing's scanner laser: opacity 0 → 1 → 0 over 8 steps of 80 ms. */
+  --animate-laser: laser 640ms linear infinite;
+
+  @keyframes laser {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
 }
 
 /* Global override: restore the pointer cursor on enabled buttons, which Tailwind v4 and Nuxt UI 4 leave as default. */

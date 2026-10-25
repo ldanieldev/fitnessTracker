@@ -4,6 +4,7 @@ declare global {
   interface DetectedBarcode {
     format: string
     rawValue: string
+    cornerPoints: ReadonlyArray<{ x: number; y: number }>
   }
 
   interface BarcodeDetectorOptions {

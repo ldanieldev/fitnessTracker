@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import * as Sentry from '@sentry/nuxt'
 import { type CameraProbe, focusesClose, nextCamera, pickScanCamera } from '~/utils/barcode/camera'
-import { decodeBarcode, isSupportedBarcodeFormat, normalizeGtin } from '~/utils/barcode/decode'
+import { type BarcodePoint, decodeBarcode, isSupportedBarcodeFormat, normalizeGtin } from '~/utils/barcode/decode'
+import { type Crop, FRAME, frameCrop } from '~/utils/barcode/viewfinder'
 import { errorMessage } from '~/utils/apiError'
 
 const props = withDefaults(defineProps<{ fallback?: string }>(), { fallback: 'use manual entry below' })
@@ -15,6 +16,7 @@ const DETECTOR_FORMAT_MAP: Record<string, string> = {
 }
 
 const FRAME_INTERVAL_MS = 250
+const frameStyle = { width: `${FRAME.width * 100}%`, height: `${FRAME.height * 100}%` }
 const CAMERA_STORAGE_KEY = 'nutrition.barcode.camera'
 
 type FocusCapabilities = MediaTrackCapabilities & { focusDistance?: { min?: number } }
@@ -25,10 +27,13 @@ const secure = ref<boolean | null>(null)
 const permissionError = ref<string | null>(null)
 const cameraIds = ref<string[]>([])
 const switching = ref(false)
+const detected = ref(false)
+const outline = ref<{ viewBox: string; points: string } | null>(null)
 const videoEl = useTemplateRef('videoEl')
 
 let stream: MediaStream | null = null
 let deviceId: string | undefined
+const frontCameras = new Set<string>()
 let frameTimer: ReturnType<typeof setInterval> | null = null
 let canvas: HTMLCanvasElement | null = null
 let canvasContext: CanvasRenderingContext2D | null = null
@@ -49,17 +54,19 @@ function stopScanning() {
   }
 }
 
-function ensureCanvas(video: HTMLVideoElement): CanvasRenderingContext2D | null {
-  const width = video.videoWidth
-  const height = video.videoHeight
-  if (!width || !height) return null
+function ensureCanvas(video: HTMLVideoElement): { context: CanvasRenderingContext2D; crop: Crop } | null {
+  if (!video.videoWidth || !video.videoHeight) return null
+  const crop = frameCrop(
+    { width: video.videoWidth, height: video.videoHeight },
+    { width: video.clientWidth, height: video.clientHeight }
+  )
   if (!canvas) canvas = document.createElement('canvas')
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width
-    canvas.height = height
+  if (canvas.width !== crop.width || canvas.height !== crop.height) {
+    canvas.width = crop.width
+    canvas.height = crop.height
   }
   if (!canvasContext) canvasContext = canvas.getContext('2d')
-  return canvasContext
+  return canvasContext ? { context: canvasContext, crop } : null
 }
 
 async function setupDetector() {
@@ -70,7 +77,16 @@ async function setupDetector() {
   }
 }
 
-function handleHit(rawText: string) {
+function showOutline(corners: readonly BarcodePoint[], crop: Crop) {
+  const video = videoEl.value
+  if (!video || corners.length < 3) return
+  outline.value = {
+    viewBox: `0 0 ${video.videoWidth} ${video.videoHeight}`,
+    points: corners.map((p) => `${crop.x + p.x},${crop.y + p.y}`).join(' ')
+  }
+}
+
+function handleHit(rawText: string, corners: readonly BarcodePoint[], crop: Crop) {
   if (stopped) return
   let code: string
   try {
@@ -83,27 +99,31 @@ function handleHit(rawText: string) {
     })
     return
   }
+  showOutline(corners, crop)
+  videoEl.value?.pause()
   stopScanning()
+  detected.value = true
   emit('detected', code)
 }
 
 async function captureFrame() {
   const video = videoEl.value
   if (!video || processingFrame) return
-  const context = ensureCanvas(video)
-  if (!context || !canvas) return
+  const target = ensureCanvas(video)
+  if (!target || !canvas) return
+  const { context, crop } = target
   processingFrame = true
   try {
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    context.drawImage(video, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height)
     if (detector) {
       const hits = await detector.detect(canvas)
       const hit = hits[0]
       const format = hit ? DETECTOR_FORMAT_MAP[hit.format] : undefined
-      if (hit && format && isSupportedBarcodeFormat(format)) handleHit(hit.rawValue)
+      if (hit && format && isSupportedBarcodeFormat(format)) handleHit(hit.rawValue, hit.cornerPoints ?? [], crop)
     } else {
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+      const imageData = context.getImageData(0, 0, crop.width, crop.height)
       const hit = await decodeBarcode(imageData)
-      if (hit && isSupportedBarcodeFormat(hit.format)) handleHit(hit.text)
+      if (hit && isSupportedBarcodeFormat(hit.format)) handleHit(hit.text, hit.corners, crop)
     }
   } catch (err: unknown) {
     warnScannerFailure('detect', err)
@@ -154,9 +174,16 @@ function minFocusOf(track: MediaStreamTrack | undefined): number | undefined {
   return (track?.getCapabilities?.() as FocusCapabilities | undefined)?.focusDistance?.min
 }
 
+// InputDeviceInfo.getCapabilities is Chromium-only; elsewhere a front camera is known only once it has been opened.
+function isFrontCamera(device: MediaDeviceInfo): boolean {
+  if (frontCameras.has(device.deviceId)) return true
+  const facing = (device as Partial<InputDeviceInfo>).getCapabilities?.().facingMode
+  return facing?.includes('user') === true && !facing.includes('environment')
+}
+
 async function listCameras(): Promise<string[]> {
   const devices = (await navigator.mediaDevices.enumerateDevices?.()) ?? []
-  return devices.filter((d) => d.kind === 'videoinput' && d.deviceId).map((d) => d.deviceId)
+  return devices.filter((d) => d.kind === 'videoinput' && d.deviceId && !isFrontCamera(d)).map((d) => d.deviceId)
 }
 
 // Probed one at a time because many phones refuse to open a second camera while one is streaming.
@@ -168,6 +195,7 @@ async function probeBackCameras(ids: string[], skip: string | undefined): Promis
       const media = await openCamera(id)
       const track = media.getTracks()[0]
       const facing = track?.getSettings?.().facingMode
+      if (facing === 'user') frontCameras.add(id)
       const minFocusM = facing === undefined || facing === 'environment' ? minFocusOf(track) : undefined
       stopMedia(media)
       probes.push({ deviceId: id, minFocusM })
@@ -178,12 +206,11 @@ async function probeBackCameras(ids: string[], skip: string | undefined): Promis
   return probes
 }
 
-async function acquireStream(): Promise<MediaStream> {
-  const stored = readStoredCamera()
-  if (stored) {
+async function acquireStream(preferred: string | undefined): Promise<MediaStream> {
+  if (preferred) {
     try {
-      const media = await openCamera(stored)
-      deviceId = stored
+      const media = await openCamera(preferred)
+      deviceId = preferred
       return media
     } catch {
       // remembered camera is gone (new device, rotated id) — fall back to the automatic pick
@@ -203,24 +230,39 @@ async function acquireStream(): Promise<MediaStream> {
   return openCamera(better)
 }
 
+const onFrontCamera = () => deviceId !== undefined && frontCameras.has(deviceId)
+
 async function switchCamera() {
-  const id = nextCamera(cameraIds.value, deviceId)
-  if (!id || switching.value) return
+  if (switching.value) return
   switching.value = true
-  storeCamera(id)
-  stopScanning()
-  stopped = false
+  const ids = cameraIds.value
+  let id = deviceId
   try {
-    await startCamera()
+    for (let tries = 0; tries < ids.length; tries++) {
+      id = nextCamera(ids, id)
+      if (!id) break
+      stopScanning()
+      stopped = false
+      await startCamera(id)
+      if (cancelled() || !onFrontCamera()) break
+    }
+    if (!cancelled() && deviceId && !onFrontCamera()) storeCamera(deviceId)
   } finally {
     switching.value = false
   }
 }
 
-async function startCamera() {
+async function scanAgain() {
+  detected.value = false
+  outline.value = null
+  stopped = false
+  await startCamera(deviceId)
+}
+
+async function startCamera(preferred = readStoredCamera()) {
   let media: MediaStream
   try {
-    media = await acquireStream()
+    media = await acquireStream(preferred)
   } catch (err: unknown) {
     const name = typeof err === 'object' && err !== null && 'name' in err ? (err as { name: unknown }).name : undefined
     permissionError.value =
@@ -234,6 +276,7 @@ async function startCamera() {
     return
   }
   stream = media
+  if (deviceId && media.getTracks()[0]?.getSettings?.().facingMode === 'user') frontCameras.add(deviceId)
   try {
     await nextTick()
     const video = videoEl.value
@@ -279,17 +322,53 @@ onUnmounted(() => {
     :title="permissionError"
     data-test="scan-permission-notice"
   />
-  <div v-else-if="secure" class="relative">
+  <div v-else-if="secure" class="relative overflow-hidden rounded-lg">
     <video
       ref="videoEl"
-      class="w-full rounded-lg bg-black aspect-video"
+      class="w-full bg-black aspect-video object-cover"
       muted
       playsinline
       aria-label="Barcode viewfinder"
       data-test="scan-video"
     />
+    <div
+      v-if="!detected"
+      class="pointer-events-none absolute inset-0 flex items-center justify-center"
+      data-test="scan-frame"
+    >
+      <div class="relative rounded-sm shadow-[0_0_0_100vmax_rgb(0_0_0/0.4)]" :style="frameStyle">
+        <div
+          class="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-red-600 animate-laser motion-reduce:animate-none"
+        />
+      </div>
+    </div>
+    <svg
+      v-if="outline"
+      class="pointer-events-none absolute inset-0 size-full text-success"
+      :viewBox="outline.viewBox"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+      data-test="scan-outline"
+    >
+      <polygon
+        :points="outline.points"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linejoin="round"
+        vector-effect="non-scaling-stroke"
+      />
+    </svg>
     <UButton
-      v-if="cameraIds.length > 1"
+      v-if="detected"
+      icon="i-lucide-scan-barcode"
+      label="Scan again"
+      class="absolute bottom-2 left-1/2 -translate-x-1/2"
+      data-test="scan-again"
+      @click="scanAgain"
+    />
+    <UButton
+      v-else-if="cameraIds.length > 1"
       icon="i-lucide-switch-camera"
       color="neutral"
       variant="soft"

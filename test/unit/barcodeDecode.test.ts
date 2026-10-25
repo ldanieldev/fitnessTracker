@@ -9,6 +9,16 @@ describe('decodeBarcode', () => {
     expect(hit).toMatchObject({ text: '3017624010701', format: 'EAN-13' })
   })
 
+  it('reports the corners of the barcode it read', async () => {
+    const { decodeBarcode } = await import('../../app/utils/barcode/decode')
+    const png = readFileSync('test/fixtures/barcodes/ean13-3017624010701.png')
+    const hit = await decodeBarcode(png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength))
+    const [topLeft, topRight, bottomRight, bottomLeft] = hit!.corners
+    expect(hit!.corners).toHaveLength(4)
+    expect(topRight!.x).toBeGreaterThan(topLeft!.x)
+    expect(bottomRight!.x).toBeGreaterThan(bottomLeft!.x)
+  })
+
   it('reads a UPC-A fixture as EAN-13 with the zero-padded GTIN', async () => {
     const { decodeBarcode } = await import('../../app/utils/barcode/decode')
     const png = readFileSync('test/fixtures/barcodes/upca-012345678905.png')

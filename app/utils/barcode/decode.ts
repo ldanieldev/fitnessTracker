@@ -33,13 +33,24 @@ async function ensureModule() {
   await prepared
 }
 
+export interface BarcodePoint {
+  x: number
+  y: number
+}
+
 export async function decodeBarcode(
   input: ImageData | Blob | ArrayBuffer
-): Promise<{ text: string; format: string } | null> {
+): Promise<{ text: string; format: string; corners: BarcodePoint[] } | null> {
   await ensureModule()
   const results = await readBarcodes(input as never, { formats: [...FORMATS], maxNumberOfSymbols: 1 })
   const first = results[0]
-  return first && first.text ? { text: first.text, format: formatToLabel(first.format) ?? first.format } : null
+  if (!first || !first.text) return null
+  const { topLeft, topRight, bottomRight, bottomLeft } = first.position
+  return {
+    text: first.text,
+    format: formatToLabel(first.format) ?? first.format,
+    corners: [topLeft, topRight, bottomRight, bottomLeft]
+  }
 }
 
 export function normalizeGtin(raw: string): string {

@@ -57,7 +57,7 @@ describe('NutritionBarcodeCamera', () => {
     }
     let srcObject: PropertyDescriptor | undefined
 
-    function fakeMediaDevices(defaultId: string) {
+    function fakeMediaDevices(defaultId: string, { listsFacing = false } = {}) {
       const getUserMedia = vi.fn(async (constraints: MediaStreamConstraints) => {
         const id = requestedId(constraints) ?? defaultId
         const camera = cameras[id]!
@@ -69,7 +69,14 @@ describe('NutritionBarcodeCamera', () => {
         return { getTracks: () => [track] } as unknown as MediaStream
       })
       const enumerateDevices = async () =>
-        Object.keys(cameras).map((deviceId) => ({ kind: 'videoinput', deviceId }) as MediaDeviceInfo)
+        Object.entries(cameras).map(
+          ([deviceId, { facingMode }]) =>
+            ({
+              kind: 'videoinput',
+              deviceId,
+              ...(listsFacing && { getCapabilities: () => ({ facingMode: [facingMode] }) })
+            }) as MediaDeviceInfo
+        )
       Object.defineProperty(navigator, 'mediaDevices', {
         value: { getUserMedia, enumerateDevices },
         configurable: true
@@ -158,9 +165,78 @@ describe('NutritionBarcodeCamera', () => {
       const wrapper = await mountSuspended(NutritionBarcodeCamera)
       await vi.waitFor(() => expect(wrapper.find('[data-test="scan-switch-camera"]').exists()).toBe(true))
       await wrapper.find('[data-test="scan-switch-camera"]').trigger('click')
-      await vi.waitFor(() => expect(openedIds(getUserMedia)).toEqual(['ultrawide', 'main']))
+      await vi.waitFor(() => expect(localStorage.getItem('nutrition.barcode.camera')).toBe('main'))
 
-      expect(localStorage.getItem('nutrition.barcode.camera')).toBe('main')
+      expect(openedIds(getUserMedia)).toEqual(['ultrawide', 'main'])
+      wrapper.unmount()
+    })
+
+    it('passes over a front camera that only reveals itself once opened', async () => {
+      localStorage.setItem('nutrition.barcode.camera', 'main')
+      const getUserMedia = fakeMediaDevices('tele')
+
+      const wrapper = await mountSuspended(NutritionBarcodeCamera)
+      await vi.waitFor(() => expect(wrapper.find('[data-test="scan-switch-camera"]').exists()).toBe(true))
+      await wrapper.find('[data-test="scan-switch-camera"]').trigger('click')
+      await vi.waitFor(() => expect(localStorage.getItem('nutrition.barcode.camera')).toBe('tele'))
+
+      expect(openedIds(getUserMedia)).toEqual(['main', 'front', 'tele'])
+      wrapper.unmount()
+    })
+
+    it('leaves a camera the browser lists as front out of the cycle without opening it', async () => {
+      localStorage.setItem('nutrition.barcode.camera', 'main')
+      const getUserMedia = fakeMediaDevices('tele', { listsFacing: true })
+
+      const wrapper = await mountSuspended(NutritionBarcodeCamera)
+      await vi.waitFor(() => expect(wrapper.find('[data-test="scan-switch-camera"]').exists()).toBe(true))
+      await wrapper.find('[data-test="scan-switch-camera"]').trigger('click')
+      await vi.waitFor(() => expect(localStorage.getItem('nutrition.barcode.camera')).toBe('tele'))
+
+      expect(openedIds(getUserMedia)).toEqual(['main', 'tele'])
+      wrapper.unmount()
+    })
+
+    it('swaps the switch button for scan again after a hit, and scans again on the same camera', async () => {
+      localStorage.setItem('nutrition.barcode.camera', 'main')
+      const getUserMedia = fakeMediaDevices('tele')
+      Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', { get: () => 640, configurable: true })
+      Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get: () => 480, configurable: true })
+      const drawImage = vi.fn()
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+        drawImage
+      } as unknown as CanvasRenderingContext2D)
+      const cornerPoints = [
+        { x: 10, y: 20 },
+        { x: 110, y: 20 },
+        { x: 110, y: 60 },
+        { x: 10, y: 60 }
+      ]
+      const detect = vi.fn(async () => [{ format: 'ean_13', rawValue: '3017624010701', cornerPoints }])
+      Object.defineProperty(window, 'BarcodeDetector', {
+        value: Object.assign(
+          vi.fn(function () {
+            return { detect }
+          }),
+          { getSupportedFormats: async () => ['ean_13'] }
+        ),
+        configurable: true
+      })
+
+      const wrapper = await mountSuspended(NutritionBarcodeCamera)
+      await vi.waitFor(() => expect(wrapper.find('[data-test="scan-again"]').exists()).toBe(true))
+      expect(wrapper.find('[data-test="scan-switch-camera"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="scan-frame"]').exists()).toBe(false)
+      expect(drawImage).toHaveBeenCalledWith(expect.anything(), 64, 96, 512, 288, 0, 0, 512, 288)
+      expect(wrapper.find('[data-test="scan-outline"] polygon').attributes('points')).toBe(
+        '74,116 174,116 174,156 74,156'
+      )
+
+      await wrapper.find('[data-test="scan-again"]').trigger('click')
+      expect(wrapper.find('[data-test="scan-outline"]').exists()).toBe(false)
+      await vi.waitFor(() => expect(wrapper.emitted('detected')).toHaveLength(2))
+
+      expect(openedIds(getUserMedia)).toEqual(['main', 'main'])
       wrapper.unmount()
     })
   })
