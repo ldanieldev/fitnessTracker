@@ -1,5 +1,5 @@
 # Base
-FROM docker.io/oven/bun:1.4.0 AS base
+FROM docker.io/oven/bun:1.4.4 AS base
 WORKDIR /usr/src/app
 
 # Install dependencies (cached layer)
