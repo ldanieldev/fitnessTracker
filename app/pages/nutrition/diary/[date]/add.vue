@@ -220,7 +220,7 @@ async function onQuickAdd(input: DiaryEntryInput) {
                   size="sm"
                   variant="soft"
                   color="neutral"
-                  :to="`/nutrition/diary/${date}/foods/new`"
+                  :to="`/nutrition/diary/${date}/foods/new?containerId=${containerId}`"
                 />
               </div>
             </template>

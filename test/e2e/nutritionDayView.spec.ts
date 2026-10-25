@@ -62,8 +62,12 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   await registerViaApi(page, makeUser())
 
   const p = uniquePrefix()
+  const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const target = containers.json[1]!
 
-  await goto('/nutrition/diary/2026-07-03/foods/new', { waitUntil: 'hydration' })
+  await goto(`/nutrition/diary/2026-07-03/add?containerId=${target.id}`, { waitUntil: 'hydration' })
+  await page.getByRole('link', { name: 'New food' }).click()
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/2026-07-03/foods/new\\?containerId=${target.id}$`))
 
   await page.locator('[data-test="food-name"]').fill(`${p} Pizza`)
   await page.locator('[data-test="serving-label"]').fill('slice')
@@ -72,7 +76,11 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   await page.locator('[data-test="serving-fat"]').fill('5')
 
   await page.locator('[data-test="food-submit"]').click()
-  await expect(page).toHaveURL(/\/nutrition\/diary\/2026-07-03\/add$/)
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/2026-07-03/add\\?foodId=\\d+&containerId=${target.id}$`))
+  await expect(page.locator('[data-test="add-container"]')).toContainText(target.name)
+  const checkedRows = page.locator('[data-test="food-hit"]').filter({ has: page.locator('input[inputmode="decimal"]') })
+  await expect(checkedRows).toHaveCount(1)
+  await expect(checkedRows).toContainText(`${p} Pizza`)
 
   // A long result list previously pushed the desktop add-tray below the fold; pad the list to guard the sticky fix.
   for (let i = 0; i < 30; i++) {
@@ -88,7 +96,6 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   const hitRow = page.locator('[data-test="food-hit"]', { hasText: `${p} Pizza` })
   await expect(hitRow).toBeVisible()
 
-  await hitRow.locator('[data-test="food-hit-checkbox"]').click()
   await hitRow.locator('input[inputmode="decimal"]').fill('2')
 
   const addSelected = page.locator('[data-test="add-selected"]')
@@ -100,6 +107,19 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   const entryRow2 = page.locator('[data-test="entry-row"]')
   await expect(entryRow2).toContainText(`${p} Pizza`)
   await expect(entryRow2.locator('[data-test="entry-protein"]')).toContainText('6')
+})
+
+test('backing out of a directly opened new-food page keeps the meal', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+
+  const containers = await apiFetch<Array<{ id: number; name: string }>>(page, 'GET', '/api/nutrition/meal-containers')
+  const target = containers.json[1]!
+
+  await goto(`/nutrition/diary/2026-07-03/foods/new?containerId=${target.id}`, { waitUntil: 'hydration' })
+  await page.locator('[data-test="navbar-back"]').click()
+  await expect(page).toHaveURL(new RegExp(`/nutrition/diary/2026-07-03/add\\?containerId=${target.id}$`))
+  await expect(page.locator('[data-test="add-container"]')).toContainText(target.name)
 })
 
 test('selection mode resets when navigating to another day', async ({ page, goto }) => {

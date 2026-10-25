@@ -10,16 +10,18 @@ const containerId = computed(() => {
   return Number.isFinite(n) && n > 0 ? n : undefined
 })
 
-async function onCreated() {
-  const suffix = containerId.value !== undefined ? `?containerId=${containerId.value}` : ''
-  await navigateTo(`/nutrition/diary/${date.value}/add${suffix}`, { replace: true })
+const containerQuery = computed(() => (containerId.value !== undefined ? `containerId=${containerId.value}` : ''))
+
+async function onCreated(id: number) {
+  const suffix = containerQuery.value ? `&${containerQuery.value}` : ''
+  await navigateTo(`/nutrition/diary/${date.value}/add?foodId=${id}${suffix}`, { replace: true })
 }
 </script>
 
 <template>
   <UDashboardPanel id="diary-new-food">
     <template #header>
-      <AppNavbar title="New food" :back="`/nutrition/diary/${date}/add`" />
+      <AppNavbar title="New food" :back="`/nutrition/diary/${date}/add${containerQuery ? `?${containerQuery}` : ''}`" />
     </template>
 
     <template #body>
