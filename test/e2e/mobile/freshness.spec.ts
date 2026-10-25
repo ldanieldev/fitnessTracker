@@ -43,7 +43,7 @@ test('a recipe saved from a meal appears in the Add screen\'s Recipes tab withou
   const containers = (await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')).json
   const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Oats`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 95 } }]
   })
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-08/entries', [
     { entryType: 'food', containerId: containers[0]!.id, foodId: food.json.id, quantity: 100, unitLabel: 'g' }

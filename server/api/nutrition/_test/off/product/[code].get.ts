@@ -23,9 +23,23 @@ const STUB_PRODUCT_2 = {
   }
 }
 
+// Biscoff-like record whose macros are a 30 g serving's stored as per-100 g, so its kcal disagrees with them.
+const STUB_BARCODE_3 = '4017624010724'
+const STUB_PRODUCT_3 = {
+  code: STUB_BARCODE_3,
+  product_name: 'Stub Biscoff Spread',
+  nutriments: {
+    'energy-kcal_100g': 566.7,
+    proteins_100g: 1,
+    carbohydrates_100g: 17,
+    fat_100g: 11
+  }
+}
+
 const STUB_PRODUCTS: Record<string, typeof STUB_PRODUCT> = {
   [STUB_BARCODE]: STUB_PRODUCT,
-  [STUB_BARCODE_2]: STUB_PRODUCT_2
+  [STUB_BARCODE_2]: STUB_PRODUCT_2,
+  [STUB_BARCODE_3]: STUB_PRODUCT_3
 }
 
 export default defineEventHandler((event) => {

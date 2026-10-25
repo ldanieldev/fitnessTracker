@@ -162,6 +162,13 @@
       "when": 1792802045553,
       "tag": "0022_import_time_zone",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792909061888,
+      "tag": "0023_calculated_energy",
+      "breakpoints": true
     }
   ]
 }

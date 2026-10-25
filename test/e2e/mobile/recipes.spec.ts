@@ -8,11 +8,11 @@ test('creates, edits, and repairs a recipe on the phone', async ({ page, goto })
 
   await apiFetch(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Oats`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380, protein: 13 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 13, carbohydrate: 82 } }]
   })
   const milk = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Milk`,
-    servings: [{ kind: 'named', label: 'cup', quantity: 1, nutrients: { energy: 120, protein: 8 } }]
+    servings: [{ kind: 'named', label: 'cup', quantity: 1, nutrients: { protein: 8, carbohydrate: 22 } }]
   })
   await rebuildSearchIndex(page)
 

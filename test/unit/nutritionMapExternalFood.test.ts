@@ -39,6 +39,12 @@ describe('mapExternalFood', () => {
     expect(mapExternalFood({ ...base, per100g: null }).servings).toEqual([])
   })
 
+  it('returns zero servings when the source has energy but no macro', async () => {
+    const { mapExternalFood } = await import('../../server/utils/nutrition/external/mapExternalFood')
+    expect(mapExternalFood({ ...base, per100g: { energy: 200 } }).servings).toEqual([])
+    expect(mapExternalFood({ ...base, per100g: { energy: 200, fiber: 3 } }).servings).toEqual([])
+  })
+
   it('drops nutrients the catalogue does not know and keeps zeros', async () => {
     const { mapExternalFood } = await import('../../server/utils/nutrition/external/mapExternalFood')
     const out = mapExternalFood({ ...base, per100g: { protein: 0, energy: 100 } })

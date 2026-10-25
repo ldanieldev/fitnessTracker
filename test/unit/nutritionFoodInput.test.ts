@@ -17,13 +17,13 @@ describe('buildServingRows', () => {
     expect(s!.nutrients.find((n) => n.nutrientId === 1)!.amount).toBe(3 * 4 + 2 * 4 + 5 * 9)
   })
 
-  it('does not derive energy when a macro is missing at food save', async () => {
+  it('counts a missing macro as 0', async () => {
     const { buildServingRows } = await import('../../server/utils/nutrition/foodInput')
     const [s] = buildServingRows(
       [{ kind: 'named', label: 'slice', quantity: 1, nutrients: { protein: 3, carbohydrate: 2 } }],
       ids
     )
-    expect(s!.nutrients.some((n) => n.nutrientId === 1)).toBe(false)
+    expect(s!.nutrients.find((n) => n.nutrientId === 1)!.amount).toBe(20)
   })
 
   it('rejects an unknown nutrient key instead of dropping it', async () => {
@@ -33,13 +33,20 @@ describe('buildServingRows', () => {
     ).toThrow(/Unknown nutrient: unobtainium/)
   })
 
-  it('keeps an explicit calorie value instead of deriving over it', async () => {
+  it('overwrites a typed energy', async () => {
     const { buildServingRows } = await import('../../server/utils/nutrition/foodInput')
     const [s] = buildServingRows(
-      [{ kind: 'named', label: 'slice', quantity: 1, nutrients: { energy: 200, protein: 3, carbohydrate: 2, fat: 5 } }],
+      [{ kind: 'named', label: 'slice', quantity: 1, nutrients: { energy: 999, protein: 3, carbohydrate: 2, fat: 5 } }],
       ids
     )
-    expect(s!.nutrients.find((n) => n.nutrientId === 1)!.amount).toBe(200)
+    expect(s!.nutrients.find((n) => n.nutrientId === 1)!.amount).toBe(65)
+  })
+
+  it('adds no energy to a serving without its own nutrition', async () => {
+    const { buildServingRows } = await import('../../server/utils/nutrition/foodInput')
+    const [s] = buildServingRows([{ kind: 'named', label: 'slice', quantity: 1, basisGrams: 30 }], ids)
+    expect(s!.hasOwnNutrition).toBe(false)
+    expect(s!.nutrients).toEqual([])
   })
 
   it('normalizes a weight serving label and computes basisGrams', async () => {

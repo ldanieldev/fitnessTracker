@@ -304,11 +304,11 @@ test('recipe reads carry ingredient names, per-line nutrients, and a broken flag
 
   const oats = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Enriched Oats',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380, protein: 13 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 13, carbohydrate: 82 } }]
   })
   const milk = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Enriched Milk',
-    servings: [{ kind: 'named', label: 'cup', quantity: 1, nutrients: { energy: 120 } }]
+    servings: [{ kind: 'named', label: 'cup', quantity: 1, nutrients: { carbohydrate: 30 } }]
   })
   const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/recipes', {
     name: 'Enriched Porridge',

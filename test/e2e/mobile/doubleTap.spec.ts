@@ -47,7 +47,7 @@ test('phone: a double tap on Add to <meal> logs the tray once', async ({ page, g
   const p = uniquePrefix()
   await apiFetch(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Rice`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 130 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 32.5 } }]
   })
   await rebuildSearchIndex(page)
 

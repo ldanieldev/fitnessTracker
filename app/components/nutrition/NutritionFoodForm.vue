@@ -11,6 +11,10 @@ import {
   fillDraftFromPer100g
 } from '~/utils/nutrition/servingDraft'
 import { useTrackedNutrients } from '~/composables/useTrackedNutrients'
+import { EXTERNAL_SOURCE_LABELS } from '~/composables/useBarcodeLookup'
+import { energyMismatchMessage } from '~/utils/nutrition/energyMismatch'
+import { barcodeHint } from '~/utils/nutrition/nameMatch'
+import { hasMacro, sourceEnergyMismatch } from '~~/shared/utils/nutritionDerive'
 
 interface ParsedLabel {
   servingGrams: number | null
@@ -40,6 +44,10 @@ const brand = ref(props.prefill?.brand ?? '')
 const barcode = ref(props.prefill?.barcode ?? '')
 const loading = ref(false)
 const showOcr = ref(false)
+const energyWarning = ref<string | null>(null)
+const barcodeHeader = ref<{ name: string | null; brand: string | null }>({ name: null, brand: null })
+const nameHint = computed(() => barcodeHint(name.value, barcodeHeader.value.name))
+const brandHint = computed(() => barcodeHint(brand.value, barcodeHeader.value.brand))
 
 const servings = ref<ServingDraft[]>(
   props.prefill?.servings?.length
@@ -50,6 +58,8 @@ const servings = ref<ServingDraft[]>(
 const fields = computed(() => nutrientFields(tracked.value ?? []))
 
 function applyParsedLabel(result: ParsedLabel) {
+  const mismatch = sourceEnergyMismatch(result.nutrients)
+  energyWarning.value = mismatch ? energyMismatchMessage(mismatch, null) : null
   const draft = applyParsedNutrients(
     { ...emptyDraft(), label: 'serving', basisGrams: result.servingGrams != null ? String(result.servingGrams) : '' },
     result.nutrients,
@@ -69,29 +79,44 @@ function addServing() {
 
 const barcodePrefill = useBarcodePrefill()
 
+function applyHint(field: 'name' | 'brand') {
+  const value = barcodeHeader.value[field]
+  if (!value) return
+  if (field === 'name') name.value = value
+  else brand.value = value
+}
+
 async function onBarcodeScanned(code: string) {
+  energyWarning.value = null
+  barcodeHeader.value = { name: null, brand: null }
   const external = await barcodePrefill.find(code)
   if (!external) return
+  let macroFilled = false
   const header = { name: name.value, brand: brand.value }
   let filled = barcodePrefill.fillHeader(header, external)
   name.value = header.name
   brand.value = header.brand
+  barcodeHeader.value = { name: external.name || null, brand: external.brand }
   const per100g = external.per100g
   if (per100g) {
     servings.value = servings.value.map((draft) => {
       const result = fillDraftFromPer100g(draft, per100g, fields.value)
-      filled += result.filled
+      filled += result.filledKeys.length
+      if (hasMacro(result.filledKeys)) macroFilled = true
       return result.draft
     })
     if (!servings.value.some((d) => d.kind === 'weight')) {
       const weight = draftFromPer100g(per100g, fields.value)
-      const count = Object.keys(weight.nutrients).length
-      if (count > 0) {
+      const keys = Object.keys(weight.nutrients)
+      if (hasMacro(keys)) {
         const untouched = JSON.stringify(emptyDraft())
         servings.value = [weight, ...servings.value.filter((d) => JSON.stringify(d) !== untouched)]
-        filled += count
+        filled += keys.length
+        macroFilled = true
       }
     }
+    const mismatch = macroFilled ? sourceEnergyMismatch(per100g) : null
+    energyWarning.value = mismatch ? energyMismatchMessage(mismatch, EXTERNAL_SOURCE_LABELS[external.source]) : null
   }
   barcodePrefill.report(filled, external)
 }
@@ -139,11 +164,20 @@ async function submit() {
       <div class="flex flex-col gap-4">
         <UFormField label="Name" required>
           <UInput v-model="name" autocapitalize="words" class="w-full" data-test="food-name" />
+          <NutritionBarcodeSuggestion v-if="nameHint" :value="nameHint" field="name" @use="applyHint('name')" />
         </UFormField>
         <UFormField label="Brand">
           <UInput v-model="brand" autocapitalize="words" class="w-full" data-test="food-brand" />
+          <NutritionBarcodeSuggestion v-if="brandHint" :value="brandHint" field="brand" @use="applyHint('brand')" />
         </UFormField>
         <NutritionBarcodeField v-model="barcode" input-test="food-barcode" @scanned="onBarcodeScanned" />
+        <UAlert
+          v-if="energyWarning"
+          color="warning"
+          variant="soft"
+          :description="energyWarning"
+          data-test="energy-mismatch"
+        />
 
         <UButton
           :label="showOcr ? 'Hide label scanner' : 'Scan label'"

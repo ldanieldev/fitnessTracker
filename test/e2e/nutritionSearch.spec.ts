@@ -63,11 +63,11 @@ test('a hit for a food with a weight serving carries its energy density', async 
 
   await apiFetch(page, 'POST', '/api/nutrition/foods', {
     name: 'Densimeter oats',
-    servings: [{ kind: 'weight', label: 'g', quantity: 50, nutrients: { energy: 190 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 50, nutrients: { carbohydrate: 47.5 } }]
   })
   await apiFetch(page, 'POST', '/api/nutrition/foods', {
     name: 'Densimeter wrap',
-    servings: [{ kind: 'named', label: 'wrap', quantity: 1, nutrients: { energy: 120 } }]
+    servings: [{ kind: 'named', label: 'wrap', quantity: 1, nutrients: { carbohydrate: 30 } }]
   })
 
   await rebuildSearchIndex(page)

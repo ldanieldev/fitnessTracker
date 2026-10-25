@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
-import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { readBody } from 'h3'
 import NutritionOnlineSearch from '../../app/components/nutrition/NutritionOnlineSearch.vue'
+
+const { toastAddMock } = vi.hoisted(() => ({ toastAddMock: vi.fn() }))
+mockNuxtImport('useToast', () => () => ({ add: toastAddMock }))
 
 const results = [
   {
@@ -26,6 +29,8 @@ async function searchNutella(wrapper: Awaited<ReturnType<typeof mountSuspended>>
 }
 
 describe('NutritionOnlineSearch', () => {
+  afterEach(() => toastAddMock.mockClear())
+
   it('renders results with a source badge and attribution, and a per-source error alert', async () => {
     registerEndpoint('/api/nutrition/foods/search/external', () => ({ results, errors }))
 
@@ -36,7 +41,8 @@ describe('NutritionOnlineSearch', () => {
     expect(wrapper.text()).toContain('Nutella')
     expect(wrapper.text()).toContain('Ferrero')
     expect(wrapper.text()).toContain('Open Food Facts contributors')
-    expect(wrapper.text()).toContain('539')
+    expect(wrapper.find('[data-test="macro-energy"]').text()).toContain('533')
+    expect(wrapper.text()).not.toContain('539')
     expect(wrapper.find('[data-test="macro-fat"]').text()).toBe('F 30.9')
 
     expect(wrapper.find('[data-test="online-error"]').exists()).toBe(true)
@@ -65,6 +71,20 @@ describe('NutritionOnlineSearch', () => {
 
     expect(wrapper.text()).toContain('No nutrition data')
     expect(wrapper.find('[data-test="macro-protein"]').exists()).toBe(false)
+  })
+
+  it('shows no kcal for a result that has energy but no macro', async () => {
+    registerEndpoint('/api/nutrition/foods/search/external', () => ({
+      results: [{ ...results[0], externalId: '789', per100g: { energy: 200, fiber: 3 } }],
+      errors: []
+    }))
+
+    const wrapper = await mountSuspended(NutritionOnlineSearch)
+    await searchNutella(wrapper)
+
+    expect(wrapper.find('[data-test="macro-energy"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('No macros')
+    expect(wrapper.text()).not.toContain('per 100 g')
   })
 
   it('imports a result: posts the source and externalId, and emits imported', async () => {
@@ -105,5 +125,44 @@ describe('NutritionOnlineSearch', () => {
 
     const emitted = wrapper.emitted('imported')
     expect(emitted![0]![0]).toEqual({ id: 7, needsNutrition: true })
+  })
+
+  it('warns when the import response carries an energy mismatch', async () => {
+    registerEndpoint('/api/nutrition/foods/search/external', () => ({ results, errors: [] }))
+    registerEndpoint('/api/nutrition/foods/import', {
+      method: 'POST',
+      handler: async () => ({
+        id: 9,
+        needsNutrition: false,
+        owned: false,
+        energyMismatch: { sourceKcal: 566.7, macroKcal: 171 }
+      })
+    })
+
+    const wrapper = await mountSuspended(NutritionOnlineSearch)
+    await searchNutella(wrapper)
+    await wrapper.find('[data-test="online-import"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.emitted('imported')).toHaveLength(1))
+
+    expect(toastAddMock).toHaveBeenCalledWith({
+      title: 'Check the macros',
+      description: 'Open Food Facts says 567 kcal per 100 g, the macros give 171. Check the macros against the label.',
+      color: 'warning'
+    })
+  })
+
+  it('does not warn when energyMismatch is null', async () => {
+    registerEndpoint('/api/nutrition/foods/search/external', () => ({ results, errors: [] }))
+    registerEndpoint('/api/nutrition/foods/import', {
+      method: 'POST',
+      handler: async () => ({ id: 9, needsNutrition: false, owned: false, energyMismatch: null })
+    })
+
+    const wrapper = await mountSuspended(NutritionOnlineSearch)
+    await searchNutella(wrapper)
+    await wrapper.find('[data-test="online-import"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.emitted('imported')).toHaveLength(1))
+
+    expect(toastAddMock).not.toHaveBeenCalled()
   })
 })

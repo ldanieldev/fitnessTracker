@@ -6,13 +6,13 @@ test('creates, edits, and deletes a saved meal on the phone', async ({ page, got
   await registerViaApi(page, makeUser())
   const p = uniquePrefix()
 
-  for (const [name, label, energy] of [
-    [`${p} Egg`, 'egg', 69],
-    [`${p} Toast`, 'slice', 80]
+  for (const [name, label, carbohydrate] of [
+    [`${p} Egg`, 'egg', 17.25],
+    [`${p} Toast`, 'slice', 20]
   ] as const) {
     await apiFetch(page, 'POST', '/api/nutrition/foods', {
       name,
-      servings: [{ kind: 'named', label, quantity: 1, nutrients: { energy } }]
+      servings: [{ kind: 'named', label, quantity: 1, nutrients: { carbohydrate } }]
     })
   }
   await rebuildSearchIndex(page)

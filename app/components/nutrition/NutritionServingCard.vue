@@ -57,10 +57,10 @@ async function save(): Promise<boolean> {
   }
 }
 
-function fill(per100g: Partial<Record<string, number>>): number {
+function fill(per100g: Partial<Record<string, number>>): string[] {
   const result = fillDraftFromPer100g(draft.value, per100g, props.fields)
   draft.value = result.draft
-  return result.filled
+  return result.filledKeys
 }
 
 const isWeight = computed(() => draft.value.kind === 'weight')

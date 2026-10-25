@@ -128,6 +128,49 @@ describe('NutritionBarcodeScanner', () => {
     )
   })
 
+  it('warns about an energy mismatch before navigating after an import', async () => {
+    stubSecureContext(false)
+    registerEndpoint('/api/nutrition/foods/barcode/3017624010701', () => ({
+      found: 'off',
+      external: {
+        source: 'off',
+        externalId: '3017624010701',
+        name: 'Nutella',
+        brand: 'Ferrero',
+        barcode: '3017624010701',
+        per100g: null,
+        servingGrams: null,
+        servingLabel: null,
+        attribution: null
+      }
+    }))
+    registerEndpoint('/api/nutrition/foods/import', {
+      method: 'POST',
+      handler: async () => ({
+        id: 55,
+        needsNutrition: false,
+        owned: false,
+        energyMismatch: { sourceKcal: 566.7, macroKcal: 171 }
+      })
+    })
+
+    const wrapper = await mountSuspended(NutritionBarcodeScanner, { props: { date: '2026-01-01' } })
+    await flushPromises()
+    await wrapper.find('[data-test="scan-manual-input"]').setValue('3017624010701')
+    await wrapper.find('[data-test="scan-manual-submit"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-test="scan-import"]').trigger('click')
+    await flushPromises()
+
+    expect(toastAddMock).toHaveBeenCalledWith({
+      title: 'Check the macros',
+      description: 'Open Food Facts says 567 kcal per 100 g, the macros give 171. Check the macros against the label.',
+      color: 'warning'
+    })
+    expect(navigateToMock).toHaveBeenCalledTimes(1)
+    expect(toastAddMock.mock.invocationCallOrder[0]!).toBeLessThan(navigateToMock.mock.invocationCallOrder[0]!)
+  })
+
   it('toasts once when the missing-barcode lookup carries source errors (P2-R31.5)', async () => {
     stubSecureContext(false)
     registerEndpoint('/api/nutrition/foods/barcode/3017624010701', () => {

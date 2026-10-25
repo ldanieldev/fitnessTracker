@@ -39,7 +39,7 @@ test('imports two export files, is idempotent, and lands the entries in the diar
   const day = await apiFetch<DayView>(page, 'GET', '/api/nutrition/diary/2026-09-05')
   expect(day.status).toBe(200)
   expect(day.json.entries).toHaveLength(18)
-  expect(Number(day.json.totals.energy)).toBeCloseTo(1886.09, 1)
+  expect(Number(day.json.totals.energy)).toBeCloseTo(1868.46, 1)
 
   const silkEntry = day.json.entries.find((e) => e.unitLabel === 'fl oz')!
   expect(silkEntry.description).toBe('Silk Vanilla Almond Milk')

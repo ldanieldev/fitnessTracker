@@ -10,7 +10,7 @@ test('no nutrition screen scrolls sideways at the phone width, and the app rende
   await registerViaApi(page, makeUser())
   const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Layout Food With A Deliberately Long Name For Wrapping',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 100 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 25 } }]
   })
   const containers = (await apiFetch<Array<{ id: number }>>(page, 'GET', '/api/nutrition/meal-containers')).json
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-07/entries', [

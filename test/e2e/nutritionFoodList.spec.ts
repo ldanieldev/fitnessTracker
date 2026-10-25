@@ -24,20 +24,20 @@ test('lists only my own live foods with default-serving energy, filtered by q', 
   const bread = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'List Sourdough',
     brand: 'Bakery',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 260, protein: 9 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 9, carbohydrate: 56 } }]
   })
   const egg = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'List Egg',
-    servings: [{ kind: 'named', label: 'egg', quantity: 1, nutrients: { energy: 69 } }]
+    servings: [{ kind: 'named', label: 'egg', quantity: 1, nutrients: { carbohydrate: 17.25 } }]
   })
   const gone = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'List Deleted',
-    servings: [{ kind: 'named', label: 'bar', quantity: 1, nutrients: { energy: 200 } }]
+    servings: [{ kind: 'named', label: 'bar', quantity: 1, nutrients: { carbohydrate: 50 } }]
   })
   await apiFetch(page, 'DELETE', `/api/nutrition/foods/${gone.json.id}`)
   await seedCatalogFood(page, {
     name: 'List Catalogue Oats',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 95 } }]
   })
 
   const all = await apiFetch<ListedFood[]>(page, 'GET', '/api/nutrition/foods')
@@ -49,7 +49,7 @@ test('lists only my own live foods with default-serving energy, filtered by q', 
     brand: 'Bakery',
     defaultServing: { label: 'g', quantity: 100 },
     energy: 260,
-    perDefault: { label: 'g', quantity: 100, energy: 260, protein: 9, carbohydrate: null, fat: null }
+    perDefault: { label: 'g', quantity: 100, energy: 260, protein: 9, carbohydrate: 56, fat: null }
   })
   expect(all.json[1].perDefault?.protein).toBe(9)
   expect(all.json[0]).toMatchObject({ id: egg.json.id, defaultServing: { label: 'egg', quantity: 1 }, energy: 69 })

@@ -86,7 +86,7 @@ test('creates a slice-only food through the form and logs it', async ({ page, go
   for (let i = 0; i < 30; i++) {
     await apiFetch(page, 'POST', '/api/nutrition/foods', {
       name: `${p} Filler ${i}`,
-      servings: [{ kind: 'named', label: 'each', quantity: 1, nutrients: { energy: 50 } }]
+      servings: [{ kind: 'named', label: 'each', quantity: 1, nutrients: { carbohydrate: 12.5 } }]
     })
   }
   await rebuildSearchIndex(page)

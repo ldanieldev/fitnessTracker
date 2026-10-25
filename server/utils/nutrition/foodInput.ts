@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { ServingKind } from '~~/shared/types/nutrition'
-import { deriveEnergy } from '~~/shared/utils/nutritionDerive'
+import { calculatedEnergy } from '~~/shared/utils/nutritionDerive'
 import { normalizeUnitLabel, toGrams } from '~~/shared/utils/nutritionUnits'
 import { boundedRecord } from '~~/server/utils/validation'
 
@@ -59,15 +59,7 @@ export function buildServingRows(inputs: ServingInput[], nutrientIds: Map<string
     }
 
     const values = { ...raw }
-    const macrosComplete = values.protein !== undefined && values.carbohydrate !== undefined && values.fat !== undefined
-    if (hasOwnNutrition && values.energy === undefined && macrosComplete) {
-      const derived = deriveEnergy({
-        protein: values.protein,
-        carbohydrate: values.carbohydrate,
-        fat: values.fat
-      })
-      if (derived !== null) values.energy = derived
-    }
+    if (hasOwnNutrition) values.energy = calculatedEnergy(values)
 
     const nutrients = Object.entries(values).map(([key, amount]) => {
       const nutrientId = nutrientIds.get(key)

@@ -47,7 +47,7 @@ test('the meal header shows the derived time, then an edited and reset time', as
 
   const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Time Toast',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 200 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 50 } }]
   })
 
   const firstEntryLoggedAt = '2026-09-11T09:00:00.000Z'

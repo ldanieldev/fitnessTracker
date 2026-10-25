@@ -6,6 +6,8 @@ import { ExternalSourceError } from '~~/server/utils/nutrition/external/types'
 import { importExternalFood } from '~~/server/utils/nutrition/importFood'
 import { parseBody } from '~~/server/utils/nutrition/parseBody'
 import { requireUserId } from '~~/server/utils/session'
+import type { ImportedFoodResponse } from '~~/shared/types/nutrition'
+import { sourceEnergyMismatch } from '~~/shared/utils/nutritionDerive'
 
 const importSchema = z.object({
   source: z.enum(['off', 'usda', 'fatsecret']),
@@ -18,7 +20,7 @@ const ERROR_STATUS: Record<Exclude<ExternalSourceError['kind'], 'not_found'>, nu
   unavailable: 502
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ImportedFoodResponse> => {
   const userId = await requireUserId(event)
   const body = await parseBody(event, importSchema)
 
@@ -39,5 +41,6 @@ export default defineEventHandler(async (event) => {
   }
   if (!external) throw createError({ statusCode: 404, statusMessage: 'External food not found' })
 
-  return importExternalFood(db, userId, external)
+  const imported = await importExternalFood(db, userId, external)
+  return { ...imported, energyMismatch: external.per100g ? sourceEnergyMismatch(external.per100g) : null }
 })

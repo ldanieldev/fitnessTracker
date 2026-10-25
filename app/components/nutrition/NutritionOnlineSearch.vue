@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import type { ImportedFoodResponse } from '~~/shared/types/nutrition'
+import { calculatedEnergy, hasMacro } from '~~/shared/utils/nutritionDerive'
+import { energyMismatchMessage } from '~/utils/nutrition/energyMismatch'
+
 type ExternalSourceKey = 'off' | 'usda' | 'fatsecret'
 
 interface ExternalResult {
@@ -23,6 +27,7 @@ const emit = defineEmits<{
 }>()
 
 const fail = useFailToast()
+const toast = useToast()
 
 const SOURCE_LABELS: Record<ExternalSourceKey, string> = {
   off: 'Open Food Facts',
@@ -52,6 +57,21 @@ function resultKey(result: ExternalResult) {
 // An empty per100g object (no facts returned) must not render as a row full of zero macros.
 function facts(result: ExternalResult): Record<string, number> | null {
   return result.per100g && Object.keys(result.per100g).length ? result.per100g : null
+}
+
+function hasMacros(result: ExternalResult): boolean {
+  const per100g = facts(result)
+  return per100g !== null && hasMacro(Object.keys(per100g))
+}
+
+function amountText(result: ExternalResult): string {
+  if (!facts(result)) return 'No nutrition data'
+  return hasMacros(result) ? 'per 100 g' : 'No macros'
+}
+
+function previewEnergy(result: ExternalResult): number | null {
+  const per100g = facts(result)
+  return per100g && hasMacro(Object.keys(per100g)) ? calculatedEnergy(per100g) : null
 }
 
 function errorReason(kind: ExternalErrorEntry['kind']) {
@@ -86,14 +106,18 @@ async function search() {
 async function importResult(result: ExternalResult) {
   importingKey.value = resultKey(result)
   try {
-    const imported = await apiFetch<{ id: number; needsNutrition: boolean; owned: boolean }>(
-      '/api/nutrition/foods/import',
-      {
-        method: 'POST',
-        body: { source: result.source, externalId: result.externalId }
-      }
-    )
+    const imported = await apiFetch<ImportedFoodResponse>('/api/nutrition/foods/import', {
+      method: 'POST',
+      body: { source: result.source, externalId: result.externalId }
+    })
     await invalidateNutrition(NUTRITION_KEYS.foods)
+    if (imported.energyMismatch) {
+      toast.add({
+        title: 'Check the macros',
+        description: energyMismatchMessage(imported.energyMismatch, SOURCE_LABELS[result.source]),
+        color: 'warning'
+      })
+    }
     emit('imported', { id: imported.id, needsNutrition: imported.needsNutrition })
   } catch (error: unknown) {
     fail('Import failed', error, 'Could not import this food')
@@ -145,9 +169,9 @@ async function importResult(result: ExternalResult) {
         data-test="online-result"
         :title="result.name"
         :subtitle="result.brand"
-        :amount-text="facts(result) ? 'per 100 g' : 'No nutrition data'"
-        :nutrients="facts(result)"
-        :energy="facts(result)?.energy ?? null"
+        :amount-text="amountText(result)"
+        :nutrients="hasMacros(result) ? facts(result) : null"
+        :energy="previewEnergy(result)"
       >
         <template #actions>
           <UBadge :label="SOURCE_LABELS[result.source]" color="neutral" variant="subtle" />

@@ -23,6 +23,7 @@ import { markReported } from '../../inngest/reported'
 import { logger } from '../../logger'
 import { localNoon } from './localNoon'
 import { MyMacrosParseError, parseMyMacrosExport, type ParsedDay } from './parse'
+import { energyWarnings, entryEnergy } from './energy'
 import { planImport, type PlannedEntry, type PlannedFood } from './plan'
 
 const NUTRIENT_KEYS = { energy: 'energy', protein: 'protein', carbohydrate: 'carbohydrate', fat: 'fat' } as const
@@ -192,7 +193,7 @@ async function performImport(
   }
 
   const plan = planImport(parsed, userId)
-  warnings.push(...plan.warnings)
+  warnings.push(...plan.warnings, ...energyWarnings(plan.foods, plan.entries))
 
   const nutrientIds = await nutrientIdMap()
   const energyId = nutrientIds.get('energy')!
@@ -321,7 +322,7 @@ async function performImport(
             loggedAt: localNoon(entry.date, timeZone),
             importKey: entry.importKey,
             nutrients: {
-              [energyId]: entry.nutrients.kcal,
+              [energyId]: entryEnergy(entry),
               [proteinId]: entry.nutrients.protein,
               [carbId]: entry.nutrients.carbs,
               [fatId]: entry.nutrients.fat

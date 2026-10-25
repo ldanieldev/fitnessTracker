@@ -1,5 +1,6 @@
 import type { NutrientKey } from '~~/shared/types/nutrition'
 import { toGtin13 } from '~~/shared/utils/gtin'
+import { hasMacro } from '~~/shared/utils/nutritionDerive'
 import type { ServingInput } from '../foodInput'
 import type { ExternalFood } from './types'
 
@@ -40,8 +41,10 @@ export function mapExternalFood(food: ExternalFood): {
   servings: ServingInput[]
 } {
   const servings: ServingInput[] = []
-  if (food.per100g) {
-    servings.push({ kind: 'weight', label: 'g', quantity: 100, nutrients: filterCatalogueNutrients(food.per100g) })
+  const nutrients = food.per100g ? filterCatalogueNutrients(food.per100g) : null
+  // kcal is calculated from P/C/F, so a source without a macro lands as needsNutrition instead of saving 0 kcal.
+  if (nutrients && hasMacro(Object.keys(nutrients))) {
+    servings.push({ kind: 'weight', label: 'g', quantity: 100, nutrients })
     if (food.servingGrams && food.servingGrams > 0) {
       servings.push({
         kind: 'named',

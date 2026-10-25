@@ -43,7 +43,7 @@ test.describe('external food search, barcode lookup and import', () => {
     }>(page, 'GET', `/api/nutrition/foods/${id}`)
     const weight = read.json.servings.find((s) => s.kind === 'weight' && s.label === 'g')!
     expect(weight).toBeTruthy()
-    expect(Object.values(weight.nutrients).some((v) => Math.abs(v - 539) < 5)).toBe(true)
+    expect(Object.values(weight.nutrients).some((v) => Math.abs(v - 533.3) < 0.01)).toBe(true)
 
     const reimported = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods/import', {
       source: 'off',
@@ -70,7 +70,7 @@ test.describe('external food search, barcode lookup and import', () => {
     const own = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
       name: 'Own Cheerios',
       barcode: STUB_BARCODE_2,
-      servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+      servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 95 } }]
     })
 
     const local = await apiFetch<{ found: string; foodId: number }>(

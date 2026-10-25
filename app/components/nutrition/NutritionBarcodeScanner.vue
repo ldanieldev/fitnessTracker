@@ -2,6 +2,8 @@
 import { EXTERNAL_SOURCE_LABELS, type ExternalFood } from '~/composables/useBarcodeLookup'
 import { normalizeGtin } from '~/utils/barcode/decode'
 import { errorMessage } from '~/utils/apiError'
+import { energyMismatchMessage } from '~/utils/nutrition/energyMismatch'
+import type { ImportedFoodResponse } from '~~/shared/types/nutrition'
 
 const props = defineProps<{
   date: string
@@ -65,17 +67,22 @@ async function submitManual() {
 
 async function importExternal() {
   if (!external.value) return
+  const { source, externalId } = external.value
   importing.value = true
   try {
-    const imported = await apiFetch<{ id: number; needsNutrition: boolean; owned: boolean }>(
-      '/api/nutrition/foods/import',
-      {
-        method: 'POST',
-        body: { source: external.value.source, externalId: external.value.externalId }
-      }
-    )
+    const imported = await apiFetch<ImportedFoodResponse>('/api/nutrition/foods/import', {
+      method: 'POST',
+      body: { source, externalId }
+    })
     await invalidateNutrition(NUTRITION_KEYS.foods)
     if (unmounted) return
+    if (imported.energyMismatch) {
+      toast.add({
+        title: 'Check the macros',
+        description: energyMismatchMessage(imported.energyMismatch, EXTERNAL_SOURCE_LABELS[source]),
+        color: 'warning'
+      })
+    }
     const suffix = imported.needsNutrition ? '&needsNutrition=1' : ''
     await navigateTo(`/nutrition/diary/${props.date}/add?foodId=${imported.id}${suffix}${containerQuery.value}`, {
       replace: true

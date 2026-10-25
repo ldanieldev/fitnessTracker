@@ -14,11 +14,11 @@ test('adds a food, a recipe, and a saved meal to one meal in one tap, with no ta
 
   const oats = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Oats`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 95 } }]
   })
   const egg = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Egg`,
-    servings: [{ kind: 'named', label: 'egg', quantity: 1, nutrients: { energy: 69, protein: 6 } }]
+    servings: [{ kind: 'named', label: 'egg', quantity: 1, nutrients: { protein: 6, fat: 5 } }]
   })
   await apiFetch(page, 'PUT', `/api/nutrition/foods/${egg.json.id}/favorite`)
   await apiFetch(page, 'POST', '/api/nutrition/recipes', {
@@ -99,7 +99,7 @@ test('removing a food from recents hides it there but leaves it searchable and p
   const target = containers.json[1]!
   const oats = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Oats`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 95 } }]
   })
   await rebuildSearchIndex(page)
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-02/entries', [

@@ -1,7 +1,7 @@
 import type { MassUnit, ServingBasis } from '~~/shared/types/nutrition'
 import { NUTRITION_MACROS } from '~~/app/constants/nutrition'
 import { numOrUndefined } from '~~/app/composables/useNutritionForms'
-import { deriveEnergy } from '~~/shared/utils/nutritionDerive'
+import { calculatedEnergy } from '~~/shared/utils/nutritionDerive'
 import { toGrams } from '~~/shared/utils/nutritionUnits'
 
 export interface NutrientField {
@@ -42,6 +42,7 @@ export function nutrientFields(tracked: Array<{ key: string; name: string; unit:
 function numericNutrients(draft: ServingDraft): Record<string, number> {
   const out: Record<string, number> = {}
   for (const [key, raw] of Object.entries(draft.nutrients)) {
+    if (key === 'energy') continue
     const value = numOrUndefined(raw.trim())
     if (value !== undefined) out[key] = value
   }
@@ -65,13 +66,7 @@ export function draftError(draft: ServingDraft): string | null {
 
 export function draftToInput(draft: ServingDraft): ServingInputBody {
   const nutrients = numericNutrients(draft)
-  if (
-    nutrients.energy === undefined &&
-    (nutrients.protein !== undefined || nutrients.carbohydrate !== undefined || nutrients.fat !== undefined)
-  ) {
-    const derived = deriveEnergy(nutrients)
-    if (derived !== null) nutrients.energy = Math.round(derived)
-  }
+  if (Object.keys(nutrients).length > 0) nutrients.energy = calculatedEnergy(nutrients)
   const basisGrams = draft.kind === 'named' ? positiveGrams(draft.basisGrams) : undefined
   return {
     kind: draft.kind,
@@ -82,6 +77,11 @@ export function draftToInput(draft: ServingDraft): ServingInputBody {
   }
 }
 
+export function servingEnergy(draft: ServingDraft): number | null {
+  const nutrients = numericNutrients(draft)
+  return Object.keys(nutrients).length > 0 ? calculatedEnergy(nutrients) : null
+}
+
 function oneDecimal(amount: number): string {
   return String(Math.round(amount * 10) / 10)
 }
@@ -90,7 +90,7 @@ export function draftFromServing(serving: ServingBasis, idToKey: Map<number, str
   const nutrients: Record<string, string> = {}
   for (const [id, amount] of Object.entries(serving.nutrients)) {
     const key = idToKey.get(Number(id))
-    if (key) nutrients[key] = oneDecimal(amount)
+    if (key && key !== 'energy') nutrients[key] = oneDecimal(amount)
   }
   return {
     kind: serving.kind,
@@ -109,7 +109,7 @@ export function applyParsedNutrients(
   const nutrients = { ...draft.nutrients }
   for (const field of fields) {
     const value = parsed[field.key]
-    if (value !== undefined) nutrients[field.key] = String(value)
+    if (field.key !== 'energy' && value !== undefined) nutrients[field.key] = String(value)
   }
   return { ...draft, nutrients }
 }
@@ -124,26 +124,26 @@ function fillBlanks(
   grams: number,
   per100g: Partial<Record<string, number>>,
   fields: NutrientField[]
-): { draft: ServingDraft; filled: number } {
+): { draft: ServingDraft; filledKeys: string[] } {
   const nutrients = { ...draft.nutrients }
-  let filled = 0
+  const filledKeys: string[] = []
   for (const field of fields) {
     const value = per100g[field.key]
-    if (value === undefined || (nutrients[field.key] ?? '').trim() !== '') continue
+    if (field.key === 'energy' || value === undefined || (nutrients[field.key] ?? '').trim() !== '') continue
     nutrients[field.key] = oneDecimal((value * grams) / 100)
-    filled += 1
+    filledKeys.push(field.key)
   }
-  return { draft: { ...draft, nutrients }, filled }
+  return { draft: { ...draft, nutrients }, filledKeys }
 }
 
 export function fillDraftFromPer100g(
   draft: ServingDraft,
   per100g: Partial<Record<string, number>>,
   fields: NutrientField[]
-): { draft: ServingDraft; filled: number } {
+): { draft: ServingDraft; filledKeys: string[] } {
   const grams = draftGrams(draft)
   // A serving with no nutrients of its own derives them from the weight serving; filling it would cut that link.
-  if (grams === undefined || Object.keys(numericNutrients(draft)).length === 0) return { draft, filled: 0 }
+  if (grams === undefined || Object.keys(numericNutrients(draft)).length === 0) return { draft, filledKeys: [] }
   return fillBlanks(draft, grams, per100g, fields)
 }
 

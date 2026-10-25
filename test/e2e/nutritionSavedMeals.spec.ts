@@ -186,11 +186,11 @@ test('saved-meal reads carry item names, nutrients, item count, and total', asyn
 
   const egg = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Meal Egg',
-    servings: [{ kind: 'named', label: 'egg', quantity: 1, nutrients: { energy: 69 } }]
+    servings: [{ kind: 'named', label: 'egg', quantity: 1, nutrients: { carbohydrate: 17.25 } }]
   })
   const toast = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Meal Toast',
-    servings: [{ kind: 'named', label: 'slice', quantity: 1, nutrients: { energy: 80 } }]
+    servings: [{ kind: 'named', label: 'slice', quantity: 1, nutrients: { carbohydrate: 20 } }]
   })
   const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/saved-meals', {
     name: 'Egg breakfast',

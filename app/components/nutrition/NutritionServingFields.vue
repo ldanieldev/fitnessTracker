@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NutrientField, ServingDraft } from '~/utils/nutrition/servingDraft'
-import { draftError } from '~/utils/nutrition/servingDraft'
+import { draftError, servingEnergy } from '~/utils/nutrition/servingDraft'
 
 defineProps<{ fields: NutrientField[]; weightTaken?: boolean }>()
 const draft = defineModel<ServingDraft>({ required: true })
@@ -11,6 +11,11 @@ const weightLabels = [
   { label: 'lb', value: 'lb' }
 ]
 const error = computed(() => draftError(draft.value))
+
+const energyText = computed(() => {
+  const energy = servingEnergy(draft.value)
+  return energy === null ? '' : String(Math.round(energy))
+})
 
 function patch(values: Partial<ServingDraft>) {
   draft.value = { ...draft.value, ...values }
@@ -78,8 +83,21 @@ function setNutrient(key: string, value: string) {
       </UFormField>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <UFormField v-for="field in fields" :key="field.key" :label="`${field.name} (${field.unit})`">
+      <UFormField
+        v-for="field in fields"
+        :key="field.key"
+        :label="`${field.name} (${field.unit})`"
+        :help="field.key === 'energy' ? 'From macros' : undefined"
+      >
         <UInput
+          v-if="field.key === 'energy'"
+          :model-value="energyText"
+          readonly
+          class="w-full"
+          :data-test="`serving-${field.key}`"
+        />
+        <UInput
+          v-else
           :model-value="draft.nutrients[field.key] ?? ''"
           type="number"
           inputmode="decimal"

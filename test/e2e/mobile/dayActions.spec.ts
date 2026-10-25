@@ -8,7 +8,7 @@ async function setup(page: Parameters<typeof registerViaApi>[0]) {
   ).json
   const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Action Oats',
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 95 } }]
   })
   return { containers, foodId: food.json.id }
 }

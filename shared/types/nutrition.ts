@@ -1,3 +1,5 @@
+import type { EnergyMismatch } from '../utils/nutritionDerive'
+
 export type TargetDirection = 'min' | 'max' | 'target'
 export type NutrientUnit = 'kcal' | 'g' | 'mg' | 'mcg'
 export type ServingKind = 'weight' | 'named'
@@ -46,7 +48,7 @@ export type MacroSet = { kcal: number; protein: number; carbs: number; fat: numb
 
 export interface ImportWarning {
   date: string
-  code: 'checksum' | 'inconsistent_group' | 'oz_as_fluid' | 'duplicate_date' | 'unsupported_unit'
+  code: 'checksum' | 'inconsistent_group' | 'oz_as_fluid' | 'duplicate_date' | 'unsupported_unit' | 'energy_mismatch'
   message: string
 }
 
@@ -59,4 +61,11 @@ export interface ImportResult {
   containersCreated: number
   warnings: ImportWarning[]
   failedFiles: Array<{ fileName: string; error: string }>
+}
+
+export interface ImportedFoodResponse {
+  id: number
+  needsNutrition: boolean
+  owned: boolean
+  energyMismatch: EnergyMismatch | null
 }

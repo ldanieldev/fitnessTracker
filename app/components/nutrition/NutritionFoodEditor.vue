@@ -3,6 +3,10 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FoodDetail } from '~/types/nutrition'
 import { errorMessage } from '~/utils/apiError'
 import { keyNutrients } from '~~/shared/utils/nutritionKeyed'
+import { hasMacro, sourceEnergyMismatch } from '~~/shared/utils/nutritionDerive'
+import { energyMismatchMessage } from '~/utils/nutrition/energyMismatch'
+import { barcodeHint } from '~/utils/nutrition/nameMatch'
+import { EXTERNAL_SOURCE_LABELS } from '~/composables/useBarcodeLookup'
 import {
   type ServingDraft,
   draftFromPer100g,
@@ -134,7 +138,11 @@ async function save() {
       await invalidateNutrition(NUTRITION_KEYS.foods, NUTRITION_KEYS.recipes, NUTRITION_KEYS.savedMeals)
       await load()
     }
-    if (allSaved) toast.add({ title: 'Food saved', color: 'success' })
+    if (allSaved) {
+      energyWarning.value = null
+      barcodeHeader.value = { name: null, brand: null }
+      toast.add({ title: 'Food saved', color: 'success' })
+    }
   } finally {
     saving.value = false
   }
@@ -157,21 +165,41 @@ function addServing(initial?: ServingDraft) {
 }
 
 const prefill = useBarcodePrefill()
+const energyWarning = ref<string | null>(null)
+const barcodeHeader = ref<{ name: string | null; brand: string | null }>({ name: null, brand: null })
+const nameHint = computed(() => barcodeHint(header.value.name, barcodeHeader.value.name))
+const brandHint = computed(() => barcodeHint(header.value.brand, barcodeHeader.value.brand))
+
+function applyHint(field: 'name' | 'brand') {
+  const value = barcodeHeader.value[field]
+  if (value) header.value[field] = value
+}
 
 async function onBarcodeScanned(code: string) {
+  energyWarning.value = null
+  barcodeHeader.value = { name: null, brand: null }
   const external = await prefill.find(code)
   if (!external) return
+  let macroFilled = false
   let filled = prefill.fillHeader(header.value, external)
+  barcodeHeader.value = { name: external.name || null, brand: external.brand }
   if (external.per100g) {
-    for (const row of cardRows.value) filled += cards.get(row.key)?.fill(external.per100g) ?? 0
+    for (const row of cardRows.value) {
+      const keys = cards.get(row.key)?.fill(external.per100g) ?? []
+      filled += keys.length
+      if (hasMacro(keys)) macroFilled = true
+    }
     if (!cardRows.value.some((row) => cards.get(row.key)?.isWeight)) {
       const weight = draftFromPer100g(external.per100g, fields.value)
-      const count = Object.keys(weight.nutrients).length
-      if (count > 0) {
+      const keys = Object.keys(weight.nutrients)
+      if (hasMacro(keys)) {
         addServing(weight)
-        filled += count
+        filled += keys.length
+        macroFilled = true
       }
     }
+    const mismatch = macroFilled ? sourceEnergyMismatch(external.per100g) : null
+    energyWarning.value = mismatch ? energyMismatchMessage(mismatch, EXTERNAL_SOURCE_LABELS[external.source]) : null
   }
   prefill.report(filled, external)
 }
@@ -267,14 +295,28 @@ const menu = computed<DropdownMenuItem[][]>(() => {
             <div class="flex flex-col gap-3">
               <UFormField label="Name" required>
                 <UInput v-model="header.name" autocapitalize="words" class="w-full" data-test="food-header-name" />
+                <NutritionBarcodeSuggestion v-if="nameHint" :value="nameHint" field="name" @use="applyHint('name')" />
               </UFormField>
               <UFormField label="Brand">
                 <UInput v-model="header.brand" autocapitalize="words" class="w-full" data-test="food-header-brand" />
+                <NutritionBarcodeSuggestion
+                  v-if="brandHint"
+                  :value="brandHint"
+                  field="brand"
+                  @use="applyHint('brand')"
+                />
               </UFormField>
               <NutritionBarcodeField
                 v-model="header.barcode"
                 input-test="food-header-barcode"
                 @scanned="onBarcodeScanned"
+              />
+              <UAlert
+                v-if="energyWarning"
+                color="warning"
+                variant="soft"
+                :description="energyWarning"
+                data-test="energy-mismatch"
               />
               <NutritionServingPreview v-if="defaultDraft" :draft="defaultDraft" />
               <p v-if="headerError" class="text-sm text-error" data-test="food-header-error">{{ headerError }}</p>

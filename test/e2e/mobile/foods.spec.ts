@@ -14,7 +14,7 @@ test('edits an owned food: header, a serving, a new serving, and a guarded delet
 
   const created = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: `${p} Sourdough`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 260, protein: 9 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { protein: 9, carbohydrate: 56 } }]
   })
   const foodId = created.json.id
 
@@ -58,7 +58,7 @@ test('a catalogue food is read-only until copied', async ({ page, goto }) => {
 
   const catalogue = await seedCatalogFood(page, {
     name: `${p} Catalogue Oats`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 380 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 95 } }]
   })
 
   await goto(`/nutrition/foods/${catalogue.id}`, { waitUntil: 'hydration' })
@@ -82,7 +82,7 @@ test('adds a catalogue food to a chosen meal and day from the food menu', async 
 
   const catalogue = await seedCatalogFood(page, {
     name: `${p} Catalogue Rice`,
-    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 130 } }]
+    servings: [{ kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 32.5 } }]
   })
 
   await goto(`/nutrition/foods/${catalogue.id}`, { waitUntil: 'hydration' })

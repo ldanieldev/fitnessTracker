@@ -1,5 +1,6 @@
 import { EXTERNAL_SOURCE_LABELS, type ExternalFood } from '~/composables/useBarcodeLookup'
 import { errorMessage } from '~/utils/apiError'
+import { hasMacro } from '~~/shared/utils/nutritionDerive'
 
 export interface PrefillHeader {
   name: string
@@ -47,12 +48,19 @@ export function useBarcodePrefill() {
     return filled
   }
 
+  function emptyReason(external: ExternalFood, source: string): string {
+    const per100g = external.per100g ?? {}
+    return per100g.energy !== undefined && !hasMacro(Object.keys(per100g))
+      ? `${source} has calories but no macros`
+      : `Every field ${source} has is already filled in`
+  }
+
   function report(filled: number, external: ExternalFood) {
     const source = EXTERNAL_SOURCE_LABELS[external.source]
     toast.add(
       filled > 0
         ? { title: `Filled ${filled} ${filled === 1 ? 'field' : 'fields'} from ${source}`, color: 'success' }
-        : { title: 'Nothing to fill', description: `Every field ${source} has is already filled in`, color: 'neutral' }
+        : { title: 'Nothing to fill', description: emptyReason(external, source), color: 'neutral' }
     )
   }
 

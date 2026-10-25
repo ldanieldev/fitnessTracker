@@ -23,8 +23,8 @@ test('edits quantity, unit, meal, and note from the entry sheet', async ({ page,
   const food = await apiFetch<{ id: number }>(page, 'POST', '/api/nutrition/foods', {
     name: 'Sheet Bread',
     servings: [
-      { kind: 'weight', label: 'g', quantity: 100, nutrients: { energy: 260 } },
-      { kind: 'named', label: 'slice', quantity: 1, nutrients: { energy: 90 } }
+      { kind: 'weight', label: 'g', quantity: 100, nutrients: { carbohydrate: 65 } },
+      { kind: 'named', label: 'slice', quantity: 1, nutrients: { carbohydrate: 22.5 } }
     ]
   })
   await apiFetch(page, 'POST', '/api/nutrition/diary/2026-09-02/entries', [
