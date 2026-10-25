@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import * as Sentry from '@sentry/nuxt'
+import { type CameraProbe, focusesClose, nextCamera, pickScanCamera } from '~/utils/barcode/camera'
 import { decodeBarcode, isSupportedBarcodeFormat, normalizeGtin } from '~/utils/barcode/decode'
 import { errorMessage } from '~/utils/apiError'
 
@@ -14,14 +15,20 @@ const DETECTOR_FORMAT_MAP: Record<string, string> = {
 }
 
 const FRAME_INTERVAL_MS = 250
+const CAMERA_STORAGE_KEY = 'nutrition.barcode.camera'
+
+type FocusCapabilities = MediaTrackCapabilities & { focusDistance?: { min?: number } }
 
 const toast = useToast()
 
 const secure = ref<boolean | null>(null)
 const permissionError = ref<string | null>(null)
+const cameraIds = ref<string[]>([])
+const switching = ref(false)
 const videoEl = useTemplateRef('videoEl')
 
 let stream: MediaStream | null = null
+let deviceId: string | undefined
 let frameTimer: ReturnType<typeof setInterval> | null = null
 let canvas: HTMLCanvasElement | null = null
 let canvasContext: CanvasRenderingContext2D | null = null
@@ -37,7 +44,7 @@ function stopScanning() {
     frameTimer = null
   }
   if (stream) {
-    for (const track of stream.getTracks()) track.stop()
+    stopMedia(stream)
     stream = null
   }
 }
@@ -118,10 +125,102 @@ function warnScannerFailure(stage: 'start' | 'detect', err: unknown) {
   if (name !== 'NotAllowedError') Sentry.logger.warn('Barcode scanner failed', { stage, errorName: name })
 }
 
+function readStoredCamera(): string | undefined {
+  try {
+    return localStorage.getItem(CAMERA_STORAGE_KEY) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
+function storeCamera(id: string) {
+  try {
+    localStorage.setItem(CAMERA_STORAGE_KEY, id)
+  } catch {
+    // best-effort — private browsing or disabled storage should not break scanning
+  }
+}
+
+function openCamera(id?: string): Promise<MediaStream> {
+  const video: MediaTrackConstraints = id ? { deviceId: { exact: id } } : { facingMode: 'environment' }
+  return navigator.mediaDevices.getUserMedia({ video })
+}
+
+function stopMedia(media: MediaStream) {
+  for (const track of media.getTracks()) track.stop()
+}
+
+function minFocusOf(track: MediaStreamTrack | undefined): number | undefined {
+  return (track?.getCapabilities?.() as FocusCapabilities | undefined)?.focusDistance?.min
+}
+
+async function listCameras(): Promise<string[]> {
+  const devices = (await navigator.mediaDevices.enumerateDevices?.()) ?? []
+  return devices.filter((d) => d.kind === 'videoinput' && d.deviceId).map((d) => d.deviceId)
+}
+
+// Probed one at a time because many phones refuse to open a second camera while one is streaming.
+async function probeBackCameras(ids: string[], skip: string | undefined): Promise<CameraProbe[]> {
+  const probes: CameraProbe[] = []
+  for (const id of ids) {
+    if (id === skip || cancelled()) continue
+    try {
+      const media = await openCamera(id)
+      const track = media.getTracks()[0]
+      const facing = track?.getSettings?.().facingMode
+      const minFocusM = facing === undefined || facing === 'environment' ? minFocusOf(track) : undefined
+      stopMedia(media)
+      probes.push({ deviceId: id, minFocusM })
+    } catch {
+      // a camera that will not open just drops out of the candidates
+    }
+  }
+  return probes
+}
+
+async function acquireStream(): Promise<MediaStream> {
+  const stored = readStoredCamera()
+  if (stored) {
+    try {
+      const media = await openCamera(stored)
+      deviceId = stored
+      return media
+    } catch {
+      // remembered camera is gone (new device, rotated id) — fall back to the automatic pick
+    }
+  }
+  const media = await openCamera()
+  const track = media.getTracks()[0]
+  deviceId = track?.getSettings?.().deviceId
+  if (focusesClose(minFocusOf(track)) || cancelled()) return media
+  stopMedia(media)
+  const probes = await probeBackCameras(await listCameras(), deviceId)
+  if (cancelled()) return media
+  const better = pickScanCamera(probes)
+  if (!better) return openCamera()
+  deviceId = better
+  storeCamera(better)
+  return openCamera(better)
+}
+
+async function switchCamera() {
+  const id = nextCamera(cameraIds.value, deviceId)
+  if (!id || switching.value) return
+  switching.value = true
+  storeCamera(id)
+  stopScanning()
+  stopped = false
+  try {
+    await startCamera()
+  } finally {
+    switching.value = false
+  }
+}
+
 async function startCamera() {
   let media: MediaStream
   try {
-    media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    media = await acquireStream()
   } catch (err: unknown) {
     const name = typeof err === 'object' && err !== null && 'name' in err ? (err as { name: unknown }).name : undefined
     permissionError.value =
@@ -131,7 +230,7 @@ async function startCamera() {
     return
   }
   if (cancelled()) {
-    for (const track of media.getTracks()) track.stop()
+    stopMedia(media)
     return
   }
   stream = media
@@ -142,9 +241,10 @@ async function startCamera() {
     video.srcObject = stream
     await video.play()
     if (cancelled()) return stopScanning()
-    await setupDetector()
+    if (!detector) await setupDetector()
     if (cancelled()) return stopScanning()
     frameTimer = setInterval(captureFrame, FRAME_INTERVAL_MS)
+    cameraIds.value = await listCameras()
   } catch (err: unknown) {
     if (cancelled()) return stopScanning()
     warnScannerFailure('start', err)
@@ -179,13 +279,26 @@ onUnmounted(() => {
     :title="permissionError"
     data-test="scan-permission-notice"
   />
-  <video
-    v-else-if="secure"
-    ref="videoEl"
-    class="w-full rounded-lg bg-black aspect-video"
-    muted
-    playsinline
-    aria-label="Barcode viewfinder"
-    data-test="scan-video"
-  />
+  <div v-else-if="secure" class="relative">
+    <video
+      ref="videoEl"
+      class="w-full rounded-lg bg-black aspect-video"
+      muted
+      playsinline
+      aria-label="Barcode viewfinder"
+      data-test="scan-video"
+    />
+    <UButton
+      v-if="cameraIds.length > 1"
+      icon="i-lucide-switch-camera"
+      color="neutral"
+      variant="soft"
+      size="sm"
+      class="absolute top-2 right-2"
+      aria-label="Switch camera"
+      :loading="switching"
+      data-test="scan-switch-camera"
+      @click="switchCamera"
+    />
+  </div>
 </template>
