@@ -2,13 +2,13 @@
 withDefaults(
   defineProps<{
     label: string
-    figure: string
+    figure?: string
     progress: number | null
     color?: 'primary' | 'error' | 'protein' | 'carb' | 'fat' | 'neutral'
     labelClass?: string
     dataTest?: string
   }>(),
-  { color: 'neutral', labelClass: '', dataTest: undefined }
+  { figure: '', color: 'neutral', labelClass: '', dataTest: undefined }
 )
 const BG: Record<string, string> = {
   primary: 'bg-primary',
@@ -24,7 +24,9 @@ const BG: Record<string, string> = {
   <div class="flex flex-col gap-1" :data-test="dataTest">
     <div class="flex items-baseline justify-between text-xs">
       <span :class="labelClass">{{ label }}</span>
-      <span class="font-semibold tabular-nums text-highlighted">{{ figure }}</span>
+      <span class="font-semibold tabular-nums text-highlighted">
+        <slot name="figure">{{ figure }}</slot>
+      </span>
     </div>
     <div class="h-1.5 overflow-hidden rounded-full bg-accented">
       <div

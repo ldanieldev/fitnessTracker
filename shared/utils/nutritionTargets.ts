@@ -34,6 +34,13 @@ export function evaluateTarget(input: TargetInput): TargetEvaluation {
   return { remaining: raw, state, progress }
 }
 
+export function withinTolerance(input: TargetInput): boolean {
+  const { consumed, target, direction, tolerance = 0.05 } = input
+  const band = Math.abs(target) * tolerance
+  if (direction === 'min') return consumed >= target - band
+  return Math.abs(target - consumed) <= band
+}
+
 export function ensureEnergyTarget<T extends { key: string; amount: number; direction: TargetDirection }>(
   targets: T[],
   make: (amount: number) => T,

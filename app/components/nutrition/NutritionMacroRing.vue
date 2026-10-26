@@ -6,7 +6,7 @@ const props = withDefaults(
     label: string
     sub?: string
     size?: number
-    color?: 'primary' | 'error' | 'protein' | 'carb' | 'fat' | 'neutral'
+    color?: 'primary' | 'error' | 'success' | 'protein' | 'carb' | 'fat' | 'neutral'
   }>(),
   { sub: '', size: 100, color: 'primary' }
 )
@@ -17,6 +17,7 @@ const ratio = computed(() => (props.max && props.max > 0 ? Math.min(props.value 
 const STROKE: Record<string, string> = {
   primary: 'stroke-primary',
   error: 'stroke-error',
+  success: 'stroke-success',
   protein: 'stroke-protein',
   carb: 'stroke-carb',
   fat: 'stroke-fat'

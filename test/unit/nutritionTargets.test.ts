@@ -64,6 +64,23 @@ describe('evaluateTarget — progress and guards', () => {
   })
 })
 
+describe('withinTolerance', () => {
+  it('accepts a ceiling or exact target only within ±5% either side', async () => {
+    const { withinTolerance } = await import('../../shared/utils/nutritionTargets')
+    expect(withinTolerance({ consumed: 57, target: 60, direction: 'max' })).toBe(true)
+    expect(withinTolerance({ consumed: 63, target: 60, direction: 'max' })).toBe(true)
+    expect(withinTolerance({ consumed: 56, target: 60, direction: 'max' })).toBe(false)
+    expect(withinTolerance({ consumed: 64, target: 60, direction: 'target' })).toBe(false)
+  })
+
+  it('accepts a floor from 95% upward with no upper cap', async () => {
+    const { withinTolerance } = await import('../../shared/utils/nutritionTargets')
+    expect(withinTolerance({ consumed: 167, target: 175, direction: 'min' })).toBe(true)
+    expect(withinTolerance({ consumed: 260, target: 175, direction: 'min' })).toBe(true)
+    expect(withinTolerance({ consumed: 165, target: 175, direction: 'min' })).toBe(false)
+  })
+})
+
 describe('ensureEnergyTarget', () => {
   const make = (amount: number) => ({ key: 'energy', amount, direction: 'max' as const })
 

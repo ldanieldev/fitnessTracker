@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { DiaryTargetRow } from '~/composables/useDiaryDay'
-import { evaluateTarget, type TargetState } from '~~/shared/utils/nutritionTargets'
+import { evaluateTarget, withinTolerance, type TargetState } from '~~/shared/utils/nutritionTargets'
 import { formatAmount, MACRO_CLASS, type MacroKey } from '~/utils/nutrition/macros'
 
 const props = withDefaults(
@@ -88,7 +88,19 @@ const energySub = computed(() => {
   if (mode.value === 'consumed' || energyRow.value?.amount === null) return 'kcal eaten'
   return energyRow.value?.state === 'over' ? 'kcal over' : 'kcal left'
 })
-const energyColor = computed(() => (energyRow.value?.state === 'over' ? 'error' : 'primary'))
+const onTarget = computed(() => {
+  const scored = props.targets.filter((t) => t.key === 'energy' || BAR_KEYS.has(t.key))
+  return scored.every(
+    (t) =>
+      t.amount === null ||
+      t.direction === null ||
+      withinTolerance({ consumed: props.totals[t.key] ?? 0, target: t.amount, direction: t.direction })
+  )
+})
+const energyColor = computed(() => {
+  if (energyRow.value?.state === 'over') return 'error'
+  return onTarget.value ? 'success' : 'neutral'
+})
 const energyTotalText = computed(() => {
   const row = energyRow.value
   if (!row) return '—'
@@ -101,9 +113,15 @@ function barValue(row: SummaryRow): string {
   return formatAmount(row.key, mode.value === 'consumed' ? row.consumed : row.remaining)
 }
 
-function barFigure(row: SummaryRow): string {
-  if (row.amount === null || mode.value === 'consumed') return `${formatAmount(row.key, row.consumed)} ${row.unit}`
-  return `${formatAmount(row.key, row.remaining)} ${row.unit} left`
+function barSuffix(row: SummaryRow): 'over' | 'left' | null {
+  if (row.amount === null || mode.value === 'consumed') return null
+  return row.consumed > row.amount ? 'over' : 'left'
+}
+
+function barAmount(row: SummaryRow): string {
+  const suffix = barSuffix(row)
+  const amount = suffix === null ? row.consumed : suffix === 'over' ? row.consumed - row.amount! : row.remaining
+  return `${formatAmount(row.key, amount)} ${row.unit}`
 }
 
 function chipFigure(row: SummaryRow): string {
@@ -160,11 +178,17 @@ const menu = computed<DropdownMenuItem[][]>(() => [
           <NutritionMacroBar
             :label="row.name"
             :label-class="MACRO_CLASS[row.key as MacroKey]"
-            :figure="barFigure(row)"
             :progress="row.progress === null ? null : row.progress * 100"
             :color="row.state === 'over' ? 'error' : BAR_COLOR[row.key]"
             :data-test="`bar-${row.key}`"
-          />
+          >
+            <template #figure>
+              {{ barAmount(row) }}
+              <span v-if="barSuffix(row)" :class="{ 'text-error': barSuffix(row) === 'over' }">
+                {{ barSuffix(row) }}
+              </span>
+            </template>
+          </NutritionMacroBar>
           <span :data-test="`${row.key}-value`" class="sr-only">{{ barValue(row) }}</span>
           <span :data-test="`${row.key}-state`" class="sr-only">{{ row.state }}</span>
           <span :data-test="`total-${row.key}`" class="sr-only">{{ totalFigure(row) }}</span>
