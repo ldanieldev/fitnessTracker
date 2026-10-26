@@ -3,7 +3,7 @@ name: my-fitness-journal
 
 services:
   migrate:
-    image: ghcr.io/ldanieldev/my-fitness-journal:0.1.8
+    image: ghcr.io/ldanieldev/my-fitness-journal:0.1.9
     container_name: my-fitness-journal-migrate
     command: ['bun', '.output/migrate.mjs']
     environment:
@@ -18,7 +18,7 @@ services:
     restart: 'no'
 
   app:
-    image: ghcr.io/ldanieldev/my-fitness-journal:0.1.8
+    image: ghcr.io/ldanieldev/my-fitness-journal:0.1.9
     container_name: my-fitness-journal
     environment:
       DATABASE_URL: postgres://journal:CHANGE_ME_APP_DB_PASSWORD@postgres:5432/app
