@@ -53,6 +53,7 @@ export default defineNuxtConfig({
   $development: {
     runtimeConfig: {
       session: {
+        password: '',
         cookie: {
           // Browsers only exempt localhost from the Secure attribute, so a LAN-IP dev host drops the session cookie.
           secure: false
@@ -88,6 +89,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     session: {
+      // Required by SessionConfig; the real value comes from NUXT_SESSION_PASSWORD at runtime.
+      password: '',
       // Seconds since the session cookie was first issued; h3 enforces it on the cookie, seal TTL and unseal.
       maxAge: 60 * 60 * 24 * 30
     },
