@@ -76,7 +76,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: docker.io/library/postgres:18.3-alpine
+    image: docker.io/library/postgres:18.6-alpine
     container_name: my-fitness-journal-db
     environment:
       POSTGRES_USER: postgres
@@ -99,7 +99,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: docker.io/library/redis:8.6.1-alpine
+    image: docker.io/library/redis:8.6.8-alpine
     container_name: my-fitness-journal-redis
     command: ['redis-server', '--appendonly', 'yes', '--requirepass', 'CHANGE_ME_REDIS_PASSWORD']
     environment:
@@ -119,12 +119,14 @@ services:
     restart: unless-stopped
 
   meilisearch:
-    image: docker.io/getmeili/meilisearch:v1.37.0
+    image: docker.io/getmeili/meilisearch:v1.56.0
     container_name: my-fitness-journal-meili
     environment:
       MEILI_ENV: production
       MEILI_MASTER_KEY: CHANGE_ME_MEILI_MASTER_KEY
       MEILI_NO_ANALYTICS: 'true'
+      # Without this, a new image tag refuses to open the existing database; a no-op once it matches.
+      MEILI_UPGRADE_DB: 'true'
     volumes:
       - meilisearch:/meili_data
     healthcheck:
@@ -140,7 +142,7 @@ services:
     restart: unless-stopped
 
   inngest:
-    image: docker.io/inngest/inngest:v1.17.5
+    image: docker.io/inngest/inngest:v1.49.0
     container_name: my-fitness-journal-inngest
     # --poll-interval re-syncs the app's functions, so a redeploy needs no manual PUT /api/inngest.
     command: ['inngest', 'start', '--sdk-url', 'http://app:3000/api/inngest', '--poll-interval', '60']
@@ -151,7 +153,8 @@ services:
       INNGEST_REDIS_URI: redis://:CHANGE_ME_REDIS_PASSWORD@redis:6379/0
     # No ports: the dashboard has no login and can re-run functions.
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8288/health']
+      # The image dropped curl in v1.19.3.
+      test: ['CMD', 'inngest', 'alpha', 'doctor', 'healthcheck']
       interval: 10s
       timeout: 5s
       retries: 5
