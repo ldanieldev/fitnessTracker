@@ -59,7 +59,7 @@ function barProgress(key: (typeof barKeys)[number]): number | null {
         </template>
       </div>
 
-      <NutritionMacroDonut :nutrients="total" />
+      <NutritionMacroDonut :nutrients="props.perServing ?? total" />
 
       <div class="flex flex-col gap-2">
         <NutritionMacroBar

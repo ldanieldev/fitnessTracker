@@ -41,4 +41,24 @@ describe('NutritionTotalsPanel', () => {
       'width: 20%'
     )
   })
+
+  it('shows per-serving grams in the donut when a serving is set', async () => {
+    registerEndpoint('/api/nutrition/nutrients/tracked', () => [])
+    const wrapper = await mountSuspended(NutritionTotalsPanel, {
+      props: {
+        total: { energy: 500, protein: 21, carbohydrate: 67, fat: 9 },
+        perServing: { energy: 250, protein: 10.5, carbohydrate: 33.5, fat: 4.5 },
+        servingName: 'bowl'
+      }
+    })
+    expect(wrapper.find('[data-test="donut-protein"]').text()).toContain('10.5 g')
+  })
+
+  it('shows total grams in the donut with no serving set', async () => {
+    registerEndpoint('/api/nutrition/nutrients/tracked', () => [])
+    const wrapper = await mountSuspended(NutritionTotalsPanel, {
+      props: { total: { energy: 500, protein: 21, carbohydrate: 67, fat: 9 } }
+    })
+    expect(wrapper.find('[data-test="donut-protein"]').text()).toContain('21 g')
+  })
 })
