@@ -223,3 +223,13 @@ describe('nearTodaySchema', () => {
     expect(nearTodaySchema.safeParse('2026-02-30').success).toBe(false)
   })
 })
+
+describe('bar weight limits', () => {
+  it('accepts a 0 lb sled and rejects negatives on both exercise schemas', async () => {
+    const { exercisePrefsSchema, exerciseUpdateSchema } = await import('../../server/utils/workouts/input')
+    for (const schema of [exercisePrefsSchema, exerciseUpdateSchema]) {
+      expect(schema.safeParse({ barWeight: 0 }).success).toBe(true)
+      expect(schema.safeParse({ barWeight: -1 }).success).toBe(false)
+    }
+  })
+})

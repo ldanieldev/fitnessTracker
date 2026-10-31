@@ -112,7 +112,7 @@ watch(
       Can't load {{ model }} lb with these plates
     </p>
     <p class="text-center text-xs text-dimmed" data-test="plates-caption">
-      Bar: {{ bar }} lb · Tap to add, tap the count to remove
+      <template v-if="bar > 0">Bar: {{ bar }} lb · </template>Tap to add, tap the count to remove
     </p>
   </div>
 </template>

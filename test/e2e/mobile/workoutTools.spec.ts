@@ -63,3 +63,34 @@ test('phone: a running rest survives leaving the log page, reads its countdown, 
   await expect(page).toHaveURL(/\/workouts\/exercises\/\d+$/)
   await expect(page.getByText('Rest complete!', { exact: true })).toBeVisible({ timeout: 25000 })
 })
+
+test('phone: a 0 lb sled shows the per-side plates for the logged total', async ({ page, goto }) => {
+  await goto('/', { waitUntil: 'hydration' })
+  await registerViaApi(page, makeUser())
+  const press = (await apiFetch<Exercise[]>(page, 'GET', '/api/workouts/exercises?q=leg%20press')).json.find(
+    (exercise) => exercise.name === 'Leg Press'
+  )!
+  const saved = await apiFetch<Exercise>(page, 'PUT', `/api/workouts/exercises/${press.id}/prefs`, {
+    loadStyle: 'barbell',
+    barWeight: 0
+  })
+  expect(saved.status).toBe(200)
+  expect(saved.json.barWeight).toBe(0)
+
+  await goto('/workouts/log', { waitUntil: 'hydration' })
+  await page.locator('[data-test="start-empty"]').click()
+  await expect
+    .poll(async () => (await apiFetch<{ id: number } | null>(page, 'GET', '/api/workouts/sessions/active')).json)
+    .not.toBeNull()
+  const active = (await apiFetch<{ id: number }>(page, 'GET', '/api/workouts/sessions/active')).json
+  await apiFetch(page, 'POST', `/api/workouts/sessions/${active.id}/entries`, { exerciseId: press.id })
+  await page.reload({ waitUntil: 'load' })
+
+  await page.locator('[data-test="set-weight-new"]').fill('530')
+  await expect(page.locator('[data-test="plate-count-45"]')).toHaveText('5')
+  await expect(page.locator('[data-test="plate-count-35"]')).toHaveText('1')
+  await expect(page.locator('[data-test="plate-count-5"]')).toHaveText('1')
+  await expect(page.locator('[data-test="plates-caption"]')).not.toContainText('Bar:')
+  await expect(page.locator('[data-test^="entry-plates-"]')).toBeVisible()
+  await expect(page.getByText('Bar: 0 lb')).toHaveCount(0)
+})

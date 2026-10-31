@@ -142,7 +142,7 @@ function save() {
       <div class="flex items-center gap-2">
         <AppNumberInput
           v-model="local.barWeight"
-          :min="1"
+          :min="0"
           :step="5"
           class="min-w-0 flex-1"
           data-test="setting-bar-weight"

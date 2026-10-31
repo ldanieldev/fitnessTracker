@@ -172,6 +172,12 @@ describe('WorkoutExerciseCard', () => {
     expect(silent.find('[data-test="entry-plates-9"]').exists()).toBe(false)
   })
 
+  it('drops the bar caption at 0 lb but keeps the plates button', async () => {
+    const wrapper = await mount({ entry: { ...entry, barWeight: 0 }, plateButton: true })
+    expect(wrapper.text()).not.toContain('Bar:')
+    expect(wrapper.find('[data-test="entry-plates-9"]').exists()).toBe(true)
+  })
+
   const ranged = { ...entry, target: { sets: 3, low: 4, high: 6, weight: null }, sets: [set(1, 185, 5)] }
   const bodyText = (test: string) => document.body.querySelector(`[data-test="${test}"]`)?.textContent ?? null
   const click = async (test: string) => {

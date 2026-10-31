@@ -209,7 +209,7 @@ function submit() {
         />
 
         <UFormField v-if="showBarWeight" label="Bar weight" :ui="LABEL_UI">
-          <AppNumberInput v-model="local.barWeight" :min="1" :step="5" class="w-full" data-test="exercise-bar-weight" />
+          <AppNumberInput v-model="local.barWeight" :min="0" :step="5" class="w-full" data-test="exercise-bar-weight" />
         </UFormField>
 
         <ExerciseChipGroup

@@ -82,7 +82,12 @@ function choose(picked: 'apply' | 'stay') {
   promptOpen.value = false
 }
 const lastSummary = computed(() => props.entry.lastSets.map((set) => formatSet(measures.value, set)))
-const showBar = computed(() => props.entry.loadStyle === 'barbell' && props.entry.barWeight != null)
+const showBar = computed(
+  () =>
+    props.entry.loadStyle === 'barbell' &&
+    props.entry.barWeight != null &&
+    (props.entry.barWeight > 0 || props.plateButton)
+)
 const totalVolume = computed(() => {
   if (!measures.value.includes('weight') || !measures.value.includes('reps') || props.entry.sets.length === 0)
     return null
@@ -243,7 +248,7 @@ function confirmRemove() {
             :data-test="`entry-optional-${entry.id}`"
           />
           <span v-if="showBar" class="inline-flex items-center">
-            Bar: {{ entry.barWeight }} lb
+            <template v-if="entry.barWeight">Bar: {{ entry.barWeight }} lb</template>
             <UButton
               v-if="plateButton"
               label="Plates"
@@ -251,7 +256,8 @@ function confirmRemove() {
               variant="subtle"
               color="neutral"
               size="xs"
-              class="ml-2.5 min-h-10"
+              class="min-h-10"
+              :class="{ 'ml-2.5': entry.barWeight }"
               :data-test="`entry-plates-${entry.id}`"
               @click="emit('plates', plateWeight)"
             />
