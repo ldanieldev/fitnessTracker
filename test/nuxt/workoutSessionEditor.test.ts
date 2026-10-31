@@ -74,6 +74,29 @@ describe('WorkoutSessionEditor', () => {
     wrapper.unmount()
   })
 
+  it('emits allSetsDone only once the last target is reached', async () => {
+    const three = Array.from({ length: 3 }, (_, i) => ({ ...logged, id: 60 + i }))
+    const partial = session([entry(1, null, three), entry(2, null)])
+    const { wrapper: early } = await logFirstSet(session([entry(1, null), entry(2, null)]), partial)
+    expect(early.emitted('allSetsDone')).toBeUndefined()
+    early.unmount()
+
+    const finished = session([entry(1, null, three), entry(2, null, three)])
+    const { wrapper: last } = await logFirstSet(partial, finished)
+    expect(last.emitted('allSetsDone')).toHaveLength(1)
+    last.unmount()
+  })
+
+  it('holds allSetsDone until the progression prompt for the last set closes', async () => {
+    const target = { sets: 1, low: 5, high: 8, weight: null }
+    const finished = session([{ ...entry(1, null, [logged]), target }])
+    const { wrapper } = await logFirstSet(session([{ ...entry(1, null), target }]), finished)
+    expect(wrapper.emitted('allSetsDone')).toBeUndefined()
+    wrapper.findComponent(WorkoutExerciseCard).vm.$emit('promptClosed')
+    expect(wrapper.emitted('allSetsDone')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('stays on the exercise and does not scroll while it has sets left', async () => {
     const after = session([entry(1, null, [logged]), entry(2, null)])
     const { wrapper, scroll } = await logFirstSet(session([entry(1, null), entry(2, null)]), after)

@@ -6,6 +6,7 @@ export interface GroupItem {
 export interface FlowEntry extends GroupItem {
   setCount: number
   targetSets: number | null
+  optional?: boolean
 }
 
 export interface SetFlow {
@@ -121,6 +122,11 @@ export function supersetLabel(items: GroupItem[], id: number): string | null {
 const hasSetsLeft = (entry: FlowEntry) => entry.targetSets === null || entry.setCount < entry.targetSets
 const unfinished = (entry: FlowEntry) =>
   entry.targetSets !== null ? entry.setCount < entry.targetSets : entry.setCount === 0
+
+export function allSetsDone(entries: FlowEntry[]): boolean {
+  const required = entries.filter((entry) => !entry.optional)
+  return required.some((entry) => entry.targetSets !== null) && !required.some(unfinished)
+}
 
 export function nextAfterSet(entries: FlowEntry[], loggedEntryId: number): SetFlow {
   const index = entries.findIndex((entry) => entry.id === loggedEntryId)

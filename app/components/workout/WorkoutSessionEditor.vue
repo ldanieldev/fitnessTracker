@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { SetMeasures, WorkoutEntry, WorkoutSession } from '~~/shared/types/workout'
 import type { SetFlow } from '~~/shared/utils/supersets'
-import { moveWithGroups, nextAfterSet, supersetIndex, supersetLabel } from '~~/shared/utils/supersets'
+import { allSetsDone, moveWithGroups, nextAfterSet, supersetIndex, supersetLabel } from '~~/shared/utils/supersets'
+import { progressionFor } from '~~/shared/utils/workoutProgression'
 import { errorMessage } from '~/utils/apiError'
 import WorkoutSupersetSheet from '~/components/workout/WorkoutSupersetSheet.vue'
 
@@ -17,6 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:session': [session: WorkoutSession]
   setLogged: [entryId: number, flow: SetFlow]
+  allSetsDone: []
   openPlates: [entryId: number, weight: number | null]
 }>()
 
@@ -214,6 +216,8 @@ function retrySave(entryId: number, setId: number | null) {
   return saveSet(entryId, setId, action)
 }
 
+let doneAfterPrompt = false
+
 async function addSet(entryId: number, values: SetValues) {
   const session = await guardAdd(entryId, () =>
     saveSet(entryId, null, () =>
@@ -221,15 +225,14 @@ async function addSet(entryId: number, values: SetValues) {
     )
   )
   if (!session) return
-  const flow = nextAfterSet(
-    session.entries.map((entry) => ({
-      id: entry.id,
-      supersetGroup: entry.supersetGroup,
-      setCount: entry.sets.length,
-      targetSets: entry.target?.sets ?? null
-    })),
-    entryId
-  )
+  const flowEntries = session.entries.map((entry) => ({
+    id: entry.id,
+    supersetGroup: entry.supersetGroup,
+    setCount: entry.sets.length,
+    targetSets: entry.target?.sets ?? null,
+    optional: entry.optional
+  }))
+  const flow = nextAfterSet(flowEntries, entryId)
   if (flow.open !== null && flow.open !== entryId) {
     collapsed[entryId] = true
     collapsed[flow.open] = false
@@ -239,6 +242,17 @@ async function addSet(entryId: number, values: SetValues) {
       ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }
   emit('setLogged', entryId, flow)
+  if (!allSetsDone(flowEntries)) return
+  const entry = session.entries.find((candidate) => candidate.id === entryId)
+  // The card opens its progression prompt for this set, so the end prompt waits rather than stacking on it.
+  if (entry && progressionFor(entry, session.deload)) doneAfterPrompt = true
+  else emit('allSetsDone')
+}
+
+function onPromptClosed() {
+  if (!doneAfterPrompt) return
+  doneAfterPrompt = false
+  emit('allSetsDone')
 }
 
 function editSet(entryId: number, setId: number, values: SetValues) {
@@ -276,6 +290,7 @@ function editSet(entryId: number, setId: number, values: SetValues) {
       @remove="removeEntry(entry.id)"
       @retry-save="(setId) => retrySave(entry.id, setId)"
       @plates="(weight) => emit('openPlates', entry.id, weight)"
+      @prompt-closed="onPromptClosed"
     />
 
     <p v-if="!session.entries.length" class="text-sm text-dimmed">Add an exercise to start logging sets.</p>

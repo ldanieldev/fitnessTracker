@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  allSetsDone,
   groupItems,
   moveWithGroups,
   moveWithGroupsTo,
@@ -142,5 +143,41 @@ describe('nextAfterSet', () => {
       rest: true,
       restFromEntryId: 1
     })
+  })
+})
+
+describe('allSetsDone', () => {
+  const flow = (id: number, setCount: number, targetSets: number | null, optional = false) => ({
+    id,
+    supersetGroup: null,
+    setCount,
+    targetSets,
+    optional
+  })
+
+  it('is true once every exercise reaches its target, whatever order they were done in', () => {
+    expect(allSetsDone([flow(1, 2, 2), flow(2, 1, 2), flow(3, 2, 2)])).toBe(false)
+    expect(allSetsDone([flow(1, 2, 2), flow(2, 2, 2), flow(3, 2, 2)])).toBe(true)
+  })
+
+  it('counts extra sets past the target as done', () => {
+    expect(allSetsDone([flow(1, 3, 2)])).toBe(true)
+  })
+
+  it('ignores optional exercises', () => {
+    expect(allSetsDone([flow(1, 2, 2), flow(2, 0, 2, true)])).toBe(true)
+  })
+
+  it('needs one set on an exercise without a target', () => {
+    expect(allSetsDone([flow(1, 2, 2), flow(2, 0, null)])).toBe(false)
+    expect(allSetsDone([flow(1, 2, 2), flow(2, 1, null)])).toBe(true)
+  })
+
+  it('stays false for a freestyle workout with no targets', () => {
+    expect(allSetsDone([flow(1, 5, null), flow(2, 5, null)])).toBe(false)
+  })
+
+  it('stays false when only an optional exercise has a target', () => {
+    expect(allSetsDone([flow(1, 5, null), flow(2, 2, 2, true)])).toBe(false)
   })
 })

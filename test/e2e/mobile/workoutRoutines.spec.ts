@@ -143,7 +143,7 @@ test('phone: build a routine with a superset, run the due day, then an off-order
   await logSet(page, a1, '100', '7')
   await logSet(page, a2, '80', '9')
   await expect(page.locator(`[data-test="entry-target-${a1}"]`)).toHaveText('2 of 2 · 5–8')
-  await page.locator('[data-test="session-finish"]').click()
+  await page.locator('[data-test="end-prompt-end"]').click()
   await expect(page.locator('[data-test="start-empty"]')).toBeVisible()
 
   await goto(`/workouts/routines/${routineId}`, { waitUntil: 'hydration' })
@@ -197,7 +197,19 @@ test('phone: copy a past workout with one exercise unticked shows targets', asyn
     .not.toBeNull()
   const copy = (await apiFetch<WorkoutSession>(page, 'GET', '/api/workouts/sessions/active')).json
   expect(copy.entries).toHaveLength(1)
-  await expect(page.locator(`[data-test="entry-target-${copy.entries[0]!.id}"]`)).toHaveText('0 of 2 · 8–10')
+  const entryId = copy.entries[0]!.id
+  await expect(page.locator(`[data-test="entry-target-${entryId}"]`)).toHaveText('0 of 2 · 8–10')
+
+  await logSet(page, entryId, '60', '8')
+  await expect(page.locator(`[data-test="entry-target-${entryId}"]`)).toHaveText('1 of 2 · 8–10')
+  await expect(page.locator('[data-test="end-prompt-end"]')).toBeHidden()
+  await logSet(page, entryId, '60', '8')
+  await page.locator('[data-test="end-prompt-keep-going"]').click()
+  await expect(page.locator('[data-test="end-prompt-end"]')).toBeHidden()
+  await logSet(page, entryId, '60', '8')
+  await expect(page.locator(`[data-test="entry-target-${entryId}"]`)).toHaveText('3 of 2 · 8–10')
+  await expect(page.locator('[data-test="end-prompt-end"]')).toBeHidden()
+
   await page.locator('[data-test="session-finish"]').click()
   await expect(page.locator('[data-test="start-empty"]')).toBeVisible()
 })

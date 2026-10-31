@@ -45,6 +45,7 @@ const emit = defineEmits<{
   plates: [weight: number | null]
   superset: []
   ungroup: []
+  promptClosed: []
 }>()
 
 const collapsed = defineModel<boolean>('collapsed', { default: false })
@@ -76,6 +77,10 @@ watch(
     promptOpen.value = progression.value !== null && length > previous
   }
 )
+
+watch(promptOpen, (open) => {
+  if (!open) emit('promptClosed')
+})
 
 function choose(picked: 'apply' | 'stay') {
   choice.value = picked

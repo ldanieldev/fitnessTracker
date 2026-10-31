@@ -120,6 +120,21 @@ function onSetLogged(entryId: number, flow: SetFlow) {
   restTimer.start(entry?.restOverrideSeconds ?? entry?.restSeconds ?? defaultRestSeconds.value)
 }
 
+const endPromptOpen = ref(false)
+const endPromptedSessionId = ref<number | null>(null)
+
+function onAllSetsDone() {
+  const id = session.value?.id ?? null
+  if (id === endPromptedSessionId.value) return
+  endPromptedSessionId.value = id
+  endPromptOpen.value = true
+}
+
+function endFromPrompt() {
+  endPromptOpen.value = false
+  return finishSession()
+}
+
 const toolsOpen = ref(false)
 const toolsEntryId = ref<number | null>(null)
 const toolsTab = ref<ToolsTab>('plates')
@@ -295,8 +310,28 @@ function useWeight(entryId: number, weight: number) {
         :preset-weights="presetWeights"
         class="mx-auto w-full max-w-3xl pb-4"
         @set-logged="onSetLogged"
+        @all-sets-done="onAllSetsDone"
         @open-plates="openPlates"
       />
+
+      <UModal
+        v-model:open="endPromptOpen"
+        title="All sets done"
+        description="End this workout?"
+        :ui="{ footer: 'justify-end' }"
+      >
+        <template #footer>
+          <UButton
+            label="Keep going"
+            color="neutral"
+            variant="outline"
+            class="min-h-10"
+            data-test="end-prompt-keep-going"
+            @click="endPromptOpen = false"
+          />
+          <UButton label="End workout" class="min-h-10" data-test="end-prompt-end" @click="endFromPrompt" />
+        </template>
+      </UModal>
 
       <WorkoutCopySheet v-model:open="copyOpen" @start="start" />
       <WorkoutDayPickerSheet v-model:open="dayPickerOpen" @start="start" />
